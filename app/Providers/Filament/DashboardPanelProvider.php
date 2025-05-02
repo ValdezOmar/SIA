@@ -17,8 +17,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Filament\Support\Assets\Js;
-use Filament\Support\Assets\Css;
+
 
 class DashboardPanelProvider extends PanelProvider
 {
@@ -64,6 +63,7 @@ class DashboardPanelProvider extends PanelProvider
                 'Configuración',
                 // ... otros grupos
             ])
+            
             //RUTA FAVICON
             ->favicon(asset('images/favicon.ico'))
             
@@ -71,7 +71,8 @@ class DashboardPanelProvider extends PanelProvider
             ->authGuard('web')
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
-            
+            // Configuración de Spatie Permission
+            //->plugin(\BezhanSalleh\FilamentShield\FilamentShieldPlugin::make())
             ;
     }
 }

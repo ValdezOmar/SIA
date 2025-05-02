@@ -59,6 +59,14 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         array (
             'voku\\' => 5,
         ),
+        'p' => 
+        array (
+            'pxlrbt\\FilamentExcel\\' => 21,
+        ),
+        'Z' => 
+        array (
+            'ZipStream\\' => 10,
+        ),
         'W' => 
         array (
             'Whoops\\' => 7,
@@ -128,6 +136,7 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
             'Psr\\Cache\\' => 10,
             'PhpParser\\' => 10,
             'PhpOption\\' => 10,
+            'PhpOffice\\PhpSpreadsheet\\' => 25,
         ),
         'O' => 
         array (
@@ -141,7 +150,9 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         array (
             'Monolog\\' => 8,
             'Mockery\\' => 8,
+            'Matrix\\' => 7,
             'Masterminds\\' => 12,
+            'Maatwebsite\\Excel\\' => 18,
         ),
         'L' => 
         array (
@@ -213,6 +224,9 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         'C' => 
         array (
             'Cron\\' => 5,
+            'Composer\\Semver\\' => 16,
+            'Composer\\Pcre\\' => 14,
+            'Complex\\' => 8,
             'Carbon\\Doctrine\\' => 16,
             'Carbon\\' => 7,
         ),
@@ -234,6 +248,14 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         'voku\\' => 
         array (
             0 => __DIR__ . '/..' . '/voku/portable-ascii/src/voku',
+        ),
+        'pxlrbt\\FilamentExcel\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/pxlrbt/filament-excel/src',
+        ),
+        'ZipStream\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/maennchen/zipstream-php/src',
         ),
         'Whoops\\' => 
         array (
@@ -456,6 +478,10 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
         ),
+        'PhpOffice\\PhpSpreadsheet\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet',
+        ),
         'OpenSpout\\' => 
         array (
             0 => __DIR__ . '/..' . '/openspout/openspout/src',
@@ -472,9 +498,17 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         array (
             0 => __DIR__ . '/..' . '/mockery/mockery/library/Mockery',
         ),
+        'Matrix\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/markbaker/matrix/classes/src',
+        ),
         'Masterminds\\' => 
         array (
             0 => __DIR__ . '/..' . '/masterminds/html5/src',
+        ),
+        'Maatwebsite\\Excel\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/maatwebsite/excel/src',
         ),
         'Livewire\\' => 
         array (
@@ -669,6 +703,18 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         array (
             0 => __DIR__ . '/..' . '/dragonmantank/cron-expression/src/Cron',
         ),
+        'Composer\\Semver\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/composer/semver/src',
+        ),
+        'Composer\\Pcre\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/composer/pcre/src',
+        ),
+        'Complex\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/markbaker/complex/classes/src',
+        ),
         'Carbon\\Doctrine\\' => 
         array (
             0 => __DIR__ . '/..' . '/carbonphp/carbon-doctrine-types/src/Carbon/Doctrine',
@@ -723,14 +769,28 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         'AnourValar\\EloquentSerialize\\Service' => __DIR__ . '/..' . '/anourvalar/eloquent-serialize/src/Service.php',
         'App\\Console\\Commands\\DescargarAsistencias' => __DIR__ . '/../..' . '/app/Console/Commands/DescargarAsistencias.php',
         'App\\Filament\\Exports\\AsistenciaExport' => __DIR__ . '/../..' . '/app/Filament/Exports/AsistenciaExport.php',
+        'App\\Filament\\Resources\\Configuracion\\PermissionResource\\Pages\\CreatePermission' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/PermissionResource/Pages/CreatePermission.php',
+        'App\\Filament\\Resources\\Configuracion\\PermissionResource\\Pages\\EditPermission' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/PermissionResource/Pages/EditPermission.php',
+        'App\\Filament\\Resources\\Configuracion\\PermissionResource\\Pages\\ListPermissions' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/PermissionResource/Pages/ListPermissions.php',
+        'App\\Filament\\Resources\\Configuracion\\PermissionResource\\Pages\\ViewPermission' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/PermissionResource/Pages/ViewPermission.php',
+        'App\\Filament\\Resources\\Configuracion\\RoleResource\\Pages\\CreateRole' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/RoleResource/Pages/CreateRole.php',
+        'App\\Filament\\Resources\\Configuracion\\RoleResource\\Pages\\EditRole' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/RoleResource/Pages/EditRole.php',
+        'App\\Filament\\Resources\\Configuracion\\RoleResource\\Pages\\ListRoles' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/RoleResource/Pages/ListRoles.php',
+        'App\\Filament\\Resources\\Configuracion\\RoleResource\\Pages\\ViewRole' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/RoleResource/Pages/ViewRole.php',
+        'App\\Filament\\Resources\\Configuracion\\RoleResource\\RelationManagers\\PermissionsRelationManager' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/RoleResource/RelationManagers/PermissionsRelationManager.php',
+        'App\\Filament\\Resources\\Configuracion\\RoleResource\\RelationManagers\\UsersRelationManager' => __DIR__ . '/../..' . '/app/Filament/Resources/Configuracion/RoleResource/RelationManagers/UsersRelationManager.php',
+        'App\\Filament\\Resources\\PermissionResource' => __DIR__ . '/../..' . '/app/Filament/Resources/PermissionResource.php',
         'App\\Filament\\Resources\\RRHH\\AsistenciaResource' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/AsistenciaResource.php',
         'App\\Filament\\Resources\\RRHH\\AsistenciaResource\\Pages\\CreateAsistencia' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/AsistenciaResource/Pages/CreateAsistencia.php',
         'App\\Filament\\Resources\\RRHH\\AsistenciaResource\\Pages\\EditAsistencia' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/AsistenciaResource/Pages/EditAsistencia.php',
         'App\\Filament\\Resources\\RRHH\\AsistenciaResource\\Pages\\ListAsistencias' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/AsistenciaResource/Pages/ListAsistencias.php',
+        'App\\Filament\\Resources\\RRHH\\DirectorioResource' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/DirectorioResource.php',
+        'App\\Filament\\Resources\\RRHH\\DirectorioResource\\Pages\\ListDirectorio' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/DirectorioResource/Pages/ListDirectorio.php',
         'App\\Filament\\Resources\\RRHH\\EmpleadoResource' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/EmpleadoResource.php',
         'App\\Filament\\Resources\\RRHH\\EmpleadoResource\\Pages\\CreateEmpleado' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/EmpleadoResource/Pages/CreateEmpleado.php',
         'App\\Filament\\Resources\\RRHH\\EmpleadoResource\\Pages\\EditEmpleado' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/EmpleadoResource/Pages/EditEmpleado.php',
         'App\\Filament\\Resources\\RRHH\\EmpleadoResource\\Pages\\ListEmpleados' => __DIR__ . '/../..' . '/app/Filament/Resources/RRHH/EmpleadoResource/Pages/ListEmpleados.php',
+        'App\\Filament\\Resources\\RoleResource' => __DIR__ . '/../..' . '/app/Filament/Resources/RoleResource.php',
         'App\\Filament\\Resources\\UserResource' => __DIR__ . '/../..' . '/app/Filament/Resources/UserResource.php',
         'App\\Filament\\Resources\\UserResource\\Pages\\CreateUser' => __DIR__ . '/../..' . '/app/Filament/Resources/UserResource/Pages/CreateUser.php',
         'App\\Filament\\Resources\\UserResource\\Pages\\EditUser' => __DIR__ . '/../..' . '/app/Filament/Resources/UserResource/Pages/EditUser.php',
@@ -913,6 +973,7 @@ class ComposerStaticInit88970a0117c062eed55fa8728fc43833
         'Database\\Factories\\UserFactory' => __DIR__ . '/../..' . '/database/factories/UserFactory.php',
         'Database\\Seeders\\DatabaseSeeder' => __DIR__ . '/../..' . '/database/seeders/DatabaseSeeder.php',
         'Database\\Seeders\\EmpleadoSeeder' => __DIR__ . '/../..' . '/database/seeders/EmpleadoSeeder.php',
+        'Database\\Seeders\\RolePermissionSeeder' => __DIR__ . '/../..' . '/database/seeders/RolePermissionSeeder.php',
         'DateError' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateError.php',
         'DateException' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateException.php',
         'DateInvalidOperationException' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/DateInvalidOperationException.php',
