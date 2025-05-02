@@ -4,7 +4,7 @@ namespace Illuminate\Notifications;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Translation\HasLocalePreference;
-use Illuminate\Database\Eloquent\Collection as ModelCollection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Notifications\Events\NotificationSent;
@@ -51,7 +51,6 @@ class NotificationSender
      * @param  \Illuminate\Contracts\Bus\Dispatcher  $bus
      * @param  \Illuminate\Contracts\Events\Dispatcher  $events
      * @param  string|null  $locale
-     * @return void
      */
     public function __construct($manager, $bus, $events, $locale = null)
     {
@@ -87,7 +86,7 @@ class NotificationSender
      * @param  array|null  $channels
      * @return void
      */
-    public function sendNow($notifiables, $notification, array $channels = null)
+    public function sendNow($notifiables, $notification, ?array $channels = null)
     {
         $notifiables = $this->formatNotifiables($notifiables);
 
@@ -191,10 +190,18 @@ class NotificationSender
             foreach ((array) $original->via($notifiable) as $channel) {
                 $notification = clone $original;
 
-                $notification->id = $notificationId;
+                if (! $notification->id) {
+                    $notification->id = $notificationId;
+                }
 
                 if (! is_null($this->locale)) {
                     $notification->locale = $this->locale;
+                }
+
+                $connection = $notification->connection;
+
+                if (method_exists($notification, 'viaConnections')) {
+                    $connection = $notification->viaConnections()[$channel] ?? null;
                 }
 
                 $queue = $notification->queue;
@@ -203,20 +210,27 @@ class NotificationSender
                     $queue = $notification->viaQueues()[$channel] ?? null;
                 }
 
+                $delay = $notification->delay;
+
+                if (method_exists($notification, 'withDelay')) {
+                    $delay = $notification->withDelay($notifiable, $channel) ?? null;
+                }
+
+                $middleware = $notification->middleware ?? [];
+
+                if (method_exists($notification, 'middleware')) {
+                    $middleware = array_merge(
+                        $notification->middleware($notifiable, $channel),
+                        $middleware
+                    );
+                }
+
                 $this->bus->dispatch(
                     (new SendQueuedNotifications($notifiable, $notification, [$channel]))
-                            ->onConnection($notification->connection)
-                            ->onQueue($queue)
-                            ->delay(is_array($notification->delay) ?
-                                    ($notification->delay[$channel] ?? null)
-                                    : $notification->delay
-                            )
-                            ->through(
-                                array_merge(
-                                    method_exists($notification, 'middleware') ? $notification->middleware() : [],
-                                    $notification->middleware ?? []
-                                )
-                            )
+                        ->onConnection($connection)
+                        ->onQueue($queue)
+                        ->delay(is_array($delay) ? ($delay[$channel] ?? null) : $delay)
+                        ->through($middleware)
                 );
             }
         }
@@ -232,7 +246,8 @@ class NotificationSender
     {
         if (! $notifiables instanceof Collection && ! is_array($notifiables)) {
             return $notifiables instanceof Model
-                            ? new ModelCollection([$notifiables]) : [$notifiables];
+                ? new EloquentCollection([$notifiables])
+                : [$notifiables];
         }
 
         return $notifiables;

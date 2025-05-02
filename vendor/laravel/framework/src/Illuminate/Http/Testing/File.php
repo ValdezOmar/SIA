@@ -39,7 +39,6 @@ class File extends UploadedFile
      *
      * @param  string  $name
      * @param  resource  $tempFile
-     * @return void
      */
     public function __construct($name, $tempFile)
     {
@@ -107,8 +106,7 @@ class File extends UploadedFile
      *
      * @return int
      */
-    #[\ReturnTypeWillChange]
-    public function getSize()
+    public function getSize(): int
     {
         return $this->sizeToReport ?: parent::getSize();
     }
@@ -131,7 +129,7 @@ class File extends UploadedFile
      *
      * @return string
      */
-    public function getMimeType()
+    public function getMimeType(): string
     {
         return $this->mimeTypeToReport ?: MimeType::from($this->name);
     }

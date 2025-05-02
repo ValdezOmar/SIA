@@ -14,18 +14,24 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Traits\ForwardsCalls;
 use Illuminate\Support\Traits\Tappable;
+use Stringable;
+use Traversable;
 
 /**
- * @mixin \Illuminate\Support\Collection
+ * @template TKey of array-key
+ *
+ * @template-covariant TValue
+ *
+ * @mixin \Illuminate\Support\Collection<TKey, TValue>
  */
-abstract class AbstractCursorPaginator implements Htmlable
+abstract class AbstractCursorPaginator implements Htmlable, Stringable
 {
     use ForwardsCalls, Tappable;
 
     /**
      * All of the items being paginated.
      *
-     * @var \Illuminate\Support\Collection
+     * @var \Illuminate\Support\Collection<TKey, TValue>
      */
     protected $items;
 
@@ -110,7 +116,7 @@ abstract class AbstractCursorPaginator implements Htmlable
         }
 
         return $this->path()
-            .(Str::contains($this->path(), '?') ? '&' : '?')
+            .(str_contains($this->path(), '?') ? '&' : '?')
             .Arr::query($parameters)
             .$this->buildFragment();
     }
@@ -203,7 +209,8 @@ abstract class AbstractCursorPaginator implements Htmlable
      */
     public function getParametersForItem($item)
     {
-        return collect($this->parameters)
+        return (new Collection($this->parameters))
+            ->filter()
             ->flip()
             ->map(function ($_, $parameterName) use ($item) {
                 if ($item instanceof JsonResource) {
@@ -258,8 +265,8 @@ abstract class AbstractCursorPaginator implements Htmlable
     protected function ensureParameterIsPrimitive($parameter)
     {
         return is_object($parameter) && method_exists($parameter, '__toString')
-                        ? (string) $parameter
-                        : $parameter;
+            ? (string) $parameter
+            : $parameter;
     }
 
     /**
@@ -385,7 +392,7 @@ abstract class AbstractCursorPaginator implements Htmlable
     /**
      * Get the slice of items being paginated.
      *
-     * @return array
+     * @return array<TKey, TValue>
      */
     public function items()
     {
@@ -521,10 +528,9 @@ abstract class AbstractCursorPaginator implements Htmlable
     /**
      * Get an iterator for the items.
      *
-     * @return \ArrayIterator
+     * @return \ArrayIterator<TKey, TValue>
      */
-    #[\ReturnTypeWillChange]
-    public function getIterator()
+    public function getIterator(): Traversable
     {
         return $this->items->getIterator();
     }
@@ -554,8 +560,7 @@ abstract class AbstractCursorPaginator implements Htmlable
      *
      * @return int
      */
-    #[\ReturnTypeWillChange]
-    public function count()
+    public function count(): int
     {
         return $this->items->count();
     }
@@ -563,7 +568,7 @@ abstract class AbstractCursorPaginator implements Htmlable
     /**
      * Get the paginator's underlying collection.
      *
-     * @return \Illuminate\Support\Collection
+     * @return \Illuminate\Support\Collection<TKey, TValue>
      */
     public function getCollection()
     {
@@ -573,8 +578,13 @@ abstract class AbstractCursorPaginator implements Htmlable
     /**
      * Set the paginator's underlying collection.
      *
-     * @param  \Illuminate\Support\Collection  $collection
+     * @template TSetKey of array-key
+     * @template TSetValue
+     *
+     * @param  \Illuminate\Support\Collection<TSetKey, TSetValue>  $collection
      * @return $this
+     *
+     * @phpstan-this-out static<TSetKey, TSetValue>
      */
     public function setCollection(Collection $collection)
     {
@@ -596,11 +606,10 @@ abstract class AbstractCursorPaginator implements Htmlable
     /**
      * Determine if the given item exists.
      *
-     * @param  mixed  $key
+     * @param  TKey  $key
      * @return bool
      */
-    #[\ReturnTypeWillChange]
-    public function offsetExists($key)
+    public function offsetExists($key): bool
     {
         return $this->items->has($key);
     }
@@ -608,11 +617,10 @@ abstract class AbstractCursorPaginator implements Htmlable
     /**
      * Get the item at the given offset.
      *
-     * @param  mixed  $key
-     * @return mixed
+     * @param  TKey  $key
+     * @return TValue|null
      */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($key)
+    public function offsetGet($key): mixed
     {
         return $this->items->get($key);
     }
@@ -620,12 +628,11 @@ abstract class AbstractCursorPaginator implements Htmlable
     /**
      * Set the item at the given offset.
      *
-     * @param  mixed  $key
-     * @param  mixed  $value
+     * @param  TKey|null  $key
+     * @param  TValue  $value
      * @return void
      */
-    #[\ReturnTypeWillChange]
-    public function offsetSet($key, $value)
+    public function offsetSet($key, $value): void
     {
         $this->items->put($key, $value);
     }
@@ -633,11 +640,10 @@ abstract class AbstractCursorPaginator implements Htmlable
     /**
      * Unset the item at the given key.
      *
-     * @param  mixed  $key
+     * @param  TKey  $key
      * @return void
      */
-    #[\ReturnTypeWillChange]
-    public function offsetUnset($key)
+    public function offsetUnset($key): void
     {
         $this->items->forget($key);
     }

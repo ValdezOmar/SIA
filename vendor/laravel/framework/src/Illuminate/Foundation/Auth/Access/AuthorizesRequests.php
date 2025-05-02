@@ -5,6 +5,8 @@ namespace Illuminate\Foundation\Auth\Access;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Support\Str;
 
+use function Illuminate\Support\enum_value;
+
 trait AuthorizesRequests
 {
     /**
@@ -49,7 +51,9 @@ trait AuthorizesRequests
      */
     protected function parseAbilityAndArguments($ability, $arguments)
     {
-        if (is_string($ability) && strpos($ability, '\\') === false) {
+        $ability = enum_value($ability);
+
+        if (is_string($ability) && ! str_contains($ability, '\\')) {
             return [$ability, $arguments];
         }
 

@@ -26,7 +26,9 @@ class MySqlSchemaState extends SchemaState
 
         $this->removeAutoIncrementingState($path);
 
-        $this->appendMigrationData($path);
+        if ($this->hasMigrationTable()) {
+            $this->appendMigrationData($path);
+        }
     }
 
     /**
@@ -53,7 +55,7 @@ class MySqlSchemaState extends SchemaState
     protected function appendMigrationData(string $path)
     {
         $process = $this->executeDumpProcess($this->makeProcess(
-            $this->baseDumpCommand().' '.$this->migrationTable.' --no-create-info --skip-extended-insert --skip-routines --compact'
+            $this->baseDumpCommand().' '.$this->getMigrationTable().' --no-create-info --skip-extended-insert --skip-routines --compact --complete-insert'
         ), null, array_merge($this->baseVariables($this->connection->getConfig()), [
             //
         ]));
@@ -103,9 +105,15 @@ class MySqlSchemaState extends SchemaState
     {
         $value = ' --user="${:LARAVEL_LOAD_USER}" --password="${:LARAVEL_LOAD_PASSWORD}"';
 
-        $value .= $this->connection->getConfig()['unix_socket'] ?? false
-                        ? ' --socket="${:LARAVEL_LOAD_SOCKET}"'
-                        : ' --host="${:LARAVEL_LOAD_HOST}" --port="${:LARAVEL_LOAD_PORT}"';
+        $config = $this->connection->getConfig();
+
+        $value .= $config['unix_socket'] ?? false
+            ? ' --socket="${:LARAVEL_LOAD_SOCKET}"'
+            : ' --host="${:LARAVEL_LOAD_HOST}" --port="${:LARAVEL_LOAD_PORT}"';
+
+        if (isset($config['options'][\PDO::MYSQL_ATTR_SSL_CA])) {
+            $value .= ' --ssl-ca="${:LARAVEL_LOAD_SSL_CA}"';
+        }
 
         return $value;
     }
@@ -118,7 +126,7 @@ class MySqlSchemaState extends SchemaState
      */
     protected function baseVariables(array $config)
     {
-        $config['host'] = $config['host'] ?? '';
+        $config['host'] ??= '';
 
         return [
             'LARAVEL_LOAD_SOCKET' => $config['unix_socket'] ?? '',
@@ -127,6 +135,7 @@ class MySqlSchemaState extends SchemaState
             'LARAVEL_LOAD_USER' => $config['username'],
             'LARAVEL_LOAD_PASSWORD' => $config['password'] ?? '',
             'LARAVEL_LOAD_DATABASE' => $config['database'],
+            'LARAVEL_LOAD_SSL_CA' => $config['options'][\PDO::MYSQL_ATTR_SSL_CA] ?? '',
         ];
     }
 
@@ -136,23 +145,28 @@ class MySqlSchemaState extends SchemaState
      * @param  \Symfony\Component\Process\Process  $process
      * @param  callable  $output
      * @param  array  $variables
+     * @param  int  $depth
      * @return \Symfony\Component\Process\Process
      */
-    protected function executeDumpProcess(Process $process, $output, array $variables)
+    protected function executeDumpProcess(Process $process, $output, array $variables, int $depth = 0)
     {
+        if ($depth > 30) {
+            throw new Exception('Dump execution exceeded maximum depth of 30.');
+        }
+
         try {
             $process->setTimeout(null)->mustRun($output, $variables);
         } catch (Exception $e) {
             if (Str::contains($e->getMessage(), ['column-statistics', 'column_statistics'])) {
                 return $this->executeDumpProcess(Process::fromShellCommandLine(
                     str_replace(' --column-statistics=0', '', $process->getCommandLine())
-                ), $output, $variables);
+                ), $output, $variables, $depth + 1);
             }
 
-            if (Str::contains($e->getMessage(), ['set-gtid-purged'])) {
+            if (str_contains($e->getMessage(), 'set-gtid-purged')) {
                 return $this->executeDumpProcess(Process::fromShellCommandLine(
                     str_replace(' --set-gtid-purged=OFF', '', $process->getCommandLine())
-                ), $output, $variables);
+                ), $output, $variables, $depth + 1);
             }
 
             throw $e;

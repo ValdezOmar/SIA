@@ -2,72 +2,50 @@
 
 namespace App\Models;
 
-use App\Models\Scopes\Searchable;
-use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use Notifiable;
-    use HasFactory;
-    use Searchable;
-    use SoftDeletes;
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory,Notifiable;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'fecha_alta',
-        'fecha_baja',
-        'fecha_cambio',
-        'telefono_int',
-        'activo',
-        'cargo_id',
-        'file_personal_id',
     ];
 
-    protected $searchableFields = ['*'];
-
-    protected $hidden = ['password', 'remember_token'];
-
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'fecha_alta' => 'date',
-        'fecha_baja' => 'date',
-        'fecha_cambio' => 'date',
-        'activo' => 'boolean',
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
     ];
 
-    public function cargo()
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        return $this->belongsTo(Cargo::class);
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
-
-    public function filePersonal()
-    {
-        return $this->belongsTo(FilePersonal::class);
-    }
-
-    public function derivaciones()
-    {
-        return $this->hasMany(Derivacion::class, 'remitente_id');
-    }
-
-    public function tramites()
-    {
-        return $this->hasMany(Tramite::class, 'recepcion_user_id');
-    }
-
-    public function tramites2()
-    {
-        return $this->hasMany(Tramite::class, 'remitente_interno_id');
-    }
-
-    public function isSuperAdmin()
-    {
-        return in_array($this->email, config('auth.super_admins'));
-    }
+    //Permisos del sistema con spatie
+    
 }

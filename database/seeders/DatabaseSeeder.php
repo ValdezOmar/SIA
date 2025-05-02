@@ -2,38 +2,32 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
+// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
-     *
-     * @return void
      */
-    public function run()
+    public function run(): void
     {
-        // Adding an admin user
-        $user = \App\Models\User::factory()
-            ->count(1)
-            ->create([
-                'email' => 'admin@admin.com',
-                'password' => \Hash::make('admin'),
-            ]);
+        // User::factory(10)->create();
 
-        $this->call(AreaSeeder::class);
-        $this->call(AttacheableSeeder::class);
-        $this->call(CargoSeeder::class);
-        $this->call(CiteInternoSeeder::class);
-        $this->call(DerivacionSeeder::class);
-        $this->call(FilePersonalSeeder::class);
-        $this->call(ImageableSeeder::class);
-        $this->call(PermisosSeeder::class);
-        $this->call(RemitenteExternoSeeder::class);
-        $this->call(TipoDocumentoSeeder::class);
-        $this->call(TipoPermisoSeeder::class);
-        $this->call(TramiteSeeder::class);
-        $this->call(UserSeeder::class);
-        //$this->call(VariablesEmpresaSeeder::class);
+    //     User::factory()->create([
+    //         'name' => 'Test User',
+    //         'email' => 'test@example.com',
+    //     ]);
+
+    if (!DB::table('users')->where('email', 'admin@admin.com')->exists()) {
+        DB::table('users')->insert([
+            'name' => 'Administrator',
+            'email' => 'admin@admin.com',
+            'password' => bcrypt('password'),
+        ]);
+    }
     }
 }
