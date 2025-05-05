@@ -106,6 +106,25 @@ class DirectorioResource extends Resource
             ->actions([]) // Sin acciones de edición/eliminación
             ->bulkActions([]); // Sin acciones masivas
     }
+    //Premisos de acceso al directorio para que todos puedan ver
+    public static function canViewAny(): bool
+    {
+        return true; // Todos pueden ver este recurso
+    }
+    public static function canCreate(): bool
+    {
+        return false; // Nadie puede crear en el directorio
+    }
+
+    public static function canEdit($record): bool
+    {
+        return false; // Nadie puede editar en el directorio
+    }
+
+    public static function canDelete($record): bool
+    {
+        return false; // Nadie puede eliminar en el directorio
+    }
 
     public static function getPages(): array
     {

@@ -3,16 +3,14 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\HtmlString;
 
 class UserResource extends Resource
 {
@@ -36,32 +34,36 @@ class UserResource extends Resource
                             ->maxLength(255),
                         Forms\Components\TextInput::make('email')
                             ->email()
+                            ->hint("El email es muy importante ya que se enlazara al Empleado")
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\DateTimePicker::make('email_verified_at'),
                         Forms\Components\TextInput::make('password')
                             ->password()
-                            ->required(fn (string $context): bool => $context === 'create')
+                            ->required(fn(string $context): bool => $context === 'create')
                             ->maxLength(255)
-                            ->dehydrated(fn (?string $state): bool => filled($state))
+                            ->dehydrated(fn(?string $state): bool => filled($state))
                             ->hiddenOn('edit'),
-                    ])->columns(2),
-                
+                    ])->columns(1),
+
                 Forms\Components\Section::make('Roles y Permisos')
                     ->schema([
                         Forms\Components\Select::make('roles')
                             ->label('Roles asignados')
                             ->options(Role::all()->pluck('name', 'id'))
-                            ->getOptionLabelUsing(fn ($value): string => Role::find($value)?->name ?? '')
+                            ->getOptionLabelUsing(fn($value): string => Role::find($value)?->name ?? '')
                             ->searchable()
                             ->multiple()
                             ->preload()
                             ->relationship('roles', 'name')
-                            ->hintIcon('heroicon-o-question-mark-circle')
-                            ->hintColor('primary')
-                            ->hint(function () {
-                                return self::getRolesDescriptions();
-                            }),
+                            ->columnSpanFull(),
+
+                        Forms\Components\Grid::make()
+                            ->schema([
+                                Forms\Components\Placeholder::make('roles_description')
+                                    ->label("Descripción de roles")
+                                    ->content(fn() => self::getRolesDescriptions())
+                                    ->columnSpanFull()
+                            ])
                     ]),
             ]);
     }
@@ -77,10 +79,11 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label('Roles')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Administrador' => 'danger',
+                        'super_admin' => 'danger',
                         'Directiva' => 'warning',
-                        'Gerencia' => 'success',
+                        'Empleado' => 'success',
                         'Administracion Regional' => 'info',
                         default => 'gray',
                     }),
@@ -129,23 +132,58 @@ class UserResource extends Resource
         ];
     }
 
-    protected static function getRolesDescriptions(): string
+    protected static function getRolesDescriptions(): HtmlString
     {
         $roles = [
-            'Administrador' => 'Acceso completo al sistema. Puede leer, crear, modificar y eliminar cualquier registro.',
-            'Directiva' => 'Puede leer, crear y modificar registros. No puede eliminar información crítica.',
-            'Gerencia' => 'Puede leer, crear y modificar registros en su área de responsabilidad.',
-            'Administracion Regional' => 'Puede leer, crear y modificar registros en su región asignada.',
-            'Jefatura' => 'Puede leer, crear y modificar registros en su departamento.',
-            'Operativo' => 'Puede leer y crear registros. Capacidad limitada de modificación.',
-            'Empleado' => 'Solo acceso de lectura. No puede modificar ni crear registros.',
+            '👑 Administrador' => [
+                'description' => 'Gestion total • Configuración sistema • Gestión usuarios • Todos los módulos',
+                'color' => 'border-indigo-500 dark:border-indigo-400',
+                'bg' => 'bg-indigo-50 dark:bg-indigo-900/20'
+            ],
+            '🏢 Directiva' => [
+                'description' => 'Gestion total (sin eliminación crítica) • Reportes ejecutivos • Datos sensibles',
+                'color' => 'border-amber-500 dark:border-amber-400',
+                'bg' => 'bg-amber-50 dark:bg-amber-900/20'
+            ],
+            '👔 Gerencia' => [
+                'description' => 'Gestión de área • Aprobaciones • Reportes departamentales • Supervisión',
+                'color' => 'border-emerald-500 dark:border-emerald-400',
+                'bg' => 'bg-emerald-50 dark:bg-emerald-900/20'
+            ],
+            '🌎 Regional' => [
+                'description' => 'Gestión regional • Reportes locales • Coordinación regional • Operaciones',
+                'color' => 'border-blue-500 dark:border-blue-400',
+                'bg' => 'bg-blue-50 dark:bg-blue-900/20'
+            ],
+            '📋 Jefatura' => [
+                'description' => 'Gestión de equipo • Aprobación docs • Métricas • Operaciones diarias',
+                'color' => 'border-purple-500 dark:border-purple-400',
+                'bg' => 'bg-purple-50 dark:bg-purple-900/20'
+            ],
+            '🛠️ Operativo' => [
+                'description' => 'Registro actividades • Consulta • Edición limitada • Solicitudes',
+                'color' => 'border-cyan-500 dark:border-cyan-400',
+                'bg' => 'bg-cyan-50 dark:bg-cyan-900/20'
+            ],
+            '👤 Empleado' => [
+                'description' => 'Solo lectura • Visualización docs • Sin edición • Acceso restringido',
+                'color' => 'border-cyan-500 dark:border-cyan-900',
+                'bg' => 'bg-cyan-50 dark:bg-cyan-900/20'
+            ],
         ];
 
-        $descriptions = [];
-        foreach ($roles as $role => $desc) {
-            $descriptions[] = "{$role}: {$desc}";
+        $html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
+        
+        foreach ($roles as $role => $details) {
+            $html .= '
+            <div class="rounded-lg p-3 '.$details['bg'].' border-l-4 '.$details['color'].' shadow-sm">
+                <div class="font-semibold text-gray-900 dark:text-white">'.$role.'</div>
+                <div class="text-sm text-gray-600 dark:text-white">'.$details['description'].'</div>
+            </div>';
         }
+        
+        $html .= '</div>';
 
-        return implode('<br>', $descriptions);
+        return new HtmlString($html);
     }
 }

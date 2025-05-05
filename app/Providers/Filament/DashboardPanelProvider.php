@@ -17,6 +17,8 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+
 
 
 class DashboardPanelProvider extends PanelProvider
@@ -32,16 +34,19 @@ class DashboardPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
             ])
+
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
                 Widgets\FilamentInfoWidget::class,
             ])
+
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -53,6 +58,7 @@ class DashboardPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+
             ->authMiddleware([
                 Authenticate::class,
             ])
@@ -62,8 +68,8 @@ class DashboardPanelProvider extends PanelProvider
                 'Recursos Humanos',
                 'Configuración',
                 // ... otros grupos
-            ])
-            
+            ])            
+
             //RUTA FAVICON
             ->favicon(asset('images/favicon.ico'))
             
@@ -71,8 +77,11 @@ class DashboardPanelProvider extends PanelProvider
             ->authGuard('web')
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
-            // Configuración de Spatie Permission
-            //->plugin(\BezhanSalleh\FilamentShield\FilamentShieldPlugin::make())
+            
+            // Se agrega correctamente el plugin de Shield
+            ->plugins([
+                FilamentShieldPlugin::make()
+            ])
             ;
     }
 }

@@ -3,15 +3,11 @@
 namespace App\Filament\Resources\RRHH;
 
 use App\Filament\Resources\RRHH\EmpleadoResource\Pages;
-use App\Filament\Resources\RRHH\EmpleadoResource\RelationManagers;
 use App\Models\RRHH\Empleado;
-use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Columns\ImageColumn;
@@ -28,10 +24,10 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Components\Field;
 
+
 class EmpleadoResource extends Resource
 {
     protected static ?string $model = Empleado::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $modelLabel = 'Empleado';
     protected static ?string $pluralModelLabel = 'Listado de Empleados';
