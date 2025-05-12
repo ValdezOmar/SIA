@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('ci')->unique(); // Cédula de identidad            
             $table->date('fecha_nacimiento')->nullable();
             $table->string('direccion')->nullable();
-            $table->string('ubicacion_gps')->nullable();
+            $table->json('ubicacion_gps')->nullable();
             $table->string('genero')->nullable(); // hombre, mujer, otro
             $table->string('nacionalidad')->default('Boliviana');
             //Datos Personales Adicionales
@@ -29,6 +29,7 @@ return new class extends Migration
             $table->string('correo_personal')->nullable();
             $table->string('persona_contacto')->nullable(); // persona en caso de emergencia
             $table->string('numero_contacto')->nullable(); // número de emergencia
+            $table->string('persona_parentesco')->nullable(); // persona en caso de emergencia
             $table->string('nua_cua')->nullable();            
             //Datos Laborales
             $table->boolean('activo')->default(true); // si sigue en la empresa
@@ -43,7 +44,7 @@ return new class extends Migration
             $table->string('cargo')->nullable(); // cargo actual
             $table->enum('sucursal', ['La Paz', 'Santa Cruz', 'Cochabamba', 'Oruro', 'Potosí', 'Tarija', 'Sucre', 'Beni', 'Pando'])->nullable(); // departamento donde trabaja
             $table->enum('empresa', ['Novanexa', 'Ireilab', 'Requilab'])->nullable();    
-            $table->float('salario')->nullable();                   
+            $table->decimal('salario', 10, 2)->nullable();                   
             //Control
             $table->timestamps();
         });

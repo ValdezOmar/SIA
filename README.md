@@ -5,7 +5,7 @@ https://web.archive.org/web/20240828000332/http://novanexasrl.com.bo/
 ## Stack Tecnológico
 
 ### Backend
-- Laravel 12
+- PHP 8.3.20 — Laravel 12.8.1
 - Filament 3 (Panel de administración)
 - Filament Actions (Extensiones para Filament)
 - Spatie Laravel Permissions (Gestión de permisos)
@@ -41,6 +41,12 @@ php artisan migrate --seed
 
 # Iniciar servidor de desarrollo
 php artisan serve
+
+#Para desarrollo
+php artisan db:seed  
+php artisan db:seed EmpleadoSeeder 
+php artisan shield:generate --all
+php artisan db:seed RolePermissionSeeder
 
 # Para producción (optimizar)
 php artisan optimize

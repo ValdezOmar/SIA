@@ -17,10 +17,10 @@ class Empleado extends Model
         'ci',
         'fecha_nacimiento',
         'direccion',
-        'ubicacion_gps', // Nuevo campo
+        'ubicacion_gps',
         'genero',
         'nacionalidad',
-        
+
         // Datos Personales Adicionales
         'estado_civil',
         'cantidad_hijos',
@@ -28,13 +28,14 @@ class Empleado extends Model
         'correo_personal',
         'persona_contacto',
         'numero_contacto',
+        'persona_parentesco',
         'nua_cua',
-        
+
         // Datos Laborales
         'activo',
         'foto',
         'fecha_ingreso',
-        'fecha_desviculacion',
+        'fecha_desvinculacion',
         'estado_contrato',
         'afp',
         'caja_salud',
@@ -45,14 +46,14 @@ class Empleado extends Model
         'empresa',
         'salario', // Nuevo campo
     ];
-    
+
     protected $casts = [
         'salario' => 'float',
-        //'ubicacion_gps' => 'array', // Para almacenar coordenadas como JSON
+        'ubicacion_gps' => 'array', // Para almacenar coordenadas como JSON
     ];
 
     protected $appends = ['foto_url', 'coordenadas'];
-    
+
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class, 'user_id', 'ci');
@@ -73,18 +74,13 @@ class Empleado extends Model
         return asset('images/default-avatar.jpg');
     }
 
-    // Accesor para coordenadas
+    // Accesor para coordenadas formateadas
     public function getCoordenadasAttribute()
     {
-        if ($this->ubicacion_gps) {
-            $coords = json_decode($this->ubicacion_gps, true);
-            return [
-                'lat' => $coords['lat'] ?? null,
-                'lng' => $coords['lng'] ?? null,
-                'texto' => $this->ubicacion_gps ? 
-                    round($coords['lat'], 6).', '.round($coords['lng'], 6) : null
-            ];
-        }
-        return null;
+        return $this->ubicacion_gps ? [
+            'lat' => $this->ubicacion_gps['lat'],
+            'lng' => $this->ubicacion_gps['lng'],
+            'texto' => "Lat: {$this->ubicacion_gps['lat']}, Lng: {$this->ubicacion_gps['lng']}"
+        ] : null;
     }
 }
