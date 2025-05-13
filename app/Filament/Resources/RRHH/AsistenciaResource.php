@@ -31,7 +31,7 @@ class AsistenciaResource extends Resource
     protected static ?string $pluralModelLabel = 'Asistencias';
     protected static ?string $navigationLabel = 'Registro de Asistencias';
     protected static ?string $navigationGroup = 'Recursos Humanos';
-    protected static ?int $navigationSort = 2; 
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {
@@ -43,34 +43,34 @@ class AsistenciaResource extends Resource
                             ->label(' ')
                             ->extraAttributes(['class' => 'mb-4']),
                     ]),
-                    
+
                 Forms\Components\TextInput::make('user_id')
                     ->label('CI/Número de Identificación')
                     ->required()
                     ->numeric()
-                    ->disabled(fn ($get) => empty($get('localizacion'))),
-                    
+                    ->disabled(fn($get) => empty($get('localizacion'))),
+
                 Forms\Components\Textarea::make('justificacion')
                     ->label('Justificación del Registro Remoto')
-                    ->required(fn ($get) => $get('registro_remoto'))
-                    ->hidden(fn ($get) => !$get('registro_remoto'))
+                    ->required(fn($get) => $get('registro_remoto'))
+                    ->hidden(fn($get) => !$get('registro_remoto'))
                     ->columnSpanFull()
                     ->maxLength(500)
-                    ->disabled(fn ($get) => empty($get('localizacion'))),
-                    
+                    ->disabled(fn($get) => empty($get('localizacion'))),
+
                 Forms\Components\Hidden::make('fecha')
                     ->default(today()->format('Y-m-d')),
-                    
+
                 Forms\Components\Hidden::make('hora')
                     ->default(now()->format('H:i:s')),
-                    
+
                 Forms\Components\Hidden::make('registro_remoto')
                     ->default(true),
-                    
+
                 Forms\Components\Hidden::make('localizacion')
                     ->default('')
                     ->reactive(),
-                
+
                 Forms\Components\Placeholder::make('¡Importante!')
                     ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS para comprobar la ubicación de la marcación. Por favor habilite su GPS del dispositivo para continuar con el registro de asistencia.')
                     ->columnSpanFull()
@@ -83,17 +83,17 @@ class AsistenciaResource extends Resource
     protected static function getPeriodoFechas(?string $mesSeleccionado = null): array
     {
         $now = now();
-        
+
         if ($mesSeleccionado) {
             $fechaSeleccionada = Carbon::parse($mesSeleccionado);
             $fechaInicio = $fechaSeleccionada->copy()->subMonth()->day(26);
             $fechaFin = $fechaSeleccionada->copy()->day(25);
-            
+
             // Ajustar fecha fin si excede la fecha actual
             if ($fechaFin->greaterThan($now)) {
                 $fechaFin = $now->copy();
             }
-            
+
             // Crear label descriptivo (ej. "Abril 2025 (26 mar - 25 abr)")
             $mesNombre = $fechaSeleccionada->translatedFormat('F Y');
             $inicioFormatted = $fechaInicio->translatedFormat('d M');
@@ -108,19 +108,19 @@ class AsistenciaResource extends Resource
                 $fechaInicio = $now->copy()->subMonth()->day(26);
                 $fechaFin = $now->copy()->day(25);
             }
-            
+
             // Ajustar fecha fin si excede la fecha actual
             if ($fechaFin->greaterThan($now)) {
                 $fechaFin = $now->copy();
             }
-            
+
             // Label para período actual
             $mesNombre = $now->translatedFormat('F Y');
             $inicioFormatted = $fechaInicio->translatedFormat('d M');
             $finFormatted = $fechaFin->translatedFormat('d M');
             $label = "$mesNombre ($inicioFormatted - $finFormatted)";
         }
-        
+
         return [
             'inicio' => $fechaInicio,
             'fin' => $fechaFin,
@@ -131,47 +131,47 @@ class AsistenciaResource extends Resource
     public static function table(Table $table): Table
     {
         Log::debug('Iniciando construcción de tabla de asistencias');
-        
+
         // Filtro por mes - ahora es el controlador principal del período
-         // Filtro por mes con label descriptivo
-         $mesFilter = Tables\Filters\SelectFilter::make('mes')
-         ->options(function () {
-             $options = [];
-             $now = now();
-             $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
-             
-             while ($startDate <= $now) {
-                 $periodo = self::getPeriodoFechas($startDate->format('Y-m'));
-                 $options[$startDate->format('Y-m')] = $periodo['label'];
-                 $startDate->addMonth();
-             }
-             
-             return array_reverse($options, true); // Ordenar de más reciente a más antiguo
-         })
-         ->label('Período')
-         ->placeholder('Seleccione un mes')
-         ->default(function () {
-             $now = now();
-             return ($now->day > 25) ? $now->copy()->addMonth()->format('Y-m') : $now->format('Y-m');
-         })
-         ->query(function (Builder $query, array $data) {
-             $mesSeleccionado = $data['value'] ?? null;
-             
-             if (!$mesSeleccionado) {
-                 $now = now();
-                 $mesSeleccionado = ($now->day > 25) ? 
-                     $now->copy()->addMonth()->format('Y-m') : 
-                     $now->format('Y-m');
-             }
-             
-             $periodo = self::getPeriodoFechas($mesSeleccionado);
-             
-             $query->whereHas('asistencias', function($q) use ($periodo) {
-                 $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']]);
-             });
-             
-             Session::put('periodo_asistencias', $periodo);
-         });
+        // Filtro por mes con label descriptivo
+        $mesFilter = Tables\Filters\SelectFilter::make('mes')
+            ->options(function () {
+                $options = [];
+                $now = now();
+                $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
+
+                while ($startDate <= $now) {
+                    $periodo = self::getPeriodoFechas($startDate->format('Y-m'));
+                    $options[$startDate->format('Y-m')] = $periodo['label'];
+                    $startDate->addMonth();
+                }
+
+                return array_reverse($options, true); // Ordenar de más reciente a más antiguo
+            })
+            ->label('Período')
+            ->placeholder('Seleccione un mes')
+            ->default(function () {
+                $now = now();
+                return ($now->day > 25) ? $now->copy()->addMonth()->format('Y-m') : $now->format('Y-m');
+            })
+            ->query(function (Builder $query, array $data) {
+                $mesSeleccionado = $data['value'] ?? null;
+
+                if (!$mesSeleccionado) {
+                    $now = now();
+                    $mesSeleccionado = ($now->day > 25) ?
+                        $now->copy()->addMonth()->format('Y-m') :
+                        $now->format('Y-m');
+                }
+
+                $periodo = self::getPeriodoFechas($mesSeleccionado);
+
+                $query->whereHas('asistencias', function ($q) use ($periodo) {
+                    $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']]);
+                });
+
+                Session::put('periodo_asistencias', $periodo);
+            });
 
         // Obtenemos el período de la sesión (o calculamos el actual si no hay filtro)
         $periodo = Session::get('periodo_asistencias', self::getPeriodoFechas());
@@ -189,7 +189,7 @@ class AsistenciaResource extends Resource
             'fecha_inicio' => $fechaInicio->format('Y-m-d'),
             'fecha_fin' => $fechaFin->format('Y-m-d')
         ]);
-        
+
         $uniqueDates = DB::table('asistencias')
             ->select(DB::raw('DATE(fecha) as date'))
             ->whereBetween('fecha', [$fechaInicio, $fechaFin])
@@ -204,47 +204,51 @@ class AsistenciaResource extends Resource
 
         // Columnas base optimizadas para espacio
         $columns = [
-            Tables\Columns\TextColumn::make('ci')
-                ->label('CI')
-                ->sortable()
+            // Tables\Columns\TextColumn::make('ci')
+            //     ->label('CI')
+            //     ->sortable()
+            //     ->searchable()
+            //     ->toggleable()
+            //     ->width('80px'),
+
+            // Tables\Columns\TextColumn::make('nombres')
+            //     ->label('Nombre')
+            //     ->sortable()
+            //     ->searchable(query: function (Builder $query, string $search) {
+            //         $query->where(function ($q) use ($search) {
+            //             $q->where('nombres', 'like', "%{$search}%")
+            //               ->orWhere('apellidos', 'like', "%{$search}%");
+            //         });
+            //     })
+            //     ->toggleable()
+            //     ->width('120px')
+            //     ->description(fn ($record) => $record->apellidos)
+            //     ->wrap(),
+
+            Tables\Columns\TextColumn::make('nombre_completo')
+                ->label('Datos del Empleado')
+                ->html()
+                ->getStateUsing(fn($record) => "
+                    <div>
+                        <strong>{$record->nombres}</strong><br>
+                        <small>{$record->apellidos}<br>CI: {$record->ci}</small>
+                    </div>
+                ")
+                ->searchable(['nombres', 'apellidos', 'ci']),
+
+            Tables\Columns\TextColumn::make('empresa')
+                ->label('Empresa')
                 ->searchable()
-                ->toggleable()
-                ->width('80px'),
-
-            Tables\Columns\TextColumn::make('nombres')
-                ->label('Nombre')
                 ->sortable()
-                ->searchable(query: function (Builder $query, string $search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('nombres', 'like', "%{$search}%")
-                          ->orWhere('apellidos', 'like', "%{$search}%");
-                    });
-                })
-                ->toggleable()
-                ->width('120px')
-                ->description(fn ($record) => $record->apellidos)
-                ->wrap(),
+                ->description((fn(Empleado $record) => $record->sucursal))
+                ->searchable(['empresa', 'sucursal']),
 
-            Tables\Columns\TextColumn::make('sucursal')
-                ->label('Suc.')
-                ->sortable()
-                ->searchable(query: function (Builder $query, string $search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('sucursal', 'like', "%{$search}%")
-                          ->orWhere('empresa', 'like', "%{$search}%");
-                    });
-                })
-                ->toggleable()
-                ->width('80px')
-                ->description(fn ($record) => $record->empresa)
-                ->wrap(),
-            
             Tables\Columns\TextColumn::make('estado')
                 ->label('Estado')
                 ->html()
                 ->getStateUsing(function ($record) use ($uniqueDates, $fechaInicio, $fechaFin) {
                     Log::debug('Calculando estado para empleado', ['ci' => $record->ci]);
-                    
+
                     $retrasos = 0;
                     $faltas = 0;
                     $totalSegundosRetraso = 0;
@@ -254,7 +258,7 @@ class AsistenciaResource extends Resource
                     // Para contar días laborales en el período
                     $diasLaborales = 0;
                     $fechaActual = $fechaInicio->copy();
-                    
+
                     while ($fechaActual <= $fechaFin) {
                         if (!$fechaActual->isWeekend()) {
                             $diasLaborales++;
@@ -278,15 +282,14 @@ class AsistenciaResource extends Resource
                             Log::debug('Falta registrada', ['fecha' => $date]);
                         } else {
                             $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
-                            
+
                             if ($primeraMarcacion->greaterThan($horaOmision)) {
                                 $retrasos++;
                                 Log::debug('Omisión registrada', [
                                     'fecha' => $date,
                                     'hora' => $primeraMarcacion->format('H:i:s')
                                 ]);
-                            } 
-                            elseif ($primeraMarcacion->greaterThan($horaLimite)) {
+                            } elseif ($primeraMarcacion->greaterThan($horaLimite)) {
                                 // Solo contar retraso si supera los 8:35
                                 if ($primeraMarcacion->greaterThan(Carbon::today()->setTime(8, 35, 0))) {
                                     $retrasos++;
@@ -307,7 +310,7 @@ class AsistenciaResource extends Resource
                     $horasTotal = floor($totalSegundosRetraso / 3600);
                     $minutosTotal = floor(($totalSegundosRetraso % 3600) / 60);
                     $segundosTotal = $totalSegundosRetraso % 60;
-                    
+
                     if ($horasTotal > 0) {
                         $tiempoTotalRetraso = sprintf("%02d:%02d:%02d", $horasTotal, $minutosTotal, $segundosTotal);
                     } else {
@@ -334,18 +337,18 @@ class AsistenciaResource extends Resource
 
         // Columnas dinámicas por fecha
         Log::debug('Generando columnas dinámicas por fecha', ['count_fechas' => count($uniqueDates)]);
-        
+
         foreach ($uniqueDates as $date) {
             $carbonDate = Carbon::parse($date);
             $formattedDate = $carbonDate->format('d/m');
             $diaSemana = $carbonDate->translatedFormat('D');
-            
+
             Log::debug('Creando columna para fecha', [
                 'date' => $date,
                 'formattedDate' => $formattedDate,
                 'diaSemana' => $diaSemana
             ]);
-            
+
             $columns[] = Tables\Columns\TextColumn::make("asistencias_{$date}")
                 ->label("{$formattedDate}\n{$diaSemana}")
                 ->html()
@@ -354,58 +357,58 @@ class AsistenciaResource extends Resource
                         'user_id' => $record->ci,
                         'date' => $date
                     ]);
-                    
+
                     $asistencias = Asistencia::where('user_id', $record->ci)
                         ->whereDate('fecha', $date)
                         ->orderBy('hora')
                         ->get();
-        
+
                     Log::debug('Asistencias encontradas', [
                         'count' => $asistencias->count(),
                         'asistencias' => $asistencias->toArray()
                     ]);
-        
+
                     if ($asistencias->isEmpty()) {
-                        $result = $carbonDate->isWeekend() ? 
-                            '<div style="color:rgb(247, 211, 7); padding: 5px;">F/S</div>' : 
+                        $result = $carbonDate->isWeekend() ?
+                            '<div style="color:rgb(247, 211, 7); padding: 5px;">F/S</div>' :
                             '-';
                         Log::debug('No hay asistencias', ['result' => $result]);
                         return $result;
                     }
-        
+
                     $result = [];
                     $horaLimite = Carbon::today()->setTime(8, 35, 0); // Cambiado a 8:30
                     $horaOmision = Carbon::today()->setTime(10, 0, 0);
                     $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
-        
+
                     Log::debug('Evaluando primera marcación', [
                         'hora' => $primeraMarcacion->format('H:i:s'),
                         'horaLimite' => $horaLimite->format('H:i:s'),
                         'horaOmision' => $horaOmision->format('H:i:s')
                     ]);
-        
+
                     if ($primeraMarcacion->greaterThan($horaOmision)) {
                         Log::debug('Marcación es omisión');
                         $result[] = "<span style='color: orange; font-weight: bold;'>Omisión</span>";
                     }
-        
+
                     $marcaciones = $asistencias->map(function ($asistencia, $index) use ($horaLimite) {
                         $horaCompleta = Carbon::parse($asistencia->hora)->format('H:i:s');
-                        
+
                         if ($index === 0 && Carbon::parse($asistencia->hora)->greaterThan($horaLimite)) {
                             Log::debug('Primera marcación con retraso', ['hora' => $horaCompleta]);
                             return "<span style='color: red; font-weight: bold;'>$horaCompleta</span>";
                         }
-                        
+
                         return $horaCompleta;
                     })->toArray();
-        
+
                     $content = implode('<br>', array_merge($result, $marcaciones));
-                    
+
                     if ($carbonDate->isWeekend()) {
                         $content = "<div style='color:rgb(246, 247, 230); padding: 5px;'>{$content}</div>";
                     }
-                    
+
                     Log::debug('Contenido final para columna', ['content' => $content]);
                     return $content;
                 })
@@ -421,10 +424,10 @@ class AsistenciaResource extends Resource
         return $table
             ->query(function () {
                 Log::debug('Construyendo consulta principal para tabla');
-                
+
                 $query = Empleado::query()
                     ->where('activo', true)
-                    ->with(['asistencias']) 
+                    ->with(['asistencias'])
                     ->orderBy('sucursal')
                     ->orderBy('apellidos')
                     ->orderBy('nombres');
@@ -433,7 +436,7 @@ class AsistenciaResource extends Resource
                     'sql' => $query->toSql(),
                     'bindings' => $query->getBindings()
                 ]);
-                
+
                 return $query;
             })
             ->columns($columns)
@@ -448,26 +451,26 @@ class AsistenciaResource extends Resource
                         if (empty($data['localizacion'])) {
                             throw new \Exception('No se pudo obtener la ubicación GPS');
                         }
-                        
+
                         if ($data['registro_remoto'] && empty($data['justificacion'])) {
                             throw new \Exception('Debe proporcionar una justificación para el registro remoto');
                         }
-                        
+
                         return $data;
                     })
                     ->action(function (array $data) {
                         if (empty($data['localizacion'])) {
                             throw new \Exception('Debe obtener la ubicación GPS antes de registrar');
                         }
-                        
+
                         $exists = Asistencia::where('user_id', $data['user_id'])
                             ->whereDate('fecha', $data['fecha'])
                             ->exists();
-                            
+
                         if ($exists) {
                             throw new \Exception('Ya existe un registro de asistencia para este usuario hoy.');
                         }
-                        
+
                         Asistencia::create([
                             'user_id' => $data['user_id'],
                             'fecha' => $data['fecha'],
@@ -484,38 +487,38 @@ class AsistenciaResource extends Resource
                     ->action(function () use ($fechaInicio, $fechaFin) {
                         // Obtener todos los filtros aplicados
                         $filtros = request()->input('filters', []);
-                        
+
                         // Extraer filtros específicos
                         $filtroSucursal = $filtros['sucursal'] ?? null;
                         $filtroBusqueda = $filtros['busqueda']['busqueda'] ?? null;
-                        
+
                         // Construir query base
                         $query = Empleado::where('activo', true);
-                        
+
                         // Aplicar filtros si existen
                         if ($filtroSucursal) {
                             $query->where('sucursal', $filtroSucursal);
                         }
-                        
+
                         if ($filtroBusqueda) {
-                            $query->where(function($q) use ($filtroBusqueda) {
+                            $query->where(function ($q) use ($filtroBusqueda) {
                                 $q->where('ci', 'like', "%{$filtroBusqueda}%")
-                                  ->orWhere('nombres', 'like', "%{$filtroBusqueda}%")
-                                  ->orWhere('apellidos', 'like', "%{$filtroBusqueda}%");
+                                    ->orWhere('nombres', 'like', "%{$filtroBusqueda}%")
+                                    ->orWhere('apellidos', 'like', "%{$filtroBusqueda}%");
                             });
                         }
-                        
+
                         // Obtener empleados ordenados
                         $empleados = $query->orderBy('sucursal')
                             ->orderBy('apellidos')
                             ->orderBy('nombres')
                             ->get();
-                        
+
                         // Obtener todas las asistencias del período de una vez
                         $asistencias = Asistencia::whereBetween('fecha', [$fechaInicio, $fechaFin])
                             ->get()
                             ->groupBy('user_id');
-                        
+
                         // Obtener fechas únicas del período
                         $uniqueDates = DB::table('asistencias')
                             ->select(DB::raw('DATE(fecha) as date'))
@@ -523,7 +526,7 @@ class AsistenciaResource extends Resource
                             ->groupBy('date')
                             ->orderBy('date', 'asc')
                             ->pluck('date');
-                        
+
                         // Generar PDF
                         $pdf = Pdf::loadView('pdf.asistencias', [
                             'empleados' => $empleados,
@@ -534,10 +537,10 @@ class AsistenciaResource extends Resource
                             'filtroBusqueda' => $filtroBusqueda,
                             'asistenciasAgrupadas' => $asistencias
                         ])->setPaper('a4', 'landscape');
-                        
+
                         return Response::streamDownload(
-                            fn () => print($pdf->stream()),
-                            'reporte_asistencias_'.now()->format('Y-m-d_H-i').'.pdf'
+                            fn() => print($pdf->stream()),
+                            'reporte_asistencias_' . now()->format('Y-m-d_H-i') . '.pdf'
                         );
                     })
             ])
@@ -560,10 +563,10 @@ class AsistenciaResource extends Resource
                     ->query(function (Builder $query, array $data): Builder {
                         if (!empty($data['busqueda'])) {
                             $busqueda = $data['busqueda'];
-                            return $query->where(function($q) use ($busqueda) {
+                            return $query->where(function ($q) use ($busqueda) {
                                 $q->where('ci', 'like', "%{$busqueda}%")
-                                  ->orWhere('nombres', 'like', "%{$busqueda}%")
-                                  ->orWhere('apellidos', 'like', "%{$busqueda}%");
+                                    ->orWhere('nombres', 'like', "%{$busqueda}%")
+                                    ->orWhere('apellidos', 'like', "%{$busqueda}%");
                             });
                         }
                         return $query;
@@ -585,7 +588,7 @@ class AsistenciaResource extends Resource
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function (array $data) use ($fechaInicio, $fechaFin) {
                         $empleados = Empleado::where('activo', true)
-                            ->with(['asistencias' => function($q) use ($fechaInicio, $fechaFin) {
+                            ->with(['asistencias' => function ($q) use ($fechaInicio, $fechaFin) {
                                 $q->whereBetween('fecha', [$fechaInicio, $fechaFin]);
                             }])
                             ->orderBy('sucursal')
@@ -609,7 +612,7 @@ class AsistenciaResource extends Resource
 
                         return Response::streamDownload(function () use ($pdf) {
                             echo $pdf->stream();
-                        }, 'asistencias_'.now()->format('Y-m-d').'.pdf');
+                        }, 'asistencias_' . now()->format('Y-m-d') . '.pdf');
                     }),
             ])
             ->recordUrl(null)
@@ -630,13 +633,13 @@ class AsistenciaResource extends Resource
             'index' => Pages\ListAsistencias::route('/'),
         ];
     }
-    
+
     private static function getCurrentLocation(): string
     {
         if (request()->hasHeader('X-Location')) {
             return request()->header('X-Location');
         }
-        
+
         return 'GPS no disponible';
     }
 }
