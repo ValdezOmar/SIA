@@ -193,7 +193,7 @@ class EmpleadoResource extends Resource
                                                 return ['lat' => -16.504759, 'lng' => -68.119124];
                                             }
                                         }
-                                        
+
                                         $result = is_array($state) ? $state : ['lat' => -16.504759, 'lng' => -68.119124];
                                         Log::debug('Estado procesado final:', $result);
                                         return $result;
@@ -298,13 +298,13 @@ class EmpleadoResource extends Resource
                         Select::make('estado_contrato')
                             ->required()
                             ->options([
-                                'contrato_plazo_fijo' => 'Contrato plazo fijo',
-                                'contrato_indefinido' => 'Contrato indefinido',
-                                'Contrato_servicios' => 'Contrato por servicios',
-                                'contrato_obra' => 'Contrato por obra',
-                                'planta' => 'Planta',
-                                'pasante' => 'Pasante',
-                                'periodo_prueba' => 'Periodo de prueba',
+                                'Contrato plazo fijo' => 'Contrato plazo fijo',
+                                'Contrato indefinido' => 'Contrato indefinido',
+                                'Contrato por servicios' => 'Contrato por servicios',
+                                'Contrato por obra' => 'Contrato por obra',
+                                'Planta' => 'Planta',
+                                'Pasante' => 'Pasante',
+                                'Periodo de prueba' => 'Periodo de prueba',
                                 'otro' => 'Otro tipo',
                             ])
 
@@ -402,15 +402,26 @@ class EmpleadoResource extends Resource
                     ->defaultImageUrl(asset('images/default-avatar.jpg')),
                 //->extraAttributes(['class' => 'border-2 border-gray-100']),
 
-                TextColumn::make('nombres')
-                    ->searchable()
-                    ->sortable()
-                    ->description(fn(Empleado $record) => $record->apellidos),
+                // TextColumn::make('nombres')
+                //     ->searchable()
+                //     ->sortable()
+                //     ->description((fn(Empleado $record) => $record->apellidos)),
 
-                TextColumn::make('ci')
-                    ->label('CI')
-                    ->searchable()
-                    ->sortable(),
+                // TextColumn::make('ci')
+                //     ->label('CI')
+                //     ->searchable()
+                //     ->sortable(),
+                TextColumn::make('nombre_completo')
+                    ->label('Datos del Empleado')
+                    ->html()
+                    ->getStateUsing(fn($record) => "
+                        <div>
+                            <strong>{$record->nombres}</strong><br>
+                            <small>{$record->apellidos}<br>CI: {$record->ci}</small>
+                        </div>
+                    ")
+                    ->searchable(['nombres', 'apellidos', 'ci']),
+
 
                 // TextColumn::make('cargo')
                 //     ->searchable()
@@ -418,19 +429,27 @@ class EmpleadoResource extends Resource
 
                 TextColumn::make('empresa')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->description((fn(Empleado $record) => $record->sucursal))
+                    ->searchable(['empresa', 'sucursal']),
+
 
                 TextColumn::make('estado_contrato')
                     ->label('Contrato')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
-                        'pasante' => 'info',
-                        'contrato_plazo_fijo' => 'warning',
-                        'contrato_indefinido' => 'success',
-                        'Contrato_servicios' => 'danger',
-                        'Practicante' => 'danger',
+                        'Contrato plazo fijo' => 'info',
+                        'Contrato indefinido' => 'success',
+                        'Contrato por servicios' => 'warning',
+                        'Contrato por obra' => 'warning',
+                        'Planta' => 'success',
+                        'Pasante' => 'gray',
+                        'Periodo de prueba' => 'danger',
+                        'otro' => 'danger',
                         default => 'gray',
-                    }),
+                    })
+                    ->description((fn(Empleado $record) => $record->cargo))
+                    ->searchable(['estado_contrato', 'cargo']),
 
                 TextColumn::make('salario')
                     ->label('Salario')
@@ -460,13 +479,13 @@ class EmpleadoResource extends Resource
 
                 Tables\Filters\SelectFilter::make('estado_contrato')
                     ->options([
-                        'contrato_plazo_fijo' => 'Contrato plazo fijo',
-                        'contrato_indefinido' => 'Contrato indefinido',
-                        'Contrato_servicios' => 'Contrato por servicios',
-                        'contrato_obra' => 'Contrato por obra',
-                        'planta' => 'Planta',
-                        'pasante' => 'Pasante',
-                        'periodo_prueba' => 'Periodo de prueba',
+                        'Contrato plazo fijo' => 'Contrato plazo fijo',
+                        'Contrato indefinido' => 'Contrato indefinido',
+                        'Contrato por servicios' => 'Contrato por servicios',
+                        'Contrato por obra' => 'Contrato por obra',
+                        'Planta' => 'Planta',
+                        'Pasante' => 'Pasante',
+                        'Periodo de prueba' => 'Periodo de prueba',
                         'otro' => 'Otro tipo',
                     ])
                     ->label('Tipo de Contrato'),
