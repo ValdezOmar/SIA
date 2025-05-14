@@ -83,4 +83,9 @@ class Empleado extends Model
             'texto' => "Lat: {$this->ubicacion_gps['lat']}, Lng: {$this->ubicacion_gps['lng']}"
         ] : null;
     }
+    // app/Models/RRHH/Empleado.php
+public function user()
+{
+    return $this->belongsTo(\App\Models\User::class, 'correo_corporativo', 'email');
+}
 }

@@ -18,6 +18,11 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use App\Filament\Resources\RRHH\EmpleadoResource\Pages\Perfil;
+use Filament\Navigation\MenuItem;
+use App\Filament\Resources\RRHH\EmpleadoResource;
+use App\Models\RRHH\Empleado;
+use Illuminate\Support\Facades\Auth;
 
 
 
@@ -69,20 +74,39 @@ class DashboardPanelProvider extends PanelProvider
                 'Recursos Humanos',
                 'Configuración',
                 // ... otros grupos
-            ])            
+            ])
 
             //RUTA FAVICON
             ->favicon(asset('images/favicon.ico'))
-            
+
             //Spatie configuration
             ->authGuard('web')
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
-            
+
             // Se agrega correctamente el plugin de Shield
             ->plugins([
                 FilamentShieldPlugin::make()
-            ])
-            ;
+            ])            //asociacion de foto de perfil con avatar
+            // ->userAvatarUrl(function ($user) {
+            //     if ($user->empleado && $user->empleado->foto_url) {
+            //         return $user->empleado->foto_url;
+            //     }
+            //     return null;
+            // })
+            //edicion del perfil de empleado
+            ->userMenuItems([
+                'perfil' => MenuItem::make()
+                    ->label('Mi Perfil')
+                    ->url(function () {
+                        $user = Auth::user();
+                        $empleado = Empleado::where('correo_corporativo', $user->email)->first();
+
+                        return $empleado
+                            ? EmpleadoResource::getUrl('perfil', ['record' => $empleado->id])
+                            : '#';
+                    })
+                    ->icon('heroicon-o-user'),
+            ]);
     }
 }

@@ -517,6 +517,8 @@ class EmpleadoResource extends Resource
             'index' => Pages\ListEmpleados::route('/'),
             'create' => Pages\CreateEmpleado::route('/create'),
             'edit' => Pages\EditEmpleado::route('/{record}/edit'),
+            'perfil' => Pages\PerfilEmpleado::route('/{record}/perfil'),
         ];
     }
+
 }

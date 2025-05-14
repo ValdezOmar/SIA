@@ -11,7 +11,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory,Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -46,6 +46,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    //Permisos del sistema con spatie
-    
+    //Relacion de usuario empleado para edicion de perfil
+    public function empleado()
+    {
+        return $this->hasOne(\App\Models\RRHH\Empleado::class, 'correo_corporativo', 'email');
+    }
 }
