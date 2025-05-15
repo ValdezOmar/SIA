@@ -6,14 +6,14 @@ use App\Models\RRHH\Empleado;
 use App\Models\User;
 use Illuminate\Auth\Access\Response;
 
-class DirectorioPolicy
+class PerfilEmpleadoPolicy
 {
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return false; // No permitir listar todos los empleados
     }
 
     /**
@@ -21,7 +21,8 @@ class DirectorioPolicy
      */
     public function view(User $user, Empleado $empleado): bool
     {
-        return true;
+        // Permitir editar solo si el correo coincide
+        return $user->email === $empleado->correo_corporativo;
     }
 
     /**
@@ -37,7 +38,7 @@ class DirectorioPolicy
      */
     public function update(User $user, Empleado $empleado): bool
     {
-        return false;
+        return $user->email === $empleado->correo_corporativo;
     }
 
     /**

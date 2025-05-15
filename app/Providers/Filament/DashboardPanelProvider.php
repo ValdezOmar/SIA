@@ -94,16 +94,16 @@ class DashboardPanelProvider extends PanelProvider
             //     }
             //     return null;
             // })
-            //edicion del perfil de empleado
+            //vista del perfil de empleado
             ->userMenuItems([
-                'perfil' => MenuItem::make()
+                'perfil' => \Filament\Navigation\MenuItem::make()
                     ->label('Mi Perfil')
                     ->url(function () {
                         $user = Auth::user();
-                        $empleado = Empleado::where('correo_corporativo', $user->email)->first();
+                        $empleado = \App\Models\RRHH\Empleado::where('correo_corporativo', $user->email)->first();
 
                         return $empleado
-                            ? EmpleadoResource::getUrl('perfil', ['record' => $empleado->id])
+                            ? \App\Filament\Resources\RRHH\DirectorioResource::getUrl('view', ['record' => $empleado->id])
                             : '#';
                     })
                     ->icon('heroicon-o-user'),

@@ -30,38 +30,38 @@ class DirectorioResource extends Resource
                     ->defaultImageUrl(asset('images/default-avatar.jpg'))
                     ->width(50)
                     ->height(50),
-                    
+
                 TextColumn::make('nombres')
                     ->searchable()
                     ->sortable()
-                    ->description(fn (Empleado $record) => $record->apellidos),                  
-               
-                    
+                    ->description(fn(Empleado $record) => $record->apellidos),
+
+
                 TextColumn::make('cargo')
                     ->label('Cargo')
                     ->searchable()
                     ->sortable(),
-                    
+
                 TextColumn::make('correo_corporativo')
                     ->label('Correo')
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-envelope')
                     ->iconColor('primary'),
-                    
+
                 TextColumn::make('numero_corporativo')
                     ->label('Teléfono')
                     ->searchable()
                     ->sortable()
                     ->icon('heroicon-o-phone')
                     ->iconColor('primary'),
-                    
+
                 TextColumn::make('sucursal')
                     ->label('Sucursal')
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'La Paz' => 'success',
                         'Cochabamba' => 'warning',
                         'Santa Cruz' => 'danger',
@@ -69,13 +69,13 @@ class DirectorioResource extends Resource
                         'Tarija' => 'gray',
                         default => 'gray',
                     }),
-                    
+
                 TextColumn::make('empresa')
                     ->label('Empresa')
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Novanexa' => 'success',
                         'Ireilab' => 'warning',
                         'Requilab' => 'danger',
@@ -89,7 +89,7 @@ class DirectorioResource extends Resource
                         'Ireilab' => 'Ireilab',
                         'Requilab' => 'Requilab',
                     ]),
-                    
+
                 Tables\Filters\SelectFilter::make('sucursal')
                     ->options([
                         'La Paz' => 'La Paz',
@@ -105,6 +105,17 @@ class DirectorioResource extends Resource
             ])
             ->actions([]) // Sin acciones de edición/eliminación
             ->bulkActions([]); // Sin acciones masivas
+    }
+
+    // Prefijo de permisos
+    protected static function getPermissionPrefix(): string
+    {
+        return 'directorio_';
+    }
+
+    public static function shouldRegisterShieldPermissions(): bool
+    {
+        return false; // Desactiva generación automática de permisos
     }
     //Premisos de acceso al directorio para que todos puedan ver
     public static function canViewAny(): bool
@@ -130,6 +141,7 @@ class DirectorioResource extends Resource
     {
         return [
             'index' => \App\Filament\Resources\RRHH\DirectorioResource\Pages\ListDirectorio::route('/'),
+            'view' => \App\Filament\Resources\RRHH\DirectorioResource\Pages\ViewDirectorioEmpleado::route('/{record}'),
         ];
     }
 }

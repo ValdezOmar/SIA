@@ -84,8 +84,9 @@ class Empleado extends Model
         ] : null;
     }
     // app/Models/RRHH/Empleado.php
-public function user()
-{
-    return $this->belongsTo(\App\Models\User::class, 'correo_corporativo', 'email');
-}
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'correo_corporativo', 'email');
+    }
+    
 }

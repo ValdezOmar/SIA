@@ -23,13 +23,12 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Textarea;
 use Illuminate\Support\Facades\Log;
-
 
 class EmpleadoResource extends Resource
 {
     protected static ?string $model = Empleado::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $modelLabel = 'Empleado';
     protected static ?string $pluralModelLabel = 'Listado de Empleados';
@@ -83,7 +82,6 @@ class EmpleadoResource extends Resource
                                     ->label('CI/DNI:')
                                     ->content(fn($get) => ' ' . $get('ci'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold']),
-                                //->columnSpanFull(),
 
                                 Placeholder::make('email')
                                     ->label('Email empresa:')
@@ -95,13 +93,10 @@ class EmpleadoResource extends Resource
                                     ->label('Teléfono Corporativo:')
                                     ->content(fn($get) => ' ' . $get('numero_corporativo'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold']),
-                                //->columnSpanFull(),
-
+                                
                                 Toggle::make('activo')
                                     ->default(true)
                                     ->label('Empleado activo')
-                                    //->hint('Indica si está actualmente en la empresa')
-                                    //->hintIcon('heroicon-o-question-mark-circle')
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set) {
                                         if (!$state) {
@@ -152,7 +147,6 @@ class EmpleadoResource extends Resource
                                 'mujer' => 'Mujer',
                                 'otro' => 'Otro',
                             ])
-
                             ->hint('Género del empleado')
                             ->hintIcon('heroicon-o-user-circle'),
 
@@ -162,7 +156,6 @@ class EmpleadoResource extends Resource
                             ->hint('Nacionalidad del empleado')
                             ->hintIcon('heroicon-o-flag'),
 
-                        // En tu formulario (EmpleadoResource.php)
                         Fieldset::make('Direccion y croquis de domicilio')
                             ->schema([
                                 TextInput::make('direccion')
@@ -219,7 +212,6 @@ class EmpleadoResource extends Resource
                             ])
                             ->label('Estado Civil')
                             ->hint('Estado civil actual del empleado')
-                            ->required()
                             ->hintIcon('heroicon-o-heart'),
 
                         TextInput::make('cantidad_hijos')
@@ -230,14 +222,12 @@ class EmpleadoResource extends Resource
                             ->hintIcon('heroicon-o-user-group'),
 
                         TextInput::make('telefono_personal')
-                            ->required()
                             ->tel()
                             ->label('Teléfono Personal')
                             ->hint('Número de contacto personal')
                             ->hintIcon('heroicon-o-phone'),
 
                         TextInput::make('correo_personal')
-                            ->required()
                             ->email()
                             ->label('Correo Personal')
                             ->hint('Correo electrónico personal')
@@ -247,20 +237,17 @@ class EmpleadoResource extends Resource
 
                             ->schema([
                                 TextInput::make('persona_contacto')
-                                    ->required()
                                     ->label('Nombre de contacto')
                                     ->hint('Persona a contactar en caso de emergencia')
                                     ->hintIcon('heroicon-o-exclamation-triangle'),
 
                                 TextInput::make('numero_contacto')
-                                    ->required()
                                     ->tel()
                                     ->label('Teléfono de contacto')
                                     ->hint('Número de la persona de emergencia')
                                     ->hintIcon('heroicon-o-phone'),
 
                                 TextInput::make('persona_parentesco')
-                                    ->required()
                                     ->label('Parentesco de contacto')
                                     ->hint('Parentesco de la persona')
                                     ->hintIcon('heroicon-o-exclamation-triangle'),
@@ -320,7 +307,7 @@ class EmpleadoResource extends Resource
                             ->hintIcon('heroicon-o-currency-dollar'),
 
                         TextInput::make('cargo')
-                            ->disabled()
+                            ->required()
                             ->label('Cargo')
                             ->hint('Puesto o función actual del empleado')
                             ->hintIcon('heroicon-o-briefcase'),
@@ -400,17 +387,7 @@ class EmpleadoResource extends Resource
                     ->label('')
                     ->circular()
                     ->defaultImageUrl(asset('images/default-avatar.jpg')),
-                //->extraAttributes(['class' => 'border-2 border-gray-100']),
 
-                // TextColumn::make('nombres')
-                //     ->searchable()
-                //     ->sortable()
-                //     ->description((fn(Empleado $record) => $record->apellidos)),
-
-                // TextColumn::make('ci')
-                //     ->label('CI')
-                //     ->searchable()
-                //     ->sortable(),
                 TextColumn::make('nombre_completo')
                     ->label('Datos del Empleado')
                     ->html()
@@ -421,11 +398,6 @@ class EmpleadoResource extends Resource
                         </div>
                     ")
                     ->searchable(['nombres', 'apellidos', 'ci']),
-
-
-                // TextColumn::make('cargo')
-                //     ->searchable()
-                //     ->sortable(),
 
                 TextColumn::make('empresa')
                     ->searchable()
@@ -504,11 +476,10 @@ class EmpleadoResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
+    // En EmpleadoResource.php
+    protected static function getPermissionPrefix(): string
     {
-        return [
-            //
-        ];
+        return 'admin_empleados_'; // Prefijo administrativo
     }
 
     public static function getPages(): array
@@ -517,8 +488,6 @@ class EmpleadoResource extends Resource
             'index' => Pages\ListEmpleados::route('/'),
             'create' => Pages\CreateEmpleado::route('/create'),
             'edit' => Pages\EditEmpleado::route('/{record}/edit'),
-            'perfil' => Pages\PerfilEmpleado::route('/{record}/perfil'),
         ];
     }
-
 }
