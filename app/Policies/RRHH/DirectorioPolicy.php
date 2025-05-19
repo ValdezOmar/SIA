@@ -21,6 +21,10 @@ class DirectorioPolicy
      */
     public function view(User $user, Empleado $empleado): bool
     {
+         // Si es empleado, solo puede ver su propio perfil
+        // if ($user->hasRole('Empleado')) {
+        //     return $user->email === $empleado->correo_corporativo;
+        // }
         return true;
     }
 

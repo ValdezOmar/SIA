@@ -35,6 +35,20 @@ class EmpleadoResource extends Resource
     protected static ?string $navigationLabel = 'Empleados';
     protected static ?string $navigationGroup = 'Recursos Humanos';
     protected static ?int $navigationSort = 1;
+    
+    // 1. Método para ocultar el recurso del navigation
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Solo mostrar en el navigation si el usuario NO tiene el rol 'Empleado'
+        return !auth()->user()->hasRole('Empleado');
+    }
+
+    // 2. Método para controlar el acceso a todas las páginas del recurso
+    public static function canViewAny(): bool
+    {
+        // Solo permitir acceso si el usuario NO tiene el rol 'Empleado'
+        return !auth()->user()->hasRole('Empleado');
+    }
 
     public static function form(Form $form): Form
     {

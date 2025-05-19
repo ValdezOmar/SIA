@@ -32,6 +32,7 @@ class AsistenciaResource extends Resource
     protected static ?string $navigationLabel = 'Registro de Asistencias';
     protected static ?string $navigationGroup = 'Recursos Humanos';
     protected static ?int $navigationSort = 2;
+    protected static array $cachedCalculations = [];
 
     public static function form(Form $form): Form
     {
@@ -130,6 +131,23 @@ class AsistenciaResource extends Resource
 
     public static function table(Table $table): Table
     {
+        // Obtener el usuario actual
+        $user = auth()->user();
+
+        // Construir la consulta base
+        $baseQuery = Empleado::query()
+            ->where('activo', true)
+            //->with(['asistencias'])
+            ->orderBy('sucursal')
+            ->orderBy('apellidos')
+            ->orderBy('nombres');
+
+        // Si el usuario tiene rol "Empleado", filtrar solo su registro
+        if ($user->hasRole('Empleado')) {
+            // Asumimos que el email del usuario coincide con el correo_corporativo del empleado
+            $baseQuery->where('correo_corporativo', $user->email);
+        }
+
         Log::debug('Iniciando construcción de tabla de asistencias');
 
         // Filtro por mes - ahora es el controlador principal del período
@@ -166,9 +184,10 @@ class AsistenciaResource extends Resource
 
                 $periodo = self::getPeriodoFechas($mesSeleccionado);
 
-                $query->whereHas('asistencias', function ($q) use ($periodo) {
-                    $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']]);
-                });
+                //Muestra solo los empleados activos con asistencias en el mes
+                // $query->whereHas('asistencias', function ($q) use ($periodo) {
+                //     $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']]);
+                // });
 
                 Session::put('periodo_asistencias', $periodo);
             });
@@ -204,26 +223,6 @@ class AsistenciaResource extends Resource
 
         // Columnas base optimizadas para espacio
         $columns = [
-            // Tables\Columns\TextColumn::make('ci')
-            //     ->label('CI')
-            //     ->sortable()
-            //     ->searchable()
-            //     ->toggleable()
-            //     ->width('80px'),
-
-            // Tables\Columns\TextColumn::make('nombres')
-            //     ->label('Nombre')
-            //     ->sortable()
-            //     ->searchable(query: function (Builder $query, string $search) {
-            //         $query->where(function ($q) use ($search) {
-            //             $q->where('nombres', 'like', "%{$search}%")
-            //               ->orWhere('apellidos', 'like', "%{$search}%");
-            //         });
-            //     })
-            //     ->toggleable()
-            //     ->width('120px')
-            //     ->description(fn ($record) => $record->apellidos)
-            //     ->wrap(),
 
             Tables\Columns\TextColumn::make('nombre_completo')
                 ->label('Datos del Empleado')
@@ -247,24 +246,26 @@ class AsistenciaResource extends Resource
                 ->label('Estado')
                 ->html()
                 ->getStateUsing(function ($record) use ($uniqueDates, $fechaInicio, $fechaFin) {
+                    $cacheKey = 'estado_' . $record->ci;
+
+                    // Retornar cálculo cacheado si existe
+                    if (array_key_exists($cacheKey, self::$cachedCalculations)) {
+                        return self::$cachedCalculations[$cacheKey];
+                    }
+
                     Log::debug('Calculando estado para empleado', ['ci' => $record->ci]);
 
                     $retrasos = 0;
+                    $omision = 0;
                     $faltas = 0;
                     $totalSegundosRetraso = 0;
-                    $horaLimite = Carbon::today()->setTime(8, 30, 00); // Cambiado a 8:30
+                    $horaLimite = Carbon::today()->setTime(8, 30, 00);
                     $horaOmision = Carbon::today()->setTime(10, 00, 00);
 
-                    // Para contar días laborales en el período
-                    $diasLaborales = 0;
-                    $fechaActual = $fechaInicio->copy();
-
-                    while ($fechaActual <= $fechaFin) {
-                        if (!$fechaActual->isWeekend()) {
-                            $diasLaborales++;
-                        }
-                        $fechaActual->addDay();
-                    }
+                    // Cálculo de días laborales (optimizado)
+                    $diasLaborales = $fechaInicio->diffInDaysFiltered(function ($date) {
+                        return !$date->isWeekend();
+                    }, $fechaFin);
 
                     Log::debug('Días laborales en período', ['count' => $diasLaborales]);
 
@@ -272,10 +273,9 @@ class AsistenciaResource extends Resource
                         $carbonDate = Carbon::parse($date);
                         if ($carbonDate->isWeekend()) continue;
 
-                        $asistencias = Asistencia::where('user_id', $record->ci)
-                            ->whereDate('fecha', $date)
-                            ->orderBy('hora')
-                            ->get();
+                        $asistencias = $record->asistencias->filter(function ($asistencia) use ($date) {
+                            return $asistencia->fecha == $date;
+                        });
 
                         if ($asistencias->isEmpty()) {
                             $faltas++;
@@ -284,52 +284,42 @@ class AsistenciaResource extends Resource
                             $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
 
                             if ($primeraMarcacion->greaterThan($horaOmision)) {
-                                $retrasos++;
+                                $omision++;
                                 Log::debug('Omisión registrada', [
                                     'fecha' => $date,
                                     'hora' => $primeraMarcacion->format('H:i:s')
                                 ]);
                             } elseif ($primeraMarcacion->greaterThan($horaLimite)) {
-                                // Solo contar retraso si supera los 8:35
                                 if ($primeraMarcacion->greaterThan(Carbon::today()->setTime(8, 35, 0))) {
                                     $retrasos++;
                                     $diferencia = $horaLimite->diff($primeraMarcacion);
                                     $segundosRetraso = $diferencia->h * 3600 + $diferencia->i * 60 + $diferencia->s;
                                     $totalSegundosRetraso += $segundosRetraso;
-                                    Log::debug('Retraso registrado', [
-                                        'fecha' => $date,
-                                        'hora' => $primeraMarcacion->format('H:i:s'),
-                                        'segundos_retraso' => $segundosRetraso
-                                    ]);
                                 }
                             }
                         }
                     }
 
-                    // Calcular el tiempo total de retraso
                     $horasTotal = floor($totalSegundosRetraso / 3600);
                     $minutosTotal = floor(($totalSegundosRetraso % 3600) / 60);
                     $segundosTotal = $totalSegundosRetraso % 60;
+                    $tiempoTotalRetraso = $horasTotal > 0
+                        ? sprintf("%02d:%02d:%02d", $horasTotal, $minutosTotal, $segundosTotal)
+                        : sprintf("%02d:%02d", $minutosTotal, $segundosTotal);
 
-                    if ($horasTotal > 0) {
-                        $tiempoTotalRetraso = sprintf("%02d:%02d:%02d", $horasTotal, $minutosTotal, $segundosTotal);
-                    } else {
-                        $tiempoTotalRetraso = sprintf("%02d:%02d", $minutosTotal, $segundosTotal);
-                    }
+                    $resultado = "
+            <div style='line-height: 1.4;'>
+                <strong>Retrasos:</strong> {$retrasos}<br>
+                <strong>Tiempo retraso:</strong> {$tiempoTotalRetraso}<br>
+                <strong>Faltas:</strong> {$faltas}<br>
+                <strong>Omisiones:</strong> {$omision}
+            </div>
+        ";
 
-                    Log::debug('Resumen de estado', [
-                        'retrasos' => $retrasos,
-                        'tiempo_retraso' => $tiempoTotalRetraso,
-                        'faltas' => $faltas
-                    ]);
+                    // Almacenar en cache
+                    self::$cachedCalculations[$cacheKey] = $resultado;
 
-                    return "
-                        <div style='line-height: 1.4;'>
-                            <strong>Retrasos:</strong> {$retrasos}<br>
-                            <strong>Tiempo retraso:</strong> {$tiempoTotalRetraso}<br>
-                            <strong>Faltas:</strong> {$faltas}
-                        </div>
-                    ";
+                    return $resultado;
                 })
                 ->alignLeft()
                 ->width('120px'),
@@ -352,11 +342,15 @@ class AsistenciaResource extends Resource
             $columns[] = Tables\Columns\TextColumn::make("asistencias_{$date}")
                 ->label("{$formattedDate}\n{$diaSemana}")
                 ->html()
-                ->getStateUsing(function ($record) use ($date, $carbonDate) {
+                ->getStateUsing(function ($record) use ($date, $carbonDate, $user) {
                     Log::debug('Obteniendo asistencias para fecha', [
                         'user_id' => $record->ci,
                         'date' => $date
                     ]);
+                    //solo muestra los resultados del rol empleado 
+                    if ($user->hasRole('Empleado') && $user->email !== $record->correo_corporativo) {
+                        return '';
+                    }
 
                     $asistencias = Asistencia::where('user_id', $record->ci)
                         ->whereDate('fecha', $date)
@@ -367,46 +361,46 @@ class AsistenciaResource extends Resource
                         'count' => $asistencias->count(),
                         'asistencias' => $asistencias->toArray()
                     ]);
-
+                    // Se evalua fin de semana y se pinta de color
                     if ($asistencias->isEmpty()) {
                         $result = $carbonDate->isWeekend() ?
-                            '<div style="color:rgb(247, 211, 7); padding: 5px;">F/S</div>' :
+                            '<div style="color:rgb(7, 236, 57); padding: 5px;">F/S</div>' :
                             '-';
                         Log::debug('No hay asistencias', ['result' => $result]);
                         return $result;
                     }
-
+                    // Se evalua retrasos y se hace las opraciones matematicas en el front
                     $result = [];
                     $horaLimite = Carbon::today()->setTime(8, 35, 0); // Cambiado a 8:30
                     $horaOmision = Carbon::today()->setTime(10, 0, 0);
                     $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
-
                     Log::debug('Evaluando primera marcación', [
                         'hora' => $primeraMarcacion->format('H:i:s'),
                         'horaLimite' => $horaLimite->format('H:i:s'),
                         'horaOmision' => $horaOmision->format('H:i:s')
                     ]);
 
+                    // Se evalua las omisiones y se pinta de color 
                     if ($primeraMarcacion->greaterThan($horaOmision)) {
                         Log::debug('Marcación es omisión');
                         $result[] = "<span style='color: orange; font-weight: bold;'>Omisión</span>";
                     }
 
+                    // Se evalua los retrasos y se pinta de color 
                     $marcaciones = $asistencias->map(function ($asistencia, $index) use ($horaLimite) {
                         $horaCompleta = Carbon::parse($asistencia->hora)->format('H:i:s');
-
-                        if ($index === 0 && Carbon::parse($asistencia->hora)->greaterThan($horaLimite)) {
+                        $horaOmision = Carbon::today()->setTime(10, 0, 0);
+                        if ($index === 0 && Carbon::parse($asistencia->hora)->greaterThan($horaLimite) && Carbon::parse($asistencia->hora)->lessThan($horaOmision)) {
                             Log::debug('Primera marcación con retraso', ['hora' => $horaCompleta]);
                             return "<span style='color: red; font-weight: bold;'>$horaCompleta</span>";
                         }
-
                         return $horaCompleta;
                     })->toArray();
 
+                    // Se evalua si hay marcaciones en fin de semana y se pinta de color
                     $content = implode('<br>', array_merge($result, $marcaciones));
-
                     if ($carbonDate->isWeekend()) {
-                        $content = "<div style='color:rgb(246, 247, 230); padding: 5px;'>{$content}</div>";
+                        $content = "<div style='color:rgb(60, 218, 20); padding: 5px;'>{$content}</div>";
                     }
 
                     Log::debug('Contenido final para columna', ['content' => $content]);
@@ -421,23 +415,11 @@ class AsistenciaResource extends Resource
             'fechas_mostradas' => count($uniqueDates)
         ]);
 
+        //Constuccion de la tabla principal donde se evaluan los privilegios
         return $table
-            ->query(function () {
+            ->query(function () use ($baseQuery) {
                 Log::debug('Construyendo consulta principal para tabla');
-
-                $query = Empleado::query()
-                    ->where('activo', true)
-                    ->with(['asistencias'])
-                    ->orderBy('sucursal')
-                    ->orderBy('apellidos')
-                    ->orderBy('nombres');
-
-                Log::debug('Consulta principal generada', [
-                    'sql' => $query->toSql(),
-                    'bindings' => $query->getBindings()
-                ]);
-
-                return $query;
+                return $baseQuery;
             })
             ->columns($columns)
             ->headerActions([
@@ -579,10 +561,13 @@ class AsistenciaResource extends Resource
                     ->exporter(AsistenciaExport::class),
             ])
             ->headerActions([
-                ExportAction::make()
-                    ->label('Exportar todo')
-                    ->exporter(AsistenciaExport::class),
+                // Solo mostrar acción de creación si no es empleado o tiene permiso
+                // Tables\Actions\CreateAction::make()
+                //     ->visible(fn() => !auth()->user()->hasRole('Empleado') || auth()->user()->can('create_r::r::h::h::perfil::empleado')),
+
                 Tables\Actions\Action::make('exportPdf')
+                    // Restringir exportación si es empleado
+                    ->visible(fn() => !auth()->user()->hasRole('Empleado'))
                     ->label('Exportar a PDF')
                     ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
