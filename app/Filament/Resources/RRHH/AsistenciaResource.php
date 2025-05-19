@@ -15,13 +15,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
-use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Actions\ExportBulkAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
-use pxlrbt\FilamentExcel\Columns\Column;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
+use Filament\Tables\Actions\ExportAction;
 
 class AsistenciaResource extends Resource
 {
@@ -37,7 +36,7 @@ class AsistenciaResource extends Resource
     public static function form(Form $form): Form
     {
         // Obtener el usuario autenticado
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Buscar el empleado correspondiente al usuario
         $empleado = Empleado::where('correo_corporativo', $user->email)->first();
@@ -141,8 +140,17 @@ class AsistenciaResource extends Resource
     public static function table(Table $table): Table
     {
         // Obtener el usuario actual
-        $user = auth()->user();
-
+        $user = Auth::user();
+        // Verificar permisos - si no tiene acceso, retornar tabla vacía
+        if ($user->hasRole('Empleado') && !$user->can('view_r::r::h::h::asistencia')) {
+            return $table
+                ->columns([])
+                ->filters([])
+                ->actions([])
+                ->bulkActions([])
+                ->paginated(false)
+                ->emptyStateHeading('No tienes permisos para ver esta información');
+        }
 
         // Construir la consulta base
         $baseQuery = Empleado::query()
@@ -153,8 +161,7 @@ class AsistenciaResource extends Resource
             ->orderBy('nombres');
 
         // Si el usuario tiene rol "Empleado", filtrar solo su registro
-        if ($user->hasRole('Empleado')) {
-            // Asumimos que el email del usuario coincide con el correo_corporativo del empleado
+        if ($user->hasRole('Empleado') && $user->can('view_r::r::h::h::asistencia')) {
             $baseQuery->where('correo_corporativo', $user->email);
         }
 
@@ -566,12 +573,13 @@ class AsistenciaResource extends Resource
             ])
             ->headerActions([
                 // Solo mostrar acción de creación si no es empleado o tiene permiso
-                // Tables\Actions\CreateAction::make()
-                //     ->visible(fn() => !auth()->user()->hasRole('Empleado') || auth()->user()->can('create_r::r::h::h::perfil::empleado')),
-
+                //  ExportAction::make()
+                //     ->label('Exportar todo')
+                //     ->exporter(AsistenciaExport::class)
+                //     ->visible(fn() => !Auth::user()->hasRole('Empleado')),
                 Tables\Actions\Action::make('exportPdf')
                     // Restringir exportación si es empleado
-                    ->visible(fn() => !auth()->user()->hasRole('Empleado'))
+                    ->visible(fn() => !Auth::user()->hasRole('Empleado'))
                     ->label('Exportar a PDF')
                     ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
