@@ -36,6 +36,13 @@ class AsistenciaResource extends Resource
 
     public static function form(Form $form): Form
     {
+        // Obtener el usuario autenticado
+        $user = auth()->user();
+
+        // Buscar el empleado correspondiente al usuario
+        $empleado = Empleado::where('correo_corporativo', $user->email)->first();
+        $ciEmpleado = $empleado ? $empleado->ci : null;
+
         return $form
             ->schema([
                 Forms\Components\Fieldset::make('Verificación de Ubicación')
@@ -49,7 +56,8 @@ class AsistenciaResource extends Resource
                     ->label('CI/Número de Identificación')
                     ->required()
                     ->numeric()
-                    ->disabled(fn($get) => empty($get('localizacion'))),
+                    ->default($ciEmpleado)
+                    ->disabled(true),
 
                 Forms\Components\Textarea::make('justificacion')
                     ->label('Justificación del Registro Remoto')
@@ -73,8 +81,9 @@ class AsistenciaResource extends Resource
                     ->reactive(),
 
                 Forms\Components\Placeholder::make('¡Importante!')
-                    ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS para comprobar la ubicación de la marcación. Por favor habilite su GPS del dispositivo para continuar con el registro de asistencia.')
+                    ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor habilite el GPS de su dispositivo o de los permisos correspondientes para continuar con el registro de asistencia.')
                     ->columnSpanFull()
+                    ->hidden(fn($get) => !empty($get('localizacion'))) // Ocultar si hay ubicación
                     ->extraAttributes([
                         'class' => 'bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800',
                     ]),
@@ -134,6 +143,7 @@ class AsistenciaResource extends Resource
         // Obtener el usuario actual
         $user = auth()->user();
 
+
         // Construir la consulta base
         $baseQuery = Empleado::query()
             ->where('activo', true)
@@ -183,12 +193,6 @@ class AsistenciaResource extends Resource
                 }
 
                 $periodo = self::getPeriodoFechas($mesSeleccionado);
-
-                //Muestra solo los empleados activos con asistencias en el mes
-                // $query->whereHas('asistencias', function ($q) use ($periodo) {
-                //     $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']]);
-                // });
-
                 Session::put('periodo_asistencias', $periodo);
             });
 
