@@ -5,6 +5,7 @@ namespace App\Filament\Resources\RRHH;
 use App\Models\RRHH\Empleado;
 use Filament\Resources\Resource;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
+use Illuminate\Support\Facades\Auth;
 
 class PerfilEmpleadoResource extends Resource
 {
@@ -36,7 +37,7 @@ class PerfilEmpleadoResource extends Resource
     //Busca parametro de empleado
     public static function getNavigationUrl(): string
     {
-        $empleado = auth()->user()->empleado; // Asegúrate de tener esta relación definida
+        $empleado = Auth::user()->empleado; // Asegúrate de tener esta relación definida
         return static::getUrl('edit', ['record' => $empleado?->getKey()]);
     }
 }
