@@ -104,6 +104,7 @@ class DirectorioResource extends Resource
                     ]),
             ])
             ->actions([]) // Sin acciones de edición/eliminación
+            ->defaultPaginationPageOption(100)
             ->bulkActions([]); // Sin acciones masivas
     }
 

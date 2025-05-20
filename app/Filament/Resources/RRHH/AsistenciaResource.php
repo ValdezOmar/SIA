@@ -615,7 +615,7 @@ class AsistenciaResource extends Resource
             ->recordUrl(null)
             ->deferLoading()
             ->paginated([10, 25, 50, 100])
-            ->defaultPaginationPageOption(25)
+            ->defaultPaginationPageOption(100)
             ->striped();
     }
 
