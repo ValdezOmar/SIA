@@ -23,7 +23,6 @@ class EmpleadoPolicy
      */
     public function view(User $user, Empleado $empleado): bool
     {
-       
         return $user->can('view_r::r::h::h::perfil::empleado');
     }
 

@@ -24,6 +24,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Components\Field;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class EmpleadoResource extends Resource
 {
@@ -40,14 +41,14 @@ class EmpleadoResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         // Solo mostrar en el navigation si el usuario NO tiene el rol 'Empleado'
-        return !auth()->user()->hasRole('Empleado');
+        return !Auth::user()->hasRole('Empleado');
     }
 
     // 2. Método para controlar el acceso a todas las páginas del recurso
     public static function canViewAny(): bool
     {
         // Solo permitir acceso si el usuario NO tiene el rol 'Empleado'
-        return !auth()->user()->hasRole('Empleado');
+        return !Auth::user()->hasRole('Empleado');
     }
 
     public static function form(Form $form): Form

@@ -18,7 +18,8 @@ class PerfilEmpleadoResource extends Resource
     // Este recurso no necesita listar ni crear registros
     public static function shouldRegisterNavigation(): bool
     {
-        return True;
+        $user = Auth::user();
+        return Empleado::where('correo_corporativo', $user->email)->exists();
     }
 
     // Prefijo de premisos
