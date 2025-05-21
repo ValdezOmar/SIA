@@ -15,7 +15,7 @@ class RolePermissionSeeder extends Seeder
 
         // Crear roles sin asignar permisos
         $roles = [
-            'Super Admin', // Rol especial con todos los permisos
+            'super_admin', // Rol especial con todos los permisos
             'Administrador',
             'Directiva',
             'Gerencia',

@@ -38,7 +38,7 @@ class PerfilEmpleadoResource extends Resource
     //Busca parametro de empleado
     public static function getNavigationUrl(): string
     {
-        $empleado = Auth::user()->empleado; // Asegúrate de tener esta relación definida
+        $empleado = Auth::user()->empleado;
         return static::getUrl('edit', ['record' => $empleado?->getKey()]);
     }
 }

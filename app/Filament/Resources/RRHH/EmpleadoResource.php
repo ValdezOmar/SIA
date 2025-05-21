@@ -36,7 +36,7 @@ class EmpleadoResource extends Resource
     protected static ?string $navigationLabel = 'Empleados';
     protected static ?string $navigationGroup = 'Recursos Humanos';
     protected static ?int $navigationSort = 1;
-    
+
     // 1. Método para ocultar el recurso del navigation
     public static function shouldRegisterNavigation(): bool
     {
@@ -108,7 +108,7 @@ class EmpleadoResource extends Resource
                                     ->label('Teléfono Corporativo:')
                                     ->content(fn($get) => ' ' . $get('numero_corporativo'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold']),
-                                
+
                                 Toggle::make('activo')
                                     ->default(true)
                                     ->label('Empleado activo')
@@ -309,7 +309,7 @@ class EmpleadoResource extends Resource
                                 'Periodo de prueba' => 'Periodo de prueba',
                                 'otro' => 'Otro tipo',
                             ])
-
+                            ->default('otro')
                             ->label('Estado de Contrato')
                             ->hint('Situación actual del contrato laboral')
                             ->hintIcon('heroicon-o-document-text'),
@@ -321,11 +321,44 @@ class EmpleadoResource extends Resource
                             ->hint('Si el dato no es el correcto comuniquese con RRHH')
                             ->hintIcon('heroicon-o-currency-dollar'),
 
-                        TextInput::make('cargo')
+                        Select::make('cargo')
                             ->required()
                             ->label('Cargo')
                             ->hint('Puesto o función actual del empleado')
-                            ->hintIcon('heroicon-o-briefcase'),
+                            ->hintIcon('heroicon-o-briefcase')
+                            ->options([                                
+                                'Analista de Licitaciones' => 'Analista de Licitaciones',
+                                'Aplicaciones y Asesora Bioquímica' => 'Aplicaciones y Asesora Bioquímica',
+                                'Asesor Bioquímico Comercial' => 'Asesor Bioquímico Comercial',                                
+                                'Asesor Bioquímico Aplicacionista' => 'Asesor Bioquímico Aplicacionista',  
+                                'Asistente Administrativo' => 'Asistente Administrativo',
+                                'Asistente de Contabilidad' => 'Asistente de Contabilidad',
+                                'Asistente de Licitaciones' => 'Asistente de Licitaciones',
+                                'Auxiliar Administrativo y Comercial' => 'Auxiliar Administrativo y Comercial',
+                                'Auxiliar Contable' => 'Auxiliar Contable',
+                                'Auxiliar de Almacén' => 'Auxiliar de Almacén',   
+                                'Auxiliar Técnico' => 'Auxiliar Técnico',
+                                'Contador' => 'Contador',    
+                                'Encargado Nacional de Almacén' => 'Encargado Nacional de Almacén',
+                                'Encargado de Almacén' => 'Encargado de Almacén',
+                                'Encargado de Licitaciones' => 'Encargado de Licitaciones',                                
+                                'Encargado Regional' => 'Encargado Regional',
+                                'Encargado de Contabilidad' => 'Encargado de Contabilidad',
+                                'Encargado de Recursos Humanos' => 'Encargado de Recursos Humanos',
+                                'Encargado de Logistica e Importaciones' => 'Encargado de Logistica e Importaciones',                
+                                'Encargado de Tecnologías de la Información' => 'Encargado de Tecnologías de la Información',
+                                'Ejecutivo de Ventas' => 'Ejecutiva de Ventas',
+                                'Gerente Administrativo Financiero' => 'Gerente Administrativo Financiero',
+                                'Gerente Ejecutivo' => 'Gerente Ejecutivo',
+                                'Gerente General' => 'Gerente General',
+                                'Gerente de Importaciones' => 'Gerente de Importaciones',
+                                'Gerente Operativa' => 'Gerente Operativa',
+                                'Mensajería' => 'Mensajería',
+                                'Regente Farmacéutico' => 'Regente Farmacéutico',
+                                'Auxiliar Técnico' => 'Auxiliar Técnico'                                
+                            ])
+                            ->searchable()
+                            ->native(false),
 
                         Select::make('sucursal')
                             ->label('Sucursal/Departamento')

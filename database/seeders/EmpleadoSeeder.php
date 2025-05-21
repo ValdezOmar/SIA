@@ -9,7 +9,61 @@ use Carbon\Carbon;
 class EmpleadoSeeder extends Seeder
 {
     public function run()
-    {       
+    {
+        $telefonos = [
+            'Jhimy Richard Soliz Sanchez' => '62707028',
+            'Jhonny Alberto Farfan Aban' => '62850153',
+            'Angela Lucia Choque Lopez' => '62850154',
+            'Sandra Cruz Rejas' => '62890180',
+            'Gabriela Suarez Aranibar' => '67000760',
+            'Brian Rodolfo Espejo Candia' => '67000761',
+            'Ariel Candi Acarapi' => '67401225',
+            'Daniel René Rocha Rocha' => '68226895',
+            'Yandira Avalos Cierra' => '68226896',
+            'Vania Lizette Orellana' => '68581403',
+            'Jhonatan Joel Choque Salazar' => '69208404',
+            'Pablo Andres Gamboa' => '69263263',
+            'Omar Valdez Muñoz' => '69263344',
+            'Paola Suarez Colque' => '69265239',
+            'Jhovana Turpo Bautista' => '69265252',
+            'Cesar Enrique Jerandilla Calle' => '69293166',
+            'Marion Dayana Ortiz Alba' => '69293299',
+            'Jheyson Carlos Troche Candia' => '69293611',
+            'Evelyn Sisy Balcazar Mendoza' => '69729057',
+            'Margaret Mamani Callisaya' => '69729059',
+            'Cristina Vereda' => '69775486',
+            'Juan Pablo Mamani Camacho' => '69803490',
+            'Rommel Joel Beltran Flores' => '69803632',
+            'Vanesa Lourdes Aleman Segovia' => '70235566',
+            'Carlos Alejandro Bravo Chinchilla' => '71092633',
+            'Franklin Aviles Dueñas' => '71163760',
+            'Nestor Ramirez Blanco' => '71228587',
+            'Lizeth Alison Quispe Chirino' => '71228596',
+            'Orlandito Arnez Butron' => '71346100',
+            'Edwin Reynaldo Suarez Alcázar' => '71511155',
+            'Germin Araceli Chavez Murgia' => '71556421',
+            'Vladimir Uluri Mamani' => '71556422',
+            'Rocio Morelia Daza Moya' => '71561713',
+            'Roxana Antequera Hidalgo' => '71561714',
+            'Jaqueline Nirvana Rocha Campero' => '71730002',
+            'Velka Micaela Vlahovic Fortun' => '71743513',
+            'Edson Pablo Ortiz Sandoval' => '72003319',
+            'Jenny Chuquimia Loma' => '72005456',
+            'Ismael Hugo Gutierrez Salinas' => '72006162',
+            'Ugur Ozmen' => '72006181',
+            'Bryan Ramiro Lopez Soria' => '72007456',
+            'Juan Orlando Sonco Apaza' => '72007459',
+            'Claudia Gisela Guillen de la Torre' => '72042991',
+            'Oswaldo Valerio Quisbert Mamani' => '72042997',
+            'Milenka Estela Catari Huallpa' => '72043150',
+            'Zarely Justiniano Salazar' => '72151808',
+            'Jhonny Rocha' => '72228868',
+            'Patricia Martinez Salazar' => '72879119',
+            'David Espinal Huanaco' => '75227044',
+            'Jhoanna Rubithza Aruquipa Ticona' => '76746400',
+            'Elizabeth Alejandra Burgos Alba' => '76754567',
+            'Ingrid Karen Olivera Atahuichi' => '76754727',
+        ];
 
         $empleados = [
             [
@@ -25,7 +79,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Analista de licitaciones',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '7959901',
@@ -40,7 +95,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar Técnico',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Requilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '7047747',
@@ -55,7 +111,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Mensajería',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '5958993',
@@ -70,7 +127,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Contador',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Requilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '8178335',
@@ -85,22 +143,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar de Almacén',
                 'sucursal' => 'Santa Cruz',
                 'empresa' => 'Novanexa',
-                'activo' => true
-            ],
-            [
-                'ci' => '2642777',
-                'nombres' => 'Ceferino',
-                'apellidos' => 'Paucara Mamani',
-                'fecha_nacimiento' => '2025-01-01',
-                'direccion' => 'Calle Acre Nro. 55 Zona Alto Lima 2da Sección El Alto',
-                'genero' => 'hombre',
-                'nacionalidad' => 'Boliviana',
-                'telefono_personal' => null,
-                'fecha_ingreso' => '2025-01-01',
-                'cargo' => 'Portero',
-                'sucursal' => 'La Paz',
-                'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '8441669',
@@ -112,10 +156,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '73537185',
                 'fecha_ingreso' => '2024-09-01',
-                'cargo' => 'Asistente de Contabilidad',
+                'cargo' => 'Auxiliar Contable',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '4777512',
@@ -130,7 +175,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Asesor Bioquímico Comercial',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '5918674',
@@ -142,10 +188,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '75911967',
                 'fecha_ingreso' => '2019-12-01',
-                'cargo' => 'Ejecutiva de Ventas',
+                'cargo' => 'Ejecutivo de Ventas',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Requilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '9434456',
@@ -157,10 +204,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '72299801',
                 'fecha_ingreso' => '2023-05-04',
-                'cargo' => 'Técnico Auxiliar',
+                'cargo' => 'Auxiliar Técnico',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6990618',
@@ -172,10 +220,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '75227044',
                 'fecha_ingreso' => '2025-04-07',
-                'cargo' => 'Auxiliar de Contabilidad',
+                'cargo' => 'Auxiliar Contable',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '471844',
@@ -190,7 +239,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Administrador',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '12856622',
@@ -202,10 +252,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '76627149',
                 'fecha_ingreso' => '2023-07-04',
-                'cargo' => 'Asesor Bioquímico',
+                'cargo' => 'Asesor Bioquímico Comercial',
                 'sucursal' => 'Santa Cruz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '8422084',
@@ -220,12 +271,13 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Asistente Administrativo',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '5036675',
-                'nombres' => 'Farfan Aban Jhonny Alberto',
-                'apellidos' => '',
+                'nombres' => 'Jhonny Alberto',
+                'apellidos' => 'Farfan Aban',
                 'fecha_nacimiento' => '1985-10-20',
                 'direccion' => 'Urbanización Moto Mendez',
                 'genero' => 'hombre',
@@ -235,7 +287,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Encargado Regional',
                 'sucursal' => 'Tarija',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '12740098',
@@ -250,7 +303,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar de Almacén',
                 'sucursal' => 'Sucre',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6139368',
@@ -265,7 +319,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Gerente General',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Requilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '9875657',
@@ -277,10 +332,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '63260514',
                 'fecha_ingreso' => '2022-06-01',
-                'cargo' => 'Encargada de administración',
+                'cargo' => 'Encargado Regional',
                 'sucursal' => 'Santa Cruz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '4886851',
@@ -292,10 +348,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '72052256',
                 'fecha_ingreso' => '2025-03-01',
-                'cargo' => 'Encargado nacional de almacenes',
+                'cargo' => 'Encargado Nacional de Almacén',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '4402303',
@@ -307,10 +364,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '75918265',
                 'fecha_ingreso' => '2024-03-01',
-                'cargo' => 'Ejecutiva de Ventas',
+                'cargo' => 'Ejecutivo de Ventas',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '3391161',
@@ -322,10 +380,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '69909942',
                 'fecha_ingreso' => '2025-01-24',
-                'cargo' => 'Gerente Adminstrativo',
+                'cargo' => 'Gerente Administrativo Financiero',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '8278245',
@@ -340,7 +399,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Encargado de Almacén',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6442969',
@@ -355,7 +415,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar de Almacén',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6196876',
@@ -367,10 +428,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '60638131',
                 'fecha_ingreso' => '2024-10-01',
-                'cargo' => 'Encargada de Licitaciones',
+                'cargo' => 'Encargado de Licitaciones',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '9190199',
@@ -385,7 +447,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Asistente Administrativo',
                 'sucursal' => 'Santa Cruz',
                 'empresa' => 'Requilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '5173877',
@@ -397,10 +460,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '77486331',
                 'fecha_ingreso' => '2023-02-01',
-                'cargo' => 'Asesor Bioquímico',
+                'cargo' => 'Asesor Bioquímico Comercial',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '7164908',
@@ -412,10 +476,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '72992646',
                 'fecha_ingreso' => '2024-11-01',
-                'cargo' => 'Técnico Auxiliar',
+                'cargo' => 'Auxiliar Técnico',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '11067202',
@@ -430,7 +495,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar Administrativo y Comercial',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '9083636',
@@ -442,10 +508,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '75878843',
                 'fecha_ingreso' => '2024-10-04',
-                'cargo' => 'Regente Farmacéutica',
+                'cargo' => 'Regente Farmacéutico',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6071176',
@@ -457,10 +524,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '69714711',
                 'fecha_ingreso' => '2024-01-26',
-                'cargo' => 'Regente Farmacéutica',
+                'cargo' => 'Regente Farmacéutico',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '9249503',
@@ -475,7 +543,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar Técnico',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Requilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6833216',
@@ -487,10 +556,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => null,
                 'fecha_ingreso' => '2025-02-03',
-                'cargo' => 'Encargado de T.I.',
+                'cargo' => 'Encargado de Tecnologías de la Información',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '8249233',
@@ -505,7 +575,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar de Almacén',
                 'sucursal' => 'Santa Cruz',
                 'empresa' => 'Requilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6729631',
@@ -520,7 +591,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Asesor Bioquímico Comercial',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => false,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '11601675',
@@ -535,7 +607,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar de Almacén',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '4101450',
@@ -547,10 +620,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '67611082',
                 'fecha_ingreso' => '2022-05-01',
-                'cargo' => 'Ejecutiva de Ventas',
+                'cargo' => 'Ejecutivo de Ventas',
                 'sucursal' => 'Sucre',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '4764878',
@@ -561,10 +635,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => null,
                 'fecha_ingreso' => '2025-02-17',
-                'cargo' => 'Jefe de Contabilidad',
+                'cargo' => 'Encargado de Contabilidad',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => false,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '7536902',
@@ -576,10 +651,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '77132707',
                 'fecha_ingreso' => '2024-01-02',
-                'cargo' => 'Asesora Bioquímica',
+                'cargo' => 'Asesor Bioquímico Comercial',
                 'sucursal' => 'Sucre',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => 'U24573798',
@@ -591,10 +667,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Turca',
                 'telefono_personal' => null,
                 'fecha_ingreso' => '2024-09-01',
-                'cargo' => 'Encargado Técnico de Operaciones',
+                'cargo' => 'Gerente Ejecutivo',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '4153229',
@@ -605,10 +682,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '70235566',
                 'fecha_ingreso' => '2025-04-04',
-                'cargo' => 'Auxiliar Almacenes',
+                'cargo' => 'Auxiliar de Almacén',
                 'sucursal' => 'Tarija',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '7940279',
@@ -620,10 +698,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '63901514',
                 'fecha_ingreso' => '2024-10-01',
-                'cargo' => 'Asistente Administrativa',
+                'cargo' => 'Asistente Administrativo',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '5190764',
@@ -635,10 +714,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '70761904',
                 'fecha_ingreso' => '2021-03-01',
-                'cargo' => 'Encargada de administración',
+                'cargo' => 'Encargado Regional',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Requilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6989713',
@@ -650,10 +730,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '71264679',
                 'fecha_ingreso' => '2024-08-01',
-                'cargo' => 'Auxiliar de servicio Técnico',
+                'cargo' => 'Auxiliar Técnico',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6380855',
@@ -665,10 +746,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '68226896',
                 'fecha_ingreso' => '2024-01-08',
-                'cargo' => 'Aplicaciones y Asesora Bioquímica',
+                'cargo' => 'Asesor Bioquímico Aplicacionista',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '4313403',
@@ -677,10 +759,11 @@ class EmpleadoSeeder extends Seeder
                 'genero' => 'hombre',
                 'nacionalidad' => 'Boliviana',
                 'fecha_ingreso' => '2025-03-05',
-                'cargo' => 'Jefe Nacional de Importacion y Logistica',
+                'cargo' => 'Encargado de Logistica e Importaciones',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6983933',
@@ -692,7 +775,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar Contable',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '10072126',
@@ -703,10 +787,11 @@ class EmpleadoSeeder extends Seeder
                 'nacionalidad' => 'Boliviana',
                 'telefono_personal' => '70191649',
                 'fecha_ingreso' => '2025-02-18',
-                'cargo' => 'Auxiliar Servicio Tecnico',
+                'cargo' => 'Auxiliar Técnico',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '5271275',
@@ -715,10 +800,11 @@ class EmpleadoSeeder extends Seeder
                 'genero' => 'hombre',
                 'nacionalidad' => 'Boliviana',
                 'fecha_ingreso' => '2025-03-17',
-                'cargo' => 'Encargado Almacen CBBA',
+                'cargo' => 'Encargado de Almacén',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '12573520',
@@ -732,7 +818,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Auxiliar Contable',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '9351737',
@@ -741,10 +828,11 @@ class EmpleadoSeeder extends Seeder
                 'genero' => 'mujer',
                 'nacionalidad' => 'Boliviana',
                 'fecha_ingreso' => '2025-03-24',
-                'cargo' => 'Asesor Bioquimico Comercial',
+                'cargo' => 'Asesor Bioquímico Comercial',
                 'sucursal' => 'Cochabamba',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '6998044',
@@ -756,7 +844,8 @@ class EmpleadoSeeder extends Seeder
                 'cargo' => 'Asistente de Licitaciones',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '4951011',
@@ -766,10 +855,11 @@ class EmpleadoSeeder extends Seeder
                 'genero' => 'hombre',
                 'nacionalidad' => 'Boliviana',
                 'fecha_ingreso' => '2025-04-14',
-                'cargo' => 'Responsable Nal. RRHH',
+                'cargo' => 'Encargado de Recursos Humanos',
                 'sucursal' => 'La Paz',
                 'empresa' => 'Ireilab',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ],
             [
                 'ci' => '12564920',
@@ -778,16 +868,17 @@ class EmpleadoSeeder extends Seeder
                 'genero' => 'mujer',
                 'nacionalidad' => 'Boliviana',
                 'fecha_ingreso' => '2025-03-18',
-                'cargo' => 'Asesor Bioquimica Comercial',
+                'cargo' => 'Asesor Bioquímico Comercial',
                 'sucursal' => 'Santa Cruz',
                 'empresa' => 'Novanexa',
-                'activo' => true
+                'activo' => true,
+                'estado_contrato' => 'Otro'
             ]
         ];
 
         foreach ($empleados as $empleado) {
             // Verificar si el empleado ya existe
-            if ($empleado['ci'] && DB::table('empleados')->where('ci', $empleado['ci'])->exists()) {
+            if ($empleado['ci'] && DB::table('rh_empleados')->where('ci', $empleado['ci'])->exists()) {
                 continue;
             }
 
@@ -797,25 +888,47 @@ class EmpleadoSeeder extends Seeder
             $dominioEmpresa = strtolower($empleado['empresa']) . '.com.bo';
             $correoCorporativo = "$primerNombre.$primerApellido@$dominioEmpresa";
 
-            // Insertar el empleado
-            DB::table('empleados')->insert(array_merge([
+            // Buscar número corporativo
+            $nombreCompleto = trim($empleado['nombres'] . ' ' . $empleado['apellidos']);
+            $numeroCorporativo = $telefonos[$nombreCompleto] ?? null;
+
+            // Preparar datos para insertar - TODOS los campos de la migración deben estar aquí
+            $datosInsertar = [
+                'ci' => $empleado['ci'],
+                'nombres' => $empleado['nombres'],
+                'apellidos' => $empleado['apellidos'],
+                'fecha_nacimiento' => $empleado['fecha_nacimiento'] ?? null,
+                'direccion' => $empleado['direccion'] ?? null,
+                'ubicacion_gps' => null, // O json_encode([]) si necesitas
+                'genero' => $empleado['genero'],
+                'nacionalidad' => $empleado['nacionalidad'],
                 'estado_civil' => null,
                 'cantidad_hijos' => null,
+                'telefono_personal' => $empleado['telefono_personal'] ?? null,
                 'correo_personal' => null,
                 'persona_contacto' => null,
                 'numero_contacto' => null,
+                'persona_parentesco' => null,
                 'nua_cua' => null,
+                'activo' => $empleado['activo'],
                 'foto' => null,
+                'fecha_ingreso' => $empleado['fecha_ingreso'],
                 'fecha_desvinculacion' => null,
-                'estado_contrato' => null,
+                'estado_contrato' => 'Otro',
                 'afp' => null,
                 'caja_salud' => null,
-                'numero_corporativo' => null,
-                'salario' => null,
                 'correo_corporativo' => $correoCorporativo,
+                'numero_corporativo' => $numeroCorporativo,
+                'cargo' => $empleado['cargo'],
+                'sucursal' => $empleado['sucursal'],
+                'empresa' => $empleado['empresa'],
+                'salario' => null,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
-            ], $empleado));
+            ];
+
+            // Insertar el empleado
+            DB::table('rh_empleados')->insert($datosInsertar);
         }
     }
 }

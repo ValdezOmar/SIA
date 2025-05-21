@@ -220,7 +220,7 @@ class AsistenciaResource extends Resource
             'fecha_fin' => $fechaFin->format('Y-m-d')
         ]);
 
-        $uniqueDates = DB::table('asistencias')
+        $uniqueDates = DB::table('rh_asistencias')
             ->select(DB::raw('DATE(fecha) as date'))
             ->whereBetween('fecha', [$fechaInicio, $fechaFin])
             ->groupBy('date')
@@ -513,7 +513,7 @@ class AsistenciaResource extends Resource
                             ->groupBy('user_id');
 
                         // Obtener fechas únicas del período
-                        $uniqueDates = DB::table('asistencias')
+                        $uniqueDates = DB::table('rh_asistencias')
                             ->select(DB::raw('DATE(fecha) as date'))
                             ->whereBetween('fecha', [$fechaInicio, $fechaFin])
                             ->groupBy('date')
@@ -593,7 +593,7 @@ class AsistenciaResource extends Resource
                             ->orderBy('nombres')
                             ->get();
 
-                        $uniqueDates = DB::table('asistencias')
+                        $uniqueDates = DB::table('rh_asistencias')
                             ->select(DB::raw('DATE(fecha) as date'))
                             ->whereBetween('fecha', [$fechaInicio, $fechaFin])
                             ->groupBy('date')

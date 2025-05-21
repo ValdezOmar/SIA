@@ -1,17 +1,14 @@
 <?php
 
 namespace App\Models\RRHH;
+
 use Illuminate\Support\Facades\Log;
 
 use Illuminate\Database\Eloquent\Model;
 
 class Asistencia extends Model
 {
-    public function empleado()
-    {
-        return $this->belongsTo(Empleado::class, 'user_id', 'ci');
-    }
-   
+    protected $table = 'rh_asistencias';
     protected $fillable = ['id_equipo', 'user_id', 'fecha', 'hora', 'registro_remoto', 'localizacion', 'justificacion'];
     
     //Array de funciones para la validacion de campos en el form de GPS
@@ -34,7 +31,12 @@ class Asistencia extends Model
             'localizacion.required' => 'Debe obtener la ubicación GPS para registrar',
         ];
     }
-
+    //Relacion con Empleado
+    public function empleado()
+    {
+        return $this->belongsTo(Empleado::class, 'user_id', 'ci');
+    }
+    //Buscando asistencias usando el CI
     public static function obtenerAsistencias(string $ci, string $fecha)
     {
         Log::debug('Llamando a obtenerAsistencias', [

@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('asistencias', function (Blueprint $table) {
+        Schema::create('rh_asistencias', function (Blueprint $table) {
             $table->id();
             $table->string('id_equipo')->nullable(); // ID único del equipo
             $table->string('user_id'); // ID de usuario registrado en el biométrico
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('asistencias');
+        Schema::dropIfExists('rh_asistencias');
     }
 };

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class Empleado extends Model
 {
     use HasFactory;
+    protected $table = 'rh_empleados';
 
     protected $fillable = [
         // Información Básica del Empleado
