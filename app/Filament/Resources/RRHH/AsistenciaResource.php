@@ -35,10 +35,7 @@ class AsistenciaResource extends Resource
 
     public static function form(Form $form): Form
     {
-        // Obtener el usuario autenticado
         $user = Auth::user();
-
-        // Buscar el empleado correspondiente al usuario
         $empleado = Empleado::where('correo_corporativo', $user->email)->first();
         $ciEmpleado = $empleado ? $empleado->ci : null;
 
@@ -50,10 +47,9 @@ class AsistenciaResource extends Resource
                             ->label(' ')
                             ->extraAttributes(['class' => 'mb-4']),
                     ])
-                    ->hidden(fn($get) => !empty($get('localizacion'))) // Ocultar si ya tiene ubicación
+                    ->hidden(fn($get) => !empty($get('localizacion')))
                     ->columnSpanFull(),
 
-                // Añade esto para mostrar un mensaje cuando ya tiene ubicación
                 Forms\Components\Placeholder::make('ubicacion_verificada')
                     ->content('Ubicación GPS verificada correctamente')
                     ->hidden(fn($get) => empty($get('localizacion')))
@@ -91,9 +87,9 @@ class AsistenciaResource extends Resource
                     ->reactive(),
 
                 Forms\Components\Placeholder::make('¡Importante!')
-                    ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor habilite el GPS de su dispositivo o de los permisos correspondientes para continuar con el registro de asistencia.')
+                    ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor haz clic en el botón "Obtener Ubicación GPS" y permite el acceso a tu ubicación.')
                     ->columnSpanFull()
-                    ->hidden(fn($get) => !empty($get('localizacion'))) // Ocultar si hay ubicación
+                    ->hidden(fn($get) => !empty($get('localizacion')))
                     ->extraAttributes([
                         'class' => 'bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800',
                     ]),
@@ -453,24 +449,23 @@ class AsistenciaResource extends Resource
                     ->successNotificationTitle('Asistencia registrada correctamente')
                     ->mutateFormDataUsing(function (array $data): array {
                         if (empty($data['localizacion'])) {
-                            throw new \Exception('Debe permitir el acceso a la ubicación GPS para registrar asistencia');
+                            throw new \Exception('Debes obtener tu ubicación GPS antes de registrar. Haz clic en el botón "Obtener Ubicación GPS" y permite el acceso.');
                         }
 
-                        // Validar que las coordenadas sean válidas
                         $coords = explode(',', $data['localizacion']);
-                        if (count($coords) !== 2 || !is_numeric($coords[0]) || !is_numeric($coords[1])) {
-                            throw new \Exception('Las coordenadas GPS no son válidas');
+                        if (count($coords) !== 2 || !is_numeric(trim($coords[0])) || !is_numeric(trim($coords[1]))) {
+                            throw new \Exception('Las coordenadas GPS no son válidas. Por favor, obtén una nueva ubicación.');
                         }
 
                         if ($data['registro_remoto'] && empty($data['justificacion'])) {
-                            throw new \Exception('Debe proporcionar una justificación para el registro remoto');
+                            throw new \Exception('Debes proporcionar una justificación para el registro remoto');
                         }
 
                         return $data;
                     })
                     ->action(function (array $data) {
                         if (empty($data['localizacion'])) {
-                            throw new \Exception('Debe obtener la ubicación GPS antes de registrar');
+                            throw new \Exception('No se ha obtenido la ubicación GPS');
                         }
 
                         $exists = Asistencia::where('user_id', $data['user_id'])
