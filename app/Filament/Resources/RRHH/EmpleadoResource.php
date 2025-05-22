@@ -194,7 +194,7 @@ class EmpleadoResource extends Resource
                                         if (is_string($state)) {
                                             try {
                                                 $result = json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124];
-                                                Log::debug('Transformación de string a array:', $result);
+                                                Log::debug('Transformación de string a array:', ['result' => $result]);
                                                 return $result;
                                             } catch (\Exception $e) {
                                                 Log::error('Error decodificando JSON:', ['error' => $e->getMessage()]);
@@ -203,12 +203,13 @@ class EmpleadoResource extends Resource
                                         }
 
                                         $result = is_array($state) ? $state : ['lat' => -16.504759, 'lng' => -68.119124];
-                                        Log::debug('Estado procesado final:', $result);
+                                        Log::debug('Estado procesado final:', ['result' => $result]);
                                         return $result;
                                     })
                                     ->dehydrateStateUsing(function ($state) {
-                                        Log::debug('Deshidratando estado para guardar:', $state);
-                                        return is_array($state) ? $state : (json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124]);
+                                        $result = is_array($state) ? $state : (json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124]);
+                                        Log::debug('Deshidratando estado para guardar:', ['state' => $result]);
+                                        return $result;
                                     }),
                             ])
                             ->columns(1),
@@ -326,26 +327,26 @@ class EmpleadoResource extends Resource
                             ->label('Cargo')
                             ->hint('Puesto o función actual del empleado')
                             ->hintIcon('heroicon-o-briefcase')
-                            ->options([                                
+                            ->options([
                                 'Analista de Licitaciones' => 'Analista de Licitaciones',
                                 'Aplicaciones y Asesora Bioquímica' => 'Aplicaciones y Asesora Bioquímica',
-                                'Asesor Bioquímico Comercial' => 'Asesor Bioquímico Comercial',                                
-                                'Asesor Bioquímico Aplicacionista' => 'Asesor Bioquímico Aplicacionista',  
+                                'Asesor Bioquímico Comercial' => 'Asesor Bioquímico Comercial',
+                                'Asesor Bioquímico Aplicacionista' => 'Asesor Bioquímico Aplicacionista',
                                 'Asistente Administrativo' => 'Asistente Administrativo',
                                 'Asistente de Contabilidad' => 'Asistente de Contabilidad',
                                 'Asistente de Licitaciones' => 'Asistente de Licitaciones',
                                 'Auxiliar Administrativo y Comercial' => 'Auxiliar Administrativo y Comercial',
                                 'Auxiliar Contable' => 'Auxiliar Contable',
-                                'Auxiliar de Almacén' => 'Auxiliar de Almacén',   
+                                'Auxiliar de Almacén' => 'Auxiliar de Almacén',
                                 'Auxiliar Técnico' => 'Auxiliar Técnico',
-                                'Contador' => 'Contador',    
+                                'Contador' => 'Contador',
                                 'Encargado Nacional de Almacén' => 'Encargado Nacional de Almacén',
                                 'Encargado de Almacén' => 'Encargado de Almacén',
-                                'Encargado de Licitaciones' => 'Encargado de Licitaciones',                                
+                                'Encargado de Licitaciones' => 'Encargado de Licitaciones',
                                 'Encargado Regional' => 'Encargado Regional',
                                 'Encargado de Contabilidad' => 'Encargado de Contabilidad',
                                 'Encargado de Recursos Humanos' => 'Encargado de Recursos Humanos',
-                                'Encargado de Logistica e Importaciones' => 'Encargado de Logistica e Importaciones',                
+                                'Encargado de Logistica e Importaciones' => 'Encargado de Logistica e Importaciones',
                                 'Encargado de Tecnologías de la Información' => 'Encargado de Tecnologías de la Información',
                                 'Ejecutivo de Ventas' => 'Ejecutiva de Ventas',
                                 'Gerente Administrativo Financiero' => 'Gerente Administrativo Financiero',
@@ -355,7 +356,7 @@ class EmpleadoResource extends Resource
                                 'Gerente Operativa' => 'Gerente Operativa',
                                 'Mensajería' => 'Mensajería',
                                 'Regente Farmacéutico' => 'Regente Farmacéutico',
-                                'Auxiliar Técnico' => 'Auxiliar Técnico'                                
+                                'Auxiliar Técnico' => 'Auxiliar Técnico'
                             ])
                             ->searchable()
                             ->native(false),
