@@ -25,6 +25,7 @@ use Filament\Forms\Set;
 use Filament\Forms\Components\Field;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class EmpleadoResource extends Resource
 {
@@ -61,22 +62,34 @@ class EmpleadoResource extends Resource
                         FileUpload::make('foto')
                             ->image()
                             ->directory('empleados')
+                            ->disk('public')
                             ->imageEditor()
                             ->circleCropper()
                             ->imagePreviewHeight('150')
                             ->openable()
                             ->downloadable()
                             ->label('')
+                            ->getUploadedFileNameForStorageUsing(
+                                function (TemporaryUploadedFile $file, Get $get): string {
+                                    $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_' . uniqid();
+                                    $extension = $file->getClientOriginalExtension();
+                                    return "empleados/{$ci}.{$extension}";
+                                }
+                            )
+                            ->visibility('public')
+                            ->preserveFilenames(false)
+                            ->rules([
+                                'image',
+                                'max:2048', // 2MB máximo
+                                'mimes:jpg,jpeg,png',
+                            ])
                             ->placeholder(function ($get) {
-                                // Si hay foto cargada, no mostrar placeholder
                                 if ($get('foto')) {
                                     return null;
                                 }
-
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
                                 $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
-
                                 return view('filament.forms.components.avatar-placeholder', [
                                     'iniciales' => $iniciales ?: 'NA',
                                     'defaultImage' => asset('images/default-avatar.jpg')
@@ -435,7 +448,10 @@ class EmpleadoResource extends Resource
                 ImageColumn::make('foto')
                     ->label('')
                     ->circular()
-                    ->defaultImageUrl(asset('images/default-avatar.jpg')),
+                    ->defaultImageUrl(function ($record) {
+                        // Mostrar la foto del empleado si existe, de lo contrario el avatar por defecto
+                        return $record->foto ? asset('storage/' . $record->foto) : asset('images/default-avatar.jpg');
+                    }),
 
                 TextColumn::make('nombre_completo')
                     ->label('Datos del Empleado')
