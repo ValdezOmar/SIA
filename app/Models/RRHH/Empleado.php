@@ -5,6 +5,7 @@ namespace App\Models\RRHH;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class Empleado extends Model
 {
@@ -14,6 +15,7 @@ class Empleado extends Model
     protected $fillable = [
         // Información Básica del Empleado
         'nombres',
+        'foto',
         'apellidos',
         'ci',
         'fecha_nacimiento',
@@ -69,9 +71,20 @@ class Empleado extends Model
     // Foto de perfil por defecto
     public function getFotoUrlAttribute()
     {
-        if ($this->foto && Storage::exists($this->foto)) {
-            return Storage::url($this->foto);
+        if (!$this->foto) {
+            return asset('images/default-avatar.jpg');
         }
+
+        // Verifica si ya es una URL completa
+        if (filter_var($this->foto, FILTER_VALIDATE_URL)) {
+            return $this->foto;
+        }
+
+        // Verifica si la foto existe en storage
+        if (Storage::disk('public')->exists($this->foto)) {
+            return Storage::disk('public')->url($this->foto);
+        }
+
         return asset('images/default-avatar.jpg');
     }
 
@@ -89,5 +102,15 @@ class Empleado extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'correo_corporativo', 'email');
     }
-    
+    //Modelo de comprovaciond de foto
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($model) {
+            if (is_array($model->foto)) {
+                $model->foto = null;
+            }
+        });
+    }
 }
