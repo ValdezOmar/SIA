@@ -23,6 +23,8 @@ class DirectorioResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+        // Filtra solo empleados activos
+        ->modifyQueryUsing(fn ($query) => $query->where('activo', true)) 
             ->columns([
                 ImageColumn::make('foto')
                     ->label('')
@@ -82,6 +84,8 @@ class DirectorioResource extends Resource
                         default => 'gray',
                     }),
             ])
+            // Esto hace que las filas no sean clickeables
+            ->recordUrl(null)
             ->filters([
                 Tables\Filters\SelectFilter::make('empresa')
                     ->options([
@@ -104,6 +108,7 @@ class DirectorioResource extends Resource
                     ]),
             ])
             ->actions([]) // Sin acciones de edición/eliminación
+            ->recordUrl(null) // Desactiva el click en las filas
             ->defaultPaginationPageOption(50)
             ->bulkActions([]); // Sin acciones masivas
     }
