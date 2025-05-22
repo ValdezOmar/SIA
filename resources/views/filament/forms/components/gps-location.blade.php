@@ -1,19 +1,4 @@
 <div x-data="gpsLocation()" class="space-y-2">
-    
-    <div x-data="gpsLocation()" class="space-y-2">
-        <!-- ... (código existente) ... -->
-        <template x-if="status === 'success'">
-            <div class="p-4 bg-green-50 text-green-800 rounded-lg">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                    </svg>
-                    <span>Ubicación verificada. Complete la justificación para continuar.</span>
-                </div>
-                <div class="mt-1 text-sm opacity-75" x-text="'Coordenadas: ' + location"></div>
-            </div>
-        </template>
-
     <template x-if="status === 'loading'">
         <div class="flex items-center p-4 bg-blue-50 text-blue-800 rounded-lg">
             <svg class="w-5 h-5 mr-2 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -30,7 +15,7 @@
                 <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                 </svg>
-                <span x-text="message"></span>
+                <span>Ubicación verificada. Complete la justificación para continuar.</span>
             </div>
             <div class="mt-1 text-sm opacity-75" x-text="'Coordenadas: ' + location"></div>
         </div>
@@ -72,35 +57,56 @@ function gpsLocation() {
                         this.status = 'success';
                         this.message = 'Ubicación obtenida correctamente';
                         this.location = `${position.coords.latitude},${position.coords.longitude}`;
-                        this.$wire.set('localizacion', this.location);
+                        
+                        // Actualizar el campo en Livewire
+                        const livewireComponent = this.$wire || 
+                            (window.livewire && window.livewire.find(this.$el.closest('[wire\\:id]').get('id'));
+                        
+                        if (livewireComponent) {
+                            livewireComponent.set('localizacion', this.location);
+                        }
                     },
                     (error) => {
                         this.status = 'error';
                         switch(error.code) {
                             case error.PERMISSION_DENIED:
-                                this.error = "Debes permitir el acceso a la ubicación";
+                                this.error = "Debes permitir el acceso a la ubicación para registrar asistencia";
                                 break;
                             case error.POSITION_UNAVAILABLE:
-                                this.error = "La ubicación no está disponible";
+                                this.error = "La información de ubicación no está disponible";
                                 break;
                             case error.TIMEOUT:
-                                this.error = "Tiempo de espera agotado";
+                                this.error = "La solicitud de ubicación ha expirado";
                                 break;
                             default:
-                                this.error = "Error al obtener la ubicación";
+                                this.error = "Error desconocido al obtener la ubicación";
                         }
-                        this.$wire.set('localizacion', '');
+                        
+                        // Limpiar el campo en Livewire
+                        const livewireComponent = this.$wire || 
+                            (window.livewire && window.livewire.find(this.$el.closest('[wire\\:id]').get('id')));
+                        
+                        if (livewireComponent) {
+                            livewireComponent.set('localizacion', '');
+                        }
                     },
                     {
                         enableHighAccuracy: true,
-                        timeout: 10000,
+                        timeout: 15000,
                         maximumAge: 0
                     }
                 );
             } else {
                 this.status = 'error';
-                this.error = "Geolocalización no soportada por tu navegador";
-                this.$wire.set('localizacion', '');
+                this.error = "Tu navegador no soporta geolocalización o no tiene permisos";
+                
+                // Limpiar el campo en Livewire
+                const livewireComponent = this.$wire || 
+                    (window.livewire && window.livewire.find(this.$el.closest('[wire\\:id]').get('id')));
+                
+                if (livewireComponent) {
+                    livewireComponent.set('localizacion', '');
+                }
             }
         }
     }

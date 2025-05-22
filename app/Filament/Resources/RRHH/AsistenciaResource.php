@@ -49,6 +49,17 @@ class AsistenciaResource extends Resource
                         Forms\Components\View::make('filament.forms.components.gps-location')
                             ->label(' ')
                             ->extraAttributes(['class' => 'mb-4']),
+                    ])
+                    ->hidden(fn($get) => !empty($get('localizacion'))) // Ocultar si ya tiene ubicación
+                    ->columnSpanFull(),
+
+                // Añade esto para mostrar un mensaje cuando ya tiene ubicación
+                Forms\Components\Placeholder::make('ubicacion_verificada')
+                    ->content('Ubicación GPS verificada correctamente')
+                    ->hidden(fn($get) => empty($get('localizacion')))
+                    ->columnSpanFull()
+                    ->extraAttributes([
+                        'class' => 'bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800',
                     ]),
 
                 Forms\Components\TextInput::make('user_id')
@@ -442,7 +453,13 @@ class AsistenciaResource extends Resource
                     ->successNotificationTitle('Asistencia registrada correctamente')
                     ->mutateFormDataUsing(function (array $data): array {
                         if (empty($data['localizacion'])) {
-                            throw new \Exception('No se pudo obtener la ubicación GPS');
+                            throw new \Exception('Debe permitir el acceso a la ubicación GPS para registrar asistencia');
+                        }
+
+                        // Validar que las coordenadas sean válidas
+                        $coords = explode(',', $data['localizacion']);
+                        if (count($coords) !== 2 || !is_numeric($coords[0]) || !is_numeric($coords[1])) {
+                            throw new \Exception('Las coordenadas GPS no son válidas');
                         }
 
                         if ($data['registro_remoto'] && empty($data['justificacion'])) {
