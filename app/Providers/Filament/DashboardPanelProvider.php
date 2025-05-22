@@ -18,10 +18,6 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
-use App\Filament\Resources\RRHH\EmpleadoResource\Pages\Perfil;
-use Filament\Navigation\MenuItem;
-use App\Filament\Resources\RRHH\EmpleadoResource;
-use App\Models\RRHH\Empleado;
 use Illuminate\Support\Facades\Auth;
 
 
