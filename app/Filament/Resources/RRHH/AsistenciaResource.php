@@ -70,8 +70,11 @@ class AsistenciaResource extends Resource
                     ->required(fn($get) => $get('registro_remoto'))
                     ->hidden(fn($get) => !$get('registro_remoto'))
                     ->columnSpanFull()
-                    ->maxLength(500)
-                    ->disabled(fn($get) => empty($get('localizacion'))),
+                    ->maxLength(255)
+                    ->disabled(function ($get, $livewire) {
+                        // Deshabilitar si no hay localización en el componente ListAsistencias
+                        return empty($livewire->localizacion);
+                    }),
 
                 Forms\Components\Hidden::make('fecha')
                     ->default(today()->format('Y-m-d')),
@@ -95,9 +98,11 @@ class AsistenciaResource extends Resource
                     }),
 
                 Forms\Components\Placeholder::make('¡Importante!')
-                    ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor haz clic en el botón "Obtener Ubicación GPS" y permite el acceso a tu ubicación.')
+                    ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor haz clic en el botón "Obtener Ubicación GPS", activa la geolocalización y permite el acceso a tu ubicación.')
                     ->columnSpanFull()
-                    ->hidden(fn($get) => !empty($get('localizacion')))
+                    ->hidden(function ($get, $livewire) {
+                        return empty(!($livewire->localizacion));
+                    })
                     ->extraAttributes([
                         'class' => 'bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800',
                     ]),

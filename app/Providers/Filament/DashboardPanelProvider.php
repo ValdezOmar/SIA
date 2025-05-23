@@ -20,8 +20,6 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Illuminate\Support\Facades\Auth;
 
-
-
 class DashboardPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
@@ -36,7 +34,6 @@ class DashboardPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->brandName('SISTEMA INTEGRADO DE ADMINISTRACION')
-
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -60,7 +57,7 @@ class DashboardPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-
+            
             ->authMiddleware([
                 Authenticate::class,
             ])
@@ -83,13 +80,16 @@ class DashboardPanelProvider extends PanelProvider
             // Se agrega correctamente el plugin de Shield
             ->plugins([
                 FilamentShieldPlugin::make()
-            ])            //asociacion de foto de perfil con avatar
+            ])   
+
+            //asociacion de foto de perfil con avatar
             // ->userAvatarUrl(function ($user) {
             //     if ($user->empleado && $user->empleado->foto_url) {
             //         return $user->empleado->foto_url;
             //     }
             //     return null;
             // })
+
             //vista del perfil de empleado
             ->userMenuItems([
                 'perfil' => \Filament\Navigation\MenuItem::make()
