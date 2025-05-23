@@ -9,6 +9,7 @@ use Filament\Resources\Pages\ListRecords;
 class ListAsistencias extends ListRecords
 {
     protected static string $resource = AsistenciaResource::class;
+    public ?string $localizacion = null;
 
     protected function getHeaderActions(): array
     {

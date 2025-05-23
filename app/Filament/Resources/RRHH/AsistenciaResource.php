@@ -82,9 +82,17 @@ class AsistenciaResource extends Resource
                 Forms\Components\Hidden::make('registro_remoto')
                     ->default(true),
 
+                // Captura localizacion desde alpine
                 Forms\Components\Hidden::make('localizacion')
                     ->default('')
-                    ->reactive(),
+                    ->reactive()
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        // Validar coordenadas
+                        $coords = explode(',', $state);
+                        if (count($coords) !== 2 || !is_numeric(trim($coords[0]))) {
+                            $set('localizacion', '');
+                        }
+                    }),
 
                 Forms\Components\Placeholder::make('¡Importante!')
                     ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor haz clic en el botón "Obtener Ubicación GPS" y permite el acceso a tu ubicación.')
