@@ -26,6 +26,7 @@ use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\View;
+use Filament\Forms;
 
 class AsistenciaResource extends Resource
 {
@@ -71,7 +72,7 @@ class AsistenciaResource extends Resource
                     ->default($ciEmpleado)
                     ->disabled(true),
 
-                TextArea::make('justificacion')
+                Forms\Components\Textarea::make('justificacion')
                     ->label('Justificación del Registro Remoto')
                     ->required(fn($get) => $get('registro_remoto'))
                     ->hidden(fn($get) => !$get('registro_remoto'))
