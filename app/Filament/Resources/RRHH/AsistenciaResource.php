@@ -71,7 +71,7 @@ class AsistenciaResource extends Resource
                     ->default($ciEmpleado)
                     ->disabled(true),
 
-                Textarea::make('justificacion')
+                TextArea::make('justificacion')
                     ->label('Justificación del Registro Remoto')
                     ->required(fn($get) => $get('registro_remoto'))
                     ->hidden(fn($get) => !$get('registro_remoto'))
