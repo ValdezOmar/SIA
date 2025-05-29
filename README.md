@@ -48,6 +48,13 @@ php artisan db:seed EmpleadoSeeder
 php artisan shield:generate --all
 php artisan db:seed RolePermissionSeeder
 
+# Para desarrollo (limpiar)
+php artisan optimize:clear
+php artisan view:clear
+php artisan route:clear
+php artisan config:clear
+composer dump-autoload
+
 # Para producción (optimizar)
 php artisan optimize
 php artisan view:cache

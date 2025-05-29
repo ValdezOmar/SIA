@@ -23,13 +23,15 @@ class AppServiceProvider extends ServiceProvider
     {
         //Gestion de almacenamiento de fotos
         if (config('filesystems.default') === 's3') {
-        Storage::disk('s3')->buildTemporaryUrlsUsing(function ($path, $expiration, $options) {
-            return URL::temporarySignedRoute(
-                'files.temporary',
-                $expiration,
-                array_merge($options, ['path' => $path])
-            );
-        }); 
+            Storage::disk('s3')->buildTemporaryUrlsUsing(function ($path, $expiration, $options) {
+                return URL::temporarySignedRoute(
+                    'files.temporary',
+                    $expiration,
+                    array_merge($options, ['path' => $path])
+                );
+            });
+        }
+
+        
     }
-    
-}}
+}

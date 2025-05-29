@@ -72,6 +72,7 @@ class DashboardPanelProvider extends PanelProvider
             ->favicon(asset('images/favicon.ico'))
 
             //Spatie configuration
+            ->login(GoogleAuthProvider::class)
             ->authGuard('web')
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
