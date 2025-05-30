@@ -10,7 +10,7 @@ class EditEmpleado extends EditRecord
     protected static string $resource = EmpleadoResource::class;
 
     public ?array $ubicacion_gps;
-    
+
     protected function getHeaderActions(): array
     {
         return [
@@ -23,14 +23,22 @@ class EditEmpleado extends EditRecord
         // Ver lo que contiene la propiedad para depuración
         //dump($this->ubicacion_gps);
         if (is_array($this->ubicacion_gps)) {
-            $data['ubicacion_gps'] = [
-                'lat' => round(floatval($this->ubicacion_gps['lat'] ?? 0), 6),
-                'lng' => round(floatval($this->ubicacion_gps['lng'] ?? 0), 6),
-            ];
-        } else {
+        $lat = round(floatval($this->ubicacion_gps['lat'] ?? 0), 6);
+        $lng = round(floatval($this->ubicacion_gps['lng'] ?? 0), 6);
+
+        // Verifica si la ubicación coincide con la coordenada específica
+        if ($lat === -16.504759 && $lng === -68.119124) {
             $data['ubicacion_gps'] = null;
+        } else {
+            $data['ubicacion_gps'] = [
+                'lat' => $lat,
+                'lng' => $lng,
+            ];
         }
-        
+    } else {
+        $data['ubicacion_gps'] = null;
+    }
+
         return $data;
     }
 }
