@@ -42,14 +42,16 @@ class EmpleadoResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         // Solo mostrar en el navigation si el usuario NO tiene el rol 'Empleado'
-        return !Auth::user()->hasRole('Empleado');
+        $user = Auth::user();
+        return $user && !$user->hasRole('Empleado') && $user->roles->isNotEmpty();
     }
 
     // 2. Método para controlar el acceso a todas las páginas del recurso
     public static function canViewAny(): bool
     {
         // Solo permitir acceso si el usuario NO tiene el rol 'Empleado'
-        return !Auth::user()->hasRole('Empleado');
+        $user = Auth::user();
+        return $user && !$user->hasRole('Empleado') && $user->roles->isNotEmpty();
     }
 
     public static function form(Form $form): Form

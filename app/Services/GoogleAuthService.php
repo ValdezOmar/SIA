@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
+use Spatie\Permission\Models\Role;
 
 class GoogleAuthService
 {
@@ -20,6 +21,9 @@ class GoogleAuthService
                 'google_refresh_token' => $googleUser->refreshToken,
                 'email_verified_at' => now(),
             ]);
+            // Asignar rol "Empleado" por defecto
+            $empleadoRole = Role::firstOrCreate(['name' => 'Empleado']);
+            $user->assignRole($empleadoRole);
         } else {
             $user->update([
                 'google_id' => $googleUser->getId(),

@@ -11,5 +11,6 @@ Route::redirect('/', '/dashboard');
 Route::get('/', function () {
     return redirect('/dashboard');
 });
+//Redireccion a los dominios de llamada de google
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
