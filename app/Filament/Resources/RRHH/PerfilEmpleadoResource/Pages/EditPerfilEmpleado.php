@@ -14,17 +14,12 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Fieldset;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Illuminate\Support\Facades\Log;
 use Filament\Actions\Action;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class EditPerfilEmpleado extends EditRecord
 {
@@ -46,7 +41,7 @@ class EditPerfilEmpleado extends EditRecord
         } else {
             $data['ubicacion_gps'] = null;
         }
-        
+
         return $data;
     }
 
@@ -74,21 +69,44 @@ class EditPerfilEmpleado extends EditRecord
             ->schema([
                 Grid::make()
                     ->schema([
+                        // Sección superior con foto y datos básicos
                         FileUpload::make('foto')
                             ->image()
                             ->directory('empleados')
+                            ->disk('public')
+                            ->visibility('public')
                             ->imageEditor()
-                            ->circleCropper()
-                            ->imagePreviewHeight('150')
+                            ->imageResizeTargetWidth(800)  // Tamaño más grande
+                            ->imageResizeTargetHeight(800)
                             ->openable()
                             ->downloadable()
-                            ->label('')
-                            ->placeholder(function ($get) {
-                                // Si hay foto cargada, no mostrar placeholder
-                                if ($get('foto')) {
-                                    return null;
+                            ->loadingIndicatorPosition('center')
+                            ->panelAspectRatio('1:1')
+                            ->removeUploadedFileButtonPosition('upper-center')
+                            ->uploadButtonPosition('right')
+                            ->uploadProgressIndicatorPosition('right')
+                            ->panelLayout('circle')    // Layout especial para avatares
+                            ->extraAttributes([
+                                'style' => '
+                                    width: 300px; 
+                                    height: 300px;
+                                    margin: 0 auto; /* Centrado horizontal */
+                                    display: flex; /* Para centrado vertical si es necesario */
+                                    justify-content: center;
+                                ',
+                                'class' => 'flex flex-col items-center' // Clases de Tailwind para respaldo
+                            ])
+                            ->imageCropAspectRatio('1:1')  // Relación de aspecto cuadrada
+                            ->default(fn($record) => $record?->foto)
+                            ->alignCenter()
+                            ->getUploadedFileNameForStorageUsing(
+                                function (TemporaryUploadedFile $file, Get $get): string {
+                                    $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_' . uniqid();
+                                    return $ci . '.' . $file->getClientOriginalExtension();
                                 }
-
+                            )
+                            ->placeholder(function ($get) {
+                                // Si no hay foto, mostrar iniciales con avatar por defecto
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
                                 $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
@@ -97,9 +115,7 @@ class EditPerfilEmpleado extends EditRecord
                                     'iniciales' => $iniciales ?: 'NA',
                                     'defaultImage' => asset('images/default-avatar.jpg')
                                 ]);
-                            })
-                            ->extraAttributes(['class' => 'border-2 border-gray-200 rounded-full p-1 mx-auto'])
-                            ->columnSpan(['md' => 2, 'lg' => 1]),
+                            }),
 
                         Grid::make()
                             ->schema([
@@ -193,13 +209,13 @@ class EditPerfilEmpleado extends EditRecord
                                     ->label('Ubicación GPS')
                                     ->view('filament.forms.components.map-picker')
                                     ->live()
-                                    ->afterStateHydrated(function ($state, $record) {                                   
+                                    ->afterStateHydrated(function ($state, $record) {
 
                                         // Transformación garantizada
                                         if (is_string($state)) {
                                             try {
                                                 $result = json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124];
-                                                
+
                                                 return $result;
                                             } catch (\Exception $e) {
                                                 Log::error('Error decodificando JSON:', ['error' => $e->getMessage()]);
@@ -208,11 +224,11 @@ class EditPerfilEmpleado extends EditRecord
                                         }
 
                                         $result = is_array($state) ? $state : ['lat' => -16.504759, 'lng' => -68.119124];
-                                        
+
                                         return $result;
                                     })
                                     ->dehydrateStateUsing(function ($state) {
-                                        
+
                                         return is_array($state) ? $state : (json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124]);
                                     }),
                             ])

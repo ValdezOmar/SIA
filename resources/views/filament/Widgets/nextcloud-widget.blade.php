@@ -10,7 +10,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
             <x-filament::button 
                 icon="heroicon-o-cloud"
-                color="primary"
+                color="info"
                 tag="a"
                 href="{{ $this->getNextcloudUrl() }}"
                 target="_blank"

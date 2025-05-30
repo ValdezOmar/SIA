@@ -65,40 +65,48 @@ class EmpleadoResource extends Resource
                             ->image()
                             ->directory('empleados')
                             ->disk('public')
+                            ->visibility('public')
                             ->imageEditor()
-                            ->circleCropper()
-                            ->imagePreviewHeight('150')
+                            ->imageResizeTargetWidth(800)  // Tamaño más grande
+                            ->imageResizeTargetHeight(800)
                             ->openable()
                             ->downloadable()
-                            ->label('')
+                            ->loadingIndicatorPosition('center')
+                            ->panelAspectRatio('1:1')
+                            ->removeUploadedFileButtonPosition('upper-center')
+                            ->uploadButtonPosition('right')
+                            ->uploadProgressIndicatorPosition('right')
+                            ->panelLayout('circle')    // Layout especial para avatares
+                            ->extraAttributes([
+                                'style' => '
+                                    width: 300px; 
+                                    height: 300px;
+                                    margin: 0 auto; /* Centrado horizontal */
+                                    display: flex; /* Para centrado vertical si es necesario */
+                                    justify-content: center;
+                                ',
+                                'class' => 'flex flex-col items-center' // Clases de Tailwind para respaldo
+                            ])
+                            ->imageCropAspectRatio('1:1')  // Relación de aspecto cuadrada
+                            ->default(fn($record) => $record?->foto)
+                            ->alignCenter()
                             ->getUploadedFileNameForStorageUsing(
                                 function (TemporaryUploadedFile $file, Get $get): string {
                                     $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_' . uniqid();
-                                    $extension = $file->getClientOriginalExtension();
-                                    return "empleados/{$ci}.{$extension}";
+                                    return $ci . '.' . $file->getClientOriginalExtension();
                                 }
                             )
-                            ->visibility('public')
-                            ->preserveFilenames(false)
-                            ->rules([
-                                'image',
-                                'max:2048', // 2MB máximo
-                                'mimes:jpg,jpeg,png',
-                            ])
                             ->placeholder(function ($get) {
-                                if ($get('foto')) {
-                                    return null;
-                                }
+                                // Si no hay foto, mostrar iniciales con avatar por defecto
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
                                 $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
+
                                 return view('filament.forms.components.avatar-placeholder', [
                                     'iniciales' => $iniciales ?: 'NA',
                                     'defaultImage' => asset('images/default-avatar.jpg')
                                 ]);
-                            })
-                            ->extraAttributes(['class' => 'border-2 border-gray-200 rounded-full p-1 mx-auto'])
-                            ->columnSpan(['md' => 2, 'lg' => 1]),
+                            }),
 
                         Grid::make()
                             ->schema([

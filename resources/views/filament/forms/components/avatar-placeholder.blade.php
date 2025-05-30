@@ -14,7 +14,7 @@
     $iniciales = $inicialN . $inicialA;
 @endphp
 
-<div class="flex items-center justify-center w-full h-full" style="width: 150px; height: 150px;">
+<div class="flex items-center justify-center w-full h-full" style="width: 350px; height: 350px;">
     @if($iniciales !== '')
         <div class="flex items-center justify-center w-full h-full rounded-full bg-blue-100 text-blue-600 font-bold text-4xl">
             {{ $iniciales }}

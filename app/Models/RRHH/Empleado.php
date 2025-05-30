@@ -5,7 +5,6 @@ namespace App\Models\RRHH;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 
 class Empleado extends Model
 {
@@ -55,7 +54,7 @@ class Empleado extends Model
         'ubicacion_gps' => 'array', // Para almacenar coordenadas como JSON
     ];
 
-    protected $appends = ['foto_url', 'coordenadas'];
+    //protected $appends = ['foto_url', 'coordenadas'];
 
     public function asistencias()
     {
@@ -75,14 +74,16 @@ class Empleado extends Model
             return asset('images/default-avatar.jpg');
         }
 
-        // Verifica si ya es una URL completa
-        if (filter_var($this->foto, FILTER_VALIDATE_URL)) {
+        // Si ya es una URL completa
+        if (filter_var($this->foto, FILTER_VALIDATE_URL)) {  // Corregido aquí
             return $this->foto;
         }
 
-        // Verifica si la foto existe en storage
-        if (Storage::disk('public')->exists($this->foto)) {
-            return Storage::disk('public')->url($this->foto);
+        // Verificar si la foto existe en storage
+        $path = 'empleados/' . basename($this->foto);
+
+        if (Storage::disk('public')->exists($path)) {
+            return Storage::disk('public')->url($path);
         }
 
         return asset('images/default-avatar.jpg');

@@ -23,15 +23,19 @@ class DirectorioResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-        // Filtra solo empleados activos
-        ->modifyQueryUsing(fn ($query) => $query->where('activo', true)) 
+            // Filtra solo empleados activos
+            ->modifyQueryUsing(fn($query) => $query->where('activo', true))
             ->columns([
                 ImageColumn::make('foto')
                     ->label('')
                     ->circular()
                     ->defaultImageUrl(asset('images/default-avatar.jpg'))
                     ->width(50)
-                    ->height(50),
+                    ->height(50)
+                    ->extraAttributes([
+                        'class' => 'cursor-pointer hover:opacity-75',
+                        'x-on:click' => 'window.open($event.target.src, "_blank", "width=600,height=600")'
+                    ]),
 
                 TextColumn::make('nombres')
                     ->searchable()

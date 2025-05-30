@@ -55,32 +55,38 @@ class ViewDirectorioEmpleado extends ViewRecord
             ->schema([
                 Grid::make()
                     ->schema([
+                        // Sección superior con foto y datos básicos
                         FileUpload::make('foto')
                             ->image()
                             ->directory('empleados')
-                            ->imageEditor()
-                            ->circleCropper()
-                            ->imagePreviewHeight('150')
+                            ->disk('public')
+                            ->visibility('public')
                             ->openable()
                             ->downloadable()
-                            ->label('')
+                            ->panelAspectRatio('1:1')
+                            ->panelLayout('circle')    // Layout especial para avatares
+                            ->extraAttributes([
+                                'style' => '
+                                    width: 300px; 
+                                    height: 300px;
+                                    margin: 0 auto; /* Centrado horizontal */
+                                    display: flex; /* Para centrado vertical si es necesario */
+                                    justify-content: center;
+                                ',
+                                'class' => 'flex flex-col items-center' // Clases de Tailwind para respaldo
+                            ])                          
+                            ->default(fn($record) => $record?->foto)
+                            ->alignCenter()                            
                             ->placeholder(function ($get) {
-                                // Si hay foto cargada, no mostrar placeholder
-                                if ($get('foto')) {
-                                    return null;
-                                }
-
+                                // Si no hay foto, mostrar iniciales con avatar por defecto
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
                                 $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
-
                                 return view('filament.forms.components.avatar-placeholder', [
                                     'iniciales' => $iniciales ?: 'NA',
                                     'defaultImage' => asset('images/default-avatar.jpg')
                                 ]);
-                            })
-                            ->extraAttributes(['class' => 'border-2 border-gray-200 rounded-full p-1 mx-auto'])
-                            ->columnSpan(['md' => 2, 'lg' => 1]),
+                            }),
 
                         Grid::make()
                             ->schema([
@@ -222,8 +228,7 @@ class ViewDirectorioEmpleado extends ViewRecord
                             ->columns(2),
 
                         // Sección de datos laborales
-                         Section::make('Datos Laborales')
-                    //->disabled()
+                         Section::make('Datos Laborales')                  
                     ->schema([
                         DatePicker::make('fecha_ingreso')                            
                             ->label('Fecha de Ingreso')
@@ -257,7 +262,6 @@ class ViewDirectorioEmpleado extends ViewRecord
                             ->columns(2),
 
                         Fieldset::make('Datos adicionales')
-
                             ->schema([
                                 TextInput::make('afp')
                                     ->label('Nombre de Gestora')
@@ -279,8 +283,6 @@ class ViewDirectorioEmpleado extends ViewRecord
                     ])
                     ->columns(2),
 
-                            ]);
-             
-            //->statePath('data');
+                            ]);        
     }
 }
