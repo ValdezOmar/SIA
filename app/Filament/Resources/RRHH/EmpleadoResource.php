@@ -93,7 +93,7 @@ class EmpleadoResource extends Resource
                             ->directory('empleados')
                             ->disk('public')
                             ->visibility('public')
-                            ->imageEditor()                            
+                            ->imageEditor()
                             ->openable()
                             ->downloadable()
                             ->loadingIndicatorPosition('center')
@@ -236,35 +236,8 @@ class EmpleadoResource extends Resource
                                 // Campo para el mapa (interactivo)                                
                                 Field::make('ubicacion_gps')
                                     ->label('Ubicación GPS')
-                                    ->view('filament.forms.components.map-picker')
-                                    ->live()
-                                    ->afterStateHydrated(function ($state, $record) {
-                                        Log::debug('Estado hidratado - Raw:', [
-                                            'raw_state' => $record?->ubicacion_gps,
-                                            'state_input' => $state
-                                        ]);
-
-                                        // Transformación garantizada
-                                        if (is_string($state)) {
-                                            try {
-                                                $result = json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124];
-                                                Log::debug('Transformación de string a array:', ['result' => $result]);
-                                                return $result;
-                                            } catch (\Exception $e) {
-                                                Log::error('Error decodificando JSON:', ['error' => $e->getMessage()]);
-                                                return ['lat' => -16.504759, 'lng' => -68.119124];
-                                            }
-                                        }
-
-                                        $result = is_array($state) ? $state : ['lat' => -16.504759, 'lng' => -68.119124];
-                                        Log::debug('Estado procesado final:', ['result' => $result]);
-                                        return $result;
-                                    })
-                                    ->dehydrateStateUsing(function ($state) {
-                                        $result = is_array($state) ? $state : (json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124]);
-                                        Log::debug('Deshidratando estado para guardar:', ['state' => $result]);
-                                        return $result;
-                                    }),
+                                    
+                                    ->view('filament.forms.components.map-picker'),
                             ])
                             ->columns(1),
                     ])

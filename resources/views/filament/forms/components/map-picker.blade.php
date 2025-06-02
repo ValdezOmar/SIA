@@ -1,4 +1,4 @@
-<div x-data="mapPicker()" x-init="init(@js($getState() ?? ['lat' => -16.504759, 'lng' => -68.119124]))" class="w-full">
+<div x-data="mapPicker()" x-init="init(@js($getState() ?? []))" class="w-full">
     <input type="hidden" name="ubicacion_gps" x-model="locationJson">
 
     <!-- Debug visual (solo en desarrollo) -->
@@ -9,7 +9,7 @@
         <div class="flex gap-2">
             <div class="flex-1">
                 <x-filament::input.wrapper>
-                    <x-filament::input type="text" x-model="coordinates" readonly :placeholder="empty($state) ? 'Ubicación de domicilio' : 'Coordenadas GPS'" class="w-full" />
+                    <x-filament::input type="text" x-model="coordinates" readonly :placeholder="empty($state) ? 'Seleccione la ubicación de su domicilio' : 'Coordenadas GPS'" class="w-full" />
                 </x-filament::input.wrapper>
             </div>
             <x-filament::button type="button" @click="toggleMap()" color="gray" icon="heroicon-o-map"
@@ -138,7 +138,7 @@
                         lat: -16.5000,
                         lng: -68.1500
                     };
-                    this.coordinates = 'Ubicación de domicilio';
+                    this.coordinates = 'Seleccione la ubicación de su domicilio';
                 },
 
                 get locationJson() {

@@ -30,14 +30,20 @@ class EditPerfilEmpleado extends EditRecord
 
     //Funcion para guardar el array de gps
     public function mutateFormDataBeforeSave(array $data): array
-    { //dump($this->data);
-        // Ver lo que contiene la propiedad para depuración
-        //dump($this->ubicacion_gps);
+    {
         if (is_array($this->ubicacion_gps)) {
-            $data['ubicacion_gps'] = [
-                'lat' => round(floatval($this->ubicacion_gps['lat'] ?? 0), 6),
-                'lng' => round(floatval($this->ubicacion_gps['lng'] ?? 0), 6),
-            ];
+            $lat = round(floatval($this->ubicacion_gps['lat'] ?? 0), 6);
+            $lng = round(floatval($this->ubicacion_gps['lng'] ?? 0), 6);
+
+            // Si la ubicación es la predeterminada, guarda como null
+            if ($lat == -16.500000 && $lng == -68.150000) {
+                $data['ubicacion_gps'] = null;
+            } else {
+                $data['ubicacion_gps'] = [
+                    'lat' => $lat,
+                    'lng' => $lng,
+                ];
+            }
         } else {
             $data['ubicacion_gps'] = null;
         }
@@ -63,6 +69,7 @@ class EditPerfilEmpleado extends EditRecord
         return $empleado !== null;
     }
 
+    //formulario de edicion de empleados que es mostrado solamente cuando el usuario tiene el rol empleado, este formulario es distinto al de rrhh
     public function form(Form $form): Form
     {
         return $form
@@ -75,7 +82,7 @@ class EditPerfilEmpleado extends EditRecord
                             ->directory('empleados')
                             ->disk('public')
                             ->visibility('public')
-                            ->imageEditor()                            
+                            ->imageEditor()
                             ->openable()
                             ->downloadable()
                             ->loadingIndicatorPosition('center')
@@ -206,29 +213,6 @@ class EditPerfilEmpleado extends EditRecord
                                 Field::make('ubicacion_gps')
                                     ->label('Ubicación GPS')
                                     ->view('filament.forms.components.map-picker')
-                                    ->live()
-                                    ->afterStateHydrated(function ($state, $record) {
-
-                                        // Transformación garantizada
-                                        if (is_string($state)) {
-                                            try {
-                                                $result = json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124];
-
-                                                return $result;
-                                            } catch (\Exception $e) {
-                                                Log::error('Error decodificando JSON:', ['error' => $e->getMessage()]);
-                                                return ['lat' => -16.504759, 'lng' => -68.119124];
-                                            }
-                                        }
-
-                                        $result = is_array($state) ? $state : ['lat' => -16.504759, 'lng' => -68.119124];
-
-                                        return $result;
-                                    })
-                                    ->dehydrateStateUsing(function ($state) {
-
-                                        return is_array($state) ? $state : (json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124]);
-                                    }),
                             ])
                             ->columns(1),
                         // Sección de datos personales adicionales

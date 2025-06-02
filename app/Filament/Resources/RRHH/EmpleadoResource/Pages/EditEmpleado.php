@@ -19,25 +19,23 @@ class EditEmpleado extends EditRecord
     }
     //Funcion para guardar el array de gps
     public function mutateFormDataBeforeSave(array $data): array
-    { //dump($this->data);
-        // Ver lo que contiene la propiedad para depuración
-        //dump($this->ubicacion_gps);
+    {
         if (is_array($this->ubicacion_gps)) {
-        $lat = round(floatval($this->ubicacion_gps['lat'] ?? 0), 6);
-        $lng = round(floatval($this->ubicacion_gps['lng'] ?? 0), 6);
+            $lat = round(floatval($this->ubicacion_gps['lat'] ?? 0), 6);
+            $lng = round(floatval($this->ubicacion_gps['lng'] ?? 0), 6);
 
-        // Verifica si la ubicación coincide con la coordenada específica
-        if ($lat === -16.504759 && $lng === -68.119124) {
-            $data['ubicacion_gps'] = null;
+            // Si la ubicación es la predeterminada, guarda como null
+            if ($lat == -16.500000 && $lng == -68.150000) {
+                $data['ubicacion_gps'] = null;
+            } else {
+                $data['ubicacion_gps'] = [
+                    'lat' => $lat,
+                    'lng' => $lng,
+                ];
+            }
         } else {
-            $data['ubicacion_gps'] = [
-                'lat' => $lat,
-                'lng' => $lng,
-            ];
+            $data['ubicacion_gps'] = null;
         }
-    } else {
-        $data['ubicacion_gps'] = null;
-    }
 
         return $data;
     }

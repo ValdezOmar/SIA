@@ -49,6 +49,8 @@ class ViewDirectorioEmpleado extends ViewRecord
     {
         return true;
     }
+
+    //Este formulario es el que se muestra en la seccion derecha superior en MI PERFIL
     public function form(Form $form): Form
     {
         return $form
