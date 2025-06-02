@@ -93,9 +93,7 @@ class EmpleadoResource extends Resource
                             ->directory('empleados')
                             ->disk('public')
                             ->visibility('public')
-                            ->imageEditor()
-                            ->imageResizeTargetWidth(800)  // Tamaño más grande
-                            ->imageResizeTargetHeight(800)
+                            ->imageEditor()                            
                             ->openable()
                             ->downloadable()
                             ->loadingIndicatorPosition('center')

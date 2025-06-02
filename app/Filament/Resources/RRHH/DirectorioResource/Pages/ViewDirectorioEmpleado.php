@@ -61,9 +61,14 @@ class ViewDirectorioEmpleado extends ViewRecord
                             ->directory('empleados')
                             ->disk('public')
                             ->visibility('public')
+                            ->imageEditor()
                             ->openable()
                             ->downloadable()
+                            ->loadingIndicatorPosition('center')
                             ->panelAspectRatio('1:1')
+                            ->removeUploadedFileButtonPosition('upper-center')
+                            ->uploadButtonPosition('right')
+                            ->uploadProgressIndicatorPosition('right')
                             ->panelLayout('circle')    // Layout especial para avatares
                             ->extraAttributes([
                                 'style' => '
@@ -74,7 +79,8 @@ class ViewDirectorioEmpleado extends ViewRecord
                                     justify-content: center;
                                 ',
                                 'class' => 'flex flex-col items-center' // Clases de Tailwind para respaldo
-                            ])                          
+                            ])
+                            ->imageCropAspectRatio('1:1')  // Relación de aspecto cuadrada
                             ->default(fn($record) => $record?->foto)
                             ->alignCenter()                            
                             ->placeholder(function ($get) {
@@ -82,6 +88,7 @@ class ViewDirectorioEmpleado extends ViewRecord
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
                                 $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
+
                                 return view('filament.forms.components.avatar-placeholder', [
                                     'iniciales' => $iniciales ?: 'NA',
                                     'defaultImage' => asset('images/default-avatar.jpg')
@@ -121,33 +128,33 @@ class ViewDirectorioEmpleado extends ViewRecord
                 // Sección de información básica
                 Section::make('Información Básica')
                     ->schema([
-                        TextInput::make('nombres')                            
-                            
+                        TextInput::make('nombres')
+
                             ->hint('Nombres completos del empleado')
                             ->hintIcon('heroicon-o-user')
                             ->live(),
 
-                        TextInput::make('apellidos')                            
-                            
+                        TextInput::make('apellidos')
+
                             ->hint('Apellidos completos del empleado')
                             ->hintIcon('heroicon-o-user')
                             ->live(),
 
-                        TextInput::make('ci')         
+                        TextInput::make('ci')
                             ->label('Cédula de Identidad')
                             ->hint('Número único de identificación')
                             ->hintIcon('heroicon-o-identification'),
 
-                        DatePicker::make('fecha_nacimiento')                            
+                        DatePicker::make('fecha_nacimiento')
                             ->label('Fecha de Nacimiento')
                             ->hint('Fecha de nacimiento del empleado')
                             ->hintIcon('heroicon-o-cake'),
 
-                        TextInput::make('genero') 
+                        TextInput::make('genero')
                             ->hint('Género del empleado')
                             ->hintIcon('heroicon-o-user-circle'),
 
-                        TextInput::make('nacionalidad')  
+                        TextInput::make('nacionalidad')
                             ->hint('Nacionalidad del empleado')
                             ->hintIcon('heroicon-o-flag'),
 
@@ -155,9 +162,9 @@ class ViewDirectorioEmpleado extends ViewRecord
                         Fieldset::make('Direccion y croquis de domicilio')
                             ->schema([
                                 TextInput::make('direccion')
-                                    ->label('Dirección completa'),                                    
+                                    ->label('Dirección completa'),
                                 // Campo para el mapa (interactivo)                                
-                                Field::make('ubicacion_gps')                                
+                                Field::make('ubicacion_gps')
                                     ->label('Ubicación GPS')
                                     ->view('filament.forms.components.map-picker')
                                     ->live()
@@ -176,64 +183,64 @@ class ViewDirectorioEmpleado extends ViewRecord
                                         $result = is_array($state) ? $state : ['lat' => -16.504759, 'lng' => -68.119124];
                                         return $result;
                                     })
-                                    ->dehydrateStateUsing(function ($state) {                                        
+                                    ->dehydrateStateUsing(function ($state) {
                                         return is_array($state) ? $state : (json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124]);
                                     }),
                             ])
                             ->columns(1),
-                        ])
+                    ])
                     ->columns(2),
-                        // Sección de datos personales adicionales
-                        Section::make('Datos Personales Adicionales')
+                // Sección de datos personales adicionales
+                Section::make('Datos Personales Adicionales')
+                    ->schema([
+                        TextInput::make('estado_civil')
+                            ->label('Estado Civil')
+                            ->hint('Estado civil actual del empleado')
+                            ->hintIcon('heroicon-o-heart'),
+
+                        TextInput::make('cantidad_hijos')
+                            ->label('Número de Hijos')
+                            ->hint('Cantidad de hijos del empleado')
+                            ->hintIcon('heroicon-o-user-group'),
+
+                        TextInput::make('telefono_personal')
+                            ->label('Teléfono Personal')
+                            ->hint('Número de contacto personal')
+                            ->hintIcon('heroicon-o-phone'),
+
+                        TextInput::make('correo_personal')
+                            ->label('Correo Personal')
+                            ->hint('Correo electrónico personal')
+                            ->hintIcon('heroicon-o-envelope'),
+
+                        Fieldset::make('Contacto de Emergencia')
                             ->schema([
-                                TextInput::make('estado_civil')
-                                    ->label('Estado Civil')
-                                    ->hint('Estado civil actual del empleado')                                    
-                                    ->hintIcon('heroicon-o-heart'),
+                                TextInput::make('persona_contacto')
+                                    ->label('Nombre de contacto')
+                                    ->hint('Persona a contactar en caso de emergencia')
+                                    ->hintIcon('heroicon-o-exclamation-triangle'),
 
-                                TextInput::make('cantidad_hijos')
-                                    ->label('Número de Hijos')
-                                    ->hint('Cantidad de hijos del empleado')
-                                    ->hintIcon('heroicon-o-user-group'),
-
-                                TextInput::make('telefono_personal')
-                                    ->label('Teléfono Personal')
-                                    ->hint('Número de contacto personal')
+                                TextInput::make('numero_contacto')
+                                    ->label('Teléfono de contacto')
+                                    ->hint('Número de la persona de emergencia')
                                     ->hintIcon('heroicon-o-phone'),
 
-                                TextInput::make('correo_personal')
-                                    ->label('Correo Personal')
-                                    ->hint('Correo electrónico personal')
-                                    ->hintIcon('heroicon-o-envelope'),
-
-                                Fieldset::make('Contacto de Emergencia')
-                                    ->schema([
-                                        TextInput::make('persona_contacto')                                            
-                                            ->label('Nombre de contacto')
-                                            ->hint('Persona a contactar en caso de emergencia')
-                                            ->hintIcon('heroicon-o-exclamation-triangle'),
-
-                                        TextInput::make('numero_contacto')
-                                            ->label('Teléfono de contacto')
-                                            ->hint('Número de la persona de emergencia')
-                                            ->hintIcon('heroicon-o-phone'),
-
-                                        TextInput::make('persona_parentesco')
-                                            ->label('Parentesco de contacto')
-                                            ->hint('Parentesco de la persona')
-                                            ->hintIcon('heroicon-o-exclamation-triangle'),
-                                    ])
-                                    ->columns(3),
+                                TextInput::make('persona_parentesco')
+                                    ->label('Parentesco de contacto')
+                                    ->hint('Parentesco de la persona')
+                                    ->hintIcon('heroicon-o-exclamation-triangle'),
                             ])
-                            ->columns(2),
+                            ->columns(3),
+                    ])
+                    ->columns(2),
 
-                        // Sección de datos laborales
-                         Section::make('Datos Laborales')                  
+                // Sección de datos laborales
+                Section::make('Datos Laborales')
                     ->schema([
-                        DatePicker::make('fecha_ingreso')                            
+                        DatePicker::make('fecha_ingreso')
                             ->label('Fecha de Ingreso')
                             ->hint('Fecha en que el empleado se incorporó a la empresa')
-                            ->hintIcon('heroicon-o-calendar'),                        
+                            ->hintIcon('heroicon-o-calendar'),
 
                         TextInput::make('empresa')
                             ->hint('Empresa a la que pertenece el empleado')
@@ -249,7 +256,7 @@ class ViewDirectorioEmpleado extends ViewRecord
 
                         Fieldset::make('Contacto empresarial')
                             ->schema([
-                                TextInput::make('correo_corporativo')  
+                                TextInput::make('correo_corporativo')
                                     ->label('Correo Corporativo')
                                     ->hint('Correo electrónico asignado por la empresa')
                                     ->hintIcon('heroicon-o-envelope'),
@@ -274,7 +281,7 @@ class ViewDirectorioEmpleado extends ViewRecord
                                     ->hint('Afiliación al seguro social')
                                     ->hintIcon('heroicon-o-shield-check'),
 
-                                TextInput::make('caja_salud')                                    
+                                TextInput::make('caja_salud')
                                     ->label('Caja de Salud')
                                     ->hint('Caja de salud a la que está afiliado')
                                     ->hintIcon('heroicon-o-heart'),
@@ -283,6 +290,6 @@ class ViewDirectorioEmpleado extends ViewRecord
                     ])
                     ->columns(2),
 
-                            ]);        
+            ]);
     }
 }
