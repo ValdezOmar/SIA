@@ -424,7 +424,7 @@ class EmpleadoResource extends Resource
                                         return static::generarCorreoCorporativo($get);
                                     })
                                     ->dehydrated()
-                                    ->disabled(fn(?string $operation) => $operation === 'edit')
+                                    
                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                         $set('correo_corporativo', static::generarCorreoCorporativo($get));
                                     }),
