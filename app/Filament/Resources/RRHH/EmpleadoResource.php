@@ -54,11 +54,38 @@ class EmpleadoResource extends Resource
         return $user && !$user->hasRole('Empleado') && $user->roles->isNotEmpty();
     }
 
+    // 3. Obtiene los datos del empleado y genera el correo
+    protected static function generarCorreoCorporativo(Get $get): ?string
+    {
+        // Validar que los campos requeridos existan
+        if (empty($get('nombres')) || empty($get('apellidos')) || empty($get('empresa'))) {
+            return null;
+        }
+
+        $nombres = explode(' ', $get('nombres'));
+        $apellidos = explode(' ', $get('apellidos'));
+
+        // Obtener primer nombre y apellido
+        $primerNombre = strtolower($nombres[0]);
+        $primerApellido = strtolower($apellidos[0]);
+
+        // Limpiar caracteres especiales y acentos
+        $primerNombre = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerNombre));
+        $primerApellido = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerApellido));
+
+        // Validar y limpiar nombre de empresa
+        $empresa = strtolower($get('empresa'));
+        $empresa = preg_replace('/[^a-z0-9]/', '', $empresa); // Eliminar caracteres no válidos
+        $empresa = $empresa ?: 'novanexa'; // Default si está vacío
+
+        return "{$primerNombre}.{$primerApellido}@{$empresa}.com.bo";
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                // Sección superior con foto y datos básicos
+                // Sección superior (Card empleado)con foto y datos básicos
                 Grid::make()
                     ->schema([
                         FileUpload::make('foto')
@@ -158,14 +185,18 @@ class EmpleadoResource extends Resource
                             ->maxLength(255)
                             ->hint('Nombres completos del empleado')
                             ->hintIcon('heroicon-o-user')
-                            ->live(),
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $set('correo_corporativo', static::generarCorreoCorporativo($get));
+                            }),
 
                         TextInput::make('apellidos')
                             ->required()
                             ->maxLength(255)
                             ->hint('Apellidos completos del empleado')
                             ->hintIcon('heroicon-o-user')
-                            ->live(),
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $set('correo_corporativo', static::generarCorreoCorporativo($get));
+                            }),
 
                         TextInput::make('ci')
                             ->required()
@@ -318,8 +349,12 @@ class EmpleadoResource extends Resource
                                 'Ireilab' => 'Ireilab',
                                 'Requilab' => 'Requilab',
                             ])
+                            ->live()
                             ->hint('Empresa a la que pertenece el empleado')
-                            ->hintIcon('heroicon-o-building-library'),
+                            ->hintIcon('heroicon-o-building-library')
+                            ->afterStateUpdated(function (Get $get, Set $set) {
+                                $set('correo_corporativo', static::generarCorreoCorporativo($get));
+                            }),
 
                         Select::make('estado_contrato')
                             ->required()
@@ -331,7 +366,7 @@ class EmpleadoResource extends Resource
                                 'Planta' => 'Planta',
                                 'Pasante' => 'Pasante',
                                 'Periodo de prueba' => 'Periodo de prueba',
-                                'otro' => 'Otro tipo',
+                                'Otro' => 'Otro tipo',
                             ])
                             ->default('otro')
                             ->label('Estado de Contrato')
@@ -411,7 +446,15 @@ class EmpleadoResource extends Resource
                                     ->email()
                                     ->label('Correo Corporativo')
                                     ->hint('Correo electrónico asignado por la empresa')
-                                    ->hintIcon('heroicon-o-envelope'),
+                                    ->hintIcon('heroicon-o-envelope')
+                                    ->default(function (Get $get) {
+                                        return static::generarCorreoCorporativo($get);
+                                    })
+                                    ->dehydrated()
+                                    ->disabled(fn(?string $operation) => $operation === 'edit')
+                                    ->afterStateUpdated(function (Get $get, Set $set) {
+                                        $set('correo_corporativo', static::generarCorreoCorporativo($get));
+                                    }),
 
                                 TextInput::make('numero_corporativo')
                                     ->tel()
