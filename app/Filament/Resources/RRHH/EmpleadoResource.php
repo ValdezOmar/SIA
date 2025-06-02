@@ -212,7 +212,7 @@ class EmpleadoResource extends Resource
                             ->options([
                                 'hombre' => 'Hombre',
                                 'mujer' => 'Mujer',
-                                'otro' => 'Otro',
+                                'Otro' => 'Otro',
                             ])
                             ->hint('Género del empleado')
                             ->hintIcon('heroicon-o-user-circle'),
@@ -366,7 +366,7 @@ class EmpleadoResource extends Resource
                                 'Periodo de prueba' => 'Periodo de prueba',
                                 'Otro' => 'Otro tipo',
                             ])
-                            ->default('otro')
+                            ->default('Otro')
                             ->label('Estado de Contrato')
                             ->hint('Situación actual del contrato laboral')
                             ->hintIcon('heroicon-o-document-text'),
@@ -427,7 +427,7 @@ class EmpleadoResource extends Resource
                                 'Oruro' => 'Oruro',
                                 'Potosí' => 'Potosí',
                                 'Tarija' => 'Tarija',
-                                'Chuquisaca' => 'Chuquisaca',
+                                'Sucre' => 'Sucre',
                                 'Beni' => 'Beni',
                                 'Pando' => 'Pando',
                             ])
@@ -533,7 +533,7 @@ class EmpleadoResource extends Resource
                         'Planta' => 'success',
                         'Pasante' => 'gray',
                         'Periodo de prueba' => 'danger',
-                        'otro' => 'danger',
+                        'Otro' => 'danger',
                         default => 'gray',
                     })
                     ->description((fn(Empleado $record) => $record->cargo))
@@ -574,7 +574,7 @@ class EmpleadoResource extends Resource
                         'Planta' => 'Planta',
                         'Pasante' => 'Pasante',
                         'Periodo de prueba' => 'Periodo de prueba',
-                        'otro' => 'Otro tipo',
+                        'Otro' => 'Otro tipo',
                     ])
                     ->label('Tipo de Contrato'),
 
