@@ -185,7 +185,8 @@ class EmpleadoResource extends Resource
                             ->hintIcon('heroicon-o-user')
                             ->afterStateUpdated(function (Get $get, Set $set) {
                                 $set('correo_corporativo', static::generarCorreoCorporativo($get));
-                            }),
+                            })
+                            ->dehydrateStateUsing(fn($state) => ucwords(strtolower($state))),
 
                         TextInput::make('apellidos')
                             ->required()
@@ -194,7 +195,8 @@ class EmpleadoResource extends Resource
                             ->hintIcon('heroicon-o-user')
                             ->afterStateUpdated(function (Get $get, Set $set) {
                                 $set('correo_corporativo', static::generarCorreoCorporativo($get));
-                            }),
+                            })
+                            ->dehydrateStateUsing(fn($state) => ucwords(strtolower($state))),
 
                         TextInput::make('ci')
                             ->required()
