@@ -50,7 +50,7 @@ class AsistenciaResource extends Resource
             ->schema([
                 Fieldset::make('Verificación de Ubicación')
                     ->schema([
-                         View::make('filament.forms.components.gps-location')
+                        View::make('filament.forms.components.gps-location')
                             ->label(' ')
                             ->extraAttributes(['class' => 'mb-4']),
                     ])
@@ -115,6 +115,7 @@ class AsistenciaResource extends Resource
                     ]),
             ]);
     }
+
     //Obtiene periodo de fechas de marcaciones
     protected static function getPeriodoFechas(?string $mesSeleccionado = null): array
     {
@@ -164,11 +165,90 @@ class AsistenciaResource extends Resource
         ];
     }
 
+    //Realiza el calculo de los retrasos y pinta de colores
+    protected static function calculoAsistencias($asistencias, $carbonDate)
+    {
+        if ($asistencias->isEmpty()) {
+            return $carbonDate->isWeekend() ?
+                '<div style="color:rgb(7, 236, 57); padding: 5px;">F/S</div>' :
+                '-';
+        }
+
+        $result = [];
+        $horaLimite = Carbon::today()->setTime(8, 35, 0);
+        $horaOmision = Carbon::today()->setTime(10, 0, 0);
+        $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
+
+        if ($primeraMarcacion->greaterThan($horaOmision)) {
+            $result[] = "<span style='color: orange; font-weight: bold;'>Omisión</span>";
+        }
+
+        $marcaciones = $asistencias->map(function ($asistencia, $index) use ($horaLimite, $horaOmision) {
+        $horaCompleta = Carbon::parse($asistencia->hora)->format('H:i:s');
+
+            // Registro de asistencia remoto con modal
+            if ($asistencia->registro_remoto) {
+                $modalContent = '
+                    <div x-data="{ open: false }">
+                        <button 
+                            type="button"
+                            style="color: blue; font-weight: 500; background: none; border: none; padding: 0; cursor: pointer;"
+                            x-on:click="open = true"
+                        >
+                            ' . $horaCompleta . ' (R)
+                        </button>
+                        
+                        <x-filament::modal 
+                            id="remote-details-' . $asistencia->id . '"
+                            width="md"
+                            heading="Detalles de Marcación Remota"
+                            x-show="open"
+                            @close-modal.window="if ($event.detail.id === \'remote-details-' . $asistencia->id . '\') open = false"
+                        >
+                            <div class="space-y-2">
+                                
+                                <div><strong>Hora:</strong> ' . $horaCompleta . '</div>
+                                <div><strong>Ubicación:</strong> ' . ($asistencia->localizacion ?? 'No registrada') . '</div>
+                                <div><strong>Justificación:</strong> ' . ($asistencia->justificacion ?? 'No especificada') . '</div>
+                            </div>
+                            
+                            <x-slot name="footer">
+                                <x-filament::button x-on:click="open = false">
+                                    Cerrar
+                                </x-filament::button>
+                            </x-slot>
+                        </x-filament::modal>
+                    </div>';
+                return $modalContent;
+            }
+
+
+            if (
+                $index === 0 && Carbon::parse($asistencia->hora)->greaterThan($horaLimite) &&
+                Carbon::parse($asistencia->hora)->lessThan($horaOmision)
+            ) {
+                return "<span style='color: red; font-weight: bold;'>$horaCompleta</span>";
+            }
+
+            return $horaCompleta;
+            
+        })->toArray();
+
+        $content = implode('<br>', array_merge($result, $marcaciones));
+        if ($carbonDate->isWeekend()) {
+            $content = "<div style='color:rgb(60, 218, 20); padding: 5px;'>{$content}</div>";
+        }
+
+        return $content;
+    }
+
+
     //Contruye la Tabla de vista prrincipal
     public static function table(Table $table): Table
     {
         // Obtener el usuario actual
         $user = Auth::user();
+        //static::$modalsToRender['remoteDetailsModal'] = static::getRemoteDetailsModal();
 
         // Verificar permisos - si no tiene acceso, retornar tabla vacía
         if ($user->hasRole('Empleado') && !$user->can('view_r::r::h::h::asistencia')) {
@@ -332,6 +412,7 @@ class AsistenciaResource extends Resource
 
         // Columnas dinámicas por fecha
         Log::debug('Generando columnas dinámicas por fecha', ['count_fechas' => count($uniqueDates)]);
+
         //Realiza el calculo de los retrasos, los pinta en colores segun corresponda para luego dibujar en tabla
         foreach ($uniqueDates as $date) {
             $carbonDate = Carbon::parse($date);
@@ -347,69 +428,24 @@ class AsistenciaResource extends Resource
             $columns[] =   TextColumn::make("asistencias_{$date}")
                 ->label("{$formattedDate}\n{$diaSemana}")
                 ->html()
-                ->getStateUsing(function ($record) use ($date, $carbonDate, $user) {
+                ->state(function ($record) use ($date, $carbonDate, $user) {
                     Log::debug('Obteniendo asistencias para fecha', [
                         'user_id' => $record->ci,
                         'date' => $date
                     ]);
-                    //solo muestra los resultados del rol empleado 
+
+                    // Solo muestra los resultados del rol empleado 
                     if ($user->hasRole('Empleado') && $user->email !== $record->correo_corporativo) {
                         return '';
                     }
-
+                    
+                    // Para otros roles (admin, etc.) mostrar con modal
                     $asistencias = Asistencia::where('user_id', $record->ci)
                         ->whereDate('fecha', $date)
                         ->orderBy('hora')
                         ->get();
 
-                    Log::debug('Asistencias encontradas', [
-                        'count' => $asistencias->count(),
-                        'asistencias' => $asistencias->toArray()
-                    ]);
-                    // Se evalua fin de semana y se pinta de color
-                    if ($asistencias->isEmpty()) {
-                        $result = $carbonDate->isWeekend() ?
-                            '<div style="color:rgb(7, 236, 57); padding: 5px;">F/S</div>' :
-                            '-';
-                        Log::debug('No hay asistencias', ['result' => $result]);
-                        return $result;
-                    }
-                    // Se evalua retrasos y se hace las opraciones matematicas en el front
-                    $result = [];
-                    $horaLimite = Carbon::today()->setTime(8, 35, 0); // Cambiado a 8:30
-                    $horaOmision = Carbon::today()->setTime(10, 0, 0);
-                    $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
-                    Log::debug('Evaluando primera marcación', [
-                        'hora' => $primeraMarcacion->format('H:i:s'),
-                        'horaLimite' => $horaLimite->format('H:i:s'),
-                        'horaOmision' => $horaOmision->format('H:i:s')
-                    ]);
-
-                    // Se evalua las omisiones y se pinta de color 
-                    if ($primeraMarcacion->greaterThan($horaOmision)) {
-                        Log::debug('Marcación es omisión');
-                        $result[] = "<span style='color: orange; font-weight: bold;'>Omisión</span>";
-                    }
-
-                    // Se evalua los retrasos y se pinta de color 
-                    $marcaciones = $asistencias->map(function ($asistencia, $index) use ($horaLimite) {
-                        $horaCompleta = Carbon::parse($asistencia->hora)->format('H:i:s');
-                        $horaOmision = Carbon::today()->setTime(10, 0, 0);
-                        if ($index === 0 && Carbon::parse($asistencia->hora)->greaterThan($horaLimite) && Carbon::parse($asistencia->hora)->lessThan($horaOmision)) {
-                            Log::debug('Primera marcación con retraso', ['hora' => $horaCompleta]);
-                            return "<span style='color: red; font-weight: bold;'>$horaCompleta</span>";
-                        }
-                        return $horaCompleta;
-                    })->toArray();
-
-                    // Se evalua si hay marcaciones en fin de semana y se pinta de color
-                    $content = implode('<br>', array_merge($result, $marcaciones));
-                    if ($carbonDate->isWeekend()) {
-                        $content = "<div style='color:rgb(60, 218, 20); padding: 5px;'>{$content}</div>";
-                    }
-
-                    Log::debug('Contenido final para columna', ['content' => $content]);
-                    return $content;
+                    return static::calculoAsistencias($asistencias, $carbonDate, true);
                 })
                 ->alignCenter()
                 ->width('90px');
@@ -477,7 +513,7 @@ class AsistenciaResource extends Resource
             ])
             //Botonera de la Cabecera para hacer acciones adicionales
             ->headerActions([
-                
+
                 // Solo mostrar acción de creación si no es empleado o tiene permiso
                 //  ExportAction::make()
                 //     ->label('Exportar todo')
@@ -526,6 +562,7 @@ class AsistenciaResource extends Resource
             ->paginated([10, 25, 50, 100])    // Opciones de paginación
             ->defaultPaginationPageOption(100) // Por defecto: 100 filas
             ->striped();                       // Filas con fondo alternado
+        return $table;
     }
 
     public static function getRelations(): array
