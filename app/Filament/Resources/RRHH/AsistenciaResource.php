@@ -21,12 +21,13 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\TextArea;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\View;
 use Filament\Forms;
+use App\Filament\Tables\Columns\AsistenciaColumn;
 
 class AsistenciaResource extends Resource
 {
@@ -165,84 +166,6 @@ class AsistenciaResource extends Resource
         ];
     }
 
-    //Realiza el calculo de los retrasos y pinta de colores
-    protected static function calculoAsistencias($asistencias, $carbonDate)
-    {
-        if ($asistencias->isEmpty()) {
-            return $carbonDate->isWeekend() ?
-                '<div style="color:rgb(7, 236, 57); padding: 5px;">F/S</div>' :
-                '-';
-        }
-
-        $result = [];
-        $horaLimite = Carbon::today()->setTime(8, 35, 0);
-        $horaOmision = Carbon::today()->setTime(10, 0, 0);
-        $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
-
-        if ($primeraMarcacion->greaterThan($horaOmision)) {
-            $result[] = "<span style='color: orange; font-weight: bold;'>Omisión</span>";
-        }
-
-        $marcaciones = $asistencias->map(function ($asistencia, $index) use ($horaLimite, $horaOmision) {
-        $horaCompleta = Carbon::parse($asistencia->hora)->format('H:i:s');
-
-            // Registro de asistencia remoto con modal
-            if ($asistencia->registro_remoto) {
-                $modalContent = '
-                    <div x-data="{ open: false }">
-                        <button 
-                            type="button"
-                            style="color: blue; font-weight: 500; background: none; border: none; padding: 0; cursor: pointer;"
-                            x-on:click="open = true"
-                        >
-                            ' . $horaCompleta . ' (R)
-                        </button>
-                        
-                        <x-filament::modal 
-                            id="remote-details-' . $asistencia->id . '"
-                            width="md"
-                            heading="Detalles de Marcación Remota"
-                            x-show="open"
-                            @close-modal.window="if ($event.detail.id === \'remote-details-' . $asistencia->id . '\') open = false"
-                        >
-                            <div class="space-y-2">
-                                
-                                <div><strong>Hora:</strong> ' . $horaCompleta . '</div>
-                                <div><strong>Ubicación:</strong> ' . ($asistencia->localizacion ?? 'No registrada') . '</div>
-                                <div><strong>Justificación:</strong> ' . ($asistencia->justificacion ?? 'No especificada') . '</div>
-                            </div>
-                            
-                            <x-slot name="footer">
-                                <x-filament::button x-on:click="open = false">
-                                    Cerrar
-                                </x-filament::button>
-                            </x-slot>
-                        </x-filament::modal>
-                    </div>';
-                return $modalContent;
-            }
-
-
-            if (
-                $index === 0 && Carbon::parse($asistencia->hora)->greaterThan($horaLimite) &&
-                Carbon::parse($asistencia->hora)->lessThan($horaOmision)
-            ) {
-                return "<span style='color: red; font-weight: bold;'>$horaCompleta</span>";
-            }
-
-            return $horaCompleta;
-            
-        })->toArray();
-
-        $content = implode('<br>', array_merge($result, $marcaciones));
-        if ($carbonDate->isWeekend()) {
-            $content = "<div style='color:rgb(60, 218, 20); padding: 5px;'>{$content}</div>";
-        }
-
-        return $content;
-    }
-
-
     //Contruye la Tabla de vista prrincipal
     public static function table(Table $table): Table
     {
@@ -356,7 +279,8 @@ class AsistenciaResource extends Resource
 
                     foreach ($uniqueDates as $date) {
                         $carbonDate = Carbon::parse($date);
-                        if ($carbonDate->isWeekend()) continue;
+                        if ($carbonDate->isWeekend())
+                            continue;
 
                         $asistencias = $record->asistencias->filter(function ($asistencia) use ($date) {
                             return $asistencia->fecha == $date;
@@ -425,28 +349,15 @@ class AsistenciaResource extends Resource
                 'diaSemana' => $diaSemana
             ]);
 
-            $columns[] =   TextColumn::make("asistencias_{$date}")
+             //Realiza el calculo de los retrasos y pinta de colores
+            $columns[] = ViewColumn::make("asistencias_{$date}")
                 ->label("{$formattedDate}\n{$diaSemana}")
-                ->html()
-                ->state(function ($record) use ($date, $carbonDate, $user) {
-                    Log::debug('Obteniendo asistencias para fecha', [
-                        'user_id' => $record->ci,
-                        'date' => $date
-                    ]);
-
-                    // Solo muestra los resultados del rol empleado 
-                    if ($user->hasRole('Empleado') && $user->email !== $record->correo_corporativo) {
-                        return '';
-                    }
-                    
-                    // Para otros roles (admin, etc.) mostrar con modal
-                    $asistencias = Asistencia::where('user_id', $record->ci)
-                        ->whereDate('fecha', $date)
-                        ->orderBy('hora')
-                        ->get();
-
-                    return static::calculoAsistencias($asistencias, $carbonDate, true);
-                })
+                ->view('filament.forms.components.asistencia-datafield')
+                ->viewData([
+                    'date' => $date,
+                    'carbonDate' => $carbonDate,
+                    'user' => $user,
+                ])
                 ->alignCenter()
                 ->width('90px');
         }
@@ -529,9 +440,11 @@ class AsistenciaResource extends Resource
                     ->icon('heroicon-o-document-arrow-down')
                     ->action(function (array $data) use ($fechaInicio, $fechaFin) {
                         $empleados = Empleado::where('activo', true)
-                            ->with(['asistencias' => function ($q) use ($fechaInicio, $fechaFin) {
-                                $q->whereBetween('fecha', [$fechaInicio, $fechaFin]);
-                            }])
+                            ->with([
+                                'asistencias' => function ($q) use ($fechaInicio, $fechaFin) {
+                                    $q->whereBetween('fecha', [$fechaInicio, $fechaFin]);
+                                }
+                            ])
                             ->orderBy('sucursal')
                             ->orderBy('apellidos')
                             ->orderBy('nombres')
