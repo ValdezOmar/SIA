@@ -12,6 +12,7 @@ class ListAsistencias extends ListRecords
 {
     protected static string $resource = AsistenciaResource::class;
     public ?string $localizacion = null;
+    public ?string $id_equipo = null;
 
     protected function getHeaderActions(): array
     {
@@ -27,9 +28,9 @@ class ListAsistencias extends ListRecords
                         $data['localizacion'] = $this->localizacion;
                     }
                     // Establecemos el valor por defecto para id_equipo
-                    $data['id_equipo'] = 'REMOTO';
+                    $data['id_equipo'] = $this->id_equipo ?? 'REMOTO';
                     // Asignar el CI del empleado
-                    $data['user_id'] = $empleado ? $empleado->ci : null; 
+                    $data['user_id'] = $empleado ? $empleado->ci : null;
                     return $data;
                 }),
         ];

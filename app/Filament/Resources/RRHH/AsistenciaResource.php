@@ -105,6 +105,21 @@ class AsistenciaResource extends Resource
                         }
                     }),
 
+                // Campo para el identificador del equipo
+                Hidden::make('id_equipo')
+                    ->default('')
+                    ->reactive()
+                    ->afterStateUpdated(function ($state, $set) {
+                        // Validar que sea un JSON válido
+                        if (!empty($state)) {
+                            try {
+                                json_decode($state);
+                            } catch (\Exception $e) {
+                                $set('id_equipo', '');
+                            }
+                        }
+                    }),
+
                 Placeholder::make('¡Importante!')
                     ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor haz clic en el botón "Obtener Ubicación GPS", activa la geolocalización y permite el acceso a tu ubicación.')
                     ->columnSpanFull()
@@ -349,7 +364,7 @@ class AsistenciaResource extends Resource
                 'diaSemana' => $diaSemana
             ]);
 
-             //Realiza el calculo de los retrasos y pinta de colores
+            //Realiza el calculo de los retrasos y pinta de colores
             $columns[] = ViewColumn::make("asistencias_{$date}")
                 ->label("{$formattedDate}\n{$diaSemana}")
                 ->view('filament.forms.components.asistencia-datafield')

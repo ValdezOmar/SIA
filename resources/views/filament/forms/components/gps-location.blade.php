@@ -3,6 +3,7 @@
     message: 'Por favor, haz clic en el botón para obtener tu ubicación',
     error: null,
     location: null,
+    deviceInfo: null,
 
     async getLocation() {
         try {
@@ -12,6 +13,9 @@
             if (!navigator.geolocation) {
                 throw new Error('Tu navegador no soporta geolocalización');
             }
+
+            // Obtener información del dispositivo
+            this.deviceInfo = this.getDeviceInfo();
 
             const position = await new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(
@@ -26,11 +30,40 @@
 
             this.status = 'success';
             this.location = `${position.coords.latitude}, ${position.coords.longitude}`;
-            this.updateLivewire(this.location);
+            this.updateLivewire(this.location, this.deviceInfo);
         } catch (error) {
             this.status = 'error';
             this.error = this.getErrorMessage(error);
             this.clearLocation();
+        }
+    },
+
+    getDeviceInfo() {
+        try {
+            const userAgent = navigator.userAgent;
+            const platform = navigator.platform;
+            const hardwareConcurrency = navigator.hardwareConcurrency || 'unknown';
+            const deviceMemory = navigator.deviceMemory || 'unknown';
+
+            // Crear un hash simple del userAgent para identificar el dispositivo
+            let hash = 0;
+            for (let i = 0; i < userAgent.length; i++) {
+                const char = userAgent.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32bit integer
+            }
+
+            return {
+                userAgent: userAgent,
+                platform: platform,
+                hardwareConcurrency: hardwareConcurrency,
+                deviceMemory: deviceMemory,
+                deviceHash: hash.toString(16)
+            };
+        } catch (e) {
+            return {
+                error: 'No se pudo obtener información del dispositivo'
+            };
         }
     },
 
@@ -43,22 +76,26 @@
         return errors[error.code] || error.message || 'Error desconocido al obtener ubicación';
     },
 
-    updateLivewire(location) {
+    updateLivewire(location, deviceInfo) {
         if (this.$wire) {
             this.$wire.set('localizacion', location);
+
+            // Enviar información del dispositivo como string JSON
+            const deviceInfoString = JSON.stringify(deviceInfo);
+            this.$wire.set('id_equipo', deviceInfoString);
         }
     },
 
     clearLocation() {
         this.location = null;
-        this.updateLivewire('');
+        this.updateLivewire('', null);
     }
 }" class="space-y-4">
     <!-- Botón para solicitar ubicación -->
     <!-- Botón mejorado -->
     <button x-show="status !== 'success'" @click="getLocation()" :disabled="status === 'loading'" type="button"
-        class="w-full flex items-center justify-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-500 focus:outline-none focus:border-primary-700 focus:ring focus:ring-primary-200 active:bg-primary-600 disabled:opacity-50 transition">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"
+        class="flex items-center justify-center w-full px-4 py-2 text-xs font-semibold tracking-widest text-white uppercase transition border border-transparent rounded-md bg-primary-600 hover:bg-primary-500 focus:outline-none focus:border-primary-700 focus:ring focus:ring-primary-200 active:bg-primary-600 disabled:opacity-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor"
             x-show="status !== 'loading'">
             <path fill-rule="evenodd"
                 d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
@@ -69,7 +106,7 @@
 
     <!-- Estados -->
     <template x-if="status === 'loading'">
-        <div class="flex items-center p-4 bg-blue-50 text-blue-800 rounded-lg">
+        <div class="flex items-center p-4 text-blue-800 rounded-lg bg-blue-50">
             <svg class="w-5 h-5 mr-2 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none"
                 viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
@@ -83,7 +120,7 @@
     </template>
 
     <template x-if="status === 'success'">
-        <div class="p-4 bg-green-50 text-green-800 rounded-lg">
+        <div class="p-4 text-green-800 rounded-lg bg-green-50">
             <div class="flex items-center">
                 <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd"
@@ -100,7 +137,7 @@
     </template>
 
     <template x-if="status === 'error'">
-        <div class="p-4 bg-red-50 text-red-800 rounded-lg">
+        <div class="p-4 text-red-800 rounded-lg bg-red-50">
             <div class="flex items-center">
                 <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd"
@@ -110,121 +147,9 @@
                 <span x-text="error"></span>
             </div>
             <button @click="getLocation()"
-                class="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded text-sm font-medium hover:bg-red-200 transition">
+                class="px-3 py-1 mt-2 text-sm font-medium text-red-700 transition bg-red-100 rounded hover:bg-red-200">
                 Reintentar
             </button>
         </div>
     </template>
 </div>
-
-{{-- <script>
-    function gpsLocation() {
-        return {
-            status: 'idle',
-            message: 'Por favor, haz clic en el botón para obtener tu ubicación',
-            error: null,
-            location: null,
-
-            async getLocation() {
-                try {
-                    this.status = 'loading';
-                    this.message = 'Solicitando acceso a GPS...';
-
-                    // Verificar disponibilidad
-                    if (!('geolocation' in navigator)) {
-                        throw new Error("Geolocalización no soportada en este navegador");
-                    }
-
-                    // Primero solicitar permisos (nuevo)
-                    const permissionStatus = await navigator.permissions.query({
-                        name: 'geolocation'
-                    });
-
-                    if (permissionStatus.state === 'denied') {
-                        throw new Error(
-                            "Permiso de ubicación denegado previamente. Por favor actualiza los permisos en la configuración de tu navegador."
-                        );
-                    }
-
-                    // Obtener ubicación
-                    const position = await new Promise((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(
-                            resolve,
-                            reject, {
-                                enableHighAccuracy: true,
-                                timeout: 15000,
-                                maximumAge: 0
-                            }
-                        );
-                    });
-
-                    this.handleSuccess(position);
-                } catch (error) {
-                    this.handleError(error);
-                }
-            },
-
-            handleSuccess(position) {
-                this.status = 'success';
-                this.location = `${position.coords.latitude}, ${position.coords.longitude}`;
-                this.updateLivewire(this.location);
-            },
-
-            handleError(error) {
-                this.status = 'error';
-                console.error('Error GPS:', error);
-
-                // Mensajes más descriptivos
-                const errorMessages = {
-                    [error
-                        .PERMISSION_DENIED
-                    ]: "Permiso denegado. Por favor habilita la ubicación en la configuración de tu navegador.",
-                    [error
-                        .POSITION_UNAVAILABLE
-                    ]: "Ubicación no disponible. Verifica tu conexión o configuración de GPS.",
-                    [error.TIMEOUT]: "Tiempo de espera agotado. Intenta nuevamente en un área con mejor recepción.",
-                    1: "Permiso denegado. Actualiza los permisos de ubicación.",
-                    2: "Ubicación no disponible.",
-                    3: "Tiempo de espera agotado."
-                };
-
-                this.error = errorMessages[error.code] ||
-                    error.message ||
-                    "Error desconocido al obtener ubicación";
-
-                this.clearLocation();
-            },
-
-            updateLivewire(location) {
-                // Asegurar que Livewire esté disponible
-                if (typeof livewire !== 'undefined' && livewire) {
-                    livewire.emit('gpsLocationUpdated', location);
-                }
-
-                // Alternativa para Filament
-                if (this.$wire) {
-                    this.$wire.set('localizacion', location, true);
-                }
-            },
-
-            clearLocation() {
-                this.location = null;
-                this.updateLivewire('');
-            },
-
-            // Nuevo: inicialización más robusta
-            init() {
-                // Verificar si estamos en un contexto seguro (HTTPS o localhost)
-                const isSecureContext = window.isSecureContext ||
-                    location.hostname === 'sia.test' ||
-                    location.hostname === 'localhost' ||
-                    location.hostname === '127.0.0.1';
-
-                if (!isSecureContext) {
-                    this.status = 'error';
-                    this.error = "Se requiere HTTPS para acceder a la geolocalización";
-                }
-            }
-        }
-    }
-</script> --}}

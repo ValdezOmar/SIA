@@ -76,7 +76,56 @@
                                         <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ $horaCompleta }}</p>
                                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Equipo</p>
                                         <p class="mt-1 text-sm text-gray-900 dark:text-white">
-                                            {{ $asistencia->id_equipo ?? 'No registrado' }}</p>
+    @if($asistencia->id_equipo)
+        @php
+            try {
+                $equipoData = json_decode($asistencia->id_equipo, true);
+                $displayText = '';
+
+                if (isset($equipoData['userAgent'])) {
+                    // Extraer navegador y sistema operativo del userAgent
+                    $userAgent = $equipoData['userAgent'];
+                    $browser = '';
+                    $os = '';
+
+                    // Detectar navegador
+                    if (strpos($userAgent, 'Chrome') !== false) $browser = 'Chrome';
+                    elseif (strpos($userAgent, 'Firefox') !== false) $browser = 'Firefox';
+                    elseif (strpos($userAgent, 'Safari') !== false) $browser = 'Safari';
+                    elseif (strpos($userAgent, 'Edge') !== false) $browser = 'Edge';
+                    else $browser = 'Navegador desconocido';
+
+                    // Detectar sistema operativo
+                    if (strpos($userAgent, 'Windows') !== false) $os = 'Windows';
+                    elseif (strpos($userAgent, 'Mac') !== false) $os = 'Mac';
+                    elseif (strpos($userAgent, 'Linux') !== false) $os = 'Linux';
+                    elseif (strpos($userAgent, 'Android') !== false) $os = 'Android';
+                    elseif (strpos($userAgent, 'iOS') !== false) $os = 'iOS';
+                    else $os = 'Sistema desconocido';
+
+                    $displayText = "$browser ($os)";
+
+                    // Agregar información adicional si está disponible
+                    if (isset($equipoData['platform'])) {
+                        $displayText .= " - " . $equipoData['platform'];
+                    }
+
+                    if (isset($equipoData['deviceHash'])) {
+                        $displayText .= " (ID: " . substr($equipoData['deviceHash'], 0, 8) . ")";
+                    }
+                } else {
+                    $displayText = 'Datos de dispositivo disponibles';
+                }
+
+                echo $displayText;
+            } catch (Exception $e) {
+                echo 'Dispositivo registrado';
+            }
+        @endphp
+    @else
+        No registrado
+    @endif
+</p>
                                     </div>
 
                                 </div>
