@@ -48,12 +48,13 @@ class AsistenciaResource extends Resource
         $ciEmpleado = $empleado ? $empleado->ci : null;
 
         return $form
+
             ->schema([
                 Grid::make(2)
                     ->schema([
                         // Columna izquierda: ubicación + CI
                         Group::make([
-                            View::make('filament.forms.components.gps-location'),                                
+                            View::make('filament.forms.components.gps-location'),
 
                             TextInput::make('user_id')
                                 ->label('CI/Número de Identificación')
@@ -68,14 +69,15 @@ class AsistenciaResource extends Resource
 
                             Forms\Components\Textarea::make('justificacion')
                                 ->label('Justificación del Registro Remoto')
-                                ->required(fn($get) => $get('registro_remoto'))
+                                ->required()
                                 ->columnSpanFull()
                                 ->maxLength(255)
                                 ->hidden(function ($get, $livewire) {
                                     // Deshabilitar si no hay localización en el componente ListAsistencias
                                     return empty($livewire->localizacion);
-                                })                                
-                                ->extraAttributes(['class' => 'h-32']),
+                                })
+                                ->extraAttributes(['class' => 'h-32'])
+
                         ])->columnSpan(1),
 
                         // Columna derecha: mapa
@@ -120,7 +122,16 @@ class AsistenciaResource extends Resource
                         }
                     }),
 
-                Placeholder::make('¡Importante!')
+                TextInput::make('titulo')
+                    ->label('¡Importante!')
+                    ->required()
+                    ->hidden(function ($get, $livewire) {
+                        return empty(!$livewire->localizacion);
+                    })
+                    ->extraAttributes(['class' => 'hidden'])
+                    ->disabled(true),
+
+                Placeholder::make('')
                     ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor haz clic en el botón "Obtener Ubicación GPS", activa la geolocalización y permite el acceso a tu ubicación.')
                     ->columnSpanFull()
                     ->hidden(function ($get, $livewire) {
