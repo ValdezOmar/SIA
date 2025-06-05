@@ -18,7 +18,7 @@
         return;
     }
 
-    $horaLimite = Carbon::today()->setTime(8, 35, 0);
+    $horaLimite = Carbon::today()->setTime(8, 35, 59);
     $horaOmision = Carbon::today()->setTime(10, 0, 0);
     $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
 @endphp

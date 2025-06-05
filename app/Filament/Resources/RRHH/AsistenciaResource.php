@@ -299,7 +299,7 @@ class AsistenciaResource extends Resource
                                     'hora' => $primeraMarcacion->format('H:i:s')
                                 ]);
                             } elseif ($primeraMarcacion->greaterThan($horaLimite)) {
-                                if ($primeraMarcacion->greaterThan(Carbon::today()->setTime(8, 35, 0))) {
+                                if ($primeraMarcacion->greaterThan(Carbon::today()->setTime(8, 35, 59))) {
                                     $retrasos++;
                                     $diferencia = $horaLimite->diff($primeraMarcacion);
                                     $segundosRetraso = $diferencia->h * 3600 + $diferencia->i * 60 + $diferencia->s;
