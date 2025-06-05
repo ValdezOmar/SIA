@@ -53,14 +53,17 @@ class AsistenciaResource extends Resource
                     ->schema([
                         // Columna izquierda: ubicación + CI
                         Group::make([
-                            View::make('filament.forms.components.gps-location')
-                                ->label(' '),
+                            View::make('filament.forms.components.gps-location'),                                
 
                             TextInput::make('user_id')
                                 ->label('CI/Número de Identificación')
                                 ->required()
                                 ->numeric()
                                 ->default($ciEmpleado)
+                                ->hidden(function ($get, $livewire) {
+                                    // Deshabilitar si no hay localización en el componente ListAsistencias
+                                    return empty($livewire->localizacion);
+                                })
                                 ->disabled(true),
 
                             Forms\Components\Textarea::make('justificacion')
@@ -68,10 +71,10 @@ class AsistenciaResource extends Resource
                                 ->required(fn($get) => $get('registro_remoto'))
                                 ->columnSpanFull()
                                 ->maxLength(255)
-                                ->disabled(function ($get, $livewire) {
+                                ->hidden(function ($get, $livewire) {
                                     // Deshabilitar si no hay localización en el componente ListAsistencias
                                     return empty($livewire->localizacion);
-                                })
+                                })                                
                                 ->extraAttributes(['class' => 'h-32']),
                         ])->columnSpan(1),
 
