@@ -45,12 +45,31 @@
             const hardwareConcurrency = navigator.hardwareConcurrency || 'unknown';
             const deviceMemory = navigator.deviceMemory || 'unknown';
 
-            // Crear un hash simple del userAgent para identificar el dispositivo
+            // Detectar móvil/tablet
+            const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(userAgent);
+
+            // Crear hash del dispositivo
             let hash = 0;
             for (let i = 0; i < userAgent.length; i++) {
                 const char = userAgent.charCodeAt(i);
                 hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // Convert to 32bit integer
+                hash = hash & hash;
+            }
+
+            // Intentar obtener modelo en Android
+            let deviceModel = '';
+            if (/Android/i.test(userAgent)) {
+                const modelMatch = /; ([a-zA-Z0-9]+) Build/i.exec(userAgent);
+                if (modelMatch) {
+                    deviceModel = modelMatch[1].replace(/_/g, ' ');
+                }
+            }
+            // Intentar obtener modelo en iPhone
+            else if (/iPhone|iPod|iPad/i.test(userAgent)) {
+                const modelMatch = /iPhone(\d+,\d+)|iPhone (\d+)/i.exec(userAgent);
+                if (modelMatch) {
+                    deviceModel = 'iPhone ' + (modelMatch[1] ? modelMatch[1].replace(',', '.') : modelMatch[2]);
+                }
             }
 
             return {
@@ -58,6 +77,8 @@
                 platform: platform,
                 hardwareConcurrency: hardwareConcurrency,
                 deviceMemory: deviceMemory,
+                deviceModel: deviceModel,
+                isMobile: isMobile,
                 deviceHash: hash.toString(16)
             };
         } catch (e) {
