@@ -22,12 +22,12 @@ use Illuminate\Support\Facades\Auth;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\ViewColumn;
-use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\View;
 use Filament\Forms;
-use App\Filament\Tables\Columns\AsistenciaColumn;
+use Filament\Forms\Components\Grid;
 
 class AsistenciaResource extends Resource
 {
@@ -49,40 +49,37 @@ class AsistenciaResource extends Resource
 
         return $form
             ->schema([
-                Fieldset::make('Verificación de Ubicación')
+                Grid::make(2)
                     ->schema([
-                        View::make('filament.forms.components.gps-location')
-                            ->label(' ')
-                            ->extraAttributes(['class' => 'mb-4']),
-                    ])
-                    ->hidden(fn($get) => !empty($get('localizacion')))
-                    ->columnSpanFull(),
+                        // Columna izquierda: ubicación + CI
+                        Group::make([
+                            View::make('filament.forms.components.gps-location')
+                                ->label(' '),
 
-                Placeholder::make('ubicacion_verificada')
-                    ->content('Ubicación GPS verificada correctamente')
-                    ->hidden(fn($get) => empty($get('localizacion')))
-                    ->columnSpanFull()
-                    ->extraAttributes([
-                        'class' => 'bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800',
+                            TextInput::make('user_id')
+                                ->label('CI/Número de Identificación')
+                                ->required()
+                                ->numeric()
+                                ->default($ciEmpleado)
+                                ->disabled(true),
+
+                            Forms\Components\Textarea::make('justificacion')
+                                ->label('Justificación del Registro Remoto')
+                                ->required(fn($get) => $get('registro_remoto'))
+                                ->columnSpanFull()
+                                ->maxLength(255)
+                                ->disabled(function ($get, $livewire) {
+                                    // Deshabilitar si no hay localización en el componente ListAsistencias
+                                    return empty($livewire->localizacion);
+                                })
+                                ->extraAttributes(['class' => 'h-32']),
+                        ])->columnSpan(1),
+
+                        // Columna derecha: mapa
+                        View::make('filament.forms.components.gps-map')
+                            ->extraAttributes(['class' => 'rounded-xl overflow-hidden h-48 border border-gray-300'])
+                            ->columnSpan(1),
                     ]),
-
-                TextInput::make('user_id')
-                    ->label('CI/Número de Identificación')
-                    ->required()
-                    ->numeric()
-                    ->default($ciEmpleado)
-                    ->disabled(true),
-
-                Forms\Components\Textarea::make('justificacion')
-                    ->label('Justificación del Registro Remoto')
-                    ->required(fn($get) => $get('registro_remoto'))
-                    ->hidden(fn($get) => !$get('registro_remoto'))
-                    ->columnSpanFull()
-                    ->maxLength(255)
-                    ->disabled(function ($get, $livewire) {
-                        // Deshabilitar si no hay localización en el componente ListAsistencias
-                        return empty($livewire->localizacion);
-                    }),
 
                 Hidden::make('fecha')
                     ->default(today()->format('Y-m-d')),
@@ -398,7 +395,7 @@ class AsistenciaResource extends Resource
                         $options = [];
                         $now = now();
                         $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
-
+            
                         while ($startDate <= $now) {
                             $periodo = self::getPeriodoFechas($startDate->format('Y-m'));
                             $options[$startDate->format('Y-m')] = $periodo['label'];

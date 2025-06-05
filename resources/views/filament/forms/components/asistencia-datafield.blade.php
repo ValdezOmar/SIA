@@ -76,87 +76,87 @@
                                         <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ $horaCompleta }}</p>
                                         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Equipo</p>
                                         <p class="mt-1 text-sm text-gray-900 dark:text-white">
-    @if($asistencia->id_equipo)
-    @php
-        try {
-            $equipoData = json_decode($asistencia->id_equipo, true);
-            $userAgent = $equipoData['userAgent'] ?? '';
-            $platform = $equipoData['platform'] ?? '';
+                                            @if($asistencia->id_equipo)
+                                            @php
+                                                try {
+                                                    $equipoData = json_decode($asistencia->id_equipo, true);
+                                                    $userAgent = $equipoData['userAgent'] ?? '';
+                                                    $platform = $equipoData['platform'] ?? '';
 
-            // Detección mejorada del sistema operativo y dispositivo
-            $os = 'Sistema desconocido';
-            $deviceModel = '';
+                                                    // Detección mejorada del sistema operativo y dispositivo
+                                                    $os = 'Sistema desconocido';
+                                                    $deviceModel = '';
 
-            // Detectar Android
-            if (preg_match('/Android\s([0-9\.]+)/i', $userAgent, $matches)) {
-                $os = 'Android ' . ($matches[1] ?? '');
-                if (preg_match('/; ([a-zA-Z0-9]+) Build/i', $userAgent, $modelMatches)) {
-                    $deviceModel = str_replace('_', ' ', $modelMatches[1]);
-                }
-            }
-            // Detectar iPhone
-            elseif (preg_match('/iPhone|iPod|iPad/i', $userAgent)) {
-                $os = 'iOS';
-                if (preg_match('/iPhone(\d+,\d+)/i', $userAgent, $modelMatches) ||
-                    preg_match('/iPhone (\d+)/i', $userAgent, $modelMatches)) {
-                    $deviceModel = 'iPhone ' . str_replace(',', '.', $modelMatches[1]);
-                }
-            }
-            // Detectar Windows
-            elseif (preg_match('/Windows NT/i', $userAgent)) {
-                $os = 'Windows';
-                if (preg_match('/Windows NT (\d+\.\d+)/i', $userAgent, $versionMatches)) {
-                    $versions = [
-                        '10.0' => '10/11',
-                        '6.3' => '8.1',
-                        '6.2' => '8',
-                        '6.1' => '7'
-                    ];
-                    $os .= ' ' . ($versions[$versionMatches[1]] ?? $versionMatches[1]);
-                }
-            }
-            // Detectar Mac
-            elseif (preg_match('/Macintosh|Mac OS X/i', $userAgent)) {
-                $os = 'Mac';
-            }
-            // Detectar Linux
-            elseif (preg_match('/Linux/i', $userAgent)) {
-                $os = 'Linux';
-            }
+                                                    // Detectar Android
+                                                    if (preg_match('/Android\s([0-9\.]+)/i', $userAgent, $matches)) {
+                                                        $os = 'Android ' . ($matches[1] ?? '');
+                                                        if (preg_match('/; ([a-zA-Z0-9]+) Build/i', $userAgent, $modelMatches)) {
+                                                            $deviceModel = str_replace('_', ' ', $modelMatches[1]);
+                                                        }
+                                                    }
+                                                    // Detectar iPhone
+                                                    elseif (preg_match('/iPhone|iPod|iPad/i', $userAgent)) {
+                                                        $os = 'iOS';
+                                                        if (preg_match('/iPhone(\d+,\d+)/i', $userAgent, $modelMatches) ||
+                                                            preg_match('/iPhone (\d+)/i', $userAgent, $modelMatches)) {
+                                                            $deviceModel = 'iPhone ' . str_replace(',', '.', $modelMatches[1]);
+                                                        }
+                                                    }
+                                                    // Detectar Windows
+                                                    elseif (preg_match('/Windows NT/i', $userAgent)) {
+                                                        $os = 'Windows';
+                                                        if (preg_match('/Windows NT (\d+\.\d+)/i', $userAgent, $versionMatches)) {
+                                                            $versions = [
+                                                                '10.0' => '10/11',
+                                                                '6.3' => '8.1',
+                                                                '6.2' => '8',
+                                                                '6.1' => '7'
+                                                            ];
+                                                            $os .= ' ' . ($versions[$versionMatches[1]] ?? $versionMatches[1]);
+                                                        }
+                                                    }
+                                                    // Detectar Mac
+                                                    elseif (preg_match('/Macintosh|Mac OS X/i', $userAgent)) {
+                                                        $os = 'Mac';
+                                                    }
+                                                    // Detectar Linux
+                                                    elseif (preg_match('/Linux/i', $userAgent)) {
+                                                        $os = 'Linux';
+                                                    }
 
-            // Detección del navegador
-            $browser = 'Navegador desconocido';
-            if (preg_match('/Chrome\/([\d\.]+)/i', $userAgent)) {
-                $browser = 'Chrome';
-            } elseif (preg_match('/Firefox\/([\d\.]+)/i', $userAgent)) {
-                $browser = 'Firefox';
-            } elseif (preg_match('/Safari\/([\d\.]+)/i', $userAgent)) {
-                $browser = 'Safari';
-            } elseif (preg_match('/Edge\/([\d\.]+)/i', $userAgent)) {
-                $browser = 'Edge';
-            }
+                                                    // Detección del navegador
+                                                    $browser = 'Navegador desconocido';
+                                                    if (preg_match('/Chrome\/([\d\.]+)/i', $userAgent)) {
+                                                        $browser = 'Chrome';
+                                                    } elseif (preg_match('/Firefox\/([\d\.]+)/i', $userAgent)) {
+                                                        $browser = 'Firefox';
+                                                    } elseif (preg_match('/Safari\/([\d\.]+)/i', $userAgent)) {
+                                                        $browser = 'Safari';
+                                                    } elseif (preg_match('/Edge\/([\d\.]+)/i', $userAgent)) {
+                                                        $browser = 'Edge';
+                                                    }
 
-            // Texto a mostrar
-            $displayText = "$os";
-            if ($deviceModel) {
-                $displayText .= " ($deviceModel)";
-            }
-            $displayText .= " - $browser";
+                                                    // Texto a mostrar
+                                                    $displayText = "$os";
+                                                    if ($deviceModel) {
+                                                        $displayText .= " ($deviceModel)";
+                                                    }
+                                                    $displayText .= " - $browser";
 
-            // Agregar ID del dispositivo si está disponible
-            if (isset($equipoData['deviceHash'])) {
-                $displayText .= " (ID: " . substr($equipoData['deviceHash'], 0, 6) . ")";
-            }
+                                                    // Agregar ID del dispositivo si está disponible
+                                                    if (isset($equipoData['deviceHash'])) {
+                                                        $displayText .= " (ID: " . substr($equipoData['deviceHash'], 0, 6) . ")";
+                                                    }
 
-            echo $displayText;
-        } catch (Exception $e) {
-            echo 'Dispositivo registrado';
-        }
-    @endphp
-@else
-    No registrado
-@endif
-</p>
+                                                    echo $displayText;
+                                                } catch (Exception $e) {
+                                                    echo 'Dispositivo registrado';
+                                                }
+                                            @endphp
+                                        @else
+                                            No registrado
+                                        @endif
+                                        </p>
                                     </div>
 
                                 </div>
