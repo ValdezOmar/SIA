@@ -464,7 +464,7 @@ class AsistenciaResource extends Resource
                 //Exporatacion a archivo PDF de las marcaciones
                 Action::make('exportPdf')
                     // Restringir exportación si es empleado
-                    ->visible(fn() => !Auth::user()->hasRole('Empleado'))
+                    ->visible(fn() => !Auth::user()->hasRole('Empleado') && Auth::user()->can('view', Asistencia::class))
                     ->label('Exportar a PDF')
                     ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
