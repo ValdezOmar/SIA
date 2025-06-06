@@ -41,18 +41,18 @@ class UserResource extends Resource
                             ->password()
                             ->required(fn(string $context): bool => $context === 'create')
                             ->maxLength(255)
-                            ->dehydrated(fn(?string $state): bool => filled($state))
-                            ->hiddenOn('edit'),
+                            ->dehydrated(fn(?string $state): bool => filled($state)),
+                        //->hiddenOn('edit'),
                     ])->columns(1),
 
                 Forms\Components\Section::make('Roles y Permisos')
                     ->schema([
-                        Forms\Components\Select::make('roles')
-                            ->label('Roles asignados')
+                        Forms\Components\Select::make('role')
+                            ->label('Rol asignado')
                             ->options(Role::all()->pluck('name', 'id'))
                             ->getOptionLabelUsing(fn($value): string => Role::find($value)?->name ?? '')
+                            ->default('Empleado')
                             ->searchable()
-                            ->multiple()
                             ->preload()
                             ->relationship('roles', 'name')
                             ->columnSpanFull(),
@@ -121,7 +121,7 @@ class UserResource extends Resource
         return [
             //
         ];
-    }
+    }    
 
     public static function getPages(): array
     {
@@ -173,15 +173,15 @@ class UserResource extends Resource
         ];
 
         $html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
-        
+
         foreach ($roles as $role => $details) {
             $html .= '
-            <div class="rounded-lg p-3 '.$details['bg'].' border-l-4 '.$details['color'].' shadow-sm">
-                <div class="font-semibold text-gray-900 dark:text-white">'.$role.'</div>
-                <div class="text-sm text-gray-600 dark:text-white">'.$details['description'].'</div>
+            <div class="rounded-lg p-3 ' . $details['bg'] . ' border-l-4 ' . $details['color'] . ' shadow-sm">
+                <div class="font-semibold text-gray-900 dark:text-white">' . $role . '</div>
+                <div class="text-sm text-gray-600 dark:text-white">' . $details['description'] . '</div>
             </div>';
         }
-        
+
         $html .= '</div>';
 
         return new HtmlString($html);
