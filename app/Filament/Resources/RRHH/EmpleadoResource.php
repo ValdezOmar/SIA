@@ -38,7 +38,7 @@ class EmpleadoResource extends Resource
     protected static ?string $navigationGroup = 'Recursos Humanos';
     protected static ?int $navigationSort = 1;
 
-    // 1. Método para ocultar el recurso del navigation
+    // Método para ocultar el recurso del navigation a los empelados
     public static function shouldRegisterNavigation(): bool
     {
         // Solo mostrar en el navigation si el usuario NO tiene el rol 'Empleado'
@@ -46,15 +46,7 @@ class EmpleadoResource extends Resource
         return $user && !$user->hasRole('Empleado') && $user->roles->isNotEmpty();
     }
 
-    // 2. Método para controlar el acceso a todas las páginas del recurso
-    public static function canViewAny(): bool
-    {
-        // Solo permitir acceso si el usuario NO tiene el rol 'Empleado'
-        $user = Auth::user();
-        return $user && !$user->hasRole('Empleado') && $user->roles->isNotEmpty();
-    }
-
-    // 3. Obtiene los datos del empleado y genera el correo
+    // Obtiene los datos del empleado y genera el correo
     protected static function generarCorreoCorporativo(Get $get): ?string
     {
         // Validar que los campos requeridos existan
@@ -80,7 +72,8 @@ class EmpleadoResource extends Resource
 
         return "{$primerNombre}.{$primerApellido}@{$empresa}.com.bo";
     }
-
+    
+    //Formulario de creacion edicion de empleados
     public static function form(Form $form): Form
     {
         return $form
@@ -236,7 +229,7 @@ class EmpleadoResource extends Resource
                                 // Campo para el mapa (interactivo)                                
                                 Field::make('ubicacion_gps')
                                     ->label('Ubicación GPS')
-                                    
+
                                     ->view('filament.forms.components.map-picker'),
                             ])
                             ->columns(1),
@@ -424,7 +417,7 @@ class EmpleadoResource extends Resource
                                         return static::generarCorreoCorporativo($get);
                                     })
                                     ->dehydrated()
-                                    
+
                                     ->afterStateUpdated(function (Get $get, Set $set) {
                                         $set('correo_corporativo', static::generarCorreoCorporativo($get));
                                     }),
@@ -469,7 +462,29 @@ class EmpleadoResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $user = Auth::user();
+
+        // Construir la consulta base
+        $baseQuery = Empleado::query()
+            ->orderBy('sucursal')
+            ->orderBy('apellidos')
+            ->orderBy('nombres');
+
+        // Si el usuario tiene rol "administracion regional", filtrar por su sucursal
+        if ($user->hasRole('Administracion Regional')) {
+            // Obtener la sucursal del usuario actual (asumiendo que está asociado a un empleado)
+            $empleadoUsuario = Empleado::where('correo_corporativo', $user->email)->first();
+
+            if ($empleadoUsuario && $empleadoUsuario->sucursal) {
+                $baseQuery->where('sucursal', $empleadoUsuario->sucursal);
+                Log::debug('Filtrando por sucursal para administración regional', [
+                    'sucursal' => $empleadoUsuario->sucursal
+                ]);
+            }
+        }
+        //Contruccion de la tabla principal que muetre a los empleados
         return $table
+            ->query($baseQuery)
             ->columns([
                 ImageColumn::make('foto')
                     ->label('')
