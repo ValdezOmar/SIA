@@ -38,7 +38,6 @@ class AsistenciaResource extends Resource
     protected static ?string $navigationLabel = 'Registro de Asistencias';
     protected static ?string $navigationGroup = 'Recursos Humanos';
     protected static ?int $navigationSort = 2;
-    protected static array $cachedCalculations = [];
 
     //Formulario de registro de asistencias remotas
     public static function form(Form $form): Form
@@ -223,6 +222,19 @@ class AsistenciaResource extends Resource
             $baseQuery->where('correo_corporativo', $user->email);
         }
 
+        // Si el usuario tiene rol "administracion regional", filtrar por su sucursal
+        if ($user->hasRole('Administracion Regional')) {
+            // Obtener la sucursal del usuario actual (asumiendo que está asociado a un empleado)
+            $empleadoUsuario = Empleado::where('correo_corporativo', $user->email)->first();
+
+            if ($empleadoUsuario && $empleadoUsuario->sucursal) {
+                $baseQuery->where('sucursal', $empleadoUsuario->sucursal);
+                Log::debug('Filtrando por sucursal para administración regional', [
+                    'sucursal' => $empleadoUsuario->sucursal
+                ]);
+            }
+        }
+
         Log::debug('Iniciando construcción de tabla de asistencias');
 
         // Obtenemos el período de la sesión (o calculamos el actual si no hay filtro)
@@ -281,11 +293,6 @@ class AsistenciaResource extends Resource
                 ->html()
                 ->getStateUsing(function ($record) use ($uniqueDates, $fechaInicio, $fechaFin) {
                     $cacheKey = 'estado_' . $record->ci;
-
-                    // Retornar cálculo cacheado si existe
-                    if (array_key_exists($cacheKey, self::$cachedCalculations)) {
-                        return self::$cachedCalculations[$cacheKey];
-                    }
 
                     Log::debug('Calculando estado para empleado', ['ci' => $record->ci]);
 
@@ -351,9 +358,6 @@ class AsistenciaResource extends Resource
                     </div>
                      ";
 
-                    // Almacenar en cache
-                    self::$cachedCalculations[$cacheKey] = $resultado;
-
                     return $resultado;
                 })
                 ->alignLeft()
@@ -409,7 +413,7 @@ class AsistenciaResource extends Resource
                         $options = [];
                         $now = now();
                         $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
-            
+
                         while ($startDate <= $now) {
                             $periodo = self::getPeriodoFechas($startDate->format('Y-m'));
                             $options[$startDate->format('Y-m')] = $periodo['label'];
