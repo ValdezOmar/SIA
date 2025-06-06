@@ -17,6 +17,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Get;
+use Filament\Forms\Components\View;
 use Illuminate\Support\Facades\Log;
 use Filament\Actions\Action;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -26,7 +27,7 @@ class EditPerfilEmpleado extends EditRecord
     protected static string $resource = PerfilEmpleadoResource::class;
 
     protected static ?string $title = 'Mi Perfil';
-    public ?array $ubicacion_gps;
+    public ?array $ubicacion_gps = null;    
 
     //Funcion para guardar el array de gps
     public function mutateFormDataBeforeSave(array $data): array
@@ -206,13 +207,30 @@ class EditPerfilEmpleado extends EditRecord
                                     ->required()
                                     ->maxLength(255)
                                     ->label('Dirección completa')
-                                    ->hint('Busque en el mapa la ubicacion de su domicilio')
+                                    ->hint('Escriba la dirección completa y detallada de su domicilio')
                                     ->hintIcon('heroicon-o-exclamation-triangle'),
 
-                                // Campo para el mapa (interactivo)                                
+
+
+                                // Campo para el mapa (interactivo) 
+                                TextInput::make('titulo')
+                                    ->label('Ubicacion de domicilio')
+                                    ->hintIcon('heroicon-o-exclamation-triangle')
+                                    ->hint('Busque en el mapa la ubicacion de su domicilio')
+                                    ->required()
+                                    ->visible(function ($get, $livewire) {
+                                        // Ocultar cuando ubicacion_gps es null o es la ubicación por defecto
+                                        return (empty($livewire->ubicacion_gps) ||
+                                            ($livewire->ubicacion_gps['lat'] == -16.500000 &&
+                                                $livewire->ubicacion_gps['lng'] == -68.150000));
+                                    })
+                                    ->extraAttributes(['class' => 'hidden'])
+                                    ->disabled(true),
                                 Field::make('ubicacion_gps')
-                                    ->label('Ubicación GPS')
-                                    ->view('filament.forms.components.map-picker')
+                                    ->live()
+                                    ->view('filament.forms.components.map-picker'),
+
+
                             ])
                             ->columns(1),
                         // Sección de datos personales adicionales
