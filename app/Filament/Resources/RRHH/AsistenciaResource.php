@@ -132,6 +132,8 @@ class AsistenciaResource extends Resource
 
                 Placeholder::make('')
                     ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor haz clic en el botón "Obtener Ubicación GPS", activa la geolocalización y permite el acceso a tu ubicación.')
+                    ->hint('Solo los registros realizados con teléfonos moviles son válidos')
+                    ->hintIcon('heroicon-m-map-pin')  
                     ->columnSpanFull()
                     ->hidden(function ($get, $livewire) {
                         return empty(!($livewire->localizacion));
