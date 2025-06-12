@@ -21,7 +21,7 @@ class AsistenciaPolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Asistencia $asistencia = null): bool
+    public function view(User $user, Asistencia $asistencia): bool
     {
         return $user->can('view_r::r::h::h::asistencia');
     }

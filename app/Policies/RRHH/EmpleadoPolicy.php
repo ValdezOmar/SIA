@@ -21,7 +21,7 @@ class EmpleadoPolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Empleado $empleado = null): bool
+    public function view(User $user, Empleado $empleado): bool
     {
         return $user->can('view_r::r::h::h::perfil::empleado');
     }
