@@ -10,6 +10,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Support\Facades\Cache;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
 
 class ArticuloResource extends Resource
 {
@@ -41,7 +44,7 @@ class ArticuloResource extends Resource
                     ->getStateUsing(fn($record) => "
                         <div>
                             <strong>{$record->descripcion}</strong><br>
-                            <small>Codigo: {$record->codigo}<br>Cod. Alterno: {$record->codigo_alterno}</small>
+                            <small>Codigo: <strong style='color:rgb(32, 115, 211); font-size: 0.80rem'>{$record->codigo}</strong><br>Cod. Alterno: <strong >{$record->codigo_alterno}</strong></small>
                         </div>
                     ")
                     ->searchable(['descripcion', 'codigo', 'codigo_alterno']),
@@ -64,13 +67,60 @@ class ArticuloResource extends Resource
                 TextColumn::make('fecha_ven')
                     ->label('Vencimiento')
                     ->html()
-                    ->getStateUsing(fn($record) => $record->fecha_ven ? \Carbon\Carbon::parse($record->fecha_ven)->format('d/m/Y') : 'Sin registro')
+                    ->getStateUsing(function ($record) {
+                        if (!$record->fecha_ven) {
+                            return <<<HTML
+                                <div>Sin fecha</div>
+                                <div style="color: rgb(111, 107, 128); font-size: 0.75rem">Sin registro</div>
+                            HTML;
+                        }
+
+                        $fechaFormateada = \Carbon\Carbon::parse($record->fecha_ven)->format('d/m/Y');
+                        $hoy = \Carbon\Carbon::now();
+                        $mesesRestantes = (int)$hoy->floatDiffInMonths($record->fecha_ven, false);
+
+                        // Definimos el texto y color según los meses restantes (enteros)
+                        $estado = match (true) {
+                            $mesesRestantes <= 0 => [  // Cambiado de < 0 a <= 0 para incluir el mes actual
+                                'texto' => 'VENCIDO',
+                                'color' => '#dc2626' // Rojo
+                            ],
+                            $mesesRestantes <= 4 => [
+                                'texto' => "VENCE EN {$mesesRestantes} " . ($mesesRestantes == 1 ? 'MES' : 'MESES'),
+                                'color' => '#ea580c' // Naranja
+                            ],
+                            $mesesRestantes <= 8 => [
+                                'texto' => "VENCE EN {$mesesRestantes} MESES",
+                                'color' => '#d97706' // Amarillo
+                            ],
+                            default => [
+                                'texto' => "VENCE EN {$mesesRestantes} MESES",
+                                'color' => '#16a34a' // Verde
+                            ]
+                        };
+
+                        return <<<HTML
+                            <div>{$fechaFormateada}</div>
+                            <div style="color: {$estado['color']}; font-size: 0.75rem; font-weight: 500">
+                                {$estado['texto']}
+                            </div>
+                        HTML;
+                    })
                     ->sortable(),
 
                 TextColumn::make('saldo_actual')
                     ->label('Saldo Actual')
-                    ->numeric()
-                    ->sortable(),                          
+                    ->html()
+                    ->getStateUsing(fn($record) => "
+                        <div style='
+                            text-align: center;
+                            font-size: 0.9rem;
+                            font-weight: 800;
+                        '>
+                            {$record->saldo_actual}
+                        </div>
+                    ")
+                    ->sortable(),
 
                 TextColumn::make('nombre_almacen')
                     ->label('Ubicacion en Almacén')
@@ -78,24 +128,112 @@ class ArticuloResource extends Resource
                     ->getStateUsing(fn($record) => "
                         <div>
                             <strong>{$record->nombre_almacen}</strong><br>
-                            <small>Cod. Almacén: {$record->cod_almacen}</small>
+                            <small>Cod. Almacén: <strong style='font-size: 0.85rem'>{$record->cod_almacen}</strong></small><br>
+                            
+                            <small><strong style='text-align: center; font-size: 0.85rem'>{$record->empresa}</strong></small>
                         </div>
                     ")
-                    ->searchable(['nombre_almacen', 'cod_almacen']),
-
-                TextColumn::make('empresa')
-                    ->label('Empresa')
-                    ->sortable(),
-
-
+                    ->searchable(['nombre_almacen', 'cod_almacen','empresa']),
             ])
             ->filters([
+
+                //Filtro de busqueda de Empresas
+                SelectFilter::make('empresas')
+                    ->label('Filtrar por Empresa')
+                    ->multiple()
+                    ->options(function () {
+                        return Articulo::query()
+                            ->select('empresa')
+                            ->whereNotNull('empresa')
+                            ->distinct()
+                            ->orderBy('empresa')
+                            ->pluck('empresa', 'empresa')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $state) {
+                        if (!empty($state['values'])) {
+                            $query->whereIn('empresa', $state['values']);
+                        }
+                    })
+                    ->searchable(),
+                SelectFilter::make('estado_vencimiento')
+                    ->label('Estado de Vencimiento')
+                    ->options([
+                        'vencido' => 'Vencido',
+                        'menos_4_meses' => 'Vence en ≤4 meses',
+                        'menos_8_meses' => 'Vence en ≤8 meses',
+                        'mas_8_meses' => 'Vence en >8 meses',
+                        'sin_fecha' => 'Sin fecha',
+                    ])
+                    ->query(function (Builder $query, array $state) {
+                        // Primero filtramos siempre por saldo_actual > 0
+                        $query->where('saldo_actual', '>', 0);
+
+                        if (!empty($state['value'])) {
+                            $hoy = now();
+
+                            match ($state['value']) {
+                                'vencido' => $query->whereDate('fecha_ven', '<', $hoy),
+                                'menos_4_meses' => $query->whereBetween('fecha_ven', [
+                                    $hoy,
+                                    $hoy->copy()->addMonths(4)
+                                ]),
+                                'menos_8_meses' => $query->whereBetween('fecha_ven', [
+                                    $hoy->copy()->addMonths(4),
+                                    $hoy->copy()->addMonths(8)
+                                ]),
+                                'mas_8_meses' => $query->whereDate('fecha_ven', '>', $hoy->copy()->addMonths(8)),
+                                'sin_fecha' => $query->whereNull('fecha_ven'),
+                            };
+                        }
+                    }),
+                // Filtro de almacenes Los almacenes especificados (101,102,etc.) estarán seleccionados al cargar
+                SelectFilter::make('almacenes')
+                    ->label('Filtrar por Almacenes')
+                    ->multiple()
+                    ->options(function () {
+                        return Cache::remember('almacenes-options', now()->addDay(), function () {
+                            return Articulo::query()
+                                ->select('cod_almacen', 'nombre_almacen')
+                                ->whereNotNull('cod_almacen')
+                                ->where('cod_almacen', '!=', '0')
+                                ->distinct()
+                                ->orderBy('cod_almacen')
+                                ->get()
+                                ->mapWithKeys(function ($item) {
+                                    return [
+                                        $item->cod_almacen => "{$item->cod_almacen} - {$item->nombre_almacen}"
+                                    ];
+                                })
+                                ->toArray();
+                        });
+                    })
+                    ->default([
+                        '101',
+                        '102',
+                        '107',
+                        '202',
+                        '207',
+                        '302',
+                        '307',
+                        '402',
+                        '407',
+                        '502',
+                        '507'
+                    ])
+                    ->query(function (Builder $query, array $state) {
+                        if (!empty($state['values'])) {
+                            $query->whereIn('cod_almacen', $state['values']);
+                        }
+                    })
+                    ->searchable(),
             ])
-            ->actions([               
-            ])
-            ->bulkActions([              
-            ])
-            ->paginated([10, 25, 50]);
+
+            ->actions([])
+            ->bulkActions([])
+            ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(50) //Filas mostradas
+            ->striped();                      // Filas con fondo alternado
     }
 
     public static function getRelations(): array

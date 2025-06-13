@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Articulo extends Model
 {
     protected $table = 'alm_articulos';
+    
+
     protected $fillable = [
         'codigo',
         'descripcion',
@@ -21,5 +23,6 @@ class Articulo extends Model
         'empresa',
         'sn_qr'
     ];
-    
+
+   
 }
