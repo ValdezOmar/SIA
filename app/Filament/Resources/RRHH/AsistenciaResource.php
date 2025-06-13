@@ -32,8 +32,8 @@ use Filament\Forms\Components\Grid;
 class AsistenciaResource extends Resource
 {
     protected static ?string $model = Asistencia::class;
-    protected static ?string $navigationIcon = 'heroicon-o-clock';
-    protected static ?string $modelLabel = 'Asistencia';
+    protected static ?string $modelLabel = 'Registros de Asistencia'; //Seccion para configurar el nombre en Filament-Shield
+    protected static ?string $navigationIcon = 'heroicon-o-clock';    
     protected static ?string $pluralModelLabel = 'Asistencias';
     protected static ?string $navigationLabel = 'Registro de Asistencias';
     protected static ?string $navigationGroup = 'Recursos Humanos';

@@ -14,6 +14,7 @@ use Filament\Tables\Columns\TextColumn;
 class ArticuloResource extends Resource
 {
     protected static ?string $model = Articulo::class;
+    protected static ?string $modelLabel = 'Disponibilidad de Stock'; //Seccion para configurar el nombre en Filament-Shield
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';
     protected static ?string $pluralModelLabel = 'Disponibilidad de Stock';

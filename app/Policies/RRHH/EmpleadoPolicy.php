@@ -15,7 +15,7 @@ class EmpleadoPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_r::r::h::h::perfil::empleado');
+        return $user->can('view_any_r::r::h::h::empleado');
     }
 
     /**
@@ -23,7 +23,7 @@ class EmpleadoPolicy
      */
     public function view(User $user, Empleado $empleado): bool
     {
-        return $user->can('view_r::r::h::h::perfil::empleado');
+        return $user->can('view_r::r::h::h::empleado');
     }
 
     /**
@@ -31,7 +31,7 @@ class EmpleadoPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_r::r::h::h::perfil::empleado');
+        return $user->can('create_r::r::h::h::empleado');
     }
 
     /**
@@ -39,7 +39,7 @@ class EmpleadoPolicy
      */
     public function update(User $user, Empleado $empleado): bool
     {
-        return $user->can('update_r::r::h::h::perfil::empleado');
+        return $user->can('update_r::r::h::h::empleado');
     }
 
     /**
@@ -47,7 +47,7 @@ class EmpleadoPolicy
      */
     public function delete(User $user, Empleado $empleado): bool
     {
-        return $user->can('delete_r::r::h::h::perfil::empleado');
+        return $user->can('delete_r::r::h::h::empleado');
     }
 
     /**
@@ -55,7 +55,7 @@ class EmpleadoPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_r::r::h::h::perfil::empleado');
+        return $user->can('delete_any_r::r::h::h::empleado');
     }
 
     /**
@@ -63,7 +63,7 @@ class EmpleadoPolicy
      */
     public function forceDelete(User $user, Empleado $empleado): bool
     {
-        return $user->can('force_delete_r::r::h::h::perfil::empleado');
+        return $user->can('force_delete_r::r::h::h::empleado');
     }
 
     /**
@@ -71,7 +71,7 @@ class EmpleadoPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_r::r::h::h::perfil::empleado');
+        return $user->can('force_delete_any_r::r::h::h::empleado');
     }
 
     /**
@@ -79,7 +79,7 @@ class EmpleadoPolicy
      */
     public function restore(User $user, Empleado $empleado): bool
     {
-        return $user->can('restore_r::r::h::h::perfil::empleado');
+        return $user->can('restore_r::r::h::h::empleado');
     }
 
     /**
@@ -87,7 +87,7 @@ class EmpleadoPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_r::r::h::h::perfil::empleado');
+        return $user->can('restore_any_r::r::h::h::empleado');
     }
 
     /**
@@ -95,7 +95,7 @@ class EmpleadoPolicy
      */
     public function replicate(User $user, Empleado $empleado): bool
     {
-        return $user->can('replicate_r::r::h::h::perfil::empleado');
+        return $user->can('replicate_r::r::h::h::empleado');
     }
 
     /**
@@ -103,6 +103,6 @@ class EmpleadoPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_r::r::h::h::perfil::empleado');
+        return $user->can('reorder_r::r::h::h::empleado');
     }
 }

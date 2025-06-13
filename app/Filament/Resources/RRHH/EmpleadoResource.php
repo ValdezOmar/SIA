@@ -32,7 +32,7 @@ class EmpleadoResource extends Resource
     protected static ?string $model = Empleado::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static ?string $modelLabel = 'Empleado';
+    protected static ?string $modelLabel = 'Empleados'; //Seccion para configurar el nombre en Filament-Shield
     protected static ?string $pluralModelLabel = 'Listado de Empleados';
     protected static ?string $navigationLabel = 'Empleados';
     protected static ?string $navigationGroup = 'Recursos Humanos';

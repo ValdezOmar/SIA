@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\RRHH;
 
-use App\Models\RRHH\Empleado;
+use App\Models\RRHH\Directorio;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -11,7 +11,7 @@ use Filament\Tables\Columns\TextColumn;
 
 class DirectorioResource extends Resource
 {
-    protected static ?string $model = Empleado::class;
+    protected static ?string $model = Directorio::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $modelLabel = 'Directorio';
@@ -40,7 +40,7 @@ class DirectorioResource extends Resource
                 TextColumn::make('nombres')
                     ->searchable()
                     ->sortable()
-                    ->description(fn(Empleado $record) => $record->apellidos),
+                    ->description(fn(Directorio $record) => $record->apellidos),
 
 
                 TextColumn::make('cargo')
@@ -150,8 +150,7 @@ class DirectorioResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => \App\Filament\Resources\RRHH\DirectorioResource\Pages\ListDirectorio::route('/'),
-            'view' => \App\Filament\Resources\RRHH\DirectorioResource\Pages\ViewDirectorioEmpleado::route('/{record}'),
+            'index' => \App\Filament\Resources\RRHH\DirectorioResource\Pages\ListDirectorio::route('/'),            
         ];
     }
 }

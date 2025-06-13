@@ -2,27 +2,28 @@
 
 namespace App\Policies\RRHH;
 
-use App\Models\RRHH\Empleado;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
+use App\Models\RRHH\PerfilEmpleado;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class PerfilEmpleadoPolicy
 {
+    use HandlesAuthorization;
+
     /**
      * Determine whether the user can view any models.
      */
     public function viewAny(User $user): bool
     {
-        return false; // No permitir listar todos los empleados
+        return $user->can('view_any_r::r::h::h::perfil::empleado');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Empleado $empleado): bool
+    public function view(User $user, PerfilEmpleado $perfilEmpleado): bool
     {
-        // Permitir editar solo si el correo coincide
-        return $user->email === $empleado->correo_corporativo;
+        return $user->can('view_r::r::h::h::perfil::empleado');
     }
 
     /**
@@ -30,38 +31,78 @@ class PerfilEmpleadoPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return $user->can('create_r::r::h::h::perfil::empleado');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Empleado $empleado): bool
+    public function update(User $user, PerfilEmpleado $perfilEmpleado): bool
     {
-        return $user->email === $empleado->correo_corporativo;
+        return $user->can('update_r::r::h::h::perfil::empleado');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Empleado $empleado): bool
+    public function delete(User $user, PerfilEmpleado $perfilEmpleado): bool
     {
-        return false;
+        return $user->can('delete_r::r::h::h::perfil::empleado');
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * Determine whether the user can bulk delete.
      */
-    public function restore(User $user, Empleado $empleado): bool
+    public function deleteAny(User $user): bool
     {
-        return false;
+        return $user->can('delete_any_r::r::h::h::perfil::empleado');
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
+     * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, Empleado $empleado): bool
+    public function forceDelete(User $user, PerfilEmpleado $perfilEmpleado): bool
     {
-        return false;
+        return $user->can('force_delete_r::r::h::h::perfil::empleado');
+    }
+
+    /**
+     * Determine whether the user can permanently bulk delete.
+     */
+    public function forceDeleteAny(User $user): bool
+    {
+        return $user->can('force_delete_any_r::r::h::h::perfil::empleado');
+    }
+
+    /**
+     * Determine whether the user can restore.
+     */
+    public function restore(User $user, PerfilEmpleado $perfilEmpleado): bool
+    {
+        return $user->can('restore_r::r::h::h::perfil::empleado');
+    }
+
+    /**
+     * Determine whether the user can bulk restore.
+     */
+    public function restoreAny(User $user): bool
+    {
+        return $user->can('restore_any_r::r::h::h::perfil::empleado');
+    }
+
+    /**
+     * Determine whether the user can replicate.
+     */
+    public function replicate(User $user, PerfilEmpleado $perfilEmpleado): bool
+    {
+        return $user->can('replicate_r::r::h::h::perfil::empleado');
+    }
+
+    /**
+     * Determine whether the user can reorder.
+     */
+    public function reorder(User $user): bool
+    {
+        return $user->can('reorder_r::r::h::h::perfil::empleado');
     }
 }

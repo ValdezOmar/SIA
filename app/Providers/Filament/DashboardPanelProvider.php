@@ -98,10 +98,10 @@ class DashboardPanelProvider extends PanelProvider
                     ->label('Mi Perfil')
                     ->url(function () {
                         $user = Auth::user();
-                        $empleado = \App\Models\RRHH\Empleado::where('correo_corporativo', $user->email)->first();
+                        $empleado = \App\Models\RRHH\PerfilEmpleado::where('correo_corporativo', $user->email)->first();
 
                         return $empleado
-                            ? \App\Filament\Resources\RRHH\DirectorioResource::getUrl('view', ['record' => $empleado->id])
+                            ? \App\Filament\Resources\RRHH\PerfilEmpleadoResource::getUrl('view', ['record' => $empleado->id])
                             : '#';
                     })
                     ->icon('heroicon-o-user'),

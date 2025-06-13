@@ -75,7 +75,7 @@ class Empleado extends Model
         }
 
         // Si ya es una URL completa
-        if (filter_var($this->foto, FILTER_VALIDATE_URL)) {  // Corregido aquí
+        if (filter_var($this->foto, FILTER_VALIDATE_URL)) { 
             return $this->foto;
         }
 
@@ -98,7 +98,7 @@ class Empleado extends Model
             'texto' => "Lat: {$this->ubicacion_gps['lat']}, Lng: {$this->ubicacion_gps['lng']}"
         ] : null;
     }
-    // app/Models/RRHH/Empleado.php
+    // Verificacion de email de empleado
     public function user()
     {
         return $this->belongsTo(\App\Models\User::class, 'correo_corporativo', 'email');
