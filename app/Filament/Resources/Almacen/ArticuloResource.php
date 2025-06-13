@@ -47,22 +47,20 @@ class ArticuloResource extends Resource
                             <small>Codigo: <strong style='color:rgb(32, 115, 211); font-size: 0.80rem'>{$record->codigo}</strong><br>Cod. Alterno: <strong >{$record->codigo_alterno}</strong></small>
                         </div>
                     ")
-                    ->searchable(['descripcion', 'codigo', 'codigo_alterno']),
-
-                TextColumn::make('presentacion')
-                    ->label('Presentación')
-                    ->html()
-                    ->getStateUsing(fn($record) => "
-                        <div>
-                            <strong>{$record->presentacion}</strong><br>
-                            <small>Unidad: {$record->unidad}</small>
-                        </div>
-                    ")
-                    ->searchable(['presentacion', 'unidad']),
+                    ->searchable(['descripcion', 'codigo', 'codigo_alterno']),                
 
                 TextColumn::make('lote')
                     ->label('Lote')
-                    ->sortable(),
+                    ->html()
+                    ->getStateUsing(fn($record) => "
+                        <div>
+                            <strong>{$record->lote}</strong><br>
+                            <small>Presentacion: {$record->presentacion}</small><br>
+                            <small>Unidad: {$record->unidad}</small>
+                        </div>
+                    ")
+                    ->sortable()
+                    ->searchable(['lote']),
 
                 TextColumn::make('fecha_ven')
                     ->label('Vencimiento')
