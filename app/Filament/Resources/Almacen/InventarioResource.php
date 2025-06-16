@@ -14,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Section;
+use DesignTheBox\BarcodeField\Forms\Components\BarcodeInput;
 
 
 class InventarioResource extends Resource
@@ -45,7 +46,7 @@ class InventarioResource extends Resource
                         DatePicker::make('fecha_ven')->label('Fecha de vencimiento')->disabled(),
                         TextInput::make('sn_qr')->label('Código QR / Serial')->disabled(),
                         TextInput::make('empresa')->label('Empresa')->disabled(),
-                        
+
                     ])
                     ->columns(3),
 
@@ -60,6 +61,9 @@ class InventarioResource extends Resource
                         TextInput::make('cod_almacen_correcto')->label('Código de almacén'),
                         TextInput::make('nombre_almacen_correcto')->label('Nombre del almacén'),
                         TextInput::make('lote_correcto')->label('Lote'),
+                        BarcodeInput::make('sn_qr_correcto')
+                            ->label('QR correcto')
+                            ->icon('heroicon-o-qr-code'),
                         DatePicker::make('fecha_ven_correcto')->label('Fecha de vencimiento'),
                         TextInput::make('sn_qr_correcto')->label('Código QR / Serial'),
                         TextInput::make('empresa_correcto')->label('Empresa'),
@@ -70,7 +74,7 @@ class InventarioResource extends Resource
                     ->description('Información del conteo físico realizado en campo')
                     ->schema([
                         TextInput::make('saldo_contado')->label('Saldo contado')->numeric(),
-                        TextInput::make('saldo_actual')->label('Saldo en sistema')->disabled(),                        
+                        TextInput::make('saldo_actual')->label('Saldo en sistema')->disabled(),
                     ])
                     ->columns(2),
                 Forms\Components\Textarea::make('observacion')->label('Observaciones')->rows(3)->maxLength(255)->columnSpanFull(),
@@ -122,7 +126,7 @@ class InventarioResource extends Resource
                     ->html()
                     ->getStateUsing(fn($record) => $record->fecha_ven ? \Carbon\Carbon::parse($record->fecha_ven)->format('d/m/Y') : 'Sin registro')
                     ->sortable(),
-                
+
                 TextColumn::make('saldo_actual')
                     ->label('Saldo Actual')
                     ->numeric()
@@ -140,15 +144,13 @@ class InventarioResource extends Resource
                     ->searchable(['nombre_almacen', 'cod_almacen']),
 
                 TextColumn::make('empresa')
-                    ->label('Empresa'),                
+                    ->label('Empresa'),
             ])
             ->filters([
                 //
             ])
-            ->actions([              
-            ])
-            ->bulkActions([            
-            ])
+            ->actions([])
+            ->bulkActions([])
             ->paginated([10, 25, 50]);
     }
 

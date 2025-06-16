@@ -3,7 +3,7 @@
         'name' => 'laravel/laravel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '2bcf79d12430917e32707cacc888526494937465',
+        'reference' => '0528660f7ff701c08f2ecabd1707eb607820351e',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -147,6 +147,15 @@
             'replaced' => array(
                 0 => '*',
             ),
+        ),
+        'designthebox/barcode-field' => array(
+            'pretty_version' => 'V0.0.6',
+            'version' => '0.0.6.0',
+            'reference' => '11a850129fe0e39d2619fef9ea8f650de8f51f48',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../designthebox/barcode-field',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'dflydev/dot-access-data' => array(
             'pretty_version' => 'v3.0.3',
@@ -685,7 +694,7 @@
         'laravel/laravel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '2bcf79d12430917e32707cacc888526494937465',
+            'reference' => '0528660f7ff701c08f2ecabd1707eb607820351e',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Almacen\ArticuloResource\Pages;
 
 use App\Filament\Resources\Almacen\ArticuloResource;
 use Filament\Actions;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 
 class ListArticulos extends ListRecords
@@ -12,8 +13,7 @@ class ListArticulos extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
-           // Actions\CreateAction::make(),
+        return [          
         ];
     }
 }

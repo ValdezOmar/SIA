@@ -13,6 +13,9 @@ use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Facades\Cache;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Actions\Action;
+use DesignTheBox\BarcodeField\Forms\Components\BarcodeInput;
+use Filament\Tables\Filters\Filter;
 
 class ArticuloResource extends Resource
 {
@@ -61,6 +64,8 @@ class ArticuloResource extends Resource
                     ")
                     ->sortable()
                     ->searchable(['lote']),
+
+
 
                 TextColumn::make('fecha_ven')
                     ->label('Vencimiento')
@@ -145,6 +150,15 @@ class ArticuloResource extends Resource
                     ->searchable(['nombre_almacen', 'cod_almacen', 'empresa']),
             ])
             ->filters([
+                //Filtro de busqueda QR
+                Filter::make('Buscar por QR o Código de Barra')
+                    ->form([
+                        BarcodeInput::make('sn_qr')->label('Escanear Código')->icon('heroicon-o-qr-code'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when($data['sn_qr'], fn($query, $value) => $query->where('sn_qr', $value));
+                    }),
 
                 //Filtro de busqueda de Empresas
                 SelectFilter::make('empresas')
@@ -235,14 +249,13 @@ class ArticuloResource extends Resource
                             $query->whereIn('cod_almacen', $state['values']);
                         }
                     })
-                    ->searchable(),
-            ])
-
+                    ->searchable(),      
+            ])            
             ->actions([])
             ->bulkActions([])
             ->paginated([10, 25, 50])
             ->defaultPaginationPageOption(50) //Filas mostradas
-            ->striped();                      // Filas con fondo alternado
+            ->striped();                      //Filas con fondo alternado
     }
 
     public static function getRelations(): array
