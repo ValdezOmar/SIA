@@ -47,7 +47,7 @@ class ArticuloResource extends Resource
                             <small>Codigo: <strong style='color:rgb(32, 115, 211); font-size: 0.80rem'>{$record->codigo}</strong><br>Cod. Alterno: <strong >{$record->codigo_alterno}</strong></small>
                         </div>
                     ")
-                    ->searchable(['descripcion', 'codigo', 'codigo_alterno']),                
+                    ->searchable(['descripcion', 'codigo', 'codigo_alterno']),
 
                 TextColumn::make('lote')
                     ->label('Lote')
@@ -112,7 +112,7 @@ class ArticuloResource extends Resource
                     ->getStateUsing(fn($record) => "
                         <div style='
                             text-align: center;
-                            font-size: 0.9rem;
+                            font-size: 1rem;
                             font-weight: 800;
                         '>
                             {$record->saldo_actual}
@@ -121,17 +121,28 @@ class ArticuloResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('nombre_almacen')
-                    ->label('Ubicacion en Almacén')
+                    ->label('Ubicación en Almacén')
                     ->html()
-                    ->getStateUsing(fn($record) => "
-                        <div>
-                            <strong>{$record->nombre_almacen}</strong><br>
-                            <small>Cod. Almacén: <strong style='font-size: 0.85rem'>{$record->cod_almacen}</strong></small><br>
-                            
-                            <small><strong style='text-align: center; font-size: 0.85rem'>{$record->empresa}</strong></small>
-                        </div>
-                    ")
-                    ->searchable(['nombre_almacen', 'cod_almacen','empresa']),
+                    ->getStateUsing(function ($record) {
+                        $sucursal = match (true) {
+                            $record->cod_almacen >= 100 && $record->cod_almacen <= 199 => 'La Paz',
+                            $record->cod_almacen >= 200 && $record->cod_almacen <= 299 => 'Cochabamba',
+                            $record->cod_almacen >= 300 && $record->cod_almacen <= 399 => 'Santa Cruz',
+                            $record->cod_almacen >= 400 && $record->cod_almacen <= 499 => 'Sucre',
+                            $record->cod_almacen >= 500 && $record->cod_almacen <= 599 => 'Tarija',
+                            default => 'Sucursal desconocida',
+                        };
+
+                        return "
+                            <div>
+                                <strong>{$record->nombre_almacen}</strong><br>
+                                <small>Cod. Almacén: <strong style='font-size: 0.85rem'>{$record->cod_almacen}</strong></small><br>
+                                <small><strong style='text-align: center; font-size: 0.85rem'>{$record->empresa}</strong></small><br>
+                                <small style='color: gray; font-size: 0.8rem'><strong>{$sucursal}</strong></small>
+                            </div>
+                        ";
+                    })
+                    ->searchable(['nombre_almacen', 'cod_almacen', 'empresa']),
             ])
             ->filters([
 
