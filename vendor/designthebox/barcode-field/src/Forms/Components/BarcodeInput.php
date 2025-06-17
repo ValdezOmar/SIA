@@ -14,7 +14,7 @@ class BarcodeInput extends TextInput
 
         // Set default properties for the BarcodeInput
         $this->label('Barcode Input')
-            ->placeholder('Escanea el QR o Codigo de barra')
+            ->placeholder('QR o Codigo de Barra')
             ->required(); // Set as required if needed
     }
 
