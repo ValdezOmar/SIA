@@ -10,11 +10,11 @@
     <div class="flex gap-2 items-center mt-1">
         <x-filament::input
             type="text"
-            name="{{ $getName() }}"
             id="{{ $getId() }}"
-            value="{{ $getState() }}"
+            wire:model="{{ $getStatePath() }}"
             placeholder="{{ $getPlaceholder() }}"
             class="w-full dark:bg-gray-800 dark:text-white dark:border-gray-700 border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 rounded-lg shadow-sm"
+            readonly
         />
 
         <button type="button"
@@ -102,6 +102,7 @@
                 if (result) {
                     const input = document.getElementById(scannerInputId);
                     input.value = result.getText();
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
                     document.getElementById('beep-sound').play();
                     stopScanner();  // Evita múltiples lecturas
                     closeScannerModal();

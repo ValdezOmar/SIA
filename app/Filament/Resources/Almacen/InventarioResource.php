@@ -158,24 +158,20 @@ class InventarioResource extends Resource
                     ->description('Información del conteo físico realizado en campo')
                     ->schema([
 
-
                         TextInput::make('saldo_actual')
                             ->label('Saldo en sistema')
                             ->disabled(),
 
                         TextInput::make('saldo_contado')
                             ->label('Saldo contado')
-                            ->numeric()
-                            ->live(),
+                            ->numeric(),                          
 
-                        // TextInput::make('saldo_contado')
-                        //     ->label('Diferencia')
-                        //     ->disabled()
-                        //     ->dehydrated()  
                         BarcodeInput::make('sn_qr_correcto')
-                            ->label('Registrar QR')
-                            ->hint('Registre el codigo QR del Producto')
-                            ->icon('heroicon-o-qr-code'),
+                            ->label('Registrar QR')                            
+                            ->live()
+                            ->required(false)
+                            ->dehydrated(fn($state) => filled($state)) // Solo guardar si tiene valor
+                            ->afterStateUpdated(fn($state, $set) => $set('sn_qr_correcto', $state))
                     ])
                     ->columns(3),
                 Forms\Components\Textarea::make('observacion')->label('Observaciones')->rows(3)->maxLength(255)->columnSpanFull(),
