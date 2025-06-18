@@ -164,10 +164,11 @@ class InventarioResource extends Resource
 
                         TextInput::make('saldo_contado')
                             ->label('Saldo contado')
-                            ->numeric(),                          
+                            ->required()
+                            ->numeric(),
 
                         BarcodeInput::make('sn_qr_correcto')
-                            ->label('Registrar QR')                            
+                            ->label('Registrar QR')
                             ->live()
                             ->required(false)
                             ->dehydrated(fn($state) => filled($state)) // Solo guardar si tiene valor
@@ -324,6 +325,7 @@ class InventarioResource extends Resource
 
             ])
             ->filters([
+                //Filtro de estado de conteo
                 SelectFilter::make('estado_conteo')
                     ->label('Estado de conteo')
                     ->options([
@@ -389,9 +391,9 @@ class InventarioResource extends Resource
                             };
                         }
                     }),
-                // Filtro de almacenes Los almacenes especificados (101,102,etc.) estarán seleccionados al cargar
+                // Filtro de almacenes
                 SelectFilter::make('almacenes')
-                    ->label('Filtrar por Almacenes')
+                    ->label('Filtrar Almacenes')
                     ->multiple()
                     ->options(function () {
                         return Cache::remember('almacenes-options', now()->addDay(), function () {
@@ -409,20 +411,7 @@ class InventarioResource extends Resource
                                 })
                                 ->toArray();
                         });
-                    })
-                    ->default([
-                        '101',
-                        '102',
-                        '107',
-                        '202',
-                        '207',
-                        '302',
-                        '307',
-                        '402',
-                        '407',
-                        '502',
-                        '507'
-                    ])
+                    })                    
                     ->query(function (Builder $query, array $state) {
                         if (!empty($state['values'])) {
                             $query->whereIn('cod_almacen', $state['values']);
@@ -432,9 +421,10 @@ class InventarioResource extends Resource
             ])
             ->actions([])
             ->bulkActions([])
-            ->paginated([10, 25, 50]);
+            ->defaultPaginationPageOption(50)
+            ->paginated([10, 25, 50, 100]);
     }
-
+    
     public static function getRelations(): array
     {
         return [
