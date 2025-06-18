@@ -19,8 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Set;
-use Filament\Forms\Components\Group;
-use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\View;
 
 class InventarioResource extends Resource
 {
@@ -37,114 +36,60 @@ class InventarioResource extends Resource
     {
         return $form
             ->schema([
-                // Section::make('Datos originales del sistema')
-                //     ->description('Información de inventario almacenada en el sistema')
-                //     ->schema([
-                //         TextInput::make('codigo')->label('Código del producto')->disabled(),
-                //         TextInput::make('descripcion')->label('Descripción')->disabled(),
-                //         TextInput::make('presentacion')->label('Presentación')->disabled(),
-                //         TextInput::make('unidad')->label('Unidad de medida')->disabled(),
-                //         TextInput::make('codigo_alterno')->label('Código alterno')->disabled(),
-                //         TextInput::make('cod_almacen')->label('Código de almacén')->disabled(),
-                //         TextInput::make('nombre_almacen')->label('Nombre del almacén')->disabled(),
-                //         TextInput::make('lote')->label('Lote')->disabled(),
-                //         DatePicker::make('fecha_ven')->label('Fecha de vencimiento')->disabled(),
-                //         TextInput::make('sn_qr')->label('Código QR / Serial')->disabled(),
-                //         TextInput::make('empresa')->label('Empresa')->disabled(),
 
-                //     ])
-                //     ->columns(3),     
-                Section::make('Información del Sistema')
-                    ->description('Datos originales registrados en el sistema')
-                    ->schema([
-                        Grid::make(3)
-                            ->schema([
-                                // Columna 1: Identificación del producto
-                                Group::make([
-                                    TextInput::make('codigo')
-                                        ->label('Código Principal')
-                                        ->disabled()
-                                        ->columnSpanFull(),
-                                    TextInput::make('codigo_alterno')
-                                        ->label('Código Secundario')
-                                        ->disabled(),
-                                    TextInput::make('descripcion')
-                                        ->label('Descripción')
-                                        ->disabled()
-                                        ->columnSpanFull(),
-                                ]),
+                View::make('filament.forms.components.inventario-card')
+                    ->columnSpanFull(),
 
-                                // Columna 2: Características
-                                Group::make([
-                                    TextInput::make('presentacion')
-                                        ->label('Presentación')
-                                        ->disabled(),
-                                    TextInput::make('unidad')
-                                        ->label('Unidad')
-                                        ->disabled(),
-                                    TextInput::make('lote')
-                                        ->label('N° de Lote')
-                                        ->disabled(),
-                                    DatePicker::make('fecha_ven')
-                                        ->label('Vencimiento')
-                                        ->displayFormat('d/m/Y')
-                                        ->disabled(),
-                                ]),
-
-                                // Columna 3: Ubicación
-                                Group::make([
-                                    TextInput::make('nombre_almacen')
-                                        ->label('Almacén')
-                                        ->disabled()
-                                        ->formatStateUsing(fn($state, $record) => "{$record->cod_almacen} - {$state}"),
-                                    TextInput::make('empresa')
-                                        ->label('Empresa')
-                                        ->disabled(),
-
-                                ]),
-                            ])
-                    ]),
-
-                Section::make('Datos corregidos')
-                    ->description('Ingrese los datos correctos en caso de discrepancias para una posterior correcion en sistema')
+                Section::make('Datos Correctos')
+                    ->description('Ingrese los datos correctos en caso de encontrar discrepancias para una posterior actualizacion y corrección en sistema')
                     ->schema([
                         TextInput::make('codigo_correcto')
-                            ->label('Código correcto')
+                            ->label('Código')
+                            ->prefixIcon('heroicon-o-table-cells')
                             ->afterStateUpdated(fn($state, Set $set) => $set('codigo_correcto', strtoupper($state))),
 
                         TextInput::make('descripcion_correcto')
-                            ->label('Descripción correcta')
+                            ->label('Descripción')
+                            ->prefixIcon('heroicon-o-document-text')
                             ->afterStateUpdated(fn($state, Set $set) => $set('descripcion_correcto', strtoupper($state))),
 
                         TextInput::make('presentacion_correcto')
-                            ->label('Presentación correcta')
+                            ->label('Presentación')
+                            ->prefixIcon('heroicon-o-cube')
                             ->afterStateUpdated(fn($state, Set $set) => $set('presentacion_correcto', strtoupper($state))),
 
                         TextInput::make('unidad_correcto')
                             ->label('Unidad de medida')
+                            ->prefixIcon('heroicon-o-scale')
                             ->afterStateUpdated(fn($state, Set $set) => $set('unidad_correcto', strtoupper($state))),
 
                         TextInput::make('codigo_alterno_correcto')
                             ->label('Código alterno')
+                            ->prefixIcon('heroicon-o-qr-code')
                             ->afterStateUpdated(fn($state, Set $set) => $set('codigo_alterno_correcto', strtoupper($state))),
 
                         TextInput::make('cod_almacen_correcto')
                             ->label('Código de almacén')
+                            ->prefixIcon('heroicon-o-home-modern')
                             ->afterStateUpdated(fn($state, Set $set) => $set('cod_almacen_correcto', strtoupper($state))),
 
                         TextInput::make('nombre_almacen_correcto')
                             ->label('Nombre del almacén')
+                            ->prefixIcon('heroicon-o-building-storefront')
                             ->afterStateUpdated(fn($state, Set $set) => $set('nombre_almacen_correcto', strtoupper($state))),
 
                         TextInput::make('lote_correcto')
                             ->label('Lote')
+                            ->prefixIcon('heroicon-o-tag')
                             ->afterStateUpdated(fn($state, Set $set) => $set('lote_correcto', strtoupper($state))),
 
                         DatePicker::make('fecha_ven_correcto')
-                            ->label('Fecha de vencimiento'),
+                            ->label('Fecha de vencimiento')
+                            ->prefixIcon('heroicon-o-calendar'),
 
                         Select::make('empresa_correcto')
                             ->label('Empresa')
+                            ->prefixIcon('heroicon-o-building-office')
                             ->options([
                                 'Novanexa' => 'Novanexa',
                                 'Requilab' => 'Requilab',
@@ -154,18 +99,25 @@ class InventarioResource extends Resource
                     ])
                     ->columns(3),
 
-                Section::make('Conteo de inventario físico')
-                    ->description('Información del conteo físico realizado en campo')
+                Section::make('Conteo de Inventario Físico')
+                    ->description('Registro de la comparación entre el sistema y el conteo físico')
                     ->schema([
-
                         TextInput::make('saldo_actual')
                             ->label('Saldo en sistema')
-                            ->disabled(),
+                            ->prefixIcon('heroicon-o-circle-stack') // Icono para datos del sistema
+                            ->disabled()
+                            ->columnSpan(1)
+                            ->extraInputAttributes(['class' => 'font-mono text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700']),
 
                         TextInput::make('saldo_contado')
-                            ->label('Saldo contado')
+                            ->label('Saldo contado físicamente')
+                            ->prefixIcon('heroicon-o-clipboard-document-check') // Icono de verificación
                             ->required()
-                            ->numeric(),
+                            ->numeric()
+                            ->columnSpan(1)
+                            ->rules(['gt:0'])
+                            ->hint('Ingrese solo números')
+                            ->extraInputAttributes(['class' => 'font-bold text-primary-600 dark:text-primary-400']),
 
                         BarcodeInput::make('sn_qr_correcto')
                             ->label('Registrar QR')
@@ -175,7 +127,16 @@ class InventarioResource extends Resource
                             ->afterStateUpdated(fn($state, $set) => $set('sn_qr_correcto', $state))
                     ])
                     ->columns(3),
-                Forms\Components\Textarea::make('observacion')->label('Observaciones')->rows(3)->maxLength(255)->columnSpanFull(),
+                Forms\Components\Textarea::make('observacion')
+                    ->label('Observaciones')
+                    ->hint('Ingrese todas las observaciones adicionales encontradas para este ítem')
+                    // ->icon('heroicon-o-clipboard-document-list') // Icono intuitivo
+                    ->rows(5) // Más espacio para escribir
+                    ->maxLength(255) // Más capacidad
+                    ->columnSpanFull(255)
+                    ->extraAttributes([
+                        'class' => 'custom-textarea', // Clase para estilos personalizados
+                    ]),
 
                 Section::make('Datos adicionales del sistema')
                     ->description('Información técnica del sistema')
@@ -411,7 +372,7 @@ class InventarioResource extends Resource
                                 })
                                 ->toArray();
                         });
-                    })                    
+                    })
                     ->query(function (Builder $query, array $state) {
                         if (!empty($state['values'])) {
                             $query->whereIn('cod_almacen', $state['values']);
@@ -424,7 +385,7 @@ class InventarioResource extends Resource
             ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50, 100]);
     }
-    
+
     public static function getRelations(): array
     {
         return [

@@ -6,6 +6,7 @@ use App\Filament\Resources\Almacen\InventarioResource;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\URL;
 
+
 class EditInventario extends EditRecord
 {
     protected static string $resource = InventarioResource::class;
@@ -29,5 +30,10 @@ class EditInventario extends EditRecord
     protected function getRedirectUrl(): string
     {
         return session()->pull('inventario_return_url', InventarioResource::getUrl('index'));
+    }
+    //PErsonalizar titulo 
+    public function getTitle(): string
+    {
+        return 'Registrar Conteo';
     }
 }
