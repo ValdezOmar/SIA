@@ -64,6 +64,7 @@ class GoogleAuthProvider extends Login
     // Mensaje de bienvenida
     public function getHeading(): string
     {
-        return 'SIA'; 
+        // return 'SIA'; //
+        return '';
     }
 }

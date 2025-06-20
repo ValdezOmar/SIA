@@ -30,10 +30,17 @@ class DashboardPanelProvider extends PanelProvider
             ->id('dashboard')
             ->path('dashboard')
             ->login()
-            ->colors([
-                'primary' => Color::Amber,
+            ->colors([                
+                'primary'       => '#009BA4', // principal (botones, enlaces, etc.)
+                'primary-hover' => '#51CDD2', // hover o acento
+                'secondary'     => '#3066BE', // secundario
+                'accent'        => '#6D9DC5', // campos activos, bordes, detalles
+                'muted'         => '#AEECEF', // fondos suaves, elementos pasivosFFF
             ])
-            ->brandName('SISTEMA INTEGRADO DE ADMINISTRACION')
+            // ->brandName('SISTEMA INTEGRADO DE ADMINISTRACION')
+            ->brandLogo(asset('images/logo.svg'))
+            ->brandLogoHeight('2.3rem')
+            
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
