@@ -18,10 +18,7 @@ class GoogleAuthProvider extends Login
                 \Filament\Forms\Components\Actions::make([
                     \Filament\Forms\Components\Actions\Action::make('google-login')
                         ->label('Ingresar con Google')
-                        //->icon('<i class="fab fa-google text-red-500"></i>')                        
-                        ->extraAttributes([
-                            'class' => 'bg-white text-gray-700 hover:bg-gray-50 shadow-sm flex items-center justify-center gap-2',
-                        ])
+                        ->icon('heroicon-o-check-badge')
                         ->color('danger')
                         ->size('lg')
                         ->action(function () {
