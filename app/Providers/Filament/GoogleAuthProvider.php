@@ -15,19 +15,19 @@ class GoogleAuthProvider extends Login
     {
         return $form
             ->schema([
-                Section::make('Login con Google')
-                    ->schema([
-                        \Filament\Forms\Components\Actions::make([
-                            \Filament\Forms\Components\Actions\Action::make('google-login')
-                                ->label('Continuar con Google')
-                                //->icon('fab-google')
-                                ->color('danger')
-                                ->size('lg')
-                                ->action(function () {
-                                    return redirect()->route('google.redirect');
-                                }),
-                        ])->fullWidth(),
-                    ]),
+                \Filament\Forms\Components\Actions::make([
+                    \Filament\Forms\Components\Actions\Action::make('google-login')
+                        ->label('Ingresar con Google')
+                        //->icon('<i class="fab fa-google text-red-500"></i>')                        
+                        ->extraAttributes([
+                            'class' => 'bg-white text-gray-700 hover:bg-gray-50 shadow-sm flex items-center justify-center gap-2',
+                        ])
+                        ->color('danger')
+                        ->size('lg')
+                        ->action(function () {
+                            return redirect()->route('google.redirect');
+                        }),
+                ])->fullWidth(),
 
                 Section::make('Login con email')
                     ->collapsible()
