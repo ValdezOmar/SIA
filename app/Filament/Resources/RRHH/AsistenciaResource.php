@@ -28,12 +28,13 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\View;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
+use Filament\Tables\Columns\ImageColumn;
 
 class AsistenciaResource extends Resource
 {
     protected static ?string $model = Asistencia::class;
     protected static ?string $modelLabel = 'Registros de Asistencia'; //Seccion para configurar el nombre en Filament-Shield
-    protected static ?string $navigationIcon = 'heroicon-o-clock';    
+    protected static ?string $navigationIcon = 'heroicon-o-clock';
     protected static ?string $pluralModelLabel = 'Asistencias';
     protected static ?string $navigationLabel = 'Registro de Asistencias';
     protected static ?string $navigationGroup = 'Recursos Humanos';
@@ -133,7 +134,7 @@ class AsistenciaResource extends Resource
                 Placeholder::make('')
                     ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor haz clic en el botón "Obtener Ubicación GPS", activa la geolocalización y permite el acceso a tu ubicación.')
                     ->hint('Solo los registros realizados con teléfonos moviles son válidos')
-                    ->hintIcon('heroicon-m-map-pin')  
+                    ->hintIcon('heroicon-m-map-pin')
                     ->columnSpanFull()
                     ->hidden(function ($get, $livewire) {
                         return empty(!($livewire->localizacion));
@@ -270,6 +271,15 @@ class AsistenciaResource extends Resource
 
         // Columnas base optimizadas para espacio
         $columns = [
+            ImageColumn::make('foto')
+                ->label('')
+                ->circular()
+                ->width(50)
+                ->height(50)
+                ->defaultImageUrl(function ($record) {
+                    // Mostrar la foto del empleado si existe, de lo contrario el avatar por defecto
+                    return $record->foto ? asset('storage/' . $record->foto) : asset('images/default-avatar.jpg');
+                }),
 
             TextColumn::make('nombre_completo')
                 ->label('Datos del Empleado')
@@ -277,7 +287,8 @@ class AsistenciaResource extends Resource
                 ->getStateUsing(fn($record) => "
                     <div>
                         <strong>{$record->nombres}</strong><br>
-                        <small>{$record->apellidos}<br>CI: {$record->ci}</small>
+                        <small>{$record->apellidos}<br>CI: {$record->ci}</small><br>
+                        <span style='font-size: 0.6rem'>{$record->cargo}</span>
                     </div>
                 ")
                 ->searchable(['nombres', 'apellidos', 'ci']),
