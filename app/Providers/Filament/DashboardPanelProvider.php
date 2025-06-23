@@ -9,7 +9,6 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -25,12 +24,12 @@ class DashboardPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
-            //RUTA PRINCIPAL MAIN
+            //PErsonalizacion de sistema
             ->default()
             ->id('dashboard')
             ->path('dashboard')
             ->login()
-            ->colors([                
+            ->colors([
                 'primary'       => '#009BA4', // principal (botones, enlaces, etc.)
                 'primary-hover' => '#51CDD2', // hover o acento
                 'secondary'     => '#3066BE', // secundario
@@ -38,37 +37,35 @@ class DashboardPanelProvider extends PanelProvider
                 'muted'         => '#AEECEF', // fondos suaves, elementos pasivosFFF
             ])
             // ->brandName('SISTEMA INTEGRADO DE ADMINISTRACION')
-            ->brandLogo(asset('images/logo.svg'))
-            ->brandLogoHeight('2.3rem')
-            
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->brandLogo(asset('images/logo.svg'))// Logo que se muestra en la esquina superior izquierda del panel
+            ->brandLogoHeight('2.3rem')// Altura del logo
+            ->sidebarCollapsibleOnDesktop(true)// Permite que la barra lateral (sidebar) sea colapsable en escritorio
+            //Gestion de utas automaticasr
+            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources') // Descubre y registra automáticamente los recursos (CRUDs) dentro de app/Filament/Resources
+            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')// Descubre y registra automáticamente las páginas personalizadas en app/Filament/Pages
             ->pages([
-                Pages\Dashboard::class,                
+                Pages\Dashboard::class,
             ])
-
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
-                \App\Filament\Widgets\NextcloudWidget::class,                
+                \App\Filament\Widgets\NextcloudWidget::class,
             ])
-
+            //Gestion de los middelewares
             ->middleware([
-                EncryptCookies::class,
-                AddQueuedCookiesToResponse::class,
-                StartSession::class,
-                AuthenticateSession::class,
-                ShareErrorsFromSession::class,
-                VerifyCsrfToken::class,
-                SubstituteBindings::class,
-                DisableBladeIconComponents::class,
-                DispatchServingFilamentEvent::class,
+                EncryptCookies::class,                // Cifra las cookies para seguridad
+                AddQueuedCookiesToResponse::class,   // Añade cookies pendientes a la respuesta HTTP
+                StartSession::class,                  // Inicia la sesión del usuario
+                AuthenticateSession::class,           // Middleware para autenticar sesión
+                ShareErrorsFromSession::class,       // Comparte errores desde la sesión para mostrar en vistas
+                VerifyCsrfToken::class,               // Verifica token CSRF para proteger formularios
+                SubstituteBindings::class,            // Reemplaza bindings de rutas
+                DisableBladeIconComponents::class,   // Deshabilita componentes Blade para íconos (optimización)
+                DispatchServingFilamentEvent::class, // Evento disparado cuando Filament sirve una página
             ])
-            
             ->authMiddleware([
                 Authenticate::class,
             ])
-
             // MENU DE GRUPOS DE LA APLICACION
             ->navigationGroups([
                 'Recursos Humanos',
@@ -76,30 +73,18 @@ class DashboardPanelProvider extends PanelProvider
                 'Configuración',
                 // ... otros grupos
             ])
-
             //RUTA FAVICON
             ->favicon(asset('images/favicon.ico'))
-
             //Spatie configuration
             ->login(GoogleAuthProvider::class)
             ->authGuard('web')
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
-
-            // Se agrega correctamente el plugin de Shield
+            // GEstion de los plugins
             ->plugins([
                 FilamentShieldPlugin::make()
-            ])   
-
-            //asociacion de foto de perfil con avatar
-            // ->userAvatarUrl(function ($user) {
-            //     if ($user->empleado && $user->empleado->foto_url) {
-            //         return $user->empleado->foto_url;
-            //     }
-            //     return null;
-            // })
-
-            //vista del perfil de empleado
+            ])
+            //Items del menu superior del avatar
             ->userMenuItems([
                 'perfil' => \Filament\Navigation\MenuItem::make()
                     ->label('Mi Perfil')

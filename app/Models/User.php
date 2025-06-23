@@ -7,8 +7,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use Filament\Models\Contracts\HasAvatar;
 
-class User extends Authenticatable
+class User extends Authenticatable implements HasAvatar
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasRoles;
@@ -55,5 +56,10 @@ class User extends Authenticatable
     public function empleado()
     {
         return $this->hasOne(\App\Models\RRHH\Empleado::class, 'correo_corporativo', 'email');
+    }
+    //Asociacion de foto de perfil con avatar
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return $this->empleado?->foto_url ?? asset('images/default-avatar.jpg');
     }
 }
