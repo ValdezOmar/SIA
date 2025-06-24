@@ -40,17 +40,19 @@ class DashboardPanelProvider extends PanelProvider
             ->brandLogo(asset('images/logo.svg'))// Logo que se muestra en la esquina superior izquierda del panel
             ->brandLogoHeight('2.3rem')// Altura del logo
             ->sidebarCollapsibleOnDesktop(true)// Permite que la barra lateral (sidebar) sea colapsable en escritorio
-            //Gestion de utas automaticasr
+            //Gestion de rutas automaticasr
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources') // Descubre y registra automáticamente los recursos (CRUDs) dentro de app/Filament/Resources
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')// Descubre y registra automáticamente las páginas personalizadas en app/Filament/Pages
             ->pages([
                 Pages\Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+            // ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
                 \App\Filament\Widgets\NextcloudWidget::class,
-            ])
+                \App\Filament\Widgets\EstadoVencimientoChart::class,
+                ])
+                
             //Gestion de los middelewares
             ->middleware([
                 EncryptCookies::class,                // Cifra las cookies para seguridad

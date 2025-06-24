@@ -153,11 +153,17 @@ class ArticuloResource extends Resource
                 //Filtro de busqueda QR
                 Filter::make('Buscar por QR o Código de Barra')
                     ->form([
-                        BarcodeInput::make('sn_qr')->label('Escanear Código')->icon('heroicon-o-qr-code'),
+                        BarcodeInput::make('sn_qr')
+                            ->label('Escanear Código')
+                            ->icon('heroicon-o-qr-code')
+                            ->reactive(),
                     ])
                     ->query(function ($query, array $data) {
                         return $query
-                            ->when($data['sn_qr'], fn($query, $value) => $query->where('sn_qr', $value));
+                            ->when(
+                                isset($data['sn_qr']) && !empty($data['sn_qr']),
+                                fn($query) => $query->where('sn_qr', $data['sn_qr'])
+                            );
                     }),
 
                 //Filtro de busqueda de Empresas
@@ -231,31 +237,25 @@ class ArticuloResource extends Resource
                                 ->toArray();
                         });
                     })
-                    ->default([
-                        '101',
-                        '102',
-                        '107',
-                        '202',
-                        '207',
-                        '302',
-                        '307',
-                        '402',
-                        '407',
-                        '502',
-                        '507'
-                    ])
                     ->query(function (Builder $query, array $state) {
                         if (!empty($state['values'])) {
                             $query->whereIn('cod_almacen', $state['values']);
                         }
                     })
-                    ->searchable(),      
-            ])            
+                    ->searchable(),
+            ])
             ->actions([])
             ->bulkActions([])
             ->paginated([10, 25, 50])
             ->defaultPaginationPageOption(50) //Filas mostradas
             ->striped();                      //Filas con fondo alternado
+    }
+
+    public static function getWidgets(): array
+    {
+        return [
+            \App\Filament\Resources\Almacen\ArticuloResource\Widgets\ArticuloStats::class,
+        ];
     }
 
     public static function getRelations(): array
