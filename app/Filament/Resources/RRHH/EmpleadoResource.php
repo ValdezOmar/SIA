@@ -72,7 +72,7 @@ class EmpleadoResource extends Resource
 
         return "{$primerNombre}.{$primerApellido}@{$empresa}.com.bo";
     }
-    
+
     //Formulario de creacion edicion de empleados
     public static function form(Form $form): Form
     {
@@ -343,8 +343,9 @@ class EmpleadoResource extends Resource
                             ->numeric()
                             ->prefix('Bs.')
                             ->label('Salario Mensual')
-                            ->hint('Si el dato no es el correcto comuniquese con RRHH')
-                            ->hintIcon('heroicon-o-currency-dollar'),
+                            ->hint('Salario asignado al Empleado')
+                            ->hintIcon('heroicon-o-currency-dollar')
+                            ->required(),
 
                         Select::make('cargo')
                             ->required()
