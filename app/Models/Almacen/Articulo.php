@@ -15,6 +15,7 @@ class Articulo extends Model
         'presentacion',
         'unidad',
         'codigo_alterno',
+        'proveedor',
         'cod_almacen',
         'nombre_almacen',
         'lote',

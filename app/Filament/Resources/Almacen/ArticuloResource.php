@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Almacen;
 
+use App\Filament\Exports\ArticuloExporter;
 use App\Filament\Resources\Almacen\ArticuloResource\Pages;
 use App\Models\Almacen\Articulo;
 use Filament\Forms;
@@ -15,6 +16,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Actions\Action;
 use DesignTheBox\BarcodeField\Forms\Components\BarcodeInput;
+use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Filters\Filter;
 
 class ArticuloResource extends Resource
@@ -245,6 +247,17 @@ class ArticuloResource extends Resource
                     ->searchable(),
             ])
             ->actions([])
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(ArticuloExporter::class)
+                    ->label('Exportar a Excel')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->button()
+                    ->fileDisk('s3') // O 'local' si prefieres almacenar localmente
+                    ->columnMapping(false) // Ocultar selección de columnas (usar todas las definidas)
+                    ->modifyQueryUsing(fn(Builder $query) => $query->where('saldo_actual', '>', 0)) // Solo artículos con stock
+            ])
             ->bulkActions([])
             ->paginated([10, 25, 50])
             ->defaultPaginationPageOption(50) //Filas mostradas
