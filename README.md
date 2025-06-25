@@ -107,3 +107,28 @@ resources/
 │   │   │   │   └── map-picker.blade.php (Muestra el mapa para la ubicacion de croquis)
 │   ├── pdf/
 │   │   └── asistencias.blade.php (Archivo pdf de exportacion de asistencias)
+
+## Configuración del Job Listener con Supervisor (Ubuntu 24.04)
+
+Para activar el procesamiento de colas de Laravel (como exportaciones, correos, reportes, etc.), se utiliza **Supervisor** para mantener activo un worker.
+
+### 1. Instalar Supervisor
+sudo apt update
+sudo apt install supervisor
+# 2. Editar el archivo worker
+sudo nano /etc/supervisor/conf.d/laravel-worker.conf
+[program:laravel-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/SIA/artisan queue:work --sleep=3 --tries=3 --timeout=90
+autostart=true
+autorestart=true
+user=www-data
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/var/www/SIA/storage/logs/laravel-worker.log
+stopwaitsecs=3600
+##recargar y reinicar el worker
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start laravel-worker:*
+sudo supervisorctl status

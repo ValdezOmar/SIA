@@ -254,7 +254,7 @@ class ArticuloResource extends Resource
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
                     ->button()
-                    ->fileDisk('s3') // O 'local' si prefieres almacenar localmente
+                    ->fileDisk('local') // O 'local' si prefieres almacenar localmente
                     ->columnMapping(false) // Ocultar selección de columnas (usar todas las definidas)
                     ->modifyQueryUsing(fn(Builder $query) => $query->where('saldo_actual', '>', 0)) // Solo artículos con stock
             ])
