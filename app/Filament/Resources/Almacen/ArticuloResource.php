@@ -5,21 +5,19 @@ namespace App\Filament\Resources\Almacen;
 use App\Filament\Exports\ArticuloExporter;
 use App\Filament\Resources\Almacen\ArticuloResource\Pages;
 use App\Models\Almacen\Articulo;
-use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Facades\Cache;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Tables\Actions\Action;
 use DesignTheBox\BarcodeField\Forms\Components\BarcodeInput;
 use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Filters\Filter;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class ArticuloResource extends Resource
+class ArticuloResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Articulo::class;
     protected static ?string $modelLabel = 'Disponibilidad de Stock'; //Seccion para configurar el nombre en Filament-Shield
@@ -36,7 +34,7 @@ class ArticuloResource extends Resource
             ->schema([
                 //
             ]);
-    }
+    }    
 
     public static function table(Table $table): Table
     {
@@ -262,6 +260,21 @@ class ArticuloResource extends Resource
             ->paginated([10, 25, 50])
             ->defaultPaginationPageOption(50) //Filas mostradas
             ->striped();                      //Filas con fondo alternado
+    }
+
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view_any',    // los permisos del Shield usuales
+            'view',
+            'create',
+            'update',
+            'delete',
+            // y añade tus permisos personalizados:
+            'tab_todos',
+            'tab_comercial',
+            'tab_almacen',
+        ];
     }
 
     public static function getWidgets(): array

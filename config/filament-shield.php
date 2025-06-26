@@ -37,14 +37,14 @@ return [
             'view_any',
             'create',
             'update',
-            'restore',
-            'restore_any',
-            'replicate',
-            'reorder',
+            // 'restore',
+            // 'restore_any',
+            // 'replicate',
+            // 'reorder',
             'delete',
-            'delete_any',
-            'force_delete',
-            'force_delete_any',
+            //'delete_any',
+            // 'force_delete',
+            // 'force_delete_any',
         ],
 
         'page' => 'page',
@@ -91,17 +91,4 @@ return [
     'register_role_policy' => [
         'enabled' => true,
     ],
-    
-    // Nueva sección para permisos personalizados de tabs
-    'custom_permissions' => [
-        'register' => true,
-        'resources' => [
-            \App\Filament\Resources\Almacen\ArticuloResource::class => [
-                'view_todos_tab' => 'Ver pestaña Todos',
-                'view_comercial_tab' => 'Ver pestaña Comercial',
-                'view_almacen_tab' => 'Ver pestaña Almacén',
-            ],
-        ],
-    ],
-
 ];

@@ -55,7 +55,7 @@ class ArticuloPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_almacen::articulo');
+        return $user->can('{{ DeleteAny }}');
     }
 
     /**
@@ -63,7 +63,7 @@ class ArticuloPolicy
      */
     public function forceDelete(User $user, Articulo $articulo): bool
     {
-        return $user->can('force_delete_almacen::articulo');
+        return $user->can('{{ ForceDelete }}');
     }
 
     /**
@@ -71,7 +71,7 @@ class ArticuloPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_almacen::articulo');
+        return $user->can('{{ ForceDeleteAny }}');
     }
 
     /**
@@ -79,7 +79,7 @@ class ArticuloPolicy
      */
     public function restore(User $user, Articulo $articulo): bool
     {
-        return $user->can('restore_almacen::articulo');
+        return $user->can('{{ Restore }}');
     }
 
     /**
@@ -87,7 +87,7 @@ class ArticuloPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_almacen::articulo');
+        return $user->can('{{ RestoreAny }}');
     }
 
     /**
@@ -95,7 +95,7 @@ class ArticuloPolicy
      */
     public function replicate(User $user, Articulo $articulo): bool
     {
-        return $user->can('replicate_almacen::articulo');
+        return $user->can('{{ Replicate }}');
     }
 
     /**
@@ -103,21 +103,6 @@ class ArticuloPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_almacen::articulo');
-    }
-    // Agrega estos métodos a tu ArticuloPolicy
-    public function viewTodosTab(User $user): bool
-    {
-        return $user->can('view_todos_tab_almacen::articulo');
-    }
-
-    public function viewComercialTab(User $user): bool
-    {
-        return $user->can('view_comercial_tab_almacen::articulo');
-    }
-
-    public function viewAlmacenTab(User $user): bool
-    {
-        return $user->can('articulos_tab_comercial');
+        return $user->can('{{ Reorder }}');
     }
 }

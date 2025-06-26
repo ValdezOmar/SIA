@@ -55,7 +55,7 @@ class PerfilEmpleadoPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_r::r::h::h::perfil::empleado');
+        return $user->can('{{ DeleteAny }}');
     }
 
     /**
@@ -63,7 +63,7 @@ class PerfilEmpleadoPolicy
      */
     public function forceDelete(User $user, PerfilEmpleado $perfilEmpleado): bool
     {
-        return $user->can('force_delete_r::r::h::h::perfil::empleado');
+        return $user->can('{{ ForceDelete }}');
     }
 
     /**
@@ -71,7 +71,7 @@ class PerfilEmpleadoPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_r::r::h::h::perfil::empleado');
+        return $user->can('{{ ForceDeleteAny }}');
     }
 
     /**
@@ -79,7 +79,7 @@ class PerfilEmpleadoPolicy
      */
     public function restore(User $user, PerfilEmpleado $perfilEmpleado): bool
     {
-        return $user->can('restore_r::r::h::h::perfil::empleado');
+        return $user->can('{{ Restore }}');
     }
 
     /**
@@ -87,7 +87,7 @@ class PerfilEmpleadoPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_r::r::h::h::perfil::empleado');
+        return $user->can('{{ RestoreAny }}');
     }
 
     /**
@@ -95,7 +95,7 @@ class PerfilEmpleadoPolicy
      */
     public function replicate(User $user, PerfilEmpleado $perfilEmpleado): bool
     {
-        return $user->can('replicate_r::r::h::h::perfil::empleado');
+        return $user->can('{{ Replicate }}');
     }
 
     /**
@@ -103,6 +103,6 @@ class PerfilEmpleadoPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_r::r::h::h::perfil::empleado');
+        return $user->can('{{ Reorder }}');
     }
 }

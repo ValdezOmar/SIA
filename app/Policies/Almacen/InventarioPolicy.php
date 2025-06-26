@@ -55,7 +55,7 @@ class InventarioPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_almacen::inventario');
+        return $user->can('{{ DeleteAny }}');
     }
 
     /**
@@ -63,7 +63,7 @@ class InventarioPolicy
      */
     public function forceDelete(User $user, Inventario $inventario): bool
     {
-        return $user->can('force_delete_almacen::inventario');
+        return $user->can('{{ ForceDelete }}');
     }
 
     /**
@@ -71,7 +71,7 @@ class InventarioPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_almacen::inventario');
+        return $user->can('{{ ForceDeleteAny }}');
     }
 
     /**
@@ -79,7 +79,7 @@ class InventarioPolicy
      */
     public function restore(User $user, Inventario $inventario): bool
     {
-        return $user->can('restore_almacen::inventario');
+        return $user->can('{{ Restore }}');
     }
 
     /**
@@ -87,7 +87,7 @@ class InventarioPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_almacen::inventario');
+        return $user->can('{{ RestoreAny }}');
     }
 
     /**
@@ -95,7 +95,7 @@ class InventarioPolicy
      */
     public function replicate(User $user, Inventario $inventario): bool
     {
-        return $user->can('replicate_almacen::inventario');
+        return $user->can('{{ Replicate }}');
     }
 
     /**
@@ -103,6 +103,6 @@ class InventarioPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_almacen::inventario');
+        return $user->can('{{ Reorder }}');
     }
 }

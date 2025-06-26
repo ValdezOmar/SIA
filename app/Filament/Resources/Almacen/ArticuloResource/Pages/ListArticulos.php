@@ -8,6 +8,7 @@ use Filament\Resources\Components\Tab;
 use Illuminate\Database\Eloquent\Builder;
 use App\Models\Almacen\Articulo;
 use Filament\Pages\Concerns\ExposesTableToWidgets;
+use Illuminate\Support\Facades\Auth;
 use App\Filament\Resources\Almacen\ArticuloResource\Widgets\ArticuloStats;
 
 class ListArticulos extends ListRecords
@@ -15,31 +16,26 @@ class ListArticulos extends ListRecords
     protected static string $resource = ArticuloResource::class;
     use ExposesTableToWidgets;
 
+    //Tabs de la vista en la la lista
     public function getTabs(): array
     {
         $tabs = [];
-        $user = auth()->user();
-        $policy = new \App\Policies\Almacen\ArticuloPolicy();
+        $user = Auth::user();
 
-        // Códigos fijos para Comercial
         $codigosComercial = ['101', '102', '107', '201', '202', '207', '301', '302', '307', '401', '402', '407', '501', '502', '507'];
-
-        // Códigos fijos para Almacén (101-513)
         $codigosAlmacen = range(101, 513);
-
-        // Límite máximo para la pestaña Todos (101-599)
         $limiteTodos = range(101, 599);
 
-        // Tab "Todos"
-        if ($policy->viewTodosTab($user)) {
+        // "Todos" — permiso personalizado
+        if ($user->can('tab_todos_almacen::articulo')) {
             $tabs['todos'] = Tab::make('Todos')
                 ->icon('heroicon-o-list-bullet')
                 ->modifyQueryUsing(fn(Builder $query) => $query->whereIn('cod_almacen', $limiteTodos))
                 ->badge(Articulo::whereIn('cod_almacen', $limiteTodos)->count());
         }
 
-        // Tab "Comercial"
-        if ($policy->viewComercialTab($user)) {
+        // "Comercial"
+        if ($user->can('tab_comercial_almacen::articulo')) {
             $tabs['comercial'] = Tab::make('Comercial')
                 ->icon('heroicon-o-shopping-bag')
                 ->modifyQueryUsing(fn(Builder $query) => $query
@@ -50,8 +46,8 @@ class ListArticulos extends ListRecords
                     ->count());
         }
 
-        // Tab "Almacén"
-        if ($policy->viewAlmacenTab($user)) {
+        // "Almacén"
+        if ($user->can('tab_almacen_almacen::articulo')) {
             $tabs['almacen'] = Tab::make('Almacén')
                 ->icon('heroicon-o-building-storefront')
                 ->modifyQueryUsing(fn(Builder $query) => $query
@@ -65,6 +61,7 @@ class ListArticulos extends ListRecords
         return $tabs;
     }
 
+    //Registra el widget del header como ruta 
     protected function getHeaderWidgets(): array
     {
         return [

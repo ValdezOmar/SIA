@@ -55,7 +55,7 @@ class DirectorioPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_r::r::h::h::directorio');
+        return $user->can('{{ DeleteAny }}');
     }
 
     /**
@@ -63,7 +63,7 @@ class DirectorioPolicy
      */
     public function forceDelete(User $user, Directorio $directorio): bool
     {
-        return $user->can('force_delete_r::r::h::h::directorio');
+        return $user->can('{{ ForceDelete }}');
     }
 
     /**
@@ -71,7 +71,7 @@ class DirectorioPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_r::r::h::h::directorio');
+        return $user->can('{{ ForceDeleteAny }}');
     }
 
     /**
@@ -79,7 +79,7 @@ class DirectorioPolicy
      */
     public function restore(User $user, Directorio $directorio): bool
     {
-        return $user->can('restore_r::r::h::h::directorio');
+        return $user->can('{{ Restore }}');
     }
 
     /**
@@ -87,7 +87,7 @@ class DirectorioPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_r::r::h::h::directorio');
+        return $user->can('{{ RestoreAny }}');
     }
 
     /**
@@ -95,7 +95,7 @@ class DirectorioPolicy
      */
     public function replicate(User $user, Directorio $directorio): bool
     {
-        return $user->can('replicate_r::r::h::h::directorio');
+        return $user->can('{{ Replicate }}');
     }
 
     /**
@@ -103,6 +103,6 @@ class DirectorioPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_r::r::h::h::directorio');
+        return $user->can('{{ Reorder }}');
     }
 }
