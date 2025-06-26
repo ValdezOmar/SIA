@@ -256,7 +256,7 @@ class ArticuloResource extends Resource
                     ->button()
                     ->fileDisk('local') // O 'local' si prefieres almacenar localmente
                     ->columnMapping(false) // Ocultar selección de columnas (usar todas las definidas)
-                    ->modifyQueryUsing(fn(Builder $query) => $query->where('saldo_actual', '>', 0)) // Solo artículos con stock
+                    //modifyQueryUsing(fn(Builder $query) => $query->where('saldo_actual', '>', 0)) // Solo artículos con stock
             ])
             ->bulkActions([])
             ->paginated([10, 25, 50])
