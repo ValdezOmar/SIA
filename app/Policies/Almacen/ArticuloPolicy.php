@@ -105,4 +105,19 @@ class ArticuloPolicy
     {
         return $user->can('reorder_almacen::articulo');
     }
+    // Agrega estos métodos a tu ArticuloPolicy
+    public function viewTodosTab(User $user): bool
+    {
+        return $user->can('view_todos_tab_almacen::articulo');
+    }
+
+    public function viewComercialTab(User $user): bool
+    {
+        return $user->can('view_comercial_tab_almacen::articulo');
+    }
+
+    public function viewAlmacenTab(User $user): bool
+    {
+        return $user->can('articulos_tab_comercial');
+    }
 }

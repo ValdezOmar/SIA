@@ -16,6 +16,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         // Empleado::class => EmpleadoPolicy::class, // Por defecto para el modelo
+        \App\Models\Almacen\Articulo::class => \App\Policies\Almacen\ArticuloPolicy::class,
     ];
     /**
      * Register the application's policies.

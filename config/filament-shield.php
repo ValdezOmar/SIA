@@ -55,7 +55,7 @@ return [
         'pages' => true,
         'widgets' => true,
         'resources' => true,
-        'custom_permissions' => false,
+        'custom_permissions' => true,
     ],
 
     'generator' => [
@@ -90,6 +90,18 @@ return [
 
     'register_role_policy' => [
         'enabled' => true,
+    ],
+    
+    // Nueva sección para permisos personalizados de tabs
+    'custom_permissions' => [
+        'register' => true,
+        'resources' => [
+            \App\Filament\Resources\Almacen\ArticuloResource::class => [
+                'view_todos_tab' => 'Ver pestaña Todos',
+                'view_comercial_tab' => 'Ver pestaña Comercial',
+                'view_almacen_tab' => 'Ver pestaña Almacén',
+            ],
+        ],
     ],
 
 ];

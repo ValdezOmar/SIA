@@ -140,7 +140,7 @@
                             $asistenciasOrdenadas = $asistenciasDia->sortBy('hora');
                             $primeraMarcacion = $asistenciasOrdenadas->first();
                             
-                            $horaLimite = Carbon\Carbon::today()->setTime(8, 35, 0);
+                            $horaLimite = Carbon\Carbon::today()->setTime(8, 35, 59);
                             $horaEntrada = Carbon\Carbon::today()->setTime(8, 30, 0);
                             $horaOmision = Carbon\Carbon::today()->setTime(10, 0, 0);
                             $tiempoRetraso = '00:00';

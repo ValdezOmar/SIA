@@ -17,6 +17,10 @@ class ListArticulos extends ListRecords
 
     public function getTabs(): array
     {
+        $tabs = [];
+        $user = auth()->user();
+        $policy = new \App\Policies\Almacen\ArticuloPolicy();
+
         // Códigos fijos para Comercial
         $codigosComercial = ['101', '102', '107', '201', '202', '207', '301', '302', '307', '401', '402', '407', '501', '502', '507'];
 
@@ -26,31 +30,39 @@ class ListArticulos extends ListRecords
         // Límite máximo para la pestaña Todos (101-599)
         $limiteTodos = range(101, 599);
 
-        return [
-            'todos' => Tab::make('Todos')
+        // Tab "Todos"
+        if ($policy->viewTodosTab($user)) {
+            $tabs['todos'] = Tab::make('Todos')
                 ->icon('heroicon-o-list-bullet')
-                ->modifyQueryUsing(fn(Builder $query) => $query
-                    ->whereIn('cod_almacen', $limiteTodos))
-                ->badge(Articulo::whereIn('cod_almacen', $limiteTodos)->count()),
+                ->modifyQueryUsing(fn(Builder $query) => $query->whereIn('cod_almacen', $limiteTodos))
+                ->badge(Articulo::whereIn('cod_almacen', $limiteTodos)->count());
+        }
 
-            'comercial' => Tab::make('Comercial')
+        // Tab "Comercial"
+        if ($policy->viewComercialTab($user)) {
+            $tabs['comercial'] = Tab::make('Comercial')
                 ->icon('heroicon-o-shopping-bag')
                 ->modifyQueryUsing(fn(Builder $query) => $query
                     ->whereIn('cod_almacen', $codigosComercial)
                     ->where('saldo_actual', '>', 0))
                 ->badge(Articulo::whereIn('cod_almacen', $codigosComercial)
                     ->where('saldo_actual', '>', 0)
-                    ->count()),
+                    ->count());
+        }
 
-            'almacen' => Tab::make('Almacén')
+        // Tab "Almacén"
+        if ($policy->viewAlmacenTab($user)) {
+            $tabs['almacen'] = Tab::make('Almacén')
                 ->icon('heroicon-o-building-storefront')
                 ->modifyQueryUsing(fn(Builder $query) => $query
                     ->whereIn('cod_almacen', $codigosAlmacen)
                     ->where('saldo_actual', '>', 0))
                 ->badge(Articulo::whereIn('cod_almacen', $codigosAlmacen)
                     ->where('saldo_actual', '>', 0)
-                    ->count()),
-        ];
+                    ->count());
+        }
+
+        return $tabs;
     }
 
     protected function getHeaderWidgets(): array
