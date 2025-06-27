@@ -18,6 +18,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Illuminate\Support\Facades\Auth;
+use Nuxtifyts\DashStackTheme\DashStackThemePlugin;
 
 class DashboardPanelProvider extends PanelProvider
 {
@@ -84,7 +85,8 @@ class DashboardPanelProvider extends PanelProvider
             ->databaseNotificationsPolling('30s')
             // GEstion de los plugins
             ->plugins([
-                FilamentShieldPlugin::make()
+                FilamentShieldPlugin::make(),
+                DashStackThemePlugin::make()
             ])
             //Items del menu superior del avatar
             ->userMenuItems([

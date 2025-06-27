@@ -1,0 +1,19 @@
+.fi-simple-layout {
+    > .fi-simple-main-ctn {
+        @apply relative;
+        
+        &::before {
+            content: '';
+            @apply absolute inset-0;
+            @apply bg-[url(/images/fondo.jpg)] bg-cover bg-center;
+            @apply opacity-100 dark:opacity-100;
+            z-index: 0;
+        }
+
+        > .fi-simple-main {
+            @apply relative z-10;
+            @apply bg-white/50 dark:bg-white/50;
+            @apply backdrop-blur-sm rounded-3xl shadow-xl;
+        }
+    }
+}
