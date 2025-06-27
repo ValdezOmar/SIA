@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('alm_articulos', function (Blueprint $table) {
             $table->id();
-            //Datos traidos mediante cnsulta          
+            //Datos traidos mediante consulta    desde simec y sap      
             $table->string('codigo')->nullable(); // Código único del producto            
             $table->string('descripcion')->nullable(); // Descripción del artículo            
             $table->string('presentacion')->nullable(); // Presentación del producto (puede ser 'S/N' si no hay)            
@@ -27,6 +27,7 @@ return new class extends Migration
             $table->integer('saldo_actual')->nullable(); // Saldo actual ajustado
 
             //Datos personalizados para el sistema
+            $table->decimal('comision', 8, 2)->nullable(); //Comision de los vendedores Hasta 999,999.99 
             $table->string('empresa')->nullable(); //Emepresa de referecnia de origen de datos   
             $table->string('sn_qr')->nullable(); //Codigo qr oserial asociado 
             $table->timestamps();
