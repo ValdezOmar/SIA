@@ -13,7 +13,7 @@
 
     @foreach ($items as $item)
         <div class="flex justify-between items-center gap-2">
-            <div class="text-xs text-blue-600 dark:text-white whitespace-nowrap min-w-0 truncate flex-shrink">
+            <div class="text-xs text-blue-600 dark:text-white whitespace-nowrap min-w-0 flex-shrink">
                 {{ $item['label'] }}:
             </div>
             <div class="flex items-center justify-end gap-2 min-w-0 flex-1">
