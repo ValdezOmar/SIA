@@ -260,6 +260,7 @@ class AsistenciaResource extends Resource
         $uniqueDates = DB::table('rh_asistencias')
             ->select(DB::raw('DATE(fecha) as date'))
             ->whereBetween('fecha', [$fechaInicio, $fechaFin])
+            ->where('visible', true)
             ->groupBy('date')
             ->orderBy('date', 'desc')
             ->pluck('date');
@@ -329,7 +330,7 @@ class AsistenciaResource extends Resource
                             continue;
 
                         $asistencias = $record->asistencias->filter(function ($asistencia) use ($date) {
-                            return $asistencia->fecha == $date;
+                            return $asistencia->fecha == $date && $asistencia->visible === true;
                         });
 
                         if ($asistencias->isEmpty()) {
@@ -436,11 +437,11 @@ class AsistenciaResource extends Resource
                         return array_reverse($options, true); // Ordenar de más reciente a más antiguo
                     })
                     ->label('Período')
-                    ->placeholder('Seleccione un mes')
-                    ->default(function () {
-                        $now = now();
-                        return ($now->day > 25) ? $now->copy()->addMonth()->format('Y-m') : $now->format('Y-m');
-                    })
+                    ->placeholder('Seleccione un periodo')
+                    // ->default(function () {
+                    //     $now = now();
+                    //     return ($now->day > 25) ? $now->copy()->addMonth()->format('Y-m') : $now->format('Y-m');
+                    // })
                     ->query(function (Builder $query, array $data) {
                         $mesSeleccionado = $data['value'] ?? null;
 
@@ -453,7 +454,7 @@ class AsistenciaResource extends Resource
 
                         $periodo = self::getPeriodoFechas($mesSeleccionado);
                         Session::put('periodo_asistencias', $periodo);
-                    }),
+                    })->preload(),
 
                 //FIltro de sucursales
                 SelectFilter::make('sucursal')

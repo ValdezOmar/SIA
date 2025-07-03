@@ -10,6 +10,7 @@
 
     $asistencias = \App\Models\RRHH\Asistencia::where('user_id', $record->ci)
         ->whereDate('fecha', $date)
+        ->where('visible', true)
         ->orderBy('hora')
         ->get();
 

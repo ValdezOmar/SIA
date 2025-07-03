@@ -20,10 +20,11 @@ return new class extends Migration
             $table->boolean('registro_remoto')->nullable(); // Puntero para saber si registraron en sitio
             $table->string('localizacion')->nullable(); // Geolocallzacion para saber donde realizar el registro remoto
             $table->string('justificacion')->nullable(); // Justificacion de porque se esta realizando el marcado remoto
+            $table->boolean('visible')->nullable();//muestra la marcacion en sistema
             $table->index('user_id', 'asistencias_user_id_index');
             $table->index('fecha', 'asistencias_fecha_index');
             $table->index(['user_id', 'fecha'], 'asistencias_user_fecha_index');
-
+            
             //$table->foreign('user_id')->references('ci')->on('empleados');
             $table->timestamps();
         });
