@@ -329,15 +329,16 @@ class AsistenciaResource extends Resource
                         if ($carbonDate->isWeekend())
                             continue;
 
-                        $asistencias = $record->asistencias->filter(function ($asistencia) use ($date) {
-                            return $asistencia->fecha == $date && $asistencia->visible === true;
+                        // Filtrar solo asistencias visibles antes de procesar
+                        $asistenciasVisibles = $record->asistencias->filter(function ($asistencia) use ($date) {
+                            return $asistencia->fecha == $date && $asistencia->visible !== false;
                         });
 
-                        if ($asistencias->isEmpty()) {
+                        if ($asistenciasVisibles->isEmpty()) {
                             $faltas++;
                             Log::debug('Falta registrada', ['fecha' => $date]);
                         } else {
-                            $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
+                            $primeraMarcacion = Carbon::parse($asistenciasVisibles->first()->hora);
 
                             if ($primeraMarcacion->greaterThan($horaOmision)) {
                                 $omision++;
