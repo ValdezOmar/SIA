@@ -31,7 +31,7 @@ class ArticuloPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_almacen::articulo');
+        return $user->can('{{ Create }}');
     }
 
     /**
@@ -39,7 +39,7 @@ class ArticuloPolicy
      */
     public function update(User $user, Articulo $articulo): bool
     {
-        return $user->can('update_almacen::articulo');
+        return $user->can('{{ Update }}');
     }
 
     /**
@@ -47,7 +47,7 @@ class ArticuloPolicy
      */
     public function delete(User $user, Articulo $articulo): bool
     {
-        return $user->can('delete_almacen::articulo');
+        return $user->can('{{ Delete }}');
     }
 
     /**

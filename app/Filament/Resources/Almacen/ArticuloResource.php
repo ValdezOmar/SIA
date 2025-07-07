@@ -266,11 +266,11 @@ class ArticuloResource extends Resource implements HasShieldPermissions
     {
         return [
             'view_any',    // los permisos del Shield usuales
-            'view',
-            'create',
-            'update',
-            'delete',
-            // y añade tus permisos personalizados:
+            //'view',
+            //'create',
+            //'update',
+            //'delete',
+            //permisos personalizados:
             'tab_todos',
             'tab_comercial',
             'tab_almacen',

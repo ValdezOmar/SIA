@@ -28,8 +28,9 @@ use Filament\Forms\Components\View;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Tables\Columns\ImageColumn;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class AsistenciaResource extends Resource
+class AsistenciaResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Asistencia::class;
     protected static ?string $modelLabel = 'Registros de Asistencia'; //Seccion para configurar el nombre en Filament-Shield
@@ -92,7 +93,7 @@ class AsistenciaResource extends Resource
 
                 Hidden::make('registro_remoto')
                     ->default(true),
-                
+
                 Hidden::make('visible')
                     ->default(true),
 
@@ -439,7 +440,7 @@ class AsistenciaResource extends Resource
                         return array_reverse($options, true); // Ordenar de más reciente a más antiguo
                     })
                     ->label('Período')
-                    ->placeholder('Seleccione un periodo')                   
+                    ->placeholder('Seleccione un periodo')
                     ->query(function (Builder $query, array $data) {
                         $mesSeleccionado = $data['value'] ?? null;
 
@@ -513,6 +514,18 @@ class AsistenciaResource extends Resource
         return $table;
     }
 
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view_any',    // los permisos del Shield usuales
+            'view',
+            'create',
+            //'update',
+            //'delete',
+
+        ];
+    }
+
     public static function getRelations(): array
     {
         return [];
@@ -524,5 +537,4 @@ class AsistenciaResource extends Resource
             'index' => Pages\ListAsistencias::route('/'),
         ];
     }
-    
 }

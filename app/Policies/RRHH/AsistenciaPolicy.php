@@ -39,7 +39,7 @@ class AsistenciaPolicy
      */
     public function update(User $user, Asistencia $asistencia): bool
     {
-        return $user->can('update_r::r::h::h::asistencia');
+        return $user->can('{{ Update }}');
     }
 
     /**
@@ -47,7 +47,7 @@ class AsistenciaPolicy
      */
     public function delete(User $user, Asistencia $asistencia): bool
     {
-        return $user->can('delete_r::r::h::h::asistencia');
+        return $user->can('{{ Delete }}');
     }
 
     /**
