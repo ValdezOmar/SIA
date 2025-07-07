@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 class Asistencia extends Model
 {
     protected $table = 'rh_asistencias';
-    protected $fillable = ['id_equipo', 'user_id', 'fecha', 'hora', 'registro_remoto', 'localizacion', 'justificacion'];
-    
+    protected $fillable = ['id_equipo', 'user_id', 'fecha', 'hora', 'registro_remoto', 'localizacion', 'justificacion', 'visible'];
+
     //Array de funciones para la validacion de campos en el form de GPS
     public static function rules(): array
     {
@@ -23,19 +23,13 @@ class Asistencia extends Model
             'justificacion' => 'required_if:registro_remoto,true|string|max:500|nullable',
         ];
     }
-    // Mensajes de validacion de GPS
-    public static function validationMessages(): array
-    {
-        return [
-            'justificacion.required_if' => 'Debe proporcionar una justificación para el registro remoto',
-            'localizacion.required' => 'Debe obtener la ubicación GPS para registrar',
-        ];
-    }
+
     //Relacion con Empleado
     public function empleado()
     {
         return $this->belongsTo(Empleado::class, 'user_id', 'ci');
     }
+
     //Buscando asistencias usando el CI
     public static function obtenerAsistencias(string $ci, string $fecha)
     {
@@ -56,4 +50,6 @@ class Asistencia extends Model
 
         return $result;
     }
+
+    
 }

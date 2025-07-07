@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\RRHH;
 
 use App\Filament\Resources\RRHH\AsistenciaResource\Pages;
-use App\Filament\Exports\AsistenciaExport;
 use App\Models\RRHH\Empleado;
 use App\Models\RRHH\Asistencia;
 use Filament\Forms\Form;
@@ -48,7 +47,6 @@ class AsistenciaResource extends Resource
         $ciEmpleado = $empleado ? $empleado->ci : null;
 
         return $form
-
             ->schema([
                 Grid::make(2)
                     ->schema([
@@ -93,6 +91,9 @@ class AsistenciaResource extends Resource
                     ->default(now()->format('H:i:s')),
 
                 Hidden::make('registro_remoto')
+                    ->default(true),
+                
+                Hidden::make('visible')
                     ->default(true),
 
                 // Captura localizacion desde alpine
@@ -438,11 +439,7 @@ class AsistenciaResource extends Resource
                         return array_reverse($options, true); // Ordenar de más reciente a más antiguo
                     })
                     ->label('Período')
-                    ->placeholder('Seleccione un periodo')
-                    // ->default(function () {
-                    //     $now = now();
-                    //     return ($now->day > 25) ? $now->copy()->addMonth()->format('Y-m') : $now->format('Y-m');
-                    // })
+                    ->placeholder('Seleccione un periodo')                   
                     ->query(function (Builder $query, array $data) {
                         $mesSeleccionado = $data['value'] ?? null;
 
@@ -469,13 +466,6 @@ class AsistenciaResource extends Resource
             ])
             //Botonera de la Cabecera para hacer acciones adicionales
             ->headerActions([
-
-                // Solo mostrar acción de creación si no es empleado o tiene permiso
-                //  ExportAction::make()
-                //     ->label('Exportar todo')
-                //     ->exporter(AsistenciaExport::class)
-                //     ->visible(fn() => !Auth::user()->hasRole('Empleado')),
-
                 //Exporatacion a archivo PDF de las marcaciones
                 Action::make('exportPdf')
                     // Restringir exportación si es empleado
@@ -534,4 +524,5 @@ class AsistenciaResource extends Resource
             'index' => Pages\ListAsistencias::route('/'),
         ];
     }
+    
 }

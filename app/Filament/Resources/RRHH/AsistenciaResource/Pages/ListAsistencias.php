@@ -7,6 +7,7 @@ use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Auth;
 use App\Models\RRHH\Empleado;
+use Filament\Actions\Action;
 
 class ListAsistencias extends ListRecords
 {
@@ -18,6 +19,12 @@ class ListAsistencias extends ListRecords
     {
         return [
             Actions\CreateAction::make()
+                ->label('Registrar Asistencia')        //  Cambia el texto del botón
+                ->icon('heroicon-m-finger-print')      //  Cambia el ícono
+                ->color('success')                     //  Cambia el color (opcional: primary, success, danger, etc.)
+                ->tooltip('Registrar nueva asistencia') //  Tooltip opcional
+                ->modalHeading('Nueva Asistencia')     //  Título del modal
+                
                 ->createAnother(false) // Esto desactiva el botón "Crear y crear otro"
                 ->mutateFormDataUsing(function (array $data): array {
                     // Obtener el CI del empleado asociado al usuario autenticado
@@ -34,5 +41,12 @@ class ListAsistencias extends ListRecords
                     return $data;
                 }),
         ];
+    }
+
+    protected function getCreateAction(): Action
+    {
+        return parent::getCreateAction()
+            ->label('Nuevo artículo')   // personaliza el texto
+            ->icon('heroicon-s-plus');  // opcional: cambia el ícono
     }
 }

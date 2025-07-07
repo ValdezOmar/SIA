@@ -64,126 +64,113 @@
                                     CI: {{ $record->ci }}</p>
                             </div>
 
-                            <!-- Contenido -->
-                            <div class="flex-1 p-6 space-y-4 overflow-y-auto">
-                                <!-- Información del registro -->
-                                <div class="grid grid-cols-4 gap-4">
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Fecha</p>
-                                        <p class="mt-1 text-sm text-gray-900 dark:text-white">
+                            <!-- Contenido -->                           
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <!-- Columna Izquierda: Información + Justificación -->
+                                <div class="space-y-6">
+                                    <!-- Información del registro -->
+                                    <div class="space-y-4">
+                                        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">Fecha</h3>
+                                        <p class="text-lg font-semibold text-gray-800 dark:text-white">
                                             {{ Carbon::parse($asistencia->fecha)->translatedFormat('l, d F Y') }}
                                         </p>
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Hora</p>
-                                        <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ $horaCompleta }}</p>
-                                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Equipo</p>
-                                        <p class="mt-1 text-sm text-gray-900 dark:text-white">
+
+                                        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">Hora</h3>
+                                        <p class="text-lg text-gray-800 dark:text-white">{{ $horaCompleta }}</p>
+
+                                        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">Equipo</h3>
+                                        <p class="text-sm text-gray-800 dark:text-white leading-relaxed">
                                             @if($asistencia->id_equipo)
-                                            @php
-                                                try {
-                                                    $equipoData = json_decode($asistencia->id_equipo, true);
-                                                    $userAgent = $equipoData['userAgent'] ?? '';
-                                                    $platform = $equipoData['platform'] ?? '';
+                                                @php
+                                                    try {
+                                                        $equipoData = json_decode($asistencia->id_equipo, true);
+                                                        $userAgent = $equipoData['userAgent'] ?? '';
+                                                        $platform = $equipoData['platform'] ?? '';
 
-                                                    // Detección mejorada del sistema operativo y dispositivo
-                                                    $os = 'Sistema desconocido';
-                                                    $deviceModel = '';
+                                                        $os = 'Sistema desconocido';
+                                                        $deviceModel = '';
 
-                                                    // Detectar Android
-                                                    if (preg_match('/Android\s([0-9\.]+)/i', $userAgent, $matches)) {
-                                                        $os = 'Android ' . ($matches[1] ?? '');
-                                                        if (preg_match('/; ([a-zA-Z0-9]+) Build/i', $userAgent, $modelMatches)) {
-                                                            $deviceModel = str_replace('_', ' ', $modelMatches[1]);
+                                                        if (preg_match('/Android\s([0-9\.]+)/i', $userAgent, $matches)) {
+                                                            $os = 'Android ' . ($matches[1] ?? '');
+                                                            if (preg_match('/; ([a-zA-Z0-9]+) Build/i', $userAgent, $modelMatches)) {
+                                                                $deviceModel = str_replace('_', ' ', $modelMatches[1]);
+                                                            }
+                                                        } elseif (preg_match('/iPhone|iPod|iPad/i', $userAgent)) {
+                                                            $os = 'iOS';
+                                                            if (preg_match('/iPhone(\d+,\d+)/i', $userAgent, $modelMatches) ||
+                                                                preg_match('/iPhone (\d+)/i', $userAgent, $modelMatches)) {
+                                                                $deviceModel = 'iPhone ' . str_replace(',', '.', $modelMatches[1]);
+                                                            }
+                                                        } elseif (preg_match('/Windows NT/i', $userAgent)) {
+                                                            $os = 'Windows';
+                                                            if (preg_match('/Windows NT (\d+\.\d+)/i', $userAgent, $versionMatches)) {
+                                                                $versions = ['10.0' => '10/11','6.3' => '8.1','6.2' => '8','6.1' => '7'];
+                                                                $os .= ' ' . ($versions[$versionMatches[1]] ?? $versionMatches[1]);
+                                                            }
+                                                        } elseif (preg_match('/Macintosh|Mac OS X/i', $userAgent)) {
+                                                            $os = 'Mac';
+                                                        } elseif (preg_match('/Linux/i', $userAgent)) {
+                                                            $os = 'Linux';
                                                         }
-                                                    }
-                                                    // Detectar iPhone
-                                                    elseif (preg_match('/iPhone|iPod|iPad/i', $userAgent)) {
-                                                        $os = 'iOS';
-                                                        if (preg_match('/iPhone(\d+,\d+)/i', $userAgent, $modelMatches) ||
-                                                            preg_match('/iPhone (\d+)/i', $userAgent, $modelMatches)) {
-                                                            $deviceModel = 'iPhone ' . str_replace(',', '.', $modelMatches[1]);
+
+                                                        $browser = 'Navegador desconocido';
+                                                        if (preg_match('/Chrome\/([\d\.]+)/i', $userAgent)) {
+                                                            $browser = 'Chrome';
+                                                        } elseif (preg_match('/Firefox\/([\d\.]+)/i', $userAgent)) {
+                                                            $browser = 'Firefox';
+                                                        } elseif (preg_match('/Safari\/([\d\.]+)/i', $userAgent)) {
+                                                            $browser = 'Safari';
+                                                        } elseif (preg_match('/Edge\/([\d\.]+)/i', $userAgent)) {
+                                                            $browser = 'Edge';
                                                         }
-                                                    }
-                                                    // Detectar Windows
-                                                    elseif (preg_match('/Windows NT/i', $userAgent)) {
-                                                        $os = 'Windows';
-                                                        if (preg_match('/Windows NT (\d+\.\d+)/i', $userAgent, $versionMatches)) {
-                                                            $versions = [
-                                                                '10.0' => '10/11',
-                                                                '6.3' => '8.1',
-                                                                '6.2' => '8',
-                                                                '6.1' => '7'
-                                                            ];
-                                                            $os .= ' ' . ($versions[$versionMatches[1]] ?? $versionMatches[1]);
+
+                                                        $displayText = "$os";
+                                                        if ($deviceModel) {
+                                                            $displayText .= " ($deviceModel)";
                                                         }
-                                                    }
-                                                    // Detectar Mac
-                                                    elseif (preg_match('/Macintosh|Mac OS X/i', $userAgent)) {
-                                                        $os = 'Mac';
-                                                    }
-                                                    // Detectar Linux
-                                                    elseif (preg_match('/Linux/i', $userAgent)) {
-                                                        $os = 'Linux';
-                                                    }
+                                                        $displayText .= " - $browser";
 
-                                                    // Detección del navegador
-                                                    $browser = 'Navegador desconocido';
-                                                    if (preg_match('/Chrome\/([\d\.]+)/i', $userAgent)) {
-                                                        $browser = 'Chrome';
-                                                    } elseif (preg_match('/Firefox\/([\d\.]+)/i', $userAgent)) {
-                                                        $browser = 'Firefox';
-                                                    } elseif (preg_match('/Safari\/([\d\.]+)/i', $userAgent)) {
-                                                        $browser = 'Safari';
-                                                    } elseif (preg_match('/Edge\/([\d\.]+)/i', $userAgent)) {
-                                                        $browser = 'Edge';
-                                                    }
+                                                        if (isset($equipoData['deviceHash'])) {
+                                                            $displayText .= " (ID: " . substr($equipoData['deviceHash'], 0, 6) . ")";
+                                                        }
 
-                                                    // Texto a mostrar
-                                                    $displayText = "$os";
-                                                    if ($deviceModel) {
-                                                        $displayText .= " ($deviceModel)";
+                                                        echo $displayText;
+                                                    } catch (Exception $e) {
+                                                        echo 'Dispositivo registrado';
                                                     }
-                                                    $displayText .= " - $browser";
-
-                                                    // Agregar ID del dispositivo si está disponible
-                                                    if (isset($equipoData['deviceHash'])) {
-                                                        $displayText .= " (ID: " . substr($equipoData['deviceHash'], 0, 6) . ")";
-                                                    }
-
-                                                    echo $displayText;
-                                                } catch (Exception $e) {
-                                                    echo 'Dispositivo registrado';
-                                                }
-                                            @endphp
-                                        @else
-                                            No registrado
-                                        @endif
+                                                @endphp
+                                            @else
+                                                No registrado
+                                            @endif
                                         </p>
                                     </div>
 
-                                </div>
-
-                                <!-- Justificación -->
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Justificación</p>
-                                    <p class="p-3 mt-1 text-sm text-gray-900 rounded bg-gray-50 dark:bg-gray-700 dark:text-white">
-                                        {{ $asistencia->justificacion ?? 'No especificada' }}
+                                    <!-- Justificación -->
+                                    <div>
+                                        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1">Justificación</h3>
+                                        <div class="p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                                            <p class="text-sm text-gray-800 dark:text-gray-100">
+                                                {{ $asistencia->justificacion ?? 'No especificada' }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400">Ubicación registrada</h3>
+                                    <p class="text-sm text-gray-800 dark:text-gray-200">
+                                        {{ $asistencia->localizacion ?? 'No registrada' }}
                                     </p>
                                 </div>
 
-                                <!-- Mapa -->
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Ubicación registrada</p>
-                                    <p class="mt-1 mb-2 text-sm text-gray-900 dark:text-white">
-                                        {{ $asistencia->localizacion ?? 'No registrada' }}</p>
-
+                                <!-- Columna Derecha: Mapa -->
+                                <div class="space-y-4">    
                                     @if ($asistencia->localizacion)
-                                        <div class="overflow-hidden bg-gray-100 border border-gray-200 rounded-lg h-96 dark:bg-gray-700 dark:border-gray-600">
-                                            <iframe width="100%" height="100%" frameborder="0" scrolling="no"
+                                        <div class="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm h-96">
+                                            <iframe 
+                                                width="100%" height="100%" frameborder="0" scrolling="no"
                                                 src="https://maps.google.com/maps?q={{ urlencode($asistencia->localizacion) }}&z=16&output=embed"
-                                                style="border:0;">
-                                            </iframe>
+                                                class="rounded-xl"
+                                            ></iframe>
                                         </div>
-                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Mapa proporcionado por Google</p>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 italic">Mapa proporcionado por Google</p>
                                     @endif
                                 </div>
                             </div>
