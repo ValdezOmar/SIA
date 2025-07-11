@@ -26,6 +26,8 @@ use Filament\Forms\Components\Field;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Notifications\Notification;
 
 class EmpleadoResource extends Resource
 {
@@ -152,11 +154,17 @@ class EmpleadoResource extends Resource
 
                                 Toggle::make('activo')
                                     ->default(true)
-                                    ->label('Empleado activo')
+                                    ->label(fn($state) => $state ? 'Empleado Activo' : 'Empleado Inactivo')
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set) {
                                         if (!$state) {
-                                            $set('fecha_desviculacion', now()->format('Y-m-d'));
+                                            $set('fecha_desvinculacion', now()->format('Y-m-d'));
+                                            Notification::make()
+                                                ->title('Desvinculación registrada')
+                                                ->success()
+                                                ->send();
+                                        } else {
+                                            $set('fecha_desvinculacion', null);
                                         }
                                     })
                                     ->columnSpanFull()
@@ -343,7 +351,7 @@ class EmpleadoResource extends Resource
                             ->numeric()
                             ->prefix('Bs.')
                             ->label('Salario Mensual')
-                            ->hint('Salario asignado al Empleado')
+                            ->hint('Salario sin descuentos')
                             ->hintIcon('heroicon-o-currency-dollar')
                             ->required(),
 
@@ -530,6 +538,21 @@ class EmpleadoResource extends Resource
                     ->description((fn(Empleado $record) => $record->cargo))
                     ->searchable(['estado_contrato', 'cargo']),
 
+                TextColumn::make('fecha_ingreso')
+                    ->label('Fechas')
+                    ->formatStateUsing(function ($record) {
+                        $textoFechaIngreso = $record->fecha_ingreso?->format('d/m/Y') ?? 'Sin fecha';
+
+                        if ($record->fecha_desvinculacion) {
+                            $textoFechaDesvinculacion = $record->fecha_desvinculacion->format('d/m/Y');
+                            return "<div>{$textoFechaIngreso}<br><span class='text-red-500 text-xs'>Desvinculado: {$textoFechaDesvinculacion}</span></div>";
+                        }
+
+                        return $textoFechaIngreso;
+                    })
+                    ->html()
+                    ->sortable(),
+
                 TextColumn::make('salario')
                     ->label('Salario')
                     ->money('BOB')
@@ -537,14 +560,48 @@ class EmpleadoResource extends Resource
 
                 TextColumn::make('coordenadas.texto')
                     ->label('Ubicación Domicilio')
-                    ->url(fn($record) => $record->coordenadas ?
-                        'https://www.google.com/maps?q=' . $record->coordenadas['lat'] . ',' . $record->coordenadas['lng'] : null)
+                    ->url(fn($record) => isset($record->coordenadas['lat'], $record->coordenadas['lng'])
+                        ? 'https://www.google.com/maps?q=' . $record->coordenadas['lat'] . ',' . $record->coordenadas['lng']
+                        : null)
                     ->openUrlInNewTab()
-                    ->formatStateUsing(fn($state) => $state ? '📍 ' . $state : ''),
+                    ->getStateUsing(fn($record) => isset($record->coordenadas['lat'], $record->coordenadas['lng'])
+                        ? '🗺️ Ver Croquis'
+                        : '❌ No registro Croquis'),
 
                 ToggleColumn::make('activo')
-                    ->label('Activo')
-                    ->sortable(),
+                    ->label('Estado')
+                    ->sortable()
+                    ->afterStateUpdated(function ($record, $state) {
+                        if (!$state) {
+                            // Establecer fecha de desvinculación si se desactiva
+                            $record->fecha_desvinculacion = now();
+                            $record->save();
+
+                            // Mostrar notificación
+                            Notification::make()
+                                ->title('Empleado desvinculado')
+                                ->body("Se registró la desvinculación el " . now()->format('d/m/Y'))
+                                ->success()
+                                ->send();
+                        } else {
+                            // Limpiar fecha si se reactiva
+                            $record->fecha_desvinculacion = null;
+                            $record->save();
+
+                            Notification::make()
+                                ->title('Empleado reactivado')
+                                ->success()
+                                ->send();
+                        }
+                    })
+                    ->tooltip(fn($record) => $record->activo
+                        ? 'Empleado activo'
+                        : 'Desvinculado el ' . ($record->fecha_desvinculacion?->format('d/m/Y') ?? 'sin fecha'))
+                    ->updateStateUsing(function ($record, $state) {
+                        // Actualizar el estado sin guardar aún
+                        $record->activo = $state;
+                        return $state;
+                    }),
             ])
 
             //Filtros de Busqueda
@@ -570,25 +627,20 @@ class EmpleadoResource extends Resource
                     ->label('Tipo de Contrato'),
 
                 Tables\Filters\TernaryFilter::make('activo')
-                    ->label('Estado Activo'),
+                    ->label('Estado Activo')
+                    ->default(true),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
+            ->actions([])
 
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->paginated([10, 25, 50, 100, 'all']) // Opciones de paginación disponibles
+            ->defaultPaginationPageOption(100)
+            ->striped();
     }
-
-    // En EmpleadoResource.php
-    protected static function getPermissionPrefix(): string
-    {
-        return 'admin_empleados_'; // Prefijo administrativo
-    }
-
     public static function getPages(): array
     {
         return [

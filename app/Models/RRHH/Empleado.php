@@ -52,6 +52,8 @@ class Empleado extends Model
     protected $casts = [
         'salario' => 'float',
         'ubicacion_gps' => 'array', // Para almacenar coordenadas como JSON
+        'fecha_ingreso' => 'date',
+        'fecha_desvinculacion' => 'date'
     ];
 
     //protected $appends = ['foto_url', 'coordenadas'];
@@ -75,7 +77,7 @@ class Empleado extends Model
         }
 
         // Si ya es una URL completa
-        if (filter_var($this->foto, FILTER_VALIDATE_URL)) { 
+        if (filter_var($this->foto, FILTER_VALIDATE_URL)) {
             return $this->foto;
         }
 

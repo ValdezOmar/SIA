@@ -17,6 +17,11 @@ class EditEmpleado extends EditRecord
             //Actions\DeleteAction::make(),
         ];
     }
+    // Redirigir al listado principal después de guardar
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
     //Funcion para guardar el array de gps
     public function mutateFormDataBeforeSave(array $data): array
     {

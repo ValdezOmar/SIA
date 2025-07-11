@@ -132,3 +132,6 @@ sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start laravel-worker:*
 sudo supervisorctl status
+
+##Personalizar el Theme
+vendor\nuxtifyts\dash-stack-theme\resources\css\theme.css
