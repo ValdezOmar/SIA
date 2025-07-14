@@ -4,10 +4,11 @@ namespace App\Filament\Resources\RRHH\EmpleadoResource\Pages;
 
 use App\Filament\Resources\RRHH\EmpleadoResource;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Contracts\Support\Htmlable;
 
 class EditEmpleado extends EditRecord
 {
-    protected static string $resource = EmpleadoResource::class;
+    protected static string $resource = EmpleadoResource::class;    
 
     public ?array $ubicacion_gps;
 
@@ -17,6 +18,11 @@ class EditEmpleado extends EditRecord
             //Actions\DeleteAction::make(),
         ];
     }
+    public function getTitle(): string|Htmlable
+    {
+        return ''; // Oculta el título por completo
+    }
+    
     // Redirigir al listado principal después de guardar
     protected function getRedirectUrl(): string
     {

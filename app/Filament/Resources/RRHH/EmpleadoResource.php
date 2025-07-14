@@ -84,6 +84,7 @@ class EmpleadoResource extends Resource
                 Grid::make()
                     ->schema([
                         FileUpload::make('foto')
+                            ->label('')
                             ->image()
                             ->directory('empleados')
                             ->disk('public')
@@ -131,26 +132,28 @@ class EmpleadoResource extends Resource
                         Grid::make()
                             ->schema([
                                 Placeholder::make('nombre_completo')
-                                    ->label('Nombre Empleado:')
+                                    ->label('👤Nombre:')
                                     ->content(fn($get) => $get('nombres') . ' ' . $get('apellidos'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('ci/dni')
-                                    ->label('CI/DNI:')
+                                    ->label('🪪CI/DNI:')
                                     ->content(fn($get) => ' ' . $get('ci'))
-                                    ->extraAttributes(['class' => 'text-center text-lg font-bold']),
+                                    ->extraAttributes(['class' => 'text-center text-lg font-bold'])
+                                    ->columnSpanFull(),
 
                                 Placeholder::make('email')
-                                    ->label('Email empresa:')
+                                    ->label('📧Email:')
                                     ->content(fn($get) => ' ' . $get('correo_corporativo'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('numero_coporativo')
-                                    ->label('Teléfono Corporativo:')
+                                    ->label('📱Teléfono:')
                                     ->content(fn($get) => ' ' . $get('numero_corporativo'))
-                                    ->extraAttributes(['class' => 'text-center text-lg font-bold']),
+                                    ->extraAttributes(['class' => 'text-center text-lg font-bold'])
+                                    ->columnSpanFull(),
 
                                 Toggle::make('activo')
                                     ->default(true)
