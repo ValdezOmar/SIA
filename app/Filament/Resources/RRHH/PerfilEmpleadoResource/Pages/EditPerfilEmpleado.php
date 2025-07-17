@@ -27,7 +27,7 @@ class EditPerfilEmpleado extends EditRecord
     protected static string $resource = PerfilEmpleadoResource::class;
 
     protected static ?string $title = 'Mi Perfil';
-    public ?array $ubicacion_gps = null;    
+    public ?array $ubicacion_gps = null;
 
     //Funcion para guardar el array de gps
     public function mutateFormDataBeforeSave(array $data): array
@@ -75,10 +75,12 @@ class EditPerfilEmpleado extends EditRecord
     {
         return $form
             ->schema([
+
+                // Sección superior (Card empleado)con foto y datos básicos
                 Grid::make()
                     ->schema([
-                        // Sección superior con foto y datos básicos
                         FileUpload::make('foto')
+                            ->label('')
                             ->image()
                             ->directory('empleados')
                             ->disk('public')
@@ -94,8 +96,8 @@ class EditPerfilEmpleado extends EditRecord
                             ->panelLayout('circle')    // Layout especial para avatares
                             ->extraAttributes([
                                 'style' => '
-                                    width: 300px; 
-                                    height: 300px;
+                                    width: 280px; 
+                                    height: 280px;
                                     margin: 0 auto; /* Centrado horizontal */
                                     display: flex; /* Para centrado vertical si es necesario */
                                     justify-content: center;
@@ -126,26 +128,31 @@ class EditPerfilEmpleado extends EditRecord
                         Grid::make()
                             ->schema([
                                 Placeholder::make('nombre_completo')
-                                    ->label('Nombre Empleado:')
+                                    ->label('👤Nombre:')
                                     ->content(fn($get) => $get('nombres') . ' ' . $get('apellidos'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('ci/dni')
-                                    ->label('CI/DNI:')
+                                    ->label('🪪CI/DNI:')
                                     ->content(fn($get) => ' ' . $get('ci'))
-                                    ->extraAttributes(['class' => 'text-center text-lg font-bold']),
+                                    ->extraAttributes(['class' => 'text-center text-lg font-bold'])
+                                    ->columnSpanFull(),
 
                                 Placeholder::make('email')
-                                    ->label('Email empresa:')
+                                    ->label('📧Email:')
                                     ->content(fn($get) => ' ' . $get('correo_corporativo'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('numero_coporativo')
-                                    ->label('Teléfono Corporativo:')
+                                    ->label('📱Teléfono:')
                                     ->content(fn($get) => ' ' . $get('numero_corporativo'))
-                                    ->extraAttributes(['class' => 'text-center text-lg font-bold']),
+                                    ->extraAttributes(['class' => 'text-center text-lg font-bold'])
+                                    ->columnSpanFull(),
+
+
+
                             ])
                             ->columnSpan(['md' => 2, 'lg' => 1])
                             ->extraAttributes(['class' => 'flex flex-col justify-center']),
@@ -159,14 +166,14 @@ class EditPerfilEmpleado extends EditRecord
                         TextInput::make('nombres')
                             ->required()
                             ->maxLength(255)
-                            ->hint('Nombres completos del empleado')
+                            ->hint('Ingrese sus nombres')
                             ->hintIcon('heroicon-o-user')
                             ->live(),
 
                         TextInput::make('apellidos')
                             ->required()
                             ->maxLength(255)
-                            ->hint('Apellidos completos del empleado')
+                            ->hint('Ingrese sus apellidos')
                             ->hintIcon('heroicon-o-user')
                             ->live(),
 
@@ -174,13 +181,13 @@ class EditPerfilEmpleado extends EditRecord
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->label('Cédula de Identidad')
-                            ->hint('Número único de identificación')
+                            ->hint('Número único de identificación ciudadana')
                             ->hintIcon('heroicon-o-identification'),
 
                         DatePicker::make('fecha_nacimiento')
                             ->required()
                             ->label('Fecha de Nacimiento')
-                            ->hint('Fecha de nacimiento del empleado')
+                            ->hint('Ingrese su fecha de nacimiento')
                             ->hintIcon('heroicon-o-cake'),
 
                         Select::make('genero')
@@ -197,7 +204,7 @@ class EditPerfilEmpleado extends EditRecord
                         TextInput::make('nacionalidad')
                             ->required()
                             ->default('Boliviana')
-                            ->hint('Nacionalidad del empleado')
+                            ->hint('Ingrese su nacionalidad')
                             ->hintIcon('heroicon-o-flag'),
 
                         //croquis
@@ -214,7 +221,7 @@ class EditPerfilEmpleado extends EditRecord
 
                                 // Campo para el mapa (interactivo) 
                                 TextInput::make('titulo')
-                                    ->label('Ubicacion de domicilio')
+                                    ->label('Croquis de domicilio')
                                     ->hintIcon('heroicon-o-exclamation-triangle')
                                     ->hint('Busque en el mapa la ubicacion de su domicilio')
                                     ->required()
@@ -234,7 +241,7 @@ class EditPerfilEmpleado extends EditRecord
                             ])
                             ->columns(1),
                         // Sección de datos personales adicionales
-                        Section::make('Datos Personales Adicionales')
+                        Section::make('Datos Personales')
                             ->schema([
                                 Select::make('estado_civil')
                                     ->options([
@@ -244,30 +251,44 @@ class EditPerfilEmpleado extends EditRecord
                                         'divorciado' => 'Divorciado/a',
                                     ])
                                     ->label('Estado Civil')
-                                    ->hint('Estado civil actual del empleado')
+                                    ->hint('Ingrese su estado civil actual')
                                     ->required()
                                     ->hintIcon('heroicon-o-heart'),
 
                                 TextInput::make('cantidad_hijos')
-                                    ->default(0)
+                                    ->minValue(0)
+                                    ->required()
                                     ->numeric()
                                     ->label('Número de Hijos')
-                                    ->hint('Cantidad de hijos del empleado')
+                                    ->hint('Indique la cantidad de hijos (Si los tiene)')
                                     ->hintIcon('heroicon-o-user-group'),
 
-                                TextInput::make('telefono_personal')
-                                    ->required()
-                                    ->tel()
-                                    ->label('Teléfono Personal')
-                                    ->hint('Número de contacto personal')
-                                    ->hintIcon('heroicon-o-phone'),
+                                Fieldset::make('Datos adicionales')
 
-                                TextInput::make('correo_personal')
-                                    ->required()
-                                    ->email()
-                                    ->label('Correo Personal')
-                                    ->hint('Correo electrónico personal')
-                                    ->hintIcon('heroicon-o-envelope'),
+                                    ->schema([
+                                        TextInput::make('telefono_personal')
+                                            ->required()
+                                            ->tel()
+                                            ->label('Teléfono Personal')
+                                            ->hint('Ingrese su número de teléfono personal')
+                                            ->hintIcon('heroicon-o-phone'),
+
+                                        TextInput::make('correo_personal')
+                                            ->required()
+                                            ->email()
+                                            ->label('Correo Personal')
+                                            ->hint('Ingrese su correo electrónico personal')
+                                            ->hintIcon('heroicon-o-envelope'),
+                                            
+                                        TextInput::make('nua_cua')
+                                            ->label('Numero NUA/CUA')
+                                            ->required()
+                                            ->hint('Indique su número de afiliación (0 si no tiene)')
+                                            ->hintIcon('heroicon-o-shield-check'),
+                                    ])
+                                    ->columns(3),
+
+
 
                                 Fieldset::make('Contacto de Emergencia')
 
@@ -288,7 +309,7 @@ class EditPerfilEmpleado extends EditRecord
                                         TextInput::make('persona_parentesco')
                                             ->required()
                                             ->label('Parentesco de contacto')
-                                            ->hint('Parentesco de la persona')
+                                            ->hint('Parentesco de la persona de emergencia')
                                             ->hintIcon('heroicon-o-exclamation-triangle'),
                                     ])
                                     ->columns(3),
@@ -299,7 +320,6 @@ class EditPerfilEmpleado extends EditRecord
                         Section::make('Datos Laborales')
                             //->disabled()
                             ->schema([
-
 
                                 Fieldset::make('Contacto empresarial')
                                     ->schema([
@@ -319,15 +339,6 @@ class EditPerfilEmpleado extends EditRecord
                                     ])
                                     ->columns(2),
 
-                                Fieldset::make('Datos adicionales')
-
-                                    ->schema([
-                                        TextInput::make('nua_cua')
-                                            ->label('Numero NUA/CUA')
-                                            ->hint('Afiliación al seguro social')
-                                            ->hintIcon('heroicon-o-shield-check'),
-                                    ])
-                                    ->columns(2),
                             ])
                             ->columns(2),
                     ])

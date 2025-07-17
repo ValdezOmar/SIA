@@ -136,8 +136,8 @@
 /* Sidebar Start */
 /* Vuelve el nav var flotante */
 /* .fi-sidebar {
-    @apply fixed top-6 bottom-6 left-2 z-40;  
-    @apply transition-all duration-300 ease-in-out;
+    @apply fixed top-16 bottom-40 left-2 z-40;  
+    @apply transition-all duration-1000 ease-in-out;
     @apply rounded-2xl shadow-xl;
     @apply border border-gray-200 dark:border-white/10;
     @apply bg-white dark:bg-[var(--ds-dark-bg-secondary-color)];
@@ -158,7 +158,7 @@
 
     .fi-sidebar-nav {
         @apply bg-white dark:bg-[var(--ds-dark-bg-secondary-color)];
-        /* @apply border-r-[0.9px] border-r-[#E0E0E0] dark:border-none; */
+        @apply border-r-[0.9px] border-r-[#E0E0E0] dark:border-none;
         @apply py-4 px-0;
 
         >.fi-sidebar-nav-groups {
