@@ -39,7 +39,7 @@ class DashboardPanelProvider extends PanelProvider
             ])
             // ->brandName('SISTEMA INTEGRADO DE ADMINISTRACION')
             ->brandLogo(asset('images/logo.svg'))// Logo que se muestra en la esquina superior izquierda del panel
-            ->brandLogoHeight('2.3rem')// Altura del logo
+            ->brandLogoHeight('2.1rem')// Altura del logo
             ->sidebarCollapsibleOnDesktop(true)// Permite que la barra lateral (sidebar) sea colapsable en escritorio
             //Gestion de rutas automaticasr
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources') // Descubre y registra automáticamente los recursos (CRUDs) dentro de app/Filament/Resources
