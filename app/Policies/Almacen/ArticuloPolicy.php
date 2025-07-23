@@ -23,7 +23,7 @@ class ArticuloPolicy
      */
     public function view(User $user, Articulo $articulo): bool
     {
-        return $user->can('view_almacen::articulo');
+        return $user->can('{{ View }}');
     }
 
     /**

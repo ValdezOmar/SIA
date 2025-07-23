@@ -57,7 +57,8 @@ class ListInventarios extends ListRecords
                     ->success()
                     ->send();
             })
-            ->requiresConfirmation(),
+            ->requiresConfirmation()
+            ->visible(fn () => Auth::user()?->can('programar_inventario_almacen::inventario')),
         ];
     }
 }

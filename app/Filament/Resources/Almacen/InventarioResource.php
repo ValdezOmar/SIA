@@ -20,8 +20,9 @@ use Illuminate\Support\Facades\Cache;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Set;
 use Filament\Forms\Components\View;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class InventarioResource extends Resource
+class InventarioResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Inventario::class;
 
@@ -384,6 +385,19 @@ class InventarioResource extends Resource
             ->bulkActions([])
             ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50, 100]);
+    }
+    
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view_any',    // los permisos del Shield usuales
+            //'view',
+            //'create',
+            'update',
+            //'delete',
+            'programar_inventario',
+
+        ];
     }
 
     public static function getRelations(): array

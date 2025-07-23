@@ -23,7 +23,7 @@ class InventarioPolicy
      */
     public function view(User $user, Inventario $inventario): bool
     {
-        return $user->can('view_almacen::inventario');
+        return $user->can('{{ View }}');
     }
 
     /**
@@ -31,7 +31,7 @@ class InventarioPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_almacen::inventario');
+        return $user->can('{{ Create }}');
     }
 
     /**
@@ -47,7 +47,7 @@ class InventarioPolicy
      */
     public function delete(User $user, Inventario $inventario): bool
     {
-        return $user->can('delete_almacen::inventario');
+        return $user->can('{{ Delete }}');
     }
 
     /**
