@@ -386,7 +386,12 @@ class InventarioResource extends Resource implements HasShieldPermissions
             ->defaultPaginationPageOption(50)
             ->paginated([10, 25, 50, 100]);
     }
-    
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('activo', true);
+    }
+
     public static function getPermissionPrefixes(): array
     {
         return [

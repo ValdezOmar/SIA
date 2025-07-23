@@ -19,46 +19,50 @@ class ListInventarios extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            //Actions\CreateAction::make(),
             Action::make('Programar Inventario')
-            ->label('Programar Inventario')
-            ->color('success')
-            ->form([
-                DatePicker::make('fecha_conteo_inventario')
-                    ->label('Fecha del conteo')
-                    ->required(),
-            ])
-            ->action(function (array $data): void {
-                $articulos = Articulo::all();
+                ->label('Programar Inventario')
+                ->color('success')
+                ->form([
+                    DatePicker::make('fecha_conteo_inventario')
+                        ->label('Fecha del conteo')
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $fecha = $data['fecha_conteo_inventario'];
 
-                foreach ($articulos as $articulo) {
-                    Inventario::create([
-                        'codigo' => $articulo->codigo,
-                        'descripcion' => $articulo->descripcion,
-                        'presentacion' => $articulo->presentacion,
-                        'unidad' => $articulo->unidad,
-                        'codigo_alterno' => $articulo->codigo_alterno,
-                        'cod_almacen' => $articulo->cod_almacen,
-                        'nombre_almacen' => $articulo->nombre_almacen,
-                        'lote' => $articulo->lote,
-                        'fecha_ven' => $articulo->fecha_ven,
-                        'sn_qr' => $articulo->sn_qr,
-                        'empresa' => $articulo->empresa,
-                        'saldo_actual' => $articulo->saldo_actual,
+                    // 1. Desactivar todos los inventarios anteriores
+                    Inventario::where('fecha_conteo_inventario', '!=', $fecha)
+                        ->update(['activo' => false]);
 
-                        'fecha_conteo_inventario' => $data['fecha_conteo_inventario'],
-                        'activo' => true,
-                        //'usuario' => Auth::user()?->name ?? 'sistema',
-                    ]);
-                }
+                    // 2. Crear nuevo inventario para cada artículo
+                    $articulos = Articulo::all();
 
-                Notification::make()
-                    ->title('Inventario programado correctamente')
-                    ->success()
-                    ->send();
-            })
-            ->requiresConfirmation()
-            ->visible(fn () => Auth::user()?->can('programar_inventario_almacen::inventario')),
+                    foreach ($articulos as $articulo) {
+                        Inventario::create([
+                            'codigo' => $articulo->codigo,
+                            'descripcion' => $articulo->descripcion,
+                            'presentacion' => $articulo->presentacion,
+                            'unidad' => $articulo->unidad,
+                            'codigo_alterno' => $articulo->codigo_alterno,
+                            'cod_almacen' => $articulo->cod_almacen,
+                            'nombre_almacen' => $articulo->nombre_almacen,
+                            'lote' => $articulo->lote,
+                            'fecha_ven' => $articulo->fecha_ven,
+                            'sn_qr' => $articulo->sn_qr,
+                            'empresa' => $articulo->empresa,
+                            'saldo_actual' => $articulo->saldo_actual,
+                            'fecha_conteo_inventario' => $fecha,
+                            'activo' => true,
+                        ]);
+                    }
+
+                    Notification::make()
+                        ->title('Inventario programado correctamente')
+                        ->success()
+                        ->send();
+                })
+                ->requiresConfirmation()
+                ->visible(fn() => Auth::user()?->can('programar_inventario_almacen::inventario')),
         ];
     }
 }
