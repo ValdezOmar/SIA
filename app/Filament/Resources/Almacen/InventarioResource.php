@@ -21,6 +21,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Set;
 use Filament\Forms\Components\View;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Filament\Tables\Actions\ExportAction;
+use App\Filament\Exports\InventarioExporter;
 
 class InventarioResource extends Resource implements HasShieldPermissions
 {
@@ -380,6 +382,18 @@ class InventarioResource extends Resource implements HasShieldPermissions
                         }
                     })
                     ->searchable(),
+            ])
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(InventarioExporter::class)  
+                    ->columnMapping(false)    // Ocultar selección de columnas 
+                    ->chunkSize(10000)               
+                    ->fileDisk('local')
+                    ->label('Exportar a Excel')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->button()
+                    ->fileDisk('local')
             ])
             ->actions([])
             ->bulkActions([])

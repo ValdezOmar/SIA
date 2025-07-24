@@ -55,10 +55,10 @@ class ArticuloExporter extends Exporter
 
     public static function getCompletedNotificationBody(Export $export): string
     {
-        $body = 'La exportación de artículos ha finalizado. ' . number_format($export->successful_rows) . ' ' . str('registro')->plural($export->successful_rows) . ' exportados.';
+        $body = 'La exportación de artículos ha finalizado. ' . number_format($export->successful_rows) . ' ' . str('fila')->plural($export->successful_rows) . ' exportadas.';
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
-            $body .= ' ' . number_format($failedRowsCount) . ' ' . str('registro')->plural($failedRowsCount) . ' fallaron al exportar.';
+            $body .= ' ' . number_format($failedRowsCount) . ' ' . str('fila')->plural($failedRowsCount) . ' no se pudieron exportar.';
         }
 
         return $body;
