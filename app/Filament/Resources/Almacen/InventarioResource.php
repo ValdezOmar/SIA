@@ -11,7 +11,6 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Section;
 use DesignTheBox\BarcodeField\Forms\Components\BarcodeInput;
 use Filament\Tables\Filters\SelectFilter;
@@ -23,8 +22,12 @@ use Filament\Forms\Components\View;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Tables\Actions\ExportAction;
 use App\Filament\Exports\InventarioExporter;
-use Filament\Forms\Components\DateTimePicker;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Blade;
+use Filament\Tables\Actions\Action;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class InventarioResource extends Resource implements HasShieldPermissions
 {
@@ -141,7 +144,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     ->columnSpanFull(255)
                     ->extraAttributes([
                         'class' => 'custom-textarea', // Clase para estilos personalizados
-                    ]),                
+                    ]),
             ]);
     }
 
@@ -385,7 +388,76 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
                     ->button()
-                    ->fileDisk('local')
+                    ->fileDisk('local'),
+                    
+                //Exportador a PDF
+                Action::make('exportPdf')
+                    ->label('Reporte PDF')
+                    ->icon('heroicon-o-document-text')
+                    ->color('danger')
+                    ->action(function ($livewire) {
+                        try {
+                            $records = $livewire->getTableRecords();
+
+                            if ($records->isEmpty()) {
+                                Notification::make()
+                                    ->title('No hay registros para exportar')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            $columns = $livewire->getTable()->getColumns();
+
+                            // Función para limpiar caracteres
+                            $cleanData = function ($value) {
+                                if (is_null($value)) return '';
+                                if (is_numeric($value)) return $value;
+                                if (is_bool($value)) return $value ? 'Sí' : 'No';
+                                return Str::of($value)->trim()->toString();
+                            };
+
+                            $preparedColumns = collect($columns)->map(function ($column) use ($cleanData) {
+                                return [
+                                    'name' => $column->getName(),
+                                    'label' => $column->getLabel(),
+                                    'format' => function ($record) use ($column, $cleanData) {
+                                        $value = $record->{$column->getName()};
+
+                                        if ($value instanceof \DateTimeInterface) {
+                                            return $value->format('d/m/Y');
+                                        }
+
+                                        return $cleanData($value);
+                                    }
+                                ];
+                            });
+
+                            $html = Blade::render('exports.inventario-pdf', [
+                                'records' => $records,
+                                'columns' => $preparedColumns,
+                                'title' => 'Reporte de Inventario',
+                                'date' => now()->format('d/m/Y H:i:s'),
+                                'user' => Auth::user()->name
+                            ]);
+
+                            $pdf = PDF::loadHTML($html)
+                                ->setPaper('a4', 'landscape')
+                                ->setOption('defaultFont', 'Arial')
+                                ->setOption('isHtml5ParserEnabled', true);
+
+                            return response()->streamDownload(
+                                fn() => print($pdf->stream()),
+                                'inventario_' . now()->format('Y-m-d_His') . '.pdf'
+                            );
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Error al generar PDF')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
             ])
             ->actions([])
             ->bulkActions([])
