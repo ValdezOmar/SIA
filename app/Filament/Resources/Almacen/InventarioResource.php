@@ -23,6 +23,8 @@ use Filament\Forms\Components\View;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Tables\Actions\ExportAction;
 use App\Filament\Exports\InventarioExporter;
+use Filament\Forms\Components\DateTimePicker;
+use Illuminate\Support\Facades\Auth;
 
 class InventarioResource extends Resource implements HasShieldPermissions
 {
@@ -139,17 +141,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     ->columnSpanFull(255)
                     ->extraAttributes([
                         'class' => 'custom-textarea', // Clase para estilos personalizados
-                    ]),
-
-                Section::make('Datos adicionales del sistema')
-                    ->description('Información técnica del sistema')
-                    ->hidden()
-                    ->schema([
-                        DatePicker::make('fecha_conteo_inventario')->label('Fecha de conteo'),
-                        Toggle::make('activo')->label('Activo'),
-                        TextInput::make('usuario')->label('Usuario responsable'),
-                    ])
-                    ->columns(2),
+                    ]),                
             ]);
     }
 
@@ -385,9 +377,9 @@ class InventarioResource extends Resource implements HasShieldPermissions
             ])
             ->headerActions([
                 ExportAction::make()
-                    ->exporter(InventarioExporter::class)  
+                    ->exporter(InventarioExporter::class)
                     ->columnMapping(false)    // Ocultar selección de columnas 
-                    ->chunkSize(10000)               
+                    ->chunkSize(10000)
                     ->fileDisk('local')
                     ->label('Exportar a Excel')
                     ->icon('heroicon-o-document-arrow-down')

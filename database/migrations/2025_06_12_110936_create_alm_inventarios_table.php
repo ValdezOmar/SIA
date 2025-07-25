@@ -44,7 +44,7 @@ return new class extends Migration
             $table->string('observacion')->nullable();
              
             //Datos personalizados para el sistema
-            $table->date('fecha_conteo_inventario')->nullable(); // Fecha de conteo realizado 
+            $table->dateTime('fecha_conteo_inventario')->nullable(); // Fecha de conteo realizado 
             $table->boolean('activo')->nullable(); 
             $table->string('usuario')->nullable();         
             

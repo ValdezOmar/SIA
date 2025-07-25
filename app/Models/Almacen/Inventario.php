@@ -2,7 +2,9 @@
 
 namespace App\Models\Almacen;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class Inventario extends Model
 {
@@ -46,7 +48,18 @@ class Inventario extends Model
     protected $casts = [
         'fecha_ven' => 'date',
         'fecha_ven_correcto' => 'date',
-        'fecha_conteo_inventario' => 'date',
+        'fecha_conteo_inventario' => 'datetime',
         'activo' => 'boolean',
     ];
+    //Registrar automaticamente los datos del ususario 
+     protected static function boot()
+    {
+        parent::boot();
+        // Actualizar automáticamente al crear o actualizar
+        static::saving(function ($model) {
+            $model->fecha_conteo_inventario = Carbon::now();
+            $model->usuario = Auth::user()->name;
+            $model->activo = true;
+        });        
+    }
 }

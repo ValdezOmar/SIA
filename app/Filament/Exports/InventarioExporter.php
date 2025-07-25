@@ -96,7 +96,7 @@ class InventarioExporter extends Exporter
             //     ->label('Fecha Conteo')
             //     ->formatStateUsing(fn($state) => $state->format('d/m/Y') ?? 'Ninguno'),
             ExportColumn::make('usuario')
-                ->label('Usuario')
+                ->label('Usuario de Registro')
                 ->formatStateUsing(fn($state) => $state ?? 'Ninguno. '),
         ];
     }
