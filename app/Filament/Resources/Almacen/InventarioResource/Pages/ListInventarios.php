@@ -11,10 +11,13 @@ use App\Models\Almacen\Inventario;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
+use Filament\Pages\Concerns\ExposesTableToWidgets;
+use App\Filament\Resources\Almacen\InventarioResource\Widgets\InventarioStats;
 
 class ListInventarios extends ListRecords
 {
     protected static string $resource = InventarioResource::class;
+    use ExposesTableToWidgets;
 
     protected function getHeaderActions(): array
     {
@@ -64,5 +67,21 @@ class ListInventarios extends ListRecords
                 ->requiresConfirmation()
                 ->visible(fn() => Auth::user()?->can('programar_inventario_almacen::inventario')),
         ];
+    }
+    //Header widget que muestra lostats del progeso de inventario realizado
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            InventarioStats::class,
+        ];
+    }
+    protected function getTableFiltersFormWidth(): string
+    {
+        return '4xl';
+    }
+    //Actualiza la tabla en tiempo real
+    public function updatedTableFilters(): void
+    {
+        $this->dispatch('updateFilters');
     }
 }
