@@ -72,14 +72,14 @@ class InventarioExporter extends Exporter
             //     ->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
             ExportColumn::make('saldo_contado')
                 ->label('Saldo Contado')
-                ->formatStateUsing(fn($state) => $state ?? 'Sin contar'),
+                ->formatStateUsing(fn($state) => $state ?? 'Sin verificar'),
 
             // Saca las diferencias de conteo
             ExportColumn::make('diferencia_calc')
                 ->label('Diferencia')
                 ->state(function (Inventario $record): string {
                     if ($record->saldo_contado === null) {
-                        return 'Sin contar';
+                        return 'Sin verificar';
                     }
 
                     $diferencia = $record->saldo_actual - $record->saldo_contado;

@@ -58,6 +58,7 @@ composer dump-autoload
 # Para produccion (limpiar)
 sudo -u www-data php artisan optimize:clear
 sudo -u www-data php artisan view:clear
+sudo -u www-data php artisan cache:clear
 sudo -u www-data php artisan route:clear
 sudo -u www-data php artisan config:clear
 sudo -u www-data composer dump-autoload

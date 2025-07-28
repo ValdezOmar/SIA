@@ -123,7 +123,6 @@ class InventarioResource extends Resource implements HasShieldPermissions
                             ->required()
                             ->numeric()
                             ->columnSpan(1)
-                            ->rules(['gt:0'])
                             ->hint('Ingrese solo números')
                             ->extraInputAttributes(['class' => 'font-bold text-primary-600 dark:text-primary-400']),
 
@@ -153,29 +152,74 @@ class InventarioResource extends Resource implements HasShieldPermissions
         return $table
             ->columns([
                 TextColumn::make('codigo')
-                    ->label('Item Almacén')
-                    ->html()
-                    ->getStateUsing(fn($record) => "
-                        <div>
-                            <strong>{$record->descripcion}</strong><br>
-                            <small>Codigo: <strong style='color:rgb(32, 115, 211); font-size: 0.80rem'>{$record->codigo}</strong><br>Cod. Alterno: <strong >{$record->codigo_alterno}</strong></small>
-                        </div>
-                    ")
+    ->label('Item Almacén')
+    ->html()
+    ->getStateUsing(function ($record) {
+        $qrBadge = '';
+
+        if (!is_null($record->sn_qr_correcto)) {
+            $qrBadge = "
+                <span style='
+                    display: inline-block;
+                    background-color: #16a34a;
+                    color: white;
+                    border-radius: 5px;
+                    padding: 0.1rem 0.3rem;
+                    font-size: 0.70rem;
+                    font-weight: bold;
+                    margin-top: 0.1rem;
+                '>QR Registrado</span>
+            ";
+        } elseif (!is_null($record->saldo_contado)) {
+            $qrBadge = "
+                <span style='
+                    display: inline-block;
+                    background-color: #dc2626;
+                    color: white;
+                    border-radius: 5px;
+                    padding: 0.1rem 0.3rem;
+                    font-size: 0.70rem;
+                    font-weight: bold;
+                    margin-top: 0.1rem;
+                '>QR No registrado</span>
+            ";
+        }
+
+        return "
+            <div>
+                <strong>{$record->descripcion}</strong><br>
+                <small>
+                    Codigo: <strong style='color:rgb(32, 115, 211); font-size: 0.80rem'>{$record->codigo}</strong><br>
+                    Cod. Alterno: <strong>{$record->codigo_alterno}</strong><br>
+                    {$qrBadge}
+                </small>
+            </div>
+        ";
+    })
                     ->searchable(['descripcion', 'codigo', 'codigo_alterno']),
 
                 TextColumn::make('saldo_actual')
                     ->label('Conteo')
                     ->html()
-                    ->getStateUsing(fn($record) => "
-                        <div style='text-align: left;'>          
+                    ->getStateUsing(function ($record) {
+                        $diferencia = $record->saldo_contado - $record->saldo_actual;
+
+                        $color = match (true) {
+                            $diferencia === 0 => '#16a34a',   // Verde
+                            $diferencia > 0 => '#f97316',     // Naranja
+                            default => '#dc2626',             // Rojo
+                        };
+
+                        return "
+                            <div style='text-align: left;'>          
                                 <span style='font-size: 0.7rem; color: #6b7280;'>Almacén:</span>
                                 <span style='font-size: 0.9rem; font-weight: 800;'>{$record->saldo_actual}</span> <br> 
-                            " . ($record->saldo_contado ? "                               
+                                " . ($record->saldo_contado !== null ? "                               
                                     <span style='font-size: 0.7rem; color: #6b7280;'>Conteo :</span>
                                     <span style='font-size: 0.9rem; font-weight: 800;'>{$record->saldo_contado}</span><br>     
                                     <span style='font-size: 0.7rem; color: #6b7280;'>Diferencia:</span>
-                                    <span style='font-size: 0.9rem; font-weight: 800; color: " . (($record->saldo_actual - $record->saldo_contado) != 0 ? '#dc2626' : '#16a34a') . ";'>
-                                        " . ($record->saldo_actual - $record->saldo_contado) . "
+                                    <span style='font-size: 0.9rem; font-weight: 800; color: {$color};'>
+                                        " . ($diferencia > 0 ? '+' : '') . "{$diferencia}
                                     </span><br>
                                     <span style='
                                         background-color: #16a34a;
@@ -185,7 +229,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
                                         font-size: 0.75rem;
                                         font-weight: 500;
                                     '>Verificado</span>                                
-                            " : "                                
+                                " : "                                
                                     <span style='
                                         background-color: #dc2626;
                                         color: white;
@@ -193,11 +237,11 @@ class InventarioResource extends Resource implements HasShieldPermissions
                                         border-radius: 0.25rem;
                                         font-size: 0.75rem;
                                         font-weight: 500;
-                                    '>Sin contar</span>
-                                
-                            ") . "
-                        </div>
-                    ")
+                                    '>Sin verificar</span>                                
+                                ") . "
+                            </div>
+                        ";
+                    })
                     ->sortable(),
 
                 TextColumn::make('lote')
@@ -389,7 +433,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     ->color('success')
                     ->button()
                     ->fileDisk('local'),
-                    
+
                 //Exportador a PDF
                 Action::make('exportPdf')
                     ->label('Reporte PDF')

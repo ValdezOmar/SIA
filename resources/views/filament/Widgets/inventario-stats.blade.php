@@ -15,7 +15,7 @@
                 ></div>
             </div>
             <p class="text-sm text-gray-600 dark:text-white">
-                {{ $itemsContados }} de {{ $totalItems }} ítems
+                <strong>{{ $itemsContados }}</strong> de <strong>{{ $totalItems }}</strong> ítems
             </p>
         </div>
 
@@ -31,7 +31,7 @@
             {{-- Pendientes --}}
             <div class="flex-1 bg-red-50 dark:bg-red-50 p-3 rounded-lg border border-red-100 dark:border-red-800/50 flex flex-col items-center justify-center">
                 <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-red-600 dark:text-red-400 mb-1.5" />
-                <p class="text-xs font-medium text-gray-700 dark:text-gray-700 mb-1">Pendientes</p>
+                <p class="text-xs font-medium text-gray-700 dark:text-gray-700 mb-1">Sin_verificar</p>
                 <p class="text-sm font-bold text-gray-900 dark:text-gray-900">{{ $itemsNoContados }}</p>
             </div>
 

@@ -55,11 +55,10 @@ class Inventario extends Model
      protected static function boot()
     {
         parent::boot();
-        // Actualizar automáticamente al crear o actualizar
-        static::saving(function ($model) {
-            $model->fecha_conteo_inventario = Carbon::now();
-            $model->usuario = Auth::user()->name;
-            $model->activo = true;
-        });        
+        // Actualizar automáticamente al actualizar
+        static::updating(function ($model) {
+        //$model->fecha_conteo_inventario = now();
+        $model->usuario = Auth::check() ? Auth::user()->name : 'sistema';
+    });      
     }
 }
