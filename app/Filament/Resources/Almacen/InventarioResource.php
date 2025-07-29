@@ -152,13 +152,13 @@ class InventarioResource extends Resource implements HasShieldPermissions
         return $table
             ->columns([
                 TextColumn::make('codigo')
-    ->label('Item Almacén')
-    ->html()
-    ->getStateUsing(function ($record) {
-        $qrBadge = '';
+                    ->label('Item Almacén')
+                    ->html()
+                    ->getStateUsing(function ($record) {
+                        $qrBadge = '';
 
-        if (!is_null($record->sn_qr_correcto)) {
-            $qrBadge = "
+                        if (!is_null($record->sn_qr_correcto)) {
+                            $qrBadge = "
                 <span style='
                     display: inline-block;
                     background-color: #16a34a;
@@ -170,8 +170,8 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     margin-top: 0.1rem;
                 '>QR Registrado</span>
             ";
-        } elseif (!is_null($record->saldo_contado)) {
-            $qrBadge = "
+                        } elseif (!is_null($record->saldo_contado)) {
+                            $qrBadge = "
                 <span style='
                     display: inline-block;
                     background-color: #dc2626;
@@ -183,9 +183,9 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     margin-top: 0.1rem;
                 '>QR No registrado</span>
             ";
-        }
+                        }
 
-        return "
+                        return "
             <div>
                 <strong>{$record->descripcion}</strong><br>
                 <small>
@@ -195,7 +195,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
                 </small>
             </div>
         ";
-    })
+                    })
                     ->searchable(['descripcion', 'codigo', 'codigo_alterno']),
 
                 TextColumn::make('saldo_actual')
@@ -373,8 +373,12 @@ class InventarioResource extends Resource implements HasShieldPermissions
                         'sin_fecha' => 'Sin fecha',
                     ])
                     ->query(function (Builder $query, array $state) {
-                        // Primero filtramos siempre por saldo_actual > 0
-                        $query->where('saldo_actual', '>', 0);
+                        // Filtramos por saldo_actual > 0 O cod_almacen = 0
+                        //$query->where('saldo_actual', '>', 0); //solo los items mayores a 0
+                        $query->where(function ($q) {
+                            $q->where('saldo_actual', '>', 0)
+                                ->orWhere('cod_almacen', 0);
+                        });
 
                         if (!empty($state['value'])) {
                             $hoy = now();
@@ -399,11 +403,13 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     ->label('Filtrar Almacenes')
                     ->multiple()
                     ->options(function () {
+
                         return Cache::remember('almacenes-options', now()->addDay(), function () {
+                            $almacenesPermitidos = [0, 101, 102, 107, 202, 207, 210, 302, 307, 402, 407, 502, 507];
                             return Inventario::query()
                                 ->select('cod_almacen', 'nombre_almacen')
                                 ->whereNotNull('cod_almacen')
-                                ->where('cod_almacen', '>=', '0')
+                                ->whereIn('cod_almacen', $almacenesPermitidos)
                                 ->distinct()
                                 ->orderBy('cod_almacen')
                                 ->get()
@@ -511,7 +517,11 @@ class InventarioResource extends Resource implements HasShieldPermissions
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('activo', true);
+        $almacenesPermitidos = [0, 101, 102, 107, 202, 207, 210, 302, 307, 402, 407, 502, 507];
+
+        return parent::getEloquentQuery()
+            ->where('activo', true)
+            ->whereIn('cod_almacen', $almacenesPermitidos);
     }
 
     public static function getPermissionPrefixes(): array
