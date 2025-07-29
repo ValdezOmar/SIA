@@ -405,7 +405,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     ->options(function () {
 
                         return Cache::remember('almacenes-options', now()->addDay(), function () {
-                            $almacenesPermitidos = [0, 101, 102, 107, 202, 207, 210, 302, 307, 402, 407, 502, 507];
+                            $almacenesPermitidos = [0, 101, 102, 107, 110, 202, 207, 210, 302, 307, 402, 407, 502, 507];
                             return Inventario::query()
                                 ->select('cod_almacen', 'nombre_almacen')
                                 ->whereNotNull('cod_almacen')
@@ -517,7 +517,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
 
     public static function getEloquentQuery(): Builder
     {
-        $almacenesPermitidos = [0, 101, 102, 107, 202, 207, 210, 302, 307, 402, 407, 502, 507];
+        $almacenesPermitidos = [0, 101, 102, 107, 110, 202, 207, 210, 302, 307, 402, 407, 502, 507];
 
         return parent::getEloquentQuery()
             ->where('activo', true)

@@ -37,25 +37,41 @@ function stopScanning() {
   video.style.display = 'none';
 }
 
+///abre la camra del dispositivo
 function startCamera() {
-  codeReader.getVideoInputDevices().then((videoInputDevices) => {
-    const rearCamera = videoInputDevices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear'));
-    const selectedDeviceId = rearCamera ? rearCamera.deviceId : videoInputDevices[0].deviceId;
+  // Intenta obtener directamente la cámara trasera
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
+    .then(stream => {
+      const video = document.getElementById('scanner');
+      video.srcObject = stream;
+      video.style.display = 'block';
+      // Identifica el deviceId real que se usó
+      const track = stream.getVideoTracks()[0];
+      const settings = track.getSettings();
+      const deviceId = settings.deviceId;
+      startScanner(deviceId);
+    })
+    .catch(() => {
+      // Si falla (por permisos o no hay cámara trasera), buscar manualmente
+      codeReader.getVideoInputDevices().then(videoInputDevices => {
+        const rearCamera = videoInputDevices.find(device =>
+          device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')
+        );
+        const selectedDeviceId = rearCamera ? rearCamera.deviceId : videoInputDevices[0].deviceId;
 
-    navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: selectedDeviceId } } })
-      .then(function (stream) {
-        const video = document.getElementById('scanner');
-        video.srcObject = stream;
-        video.style.display = 'block'; // Ensure the video element is visible
-        startScanner(selectedDeviceId);
-      })
-      .catch(function (err) {
-        console.error("Error accessing the camera: ", err);
-        alert("Camera access is required to scan barcodes.");
+        navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: selectedDeviceId } } })
+          .then(stream => {
+            const video = document.getElementById('scanner');
+            video.srcObject = stream;
+            video.style.display = 'block';
+            startScanner(selectedDeviceId);
+          })
+          .catch(err => {
+            console.error("Error accessing the camera: ", err);
+            alert("Camera access is required to scan barcodes.");
+          });
       });
-  }).catch((err) => {
-    console.error(err);
-  });
+    });
 }
 
 // Listen for modal opening and start camera
