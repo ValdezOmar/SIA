@@ -447,7 +447,8 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     ->color('danger')
                     ->action(function ($livewire) {
                         try {
-                            $records = $livewire->getTableRecords();
+                            ini_set('memory_limit', '2048M');
+                            $records = $livewire->getFilteredTableQuery()->get();
 
                             if ($records->isEmpty()) {
                                 Notification::make()
@@ -457,35 +458,126 @@ class InventarioResource extends Resource implements HasShieldPermissions
                                 return;
                             }
 
-                            $columns = $livewire->getTable()->getColumns();
+                            $columns = [
+                                [
+                                    'name' => 'numero_fila',
+                                    'label' => 'No.',
+                                    'format' => fn($record, $index) => $index + 1
+                                ],
+                                [
+                                    'name' => 'codigo',
+                                    'label' => 'Código',
+                                    'format' => fn($record) => $record->codigo ?? ''
+                                ],
+                                [
+                                    'name' => 'codigo_alterno',
+                                    'label' => 'Código Alterno',
+                                    'format' => fn($record) => $record->codigo_alterno ?? ''
+                                ],
+                                [
+                                    'name' => 'descripcion',
+                                    'label' => 'Descripción',
+                                    'format' => fn($record) => $record->descripcion ?? ''
+                                ],
+                                [
+                                    'name' => 'presentacion',
+                                    'label' => 'Presentación',
+                                    'format' => fn($record) => $record->presentacion ?? ''
+                                ],
+                                [
+                                    'name' => 'unidad',
+                                    'label' => 'Unidad',
+                                    'format' => fn($record) => $record->unidad ?? ''
+                                ],
+                                [
+                                    'name' => 'cod_almacen',
+                                    'label' => 'Almacén',
+                                    'format' => fn($record) => $record->cod_almacen ?? ''
+                                ],
+                                [
+                                    'name' => 'nombre_almacen',
+                                    'label' => 'Nombre Almacén',
+                                    'format' => fn($record) => $record->nombre_almacen ?? ''
+                                ],
+                                [
+                                    'name' => 'lote',
+                                    'label' => 'Lote',
+                                    'format' => fn($record) => $record->lote ?? ''
+                                ],
+                                [
+                                    'name' => 'fecha_ven',
+                                    'label' => 'Fecha Vencimiento',
+                                    'format' => fn($record) => $record->fecha_ven ? $record->fecha_ven->format('d/m/Y') : ''
+                                ],
+                                [
+                                    'name' => 'saldo_actual',
+                                    'label' => 'Saldo Actual',
+                                    'format' => fn($record) => $record->saldo_actual ?? ''
+                                ],
+                                [
+                                    'name' => 'saldo_contado',
+                                    'label' => 'Saldo Contado',
+                                    'format' => fn($record) => $record->saldo_contado ?? 'Sin verificar'
+                                ],
+                                [
+                                    'name' => 'diferencia_calc',
+                                    'label' => 'Diferencia',
+                                    'format' => function ($record) {
+                                        if ($record->saldo_contado === null) {
+                                            return 'Sin verificar';
+                                        }
+                                        return number_format($record->saldo_actual - $record->saldo_contado, 2);
+                                    }
+                                ],
+                                [
+                                    'name' => 'observacion',
+                                    'label' => 'Observación',
+                                    'format' => function ($record) {
+                                        $lines = [];
 
-                            // Función para limpiar caracteres
-                            $cleanData = function ($value) {
-                                if (is_null($value)) return '';
-                                if (is_numeric($value)) return $value;
-                                if (is_bool($value)) return $value ? 'Sí' : 'No';
-                                return Str::of($value)->trim()->toString();
-                            };
-
-                            $preparedColumns = collect($columns)->map(function ($column) use ($cleanData) {
-                                return [
-                                    'name' => $column->getName(),
-                                    'label' => $column->getLabel(),
-                                    'format' => function ($record) use ($column, $cleanData) {
-                                        $value = $record->{$column->getName()};
-
-                                        if ($value instanceof \DateTimeInterface) {
-                                            return $value->format('d/m/Y');
+                                        // Línea original de observación si existe
+                                        if (!empty($record->observacion)) {
+                                            $lines[] = "- " . $record->observacion;
                                         }
 
-                                        return $cleanData($value);
+                                        // Campos correctos (rectificados)
+                                        $camposCorrectos = [
+                                            'codigo_correcto' => 'Código corregido',
+                                            'descripcion_correcto' => 'Descripción corregida',
+                                            'presentacion_correcto' => 'Presentación corregida',
+                                            'unidad_correcto' => 'Unidad corregida',
+                                            'codigo_alterno_correcto' => 'Código alterno corregido',
+                                            'cod_almacen_correcto' => 'Cod. almacén corregido',
+                                            'nombre_almacen_correcto' => 'Nombre almacén corregido',
+                                            'lote_correcto' => 'Lote corregido',
+                                            'fecha_ven_correcto' => 'Fecha vencimiento corregida',
+                                            'sn_qr_correcto' => 'SN/QR corregido',
+                                            'empresa_correcto' => 'Empresa corregida',
+                                        ];
+
+                                        foreach ($camposCorrectos as $campo => $etiqueta) {
+                                            $valor = $record->{$campo};
+                                            if (!is_null($valor) && $valor !== '') {
+                                                if ($campo === 'fecha_ven_correcto') {
+                                                    $valor = \Carbon\Carbon::parse($valor)->format('d/m/Y');
+                                                }
+                                                $lines[] = "- $etiqueta: $valor";
+                                            }
+                                        }
+
+                                        return implode("<br>", $lines) ?: 'Ninguno';
                                     }
-                                ];
-                            });
+                                ],
+                                [
+                                    'name' => 'usuario',
+                                    'label' => 'Usuario de Registro',
+                                    'format' => fn($record) => $record->usuario ?? 'Ninguno'
+                                ]
+                            ];
 
                             $html = Blade::render('exports.inventario-pdf', [
                                 'records' => $records,
-                                'columns' => $preparedColumns,
+                                'columns' => $columns,
                                 'title' => 'Reporte de Inventario',
                                 'date' => now()->format('d/m/Y H:i:s'),
                                 'user' => Auth::user()->name
@@ -494,7 +586,8 @@ class InventarioResource extends Resource implements HasShieldPermissions
                             $pdf = PDF::loadHTML($html)
                                 ->setPaper('a4', 'landscape')
                                 ->setOption('defaultFont', 'Arial')
-                                ->setOption('isHtml5ParserEnabled', true);
+                                ->setOption('isHtml5ParserEnabled', true)
+                                ->setOption('isRemoteEnabled', true);
 
                             return response()->streamDownload(
                                 fn() => print($pdf->stream()),
