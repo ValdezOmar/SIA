@@ -542,7 +542,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
 
                                         // Línea original de observación si existe
                                         if (!empty($record->observacion)) {
-                                            $lines[] = "->" . $record->observacion;
+                                            $lines[] = "" . $record->observacion;
                                         }
 
                                         // Campos correctos (rectificados)
