@@ -67,16 +67,16 @@
         .firma {
             margin-top: 15mm;
             border: 0.2mm solid #999;
-            padding: 10mm;
-            width: 100%;
+            padding: 5mm;
+            width: 90%;
             height: 30mm;
             text-align: center;
             font-size: 7pt;
         }
         .firma::before {
-            content: "Firma de conformidad";
+            content: "Sellos y firmas de conformidad de los almaceneros, administradores regionales y veedores";
             display: block;
-            margin-bottom: 5mm;
+            margin-bottom: 1mm;
             font-weight: bold;
         }
         .diferencia-negativa {
@@ -104,7 +104,14 @@
     </div>
 
     <div class="info">
-        <strong>Total de registros:</strong> {{ number_format(count($records)) }}
+        <strong>Total de registros:</strong> {{ number_format(count($records)) }}<br>
+        @php
+            $totalContados = $records->whereNotNull('saldo_contado')->count();
+            $totalRegistros = count($records);
+            $tasaContados = $totalRegistros > 0 ? round(($totalContados / $totalRegistros) * 100, 2) : 0;
+        @endphp
+        <strong>Total contados:</strong> {{ number_format($totalContados) }}<br>
+        <strong>Tasa de contados:</strong> {{ $tasaContados }}%
     </div>
 
     <table>
@@ -131,7 +138,7 @@
                     @if($isDate || $isNumber) text-center @endif
                     @if($isDiferencia && $value !== 'Sin verificar' && floatval($value) != 0) diferencia-negativa @endif
                 ">
-                    {{ $value }}
+                    {!! $value !!}
                 </td>
                 @endforeach
             </tr>
@@ -140,7 +147,7 @@
     </table>
 
     <div class="footer">
-        <div>{{ $user }} - {{ now()->format('d/m/Y H:i') }}</div>
+        <div>Sistema SIA - {{ now()->format('d/m/Y H:i') }}</div>
         <div class="firma"></div>
     </div>
 </body>

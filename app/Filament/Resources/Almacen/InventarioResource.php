@@ -526,8 +526,13 @@ class InventarioResource extends Resource implements HasShieldPermissions
                                         if ($record->saldo_contado === null) {
                                             return 'Sin verificar';
                                         }
-                                        return number_format($record->saldo_actual - $record->saldo_contado, 2);
+                                        return number_format($record->saldo_contado - $record->saldo_actual, 2);
                                     }
+                                ],
+                                [
+                                    'name' => 'qr',
+                                    'label' => 'QR',
+                                    'format' => fn($record) => $record->sn_qr_correcto ? 'SI' : 'NO',
                                 ],
                                 [
                                     'name' => 'observacion',
@@ -537,22 +542,21 @@ class InventarioResource extends Resource implements HasShieldPermissions
 
                                         // Línea original de observación si existe
                                         if (!empty($record->observacion)) {
-                                            $lines[] = "- " . $record->observacion;
+                                            $lines[] = "->" . $record->observacion;
                                         }
 
                                         // Campos correctos (rectificados)
                                         $camposCorrectos = [
-                                            'codigo_correcto' => 'Código corregido',
-                                            'descripcion_correcto' => 'Descripción corregida',
-                                            'presentacion_correcto' => 'Presentación corregida',
-                                            'unidad_correcto' => 'Unidad corregida',
-                                            'codigo_alterno_correcto' => 'Código alterno corregido',
-                                            'cod_almacen_correcto' => 'Cod. almacén corregido',
-                                            'nombre_almacen_correcto' => 'Nombre almacén corregido',
-                                            'lote_correcto' => 'Lote corregido',
-                                            'fecha_ven_correcto' => 'Fecha vencimiento corregida',
-                                            'sn_qr_correcto' => 'SN/QR corregido',
-                                            'empresa_correcto' => 'Empresa corregida',
+                                            'codigo_correcto' => 'Código correcto',
+                                            'descripcion_correcto' => 'Descripción correcta',
+                                            'presentacion_correcto' => 'Presentación correcta',
+                                            'unidad_correcto' => 'Unidad correcta: ',
+                                            'codigo_alterno_correcto' => 'Código alterno correcto',
+                                            'cod_almacen_correcto' => 'Cod. almacén correcto',
+                                            'nombre_almacen_correcto' => 'Nombre almacén correcto',
+                                            'lote_correcto' => 'Lote correcto: ',
+                                            'fecha_ven_correcto' => 'Fecha vencimiento correcto',                                            
+                                            'empresa_correcto' => 'Empresa correcta',
                                         ];
 
                                         foreach ($camposCorrectos as $campo => $etiqueta) {
@@ -561,7 +565,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
                                                 if ($campo === 'fecha_ven_correcto') {
                                                     $valor = \Carbon\Carbon::parse($valor)->format('d/m/Y');
                                                 }
-                                                $lines[] = "- $etiqueta: $valor";
+                                                $lines[] = "->$etiqueta: $valor";
                                             }
                                         }
 
