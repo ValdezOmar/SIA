@@ -37,11 +37,15 @@
 
             {{-- Discrepancias --}}
             <div class="flex-1 bg-amber-50 dark:bg-amber-50 p-3 rounded-lg border border-amber-100 dark:border-amber-800/50 flex flex-col items-center justify-center">
-                <x-heroicon-o-scale class="w-5 h-5  text-red-600 dark:text-red-400 mb-1.5" />
+                <x-heroicon-o-scale class="w-5 h-5  text-red-600 dark:text-red-600 mb-1.5" />
                 <p class="text-xs font-medium text-gray-700 dark:text-gray-700 mb-1">Diferencias</p>
-                <p class="text-sm font-bold text-gray-900 dark:text-gray-900">
+                <div class="text-sm font-bold text-gray-900 dark:text-gray-900">
                     {{ $diferenciaTotal }}
-                </p>
+                </div>
+                <div style="font-size: 0.5rem;" class="mt-0.5 leading-tight">
+                    <div class="text-blue-600 dark:text-blue-600">Sobrantes: +{{ $diferenciaPositiva }}</div>
+                    <div class="text-red-600 dark:text-red-600">Faltantes: -{{ $diferenciaNegativa }}</div>
+                </div>
             </div>
         </div>
     </div>
