@@ -4,16 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>{{ $title }}</title>
     <style>
-         @page {
-        size: A4 landscape;
-        margin: 10mm;
-        @bottom-right {
-            content: "Página " counter(page) " de " counter(pages);
-            font-size: 6pt;
-            color: #666;
-            font-family: Arial, sans-serif;
-        }
-         }
+         
         body {
             font-family: Arial, sans-serif;
             font-size: 6pt;
