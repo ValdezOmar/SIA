@@ -42,10 +42,10 @@
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-900">
                     {{ $diferenciaTotal }}
                 </div>
-                <div style="font-size: 0.5rem;" class="mt-0.5 leading-tight">
-                    <div class="text-blue-600 dark:text-blue-600">Sobrantes: +{{ $diferenciaPositiva }}</div>
-                    <div class="text-red-600 dark:text-red-600">Faltantes: -{{ $diferenciaNegativa }}</div>
-                </div>
+               {{-- <div style="font-size: 0.5rem;" class="mt-0.5 leading-tight">--}}
+                {{--    <div class="text-blue-600 dark:text-blue-600">Sobrantes: +{{ $diferenciaPositiva }}</div>--}}
+                {{--    <div class="text-red-600 dark:text-red-600">Faltantes: -{{ $diferenciaNegativa }}</div>--}}
+               {{-- </div>--}}
             </div>
         </div>
     </div>
