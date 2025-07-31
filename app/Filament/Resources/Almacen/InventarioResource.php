@@ -591,6 +591,8 @@ class InventarioResource extends Resource implements HasShieldPermissions
                                 ->setPaper('a4', 'landscape')
                                 ->setOption('defaultFont', 'Arial')
                                 ->setOption('isHtml5ParserEnabled', true)
+                                ->setOption('isPhpEnabled', true)
+                                ->setOption('enable_css_float', true)
                                 ->setOption('isRemoteEnabled', true);
 
                             return response()->streamDownload(

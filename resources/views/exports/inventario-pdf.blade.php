@@ -4,15 +4,16 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>{{ $title }}</title>
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 10mm;
-            @bottom-right {
-                content: counter(page) " de " counter(pages);
-                font-size: 6pt;
-                color: #666;
-            }
+         @page {
+        size: A4 landscape;
+        margin: 10mm;
+        @bottom-right {
+            content: "Página " counter(page) " de " counter(pages);
+            font-size: 6pt;
+            color: #666;
+            font-family: Arial, sans-serif;
         }
+         }
         body {
             font-family: Arial, sans-serif;
             font-size: 6pt;
@@ -92,7 +93,7 @@
         .nowrap {
             white-space: nowrap;
         }
-    </style>
+    </style>    
 </head>
 <body>
     <div class="header">
@@ -147,8 +148,26 @@
     </table>
 
     <div class="footer">
-        <div>Sistema SIA - {{ now()->format('d/m/Y H:i') }}</div>
-        <div class="firma"></div>
+    <div style="text-align: right; font-size: 6pt; color: #666;">
+        Página <span class="page-number"></span> de <span class="page-count"></span>
     </div>
+    <div>Sistema SIA - {{ now()->format('d/m/Y H:i') }}</div>
+    <div class="firma"></div>
+</div>
+
+    <script type="text/php">
+    if (isset($pdf)) {
+        $pdf->page_script('
+            if ($PAGE_COUNT > 1) {
+                $currentPage = $PAGE_NUM;
+                $totalPages = $PAGE_COUNT;
+                
+                // Actualizar los spans en cada página
+                $pdf->text(700, 570, "Página $currentPage de $totalPages", 
+                          $fontMetrics->get_font("Arial", "normal"), 6);
+            }
+        ');
+    }
+    </script>   
 </body>
 </html>
