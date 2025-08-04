@@ -154,9 +154,9 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($records as $index => $record)
+          @foreach($records as $index => $record)
             @php
-                // Obtener artículo relacionado y calcular valores
+                // Obtener artículo relacionado
                 $articulo = App\Models\Almacen\Articulo::firstWhere([
                     'codigo' => $record->codigo,
                     'cod_almacen' => $record->cod_almacen,
@@ -167,12 +167,19 @@
                 $diferencia = null;
                 $ajuste = null;
                 
-                // Solo calcular si hay valores y diferencia no es cero
+                // Solo calcular si hay valores y diferencia no es cero ni nula
                 if ($record->saldo_contado !== null && $record->saldo_actual !== null) {
                     $diferencia = $record->saldo_contado - $record->saldo_actual;
                     
+                    // Calcular ajuste solo si hay diferencia
                     if ($diferencia != 0 && $saldoArticulo !== null) {
-                        $ajuste = $record->saldo_contado - $saldoArticulo;
+                        if ($record->saldo_actual == $saldoArticulo) {
+                            // Caso 1: Si saldo inicial y saldo actual son iguales
+                            $ajuste = $record->saldo_contado - $saldoArticulo;
+                        } else {
+                            // Caso 2: Si saldo inicial y saldo actual son distintos
+                            $ajuste = $saldoArticulo - $record->saldo_actual;
+                        }
                     }
                 }
             @endphp
