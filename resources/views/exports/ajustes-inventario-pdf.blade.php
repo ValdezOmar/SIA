@@ -61,7 +61,8 @@
             margin-bottom: 1mm;
             font-weight: bold;
         }
-        .diferencia-negativa, .faltante, .ajuste-negativo {
+        /* Colores para diferencias */
+        .diferencia-negativa, .faltante, .ajuste-negativo, .stock-movido {
             color: #dc2626;
             font-weight: bold;
         }
@@ -69,6 +70,7 @@
             color: #16a34a;
             font-weight: bold;
         }
+        
         .text-right { text-align: right; }
         .text-center { text-align: center; }
         .nowrap { white-space: nowrap; }
@@ -154,72 +156,76 @@
             </tr>
         </thead>
         <tbody>
-         @foreach($records as $index => $record)
-@php
-    // Obtener artículo relacionado
-    $articulo = App\Models\Almacen\Articulo::firstWhere([
-        'codigo' => $record->codigo,
-        'cod_almacen' => $record->cod_almacen,
-        'lote' => $record->lote
-    ]);
-    
-    $saldoArticulo = $articulo->saldo_actual ?? null;
-    $diferencia = null;
-    $ajuste = null;
-    $textoAjuste = 'N/A'; // Valor por defecto
-    
-    // Verificar si hay valores para calcular
-    if ($record->saldo_contado !== null && $record->saldo_actual !== null) {
-        $diferencia = $record->saldo_contado - $record->saldo_actual;
-        
-        // Caso 1: Cuando no hay diferencia
-        if (abs($diferencia) < 0.0001) { // Comparación con tolerancia para floats
-            $textoAjuste = 'Sin Novedad';
-        }
-        // Caso 2: Cuando hay diferencia y existe saldo del artículo
-        elseif (abs($diferencia) > 0.0001 && $saldoArticulo !== null) {
-            // Subcaso 2.1: Stock movido (saldo artículo es menor que ambos)
-            if ($saldoArticulo < $record->saldo_contado && $saldoArticulo < $record->saldo_actual) {
-                $textoAjuste = 'Stock movido';
-            } 
-            // Subcaso 2.2: Cálculo normal de ajustes
-            else {
-                if (abs($record->saldo_actual - $saldoArticulo) < 0.0001) {
-                    $ajuste = $record->saldo_contado - $saldoArticulo;
-                } else {
-                    $ajuste = $saldoArticulo - $record->saldo_actual;
-                }
+            @foreach($records as $index => $record)
+            @php
+                // Obtener artículo relacionado
+                $articulo = App\Models\Almacen\Articulo::firstWhere([
+                    'codigo' => $record->codigo,
+                    'cod_almacen' => $record->cod_almacen,
+                    'lote' => $record->lote
+                ]);
                 
-                $textoAjuste = (abs($ajuste) < 0.0001) ? 'Ajustado' : number_format($ajuste, 2);
-            }
-        }
-    }
-@endphp
-<tr>
-    @foreach($columns as $col)
-    @php
-        $value = $col['format']($record, $index);
-        $isNumeric = in_array($col['name'], ['saldo_actual', 'saldo_contado', 'diferencia_calc']);
-        $isDate = $col['name'] === 'fecha_ven';
-        $isNumber = $col['name'] === 'numero_fila';
-    @endphp
-    <td class="@if($isNumeric) text-right @endif @if($isDate || $isNumber) text-center @endif">
-        {!! $value !!}
-    </td>
-    @endforeach
-    <td class="text-right">
-        {{ $saldoArticulo !== null ? number_format($saldoArticulo, 2) : 'N/A' }}
-    </td>
-    <td class="text-right 
-        @if(in_array($textoAjuste, ['Stock movido', 'Sin Novedad', 'Ajustado'])) 
-            text-center 
-        @elseif($ajuste !== null) 
-            @if($ajuste > 0) ajuste-positivo @elseif($ajuste < 0) ajuste-negativo @endif 
-        @endif">
-        {{ $textoAjuste }}
-    </td>
-</tr>
-@endforeach
+                $saldoArticulo = $articulo->saldo_actual ?? null;
+                $diferencia = null;
+                $ajuste = null;
+                $textoAjuste = 'N/A';
+                $claseAjuste = '';
+                
+                // Verificar si hay valores para calcular
+                if ($record->saldo_contado !== null && $record->saldo_actual !== null) {
+                    $diferencia = $record->saldo_contado - $record->saldo_actual;
+                    
+                    // Caso 1: Cuando no hay diferencia
+                    if (abs($diferencia) < 0.0001) {
+                        $textoAjuste = 'Sin Novedad';
+                        $claseAjuste = 'sin-novedad';
+                    }
+                    // Caso 2: Cuando hay diferencia y existe saldo del artículo
+                    elseif (abs($diferencia) > 0.0001 && $saldoArticulo !== null) {
+                        // Subcaso 2.1: Stock movido (saldo artículo es menor que ambos)
+                        if ($saldoArticulo < $record->saldo_contado && $saldoArticulo < $record->saldo_actual) {
+                            $textoAjuste = 'Stock movido';
+                            $claseAjuste = 'stock-movido';
+                        } 
+                        // Subcaso 2.2: Cálculo normal de ajustes
+                        else {
+                            if (abs($record->saldo_actual - $saldoArticulo) < 0.0001) {
+                                $ajuste = $record->saldo_contado - $saldoArticulo;
+                            } else {
+                                $ajuste = $saldoArticulo - $record->saldo_actual;
+                            }
+                            
+                            if (abs($ajuste) < 0.0001) {
+                                $textoAjuste = 'Ajustado';
+                                $claseAjuste = 'sin-novedad';
+                            } else {
+                                $textoAjuste = number_format($ajuste, 2);
+                                $claseAjuste = $ajuste > 0 ? 'ajuste-positivo' : 'ajuste-negativo';
+                            }
+                        }
+                    }
+                }
+            @endphp
+            <tr>
+                @foreach($columns as $col)
+                @php
+                    $value = $col['format']($record, $index);
+                    $isNumeric = in_array($col['name'], ['saldo_actual', 'saldo_contado', 'diferencia_calc']);
+                    $isDate = $col['name'] === 'fecha_ven';
+                    $isNumber = $col['name'] === 'numero_fila';
+                @endphp
+                <td class="@if($isNumeric) text-right @endif @if($isDate || $isNumber) text-center @endif">
+                    {!! $value !!}
+                </td>
+                @endforeach
+                <td class="text-right">
+                    {{ $saldoArticulo !== null ? number_format($saldoArticulo, 2) : 'N/A' }}
+                </td>
+                <td class="text-center {{ $claseAjuste }}">
+                    {{ $textoAjuste }}
+                </td>
+            </tr>
+            @endforeach
         </tbody>
     </table>
 
