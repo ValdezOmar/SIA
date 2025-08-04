@@ -207,9 +207,14 @@
                 $diferencia = ($record->saldo_contado !== null && $record->saldo_actual !== null) 
                     ? ($record->saldo_contado - $record->saldo_actual) 
                     : null;
-                $ajuste = ($saldoArticulo !== null && $diferencia !== null) 
-                    ? ($saldoArticulo - $record->saldo_actual) 
-                    : null;
+                // Solo calcular si hay valores y diferencia no es cero
+                if ($record->saldo_contado !== null && $record->saldo_actual !== null) {
+                    $diferencia = $record->saldo_contado - $record->saldo_actual;
+                    
+                    if ($diferencia != 0 && $saldoArticulo !== null) {
+                        $ajuste = $record->saldo_contado - $saldoArticulo;
+                    }
+                }
             @endphp
             <tr>
                 @foreach($columns as $col)
