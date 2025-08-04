@@ -154,35 +154,47 @@
             </tr>
         </thead>
         <tbody>
-          @foreach($records as $index => $record)
-            @php
-                // Obtener artículo relacionado
-                $articulo = App\Models\Almacen\Articulo::firstWhere([
-                    'codigo' => $record->codigo,
-                    'cod_almacen' => $record->cod_almacen,
-                    'lote' => $record->lote
-                ]);
-                
-                $saldoArticulo = $articulo->saldo_actual ?? null;
-                $diferencia = null;
-                $ajuste = null;
-                
-                // Solo calcular si hay valores y diferencia no es cero ni nula
-                if ($record->saldo_contado !== null && $record->saldo_actual !== null) {
-                    $diferencia = $record->saldo_contado - $record->saldo_actual;
-                    
-                    // Calcular ajuste solo si hay diferencia
-                    if ($diferencia != 0 && $saldoArticulo !== null) {
-                        if ($record->saldo_actual == $saldoArticulo) {
-                            // Caso 1: Si saldo inicial y saldo actual son iguales
-                            $ajuste = $record->saldo_contado - $saldoArticulo;
-                        } else {
-                            // Caso 2: Si saldo inicial y saldo actual son distintos
-                            $ajuste = $saldoArticulo - $record->saldo_actual;
-                        }
-                    }
+         @foreach($records as $index => $record)
+@php
+    // Obtener artículo relacionado
+    $articulo = App\Models\Almacen\Articulo::firstWhere([
+        'codigo' => $record->codigo,
+        'cod_almacen' => $record->cod_almacen,
+        'lote' => $record->lote
+    ]);
+    
+    $saldoArticulo = $articulo->saldo_actual ?? null;
+    $diferencia = null;
+    $ajuste = null;
+    $textoAjuste = 'N/A'; // Valor por defecto
+    
+    // Verificar si hay valores para calcular
+    if ($record->saldo_contado !== null && $record->saldo_actual !== null) {
+        $diferencia = $record->saldo_contado - $record->saldo_actual;
+        
+        // Caso 1: Cuando no hay diferencia
+        if ($diferencia === 0) {
+            $textoAjuste = 'Sin Novedad';
+        }
+        // Caso 2: Cuando hay diferencia y existe saldo del artículo
+        elseif ($diferencia != 0 && $saldoArticulo !== null) {
+            // Subcaso 2.1: Stock movido (saldo actual < saldo inicial)
+            if ($record->saldo_actual < $saldoArticulo) {
+                $textoAjuste = 'Stock movido';
+            } 
+            // Subcaso 2.2: Cálculo normal de ajustes
+            else {
+                if ($record->saldo_actual == $saldoArticulo) {
+                    $ajuste = $record->saldo_contado - $saldoArticulo;
+                } else {
+                    $ajuste = $saldoArticulo - $record->saldo_actual;
                 }
-            @endphp
+                
+                $textoAjuste = ($ajuste === 0) ? 'Ajustado' : number_format($ajuste, 2);
+            }
+        }
+    }
+@endphp
             <tr>
                 @foreach($columns as $col)
                 @php
