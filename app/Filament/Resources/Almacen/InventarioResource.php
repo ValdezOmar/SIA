@@ -28,6 +28,7 @@ use Filament\Tables\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use App\Models\Almacen\Articulo;
 
 class InventarioResource extends Resource implements HasShieldPermissions
 {
@@ -441,8 +442,8 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     ->fileDisk('local'),
 
                 //Exportador a PDF
-                Action::make('exportPdf')
-                    ->label('Reporte PDF')
+                Action::make('InventarioExporter')
+                    ->label('1. Reporte conteo')
                     ->icon('heroicon-o-document-text')
                     ->color('danger')
                     ->action(function ($livewire) {
@@ -555,7 +556,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
                                             'cod_almacen_correcto' => 'Cod. almacén correcto',
                                             'nombre_almacen_correcto' => 'Nombre almacén correcto',
                                             'lote_correcto' => 'Lote correcto: ',
-                                            'fecha_ven_correcto' => 'Fecha vencimiento correcto',                                            
+                                            'fecha_ven_correcto' => 'Fecha vencimiento correcto',
                                             'empresa_correcto' => 'Empresa correcta',
                                         ];
 
@@ -606,7 +607,128 @@ class InventarioResource extends Resource implements HasShieldPermissions
                                 ->danger()
                                 ->send();
                         }
+                    }),
+
+                //Exportador de ajujstes a PDF
+                Action::make('AjustesInvetarioExport')
+                    ->label('2. Reporte Ajustes')
+                    ->icon('heroicon-o-document-text')
+                    ->color('danger')
+                    ->action(function ($livewire) {
+                        try {
+                            ini_set('memory_limit', '2048M');
+                            $records = $livewire->getFilteredTableQuery()->get();
+
+                            if ($records->isEmpty()) {
+                                Notification::make()
+                                    ->title('No hay registros para exportar')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            $columns = [
+                                [
+                                    'name' => 'numero_fila',
+                                    'label' => 'No.',
+                                    'format' => fn($record, $index) => $index + 1
+                                ],
+                                [
+                                    'name' => 'codigo',
+                                    'label' => 'Código',
+                                    'format' => fn($record) => $record->codigo ?? ''
+                                ],
+                                [
+                                    'name' => 'codigo_alterno',
+                                    'label' => 'Código Alterno',
+                                    'format' => fn($record) => $record->codigo_alterno ?? ''
+                                ],
+                                [
+                                    'name' => 'descripcion',
+                                    'label' => 'Descripción',
+                                    'format' => fn($record) => $record->descripcion ?? ''
+                                ],
+                                [
+                                    'name' => 'presentacion',
+                                    'label' => 'Presentación',
+                                    'format' => fn($record) => $record->presentacion ?? ''
+                                ],
+                                [
+                                    'name' => 'unidad',
+                                    'label' => 'Unidad',
+                                    'format' => fn($record) => $record->unidad ?? ''
+                                ],
+                                [
+                                    'name' => 'cod_almacen',
+                                    'label' => 'Almacén',
+                                    'format' => fn($record) => $record->cod_almacen ?? ''
+                                ],
+                                [
+                                    'name' => 'nombre_almacen',
+                                    'label' => 'Nombre Almacén',
+                                    'format' => fn($record) => $record->nombre_almacen ?? ''
+                                ],
+                                [
+                                    'name' => 'lote',
+                                    'label' => 'Lote',
+                                    'format' => fn($record) => $record->lote ?? ''
+                                ],
+                                [
+                                    'name' => 'fecha_ven',
+                                    'label' => 'Fecha Vencimiento',
+                                    'format' => fn($record) => $record->fecha_ven ? $record->fecha_ven->format('d/m/Y') : ''
+                                ],
+                                [
+                                    'name' => 'saldo_actual',
+                                    'label' => 'Saldo Inicial',
+                                    'format' => fn($record) => $record->saldo_actual ?? ''
+                                ],
+                                [
+                                    'name' => 'saldo_contado',
+                                    'label' => 'Saldo Contado',
+                                    'format' => fn($record) => $record->saldo_contado ?? 'Sin verificar'
+                                ],
+                                [
+                                    'name' => 'diferencia_calc',
+                                    'label' => 'Diferencia',
+                                    'format' => function ($record) {
+                                        if ($record->saldo_contado === null) {
+                                            return 'Sin verificar';
+                                        }
+                                        return number_format($record->saldo_contado - $record->saldo_actual, 2);
+                                    }
+                                ]                               
+                            ];
+
+                            $html = Blade::render('exports.ajustes-inventario-pdf', [
+                                'records' => $records,
+                                'columns' => $columns,
+                                'title' => 'Reporte de ajustes de inventario',
+                                'date' => now()->format('d/m/Y H:i:s'),
+                                'user' => Auth::user()->name
+                            ]);
+
+                            $pdf = PDF::loadHTML($html)
+                                ->setPaper('a4', 'landscape')
+                                ->setOption('defaultFont', 'Arial')
+                                ->setOption('isHtml5ParserEnabled', true)
+                                ->setOption('isPhpEnabled', true)
+                                ->setOption('enable_css_float', true)
+                                ->setOption('isRemoteEnabled', true);
+
+                            return response()->streamDownload(
+                                fn() => print($pdf->stream()),
+                                'ajustes_' . now()->format('Y-m-d_His') . '.pdf'
+                            );
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Error al generar PDF')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     })
+
             ])
             ->actions([])
             ->bulkActions([])

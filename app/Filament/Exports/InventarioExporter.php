@@ -35,6 +35,7 @@ class InventarioExporter extends Exporter
             ExportColumn::make('unidad')->label('Unidad'),
             ExportColumn::make('cod_almacen')->label('Almacén'),
             ExportColumn::make('nombre_almacen')->label('Nombre Almacén'),
+            ExportColumn::make('empresa')->label('Empresa'),
             ExportColumn::make('lote')->label('Lote'),
             ExportColumn::make('fecha_ven')
                 ->label('Fecha Vencimiento')

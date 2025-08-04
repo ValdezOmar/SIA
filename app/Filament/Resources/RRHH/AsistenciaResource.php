@@ -494,7 +494,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                             ->limit(31) // Limitar a un mes máximo
                             ->pluck('date');
 
-                        $pdf = Pdf::loadView('pdf.asistencias', [
+                        $pdf = Pdf::loadView('exports.asistencias-pdf', [
                             'empleados' => $empleados,
                             'fechas' => $uniqueDates,
                             'fechaInicio' => $fechaInicio,
