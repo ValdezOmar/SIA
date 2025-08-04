@@ -4,6 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>{{ $title }}</title>
     <style>
+        /* Estilos optimizados */
         body {
             font-family: Arial, sans-serif;
             font-size: 6pt;
@@ -23,18 +24,10 @@
             font-size: 8pt;
             margin: 2px 0;
         }
-        .info {
-            margin-bottom: 3mm;
-            font-size: 8pt;
-            border: 0.5mm solid #eee;
-            padding: 2mm;
-            border-radius: 2mm;
-        }
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 6pt;
-            table-layout: auto;
         }
         th {
             background: #2a6099;
@@ -42,16 +35,11 @@
             padding: 1mm;
             text-align: center;
             font-weight: bold;
-            word-wrap: break-word;
-            max-width: 120px;
         }
         td {
             padding: 1mm;
             border: 0.2mm solid #ddd;
             text-align: left;
-            word-wrap: break-word;
-            max-width: 120px;
-            overflow-wrap: break-word;
         }
         .footer {
             margin-top: 5mm;
@@ -73,33 +61,17 @@
             margin-bottom: 1mm;
             font-weight: bold;
         }
-        .diferencia-negativa {
+        .diferencia-negativa, .faltante, .ajuste-negativo {
             color: #dc2626;
             font-weight: bold;
         }
-        .text-center {
-            text-align: center;
-        }
-        .text-right {
-            text-align: right;
-        }
-        .nowrap {
-            white-space: nowrap;
-        }
-        .ajuste-positivo {
+        .ajuste-positivo, .sobrante {
             color: #16a34a;
             font-weight: bold;
-        }        
-        .ajuste-negativo {
-            color: #dc2626;
-            font-weight: bold;
         }
-        .sobrante {
-            color: #16a34a;
-        }
-        .faltante {
-            color: #dc2626;
-        }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .nowrap { white-space: nowrap; }
         .stats-table {
             width: 100%; 
             margin-bottom: 10px; 
@@ -113,49 +85,36 @@
     </style>    
 </head>
 <body>
+    <!-- Encabezado del documento -->
     <div class="header">
-        <h1>{{ $title }} @php
-            $empresas = $records->pluck('empresa')->unique()->implode(', ');
-        @endphp - {{ $empresas }}</h1>
+        <h1>{{ $title }} - {{ $records->pluck('empresa')->unique()->implode(', ') }}</h1>
         <div class="nowrap">Generado el: {{ $date }}</div>
         <div class="nowrap">Generado por: {{ $user }}</div>
     </div>
 
+    <!-- Tabla de estadísticas resumidas -->
     <table class="stats-table">
         @php
-            // Estadísticas existentes
+            // Cálculo de estadísticas básicas
             $totalRegistros = count($records);
             $totalContados = $records->whereNotNull('saldo_contado')->count();
             $tasaContados = $totalRegistros > 0 ? round(($totalContados / $totalRegistros) * 100, 2) : 0;
             
-            // Estadísticas de diferencias
-            $totalDiferencias = $records->filter(function($record) {
-                return $record->saldo_contado !== null && 
-                       $record->saldo_contado != $record->saldo_actual;
-            })->count();
+            // Filtrado de registros con diferencias
+            $registrosConDiferencia = $records->filter(function($record) {
+                return $record->saldo_contado !== null && $record->saldo_contado != $record->saldo_actual;
+            });
             
-            $totalAjustados = $records->filter(function($record) {
-                return $record->saldo_contado !== null && 
-                       $record->saldo_contado != 0 && 
-                       $record->saldo_actual != 0 &&
-                       $record->saldo_contado != $record->saldo_actual;
-            })->count();
-            
-            $tasaAjuste = $totalDiferencias > 0 ? round(($totalAjustados / $totalDiferencias) * 100, 2) : 0;
+            $totalDiferencias = $registrosConDiferencia->count();
             
             // Cálculo de sobrantes y faltantes
-            $sobrantes = $records->filter(function($record) {
-                return $record->saldo_contado !== null && 
-                       $record->saldo_contado > $record->saldo_actual;
+            $sobrantes = $registrosConDiferencia->filter(function($record) {
+                return $record->saldo_contado > $record->saldo_actual;
             });
             
-            $faltantes = $records->filter(function($record) {
-                return $record->saldo_contado !== null && 
-                       $record->saldo_contado < $record->saldo_actual;
+            $faltantes = $registrosConDiferencia->filter(function($record) {
+                return $record->saldo_contado < $record->saldo_actual;
             });
-            
-            $totalSobrantes = $sobrantes->count();
-            $totalFaltantes = $faltantes->count();
             
             $sumaSobrantes = $sobrantes->sum(function($record) {
                 return $record->saldo_contado - $record->saldo_actual;
@@ -169,20 +128,21 @@
             <td class="stats-cell">
                 <strong>Total registros:</strong> {{ number_format($totalRegistros) }}<br>
                 <strong>Total contados:</strong> {{ number_format($totalContados) }}<br>
-                <strong>Tasa de contados:</strong> {{ $tasaContados }}%
+                <strong>Tasa contados:</strong> {{ $tasaContados }}%
             </td>
             <td class="stats-cell">
-                <strong>Total diferencia:</strong> {{ number_format($totalDiferencias) }}<br>
-                <strong>Total ajustados:</strong> {{ number_format($totalAjustados) }}<br>
-                <strong>Tasa de ajuste:</strong> {{ $tasaAjuste }}%
+                <strong>Con diferencia:</strong> {{ number_format($totalDiferencias) }}<br>
+                <strong>Sobrantes:</strong> <span class="sobrante">+{{ number_format($sobrantes->count()) }}</span><br>
+                <strong>Faltantes:</strong> <span class="faltante">-{{ number_format($faltantes->count()) }}</span>
             </td>
             <td class="stats-cell">
-                <strong>Sobrantes (Total):</strong> <span class="sobrante">+{{ number_format($sumaSobrantes, 2) }}</span><br>
-                <strong>Faltantes (Total):</strong> <span class="faltante">-{{ number_format($sumaFaltantes, 2) }}</span><br>              
+                <strong>Total sobrantes:</strong> <span class="sobrante">+{{ number_format($sumaSobrantes, 2) }}</span><br>
+                <strong>Total faltantes:</strong> <span class="faltante">-{{ number_format($sumaFaltantes, 2) }}</span><br>
             </td>
         </tr>
     </table>
 
+    <!-- Tabla principal de datos detallados -->
     <table>
         <thead>
             <tr>
@@ -196,17 +156,17 @@
         <tbody>
             @foreach($records as $index => $record)
             @php
-                // Obtener el artículo relacionado para cada registro
-                $articulo = App\Models\Almacen\Articulo::where('codigo', $record->codigo)
-                    ->where('cod_almacen', $record->cod_almacen)
-                    ->where('lote', $record->lote)
-                    ->first();
+                // Obtener artículo relacionado y calcular valores
+                $articulo = App\Models\Almacen\Articulo::firstWhere([
+                    'codigo' => $record->codigo,
+                    'cod_almacen' => $record->cod_almacen,
+                    'lote' => $record->lote
+                ]);
                 
-                // Calcular valores de ajuste
-                $saldoArticulo = $articulo ? $articulo->saldo_actual : null;
-                $diferencia = ($record->saldo_contado !== null && $record->saldo_actual !== null) 
-                    ? ($record->saldo_contado - $record->saldo_actual) 
-                    : null;
+                $saldoArticulo = $articulo->saldo_actual ?? null;
+                $diferencia = null;
+                $ajuste = null;
+                
                 // Solo calcular si hay valores y diferencia no es cero
                 if ($record->saldo_contado !== null && $record->saldo_actual !== null) {
                     $diferencia = $record->saldo_contado - $record->saldo_actual;
@@ -220,30 +180,26 @@
                 @foreach($columns as $col)
                 @php
                     $value = $col['format']($record, $index);
-                    $isDiferencia = $col['name'] === 'diferencia_calc';
                     $isNumeric = in_array($col['name'], ['saldo_actual', 'saldo_contado', 'diferencia_calc']);
                     $isDate = $col['name'] === 'fecha_ven';
                     $isNumber = $col['name'] === 'numero_fila';
                 @endphp
-                <td class="
-                    @if($isNumeric) text-right @endif
-                    @if($isDate || $isNumber) text-center @endif
-                    @if($isDiferencia && $value !== 'Sin verificar' && floatval($value) != 0) diferencia-negativa @endif
-                ">
+                <td class="@if($isNumeric) text-right @endif @if($isDate || $isNumber) text-center @endif">
                     {!! $value !!}
                 </td>
                 @endforeach
                 <td class="text-right">
                     {{ $saldoArticulo !== null ? number_format($saldoArticulo, 2) : 'N/A' }}
                 </td>
-                <td class="text-right @if($ajuste !== null) @if($ajuste > 0) ajuste-positivo @elseif($ajuste < 0) ajuste-negativo @endif @endif">
-                    {{ $ajuste !== null ? number_format($ajuste, 2) : 'N/A' }}
+                <td class="text-right @if($ajuste !== null) @if($ajuste > 0) ajuste-positivo @else ajuste-negativo @endif @endif">
+                    {{ $ajuste !== null ? number_format($ajuste, 2) : ($diferencia === 0 ? '0.00' : 'N/A') }}
                 </td>
             </tr>
             @endforeach
         </tbody>
     </table>
 
+    <!-- Pie de página -->
     <div class="footer">
         <div style="text-align: right; font-size: 6pt; color: #666;">
             Página <span class="page-number"></span> de <span class="page-count"></span>
@@ -252,19 +208,16 @@
         <div class="firma"></div>
     </div>
 
+    <!-- Script para numeración de páginas -->
     <script type="text/php">
         if (isset($pdf)) {
             $pdf->page_script('
                 if ($PAGE_COUNT > 1) {
-                    $currentPage = $PAGE_NUM;
-                    $totalPages = $PAGE_COUNT;
-                    
                     $font = $fontMetrics->get_font("Arial", "normal");
-                    $pageText = "Página $currentPage de $totalPages";
-                    $width = $fontMetrics->get_text_width($pageText, $font, 6);
-                    $x = $pdf->get_width() - $width - 20;
-                    $y = $pdf->get_height() - 15;
-                    $pdf->text($x, $y, $pageText, $font, 6);
+                    $text = "Página $PAGE_NUM de $PAGE_COUNT";
+                    $pdf->text($pdf->get_width() - $fontMetrics->get_text_width($text, $font, 6) - 20, 
+                              $pdf->get_height() - 15, 
+                              $text, $font, 6);
                 }
             ');
         }
