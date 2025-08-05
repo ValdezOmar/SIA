@@ -9,7 +9,6 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Illuminate\Support\Facades\Cache;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Builder;
 use DesignTheBox\BarcodeField\Forms\Components\BarcodeInput;
@@ -21,7 +20,6 @@ class ArticuloResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Articulo::class;
     protected static ?string $modelLabel = 'Disponibilidad de Stock'; //Seccion para configurar el nombre en Filament-Shield
-
     protected static ?string $navigationIcon = 'heroicon-o-cube';
     protected static ?string $pluralModelLabel = 'Disponibilidad de Stock';
     protected static ?string $navigationLabel = 'Disponibilidad de Stock';
@@ -34,7 +32,7 @@ class ArticuloResource extends Resource implements HasShieldPermissions
             ->schema([
                 //
             ]);
-    }    
+    }
 
     public static function table(Table $table): Table
     {
@@ -64,8 +62,6 @@ class ArticuloResource extends Resource implements HasShieldPermissions
                     ")
                     ->sortable()
                     ->searchable(['lote']),
-
-
 
                 TextColumn::make('fecha_ven')
                     ->label('Vencimiento')
@@ -221,21 +217,19 @@ class ArticuloResource extends Resource implements HasShieldPermissions
                     ->label('Filtrar por Almacenes')
                     ->multiple()
                     ->options(function () {
-                        return Cache::remember('almacenes-options', now()->addDay(), function () {
-                            return Articulo::query()
-                                ->select('cod_almacen', 'nombre_almacen')
-                                ->whereNotNull('cod_almacen')
-                                ->where('cod_almacen', '!=', '0')
-                                ->distinct()
-                                ->orderBy('cod_almacen')
-                                ->get()
-                                ->mapWithKeys(function ($item) {
-                                    return [
-                                        $item->cod_almacen => "{$item->cod_almacen} - {$item->nombre_almacen}"
-                                    ];
-                                })
-                                ->toArray();
-                        });
+                        return Articulo::query()
+                            ->select('cod_almacen', 'nombre_almacen')
+                            ->whereNotNull('cod_almacen')
+                            ->where('cod_almacen', '!=', '0')
+                            ->distinct()
+                            ->orderBy('cod_almacen')
+                            ->get()
+                            ->mapWithKeys(function ($item) {
+                                return [
+                                    $item->cod_almacen => "{$item->cod_almacen} - {$item->nombre_almacen}"
+                                ];
+                            })
+                            ->toArray();
                     })
                     ->query(function (Builder $query, array $state) {
                         if (!empty($state['values'])) {
@@ -253,8 +247,7 @@ class ArticuloResource extends Resource implements HasShieldPermissions
                     ->color('success')
                     ->button()
                     ->fileDisk('local') // O 'local' si prefieres almacenar localmente
-                    ->columnMapping(false) // Ocultar selección de columnas (usar todas las definidas)
-                    //modifyQueryUsing(fn(Builder $query) => $query->where('saldo_actual', '>', 0)) // Solo artículos con stock
+                    ->columnMapping(false) // Ocultar selección de columnas (usar todas las definidas)                
             ])
             ->bulkActions([])
             ->paginated([10, 25, 50])

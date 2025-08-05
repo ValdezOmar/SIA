@@ -404,23 +404,21 @@ class InventarioResource extends Resource implements HasShieldPermissions
                     ->label('Filtrar Almacenes')
                     ->multiple()
                     ->options(function () {
+                        $almacenesPermitidos = [0, 101, 102, 107, 202, 207, 210, 302, 307, 402, 407, 502, 507];
 
-                        return Cache::remember('almacenes-options', now()->addDay(), function () {
-                            $almacenesPermitidos = [0, 101, 102, 107, 202, 207, 210, 302, 307, 402, 407, 502, 507];
-                            return Inventario::query()
-                                ->select('cod_almacen', 'nombre_almacen')
-                                ->whereNotNull('cod_almacen')
-                                ->whereIn('cod_almacen', $almacenesPermitidos)
-                                ->distinct()
-                                ->orderBy('cod_almacen')
-                                ->get()
-                                ->mapWithKeys(function ($item) {
-                                    return [
-                                        $item->cod_almacen => "{$item->cod_almacen} - {$item->nombre_almacen}"
-                                    ];
-                                })
-                                ->toArray();
-                        });
+                        return Inventario::query()
+                            ->select('cod_almacen', 'nombre_almacen')
+                            ->whereNotNull('cod_almacen')
+                            ->whereIn('cod_almacen', $almacenesPermitidos)
+                            ->distinct()
+                            ->orderBy('cod_almacen')
+                            ->get()
+                            ->mapWithKeys(function ($item) {
+                                return [
+                                    $item->cod_almacen => "{$item->cod_almacen} - {$item->nombre_almacen}"
+                                ];
+                            })
+                            ->toArray();
                     })
                     ->query(function (Builder $query, array $state) {
                         if (!empty($state['values'])) {
@@ -697,7 +695,7 @@ class InventarioResource extends Resource implements HasShieldPermissions
                                         }
                                         return number_format($record->saldo_contado - $record->saldo_actual, 2);
                                     }
-                                ]                               
+                                ]
                             ];
 
                             $html = Blade::render('exports.ajustes-inventario-pdf', [

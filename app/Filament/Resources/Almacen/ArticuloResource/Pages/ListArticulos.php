@@ -24,15 +24,7 @@ class ListArticulos extends ListRecords
 
         $codigosComercial = ['101', '102', '107', '201', '202', '207', '301', '302', '307', '401', '402', '407', '501', '502', '507'];
         $codigosAlmacen = range(101, 513);
-        $limiteTodos = range(101, 599);
-
-        // "Todos" — permiso personalizado
-        if ($user->can('tab_todos_almacen::articulo')) {
-            $tabs['todos'] = Tab::make('Todos')
-                ->icon('heroicon-o-list-bullet')
-                ->modifyQueryUsing(fn(Builder $query) => $query->whereIn('cod_almacen', $limiteTodos))
-                ->badge(Articulo::whereIn('cod_almacen', $limiteTodos)->count());
-        }
+        $limiteTodos = range(101, 599);       
 
         // "Comercial"
         if ($user->can('tab_comercial_almacen::articulo')) {
@@ -56,6 +48,14 @@ class ListArticulos extends ListRecords
                 ->badge(Articulo::whereIn('cod_almacen', $codigosAlmacen)
                     ->where('saldo_actual', '>', 0)
                     ->count());
+        }
+
+        // "Todos" — permiso personalizado
+        if ($user->can('tab_todos_almacen::articulo')) {
+            $tabs['todos'] = Tab::make('Todo')
+                ->icon('heroicon-o-list-bullet')
+                ->modifyQueryUsing(fn(Builder $query) => $query->whereIn('cod_almacen', $limiteTodos))
+                ->badge(Articulo::whereIn('cod_almacen', $limiteTodos)->count());
         }
 
         return $tabs;
