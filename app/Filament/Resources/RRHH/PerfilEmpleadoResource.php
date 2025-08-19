@@ -6,8 +6,9 @@ use App\Models\RRHH\PerfilEmpleado;
 use Filament\Resources\Resource;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
 use Illuminate\Support\Facades\Auth;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class PerfilEmpleadoResource extends Resource 
+class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = PerfilEmpleado::class;
     protected static ?string $modelLabel = 'Perfil del empleado'; //Seccion para configurar el nombre en Filament-Shield
@@ -43,6 +44,12 @@ class PerfilEmpleadoResource extends Resource
             'view' => Pages\ViewPerfilEmpleado::route('/{record}'),
         ];
     }
-    
-    
+    //Permisos personalizados de filament shield
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view_any',    // los permisos del Shield usuales                   
+            'update',
+        ];
+    }
 }
