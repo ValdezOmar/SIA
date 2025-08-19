@@ -23,7 +23,7 @@ class AsistenciaPolicy
      */
     public function view(User $user, Asistencia $asistencia): bool
     {
-        return $user->can('view_r::r::h::h::asistencia');
+        return $user->can('{{ View }}');
     }
 
     /**

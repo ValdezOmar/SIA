@@ -201,18 +201,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
     {
         // Obtener el usuario actual
         $user = Auth::user();
-        //static::$modalsToRender['remoteDetailsModal'] = static::getRemoteDetailsModal();
-
-        // Verificar permisos - si no tiene acceso, retornar tabla vacía
-        if ($user->hasRole('Empleado') && !$user->can('view_r::r::h::h::asistencia')) {
-            return $table
-                ->columns([])
-                ->filters([])
-                ->actions([])
-                ->bulkActions([])
-                ->paginated(false)
-                ->emptyStateHeading('No tienes permisos para ver esta información');
-        }
 
         // Construir la consulta base
         $baseQuery = Empleado::query()
@@ -222,22 +210,35 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             ->orderBy('apellidos')
             ->orderBy('nombres');
 
-        // Si el usuario tiene rol "Empleado", filtrar solo su registro
-        if ($user->hasRole('Empleado') && $user->can('view_r::r::h::h::asistencia')) {
-            $baseQuery->where('correo_corporativo', $user->email);
-        }
-
-        // Si el usuario tiene rol "administracion regional", filtrar por su sucursal
-        if ($user->hasRole('Administracion Regional')) {
-            // Obtener la sucursal del usuario actual (asumiendo que está asociado a un empleado)
+        // Verificar permisos en orden de prioridad
+        if ($user->can('ver_marcacion_todos_r::r::h::h::asistencia')) {
+            // Puede ver todas las marcaciones → no se filtra nada más
+        } elseif ($user->can('ver_marcacion_sucursal_r::r::h::h::asistencia')) {
+            // Puede ver solo su sucursal
             $empleadoUsuario = Empleado::where('correo_corporativo', $user->email)->first();
-
             if ($empleadoUsuario && $empleadoUsuario->sucursal) {
                 $baseQuery->where('sucursal', $empleadoUsuario->sucursal);
-                Log::debug('Filtrando por sucursal para administración regional', [
+                Log::debug('Filtrando por sucursal para usuario', [
                     'sucursal' => $empleadoUsuario->sucursal
                 ]);
             }
+        } elseif ($user->can('ver_marcacion_propia_r::r::h::h::asistencia')) {
+            // Puede ver solo sus propias marcaciones
+            $baseQuery->where('correo_corporativo', $user->email);
+        } else {
+            // No tiene permisos → retornar tabla vacía
+            Log::debug('Sin permiso de acceso!', [
+                    'Usuario' => $user->name
+                ]);  
+            return $table            
+                ->query(Empleado::query()->whereRaw('0 = 1')) // siempre vacío
+                ->columns([])
+                ->filters([])
+                ->actions([])
+                ->emptyStateHeading('No hay marcaciones disponibles')
+                ->emptyStateDescription('Actualmente no cuenta con permisos asociados a su cuenta')
+                ->emptyStateIcon('heroicon-o-exclamation-circle');  
+                            
         }
 
         Log::debug('Iniciando construcción de tabla de asistencias');
@@ -517,11 +518,12 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
     public static function getPermissionPrefixes(): array
     {
         return [
-            'view_any',    // los permisos del Shield usuales
-            'view',
+            'view_any',    // los permisos del Shield usuales            
             'create',
-            //'update',
-            //'delete',
+            'marcacion_remota',
+            'ver_marcacion_propia',
+            'ver_marcacion_sucursal',
+            'ver_marcacion_todos',
 
         ];
     }
