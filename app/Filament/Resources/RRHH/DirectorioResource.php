@@ -3,13 +3,15 @@
 namespace App\Filament\Resources\RRHH;
 
 use App\Models\RRHH\Directorio;
+use App\Models\RRHH\Empleado;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class DirectorioResource extends Resource
+class DirectorioResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Directorio::class;
 
@@ -88,69 +90,48 @@ class DirectorioResource extends Resource
                         default => 'gray',
                     }),
             ])
-            // Esto hace que las filas no sean clickeables
-            ->recordUrl(null)
             ->filters([
                 Tables\Filters\SelectFilter::make('empresa')
-                    ->options([
-                        'Novanexa' => 'Novanexa',
-                        'Ireilab' => 'Ireilab',
-                        'Requilab' => 'Requilab',
-                    ]),
+                    ->label('Empresa')
+                    ->options(
+                        Empleado::query()
+                            ->select('empresa')
+                            ->distinct()
+                            ->orderBy('empresa')
+                            ->pluck('empresa', 'empresa')
+                            ->toArray()
+                    ),
 
                 Tables\Filters\SelectFilter::make('sucursal')
-                    ->options([
-                        'La Paz' => 'La Paz',
-                        'Santa Cruz' => 'Santa Cruz',
-                        'Cochabamba' => 'Cochabamba',
-                        'Oruro' => 'Oruro',
-                        //'Potosí' => 'Potosí',
-                        'Tarija' => 'Tarija',
-                        'Sucre' => 'Sucre',
-                        //'Beni' => 'Beni',
-                        //'Pando' => 'Pando',
-                    ]),
+                    ->label('Sucursal')
+                    ->options(
+                        Empleado::query()
+                            ->select('sucursal')
+                            ->distinct()
+                            ->orderBy('sucursal')
+                            ->pluck('sucursal', 'sucursal')
+                            ->toArray()
+                    ),
             ])
             ->actions([]) // Sin acciones de edición/eliminación
             ->recordUrl(null) // Desactiva el click en las filas
-            ->defaultPaginationPageOption(50)
+            ->paginated([10, 25, 50, 100])
+            ->defaultPaginationPageOption(100)
             ->bulkActions([]); // Sin acciones masivas
     }
 
-    // Prefijo de permisos
-    protected static function getPermissionPrefix(): string
+    //Permisos personalizados de filament shield
+    public static function getPermissionPrefixes(): array
     {
-        return 'directorio_';
-    }
-
-    public static function shouldRegisterShieldPermissions(): bool
-    {
-        return false; // Desactiva generación automática de permisos
-    }
-    //Premisos de acceso al directorio para que todos puedan ver
-    public static function canViewAny(): bool
-    {
-        return true; // Todos pueden ver este recurso
-    }
-    public static function canCreate(): bool
-    {
-        return false; // Nadie puede crear en el directorio
-    }
-
-    public static function canEdit($record): bool
-    {
-        return false; // Nadie puede editar en el directorio
-    }
-
-    public static function canDelete($record): bool
-    {
-        return false; // Nadie puede eliminar en el directorio
+        return [
+            'view_any',    // los permisos del Shield usuales  
+        ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => \App\Filament\Resources\RRHH\DirectorioResource\Pages\ListDirectorio::route('/'),            
+            'index' => \App\Filament\Resources\RRHH\DirectorioResource\Pages\ListDirectorio::route('/'),
         ];
     }
 }
