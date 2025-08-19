@@ -26,10 +26,10 @@ use Filament\Forms\Components\Field;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Notifications\Notification;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class EmpleadoResource extends Resource
+class EmpleadoResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Empleado::class;
 
@@ -39,41 +39,6 @@ class EmpleadoResource extends Resource
     protected static ?string $navigationLabel = 'Empleados';
     protected static ?string $navigationGroup = 'Recursos Humanos';
     protected static ?int $navigationSort = 1;
-
-    // Método para ocultar el recurso del navigation a los empelados
-    public static function shouldRegisterNavigation(): bool
-    {
-        // Solo mostrar en el navigation si el usuario NO tiene el rol 'Empleado'
-        $user = Auth::user();
-        return $user && !$user->hasRole('Empleado') && $user->roles->isNotEmpty();
-    }
-
-    // Obtiene los datos del empleado y genera el correo
-    protected static function generarCorreoCorporativo(Get $get): ?string
-    {
-        // Validar que los campos requeridos existan
-        if (empty($get('nombres')) || empty($get('apellidos')) || empty($get('empresa'))) {
-            return null;
-        }
-
-        $nombres = explode(' ', $get('nombres'));
-        $apellidos = explode(' ', $get('apellidos'));
-
-        // Obtener primer nombre y apellido
-        $primerNombre = strtolower($nombres[0]);
-        $primerApellido = strtolower($apellidos[0]);
-
-        // Limpiar caracteres especiales y acentos
-        $primerNombre = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerNombre));
-        $primerApellido = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerApellido));
-
-        // Validar y limpiar nombre de empresa
-        $empresa = strtolower($get('empresa'));
-        $empresa = preg_replace('/[^a-z0-9]/', '', $empresa); // Eliminar caracteres no válidos
-        $empresa = $empresa ?: 'novanexa'; // Default si está vacío
-
-        return "{$primerNombre}.{$primerApellido}@{$empresa}.com.bo";
-    }
 
     //Formulario de creacion edicion de empleados
     public static function form(Form $form): Form
@@ -643,6 +608,43 @@ class EmpleadoResource extends Resource
             ->paginated([10, 25, 50, 100, 'all']) // Opciones de paginación disponibles
             ->defaultPaginationPageOption(100)
             ->striped();
+    }
+
+    // Obtiene los datos del empleado y genera el correo
+    protected static function generarCorreoCorporativo(Get $get): ?string
+    {
+        // Validar que los campos requeridos existan
+        if (empty($get('nombres')) || empty($get('apellidos')) || empty($get('empresa'))) {
+            return null;
+        }
+
+        $nombres = explode(' ', $get('nombres'));
+        $apellidos = explode(' ', $get('apellidos'));
+
+        // Obtener primer nombre y apellido
+        $primerNombre = strtolower($nombres[0]);
+        $primerApellido = strtolower($apellidos[0]);
+
+        // Limpiar caracteres especiales y acentos
+        $primerNombre = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerNombre));
+        $primerApellido = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerApellido));
+
+        // Validar y limpiar nombre de empresa
+        $empresa = strtolower($get('empresa'));
+        $empresa = preg_replace('/[^a-z0-9]/', '', $empresa); // Eliminar caracteres no válidos
+        $empresa = $empresa ?: 'novanexa'; // Default si está vacío
+
+        return "{$primerNombre}.{$primerApellido}@{$empresa}.com.bo";
+    }
+
+    //Permisos personalizados de filament shield
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view_any',    // los permisos del Shield usuales       
+            'create',
+            'update',
+        ];
     }
     public static function getPages(): array
     {

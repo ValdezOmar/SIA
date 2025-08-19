@@ -7,7 +7,7 @@ use Filament\Resources\Resource;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
 use Illuminate\Support\Facades\Auth;
 
-class PerfilEmpleadoResource extends Resource
+class PerfilEmpleadoResource extends Resource 
 {
     protected static ?string $model = PerfilEmpleado::class;
     protected static ?string $modelLabel = 'Perfil del empleado'; //Seccion para configurar el nombre en Filament-Shield
