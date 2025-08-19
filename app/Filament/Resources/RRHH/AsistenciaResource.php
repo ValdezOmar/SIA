@@ -228,17 +228,16 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         } else {
             // No tiene permisos → retornar tabla vacía
             Log::debug('Sin permiso de acceso!', [
-                    'Usuario' => $user->name
-                ]);  
-            return $table            
+                'Usuario' => $user->name
+            ]);
+            return $table
                 ->query(Empleado::query()->whereRaw('0 = 1')) // siempre vacío
                 ->columns([])
                 ->filters([])
                 ->actions([])
                 ->emptyStateHeading('No hay marcaciones disponibles')
                 ->emptyStateDescription('Actualmente no cuenta con permisos asociados a su cuenta')
-                ->emptyStateIcon('heroicon-o-exclamation-circle');  
-                            
+                ->emptyStateIcon('heroicon-o-exclamation-circle');
         }
 
         Log::debug('Iniciando construcción de tabla de asistencias');
@@ -471,7 +470,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 //Exporatacion a archivo PDF de las marcaciones
                 Action::make('exportPdf')
                     // Restringir exportación si es empleado
-                    ->visible(fn() => !Auth::user()->hasRole('Empleado') && Auth::user()->can('view', new Asistencia))
+                    ->visible(fn() => Auth::user()->can('exportar_pdf_r::r::h::h::asistencia'))
                     ->label('Exportar a PDF')
                     ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
@@ -518,12 +517,12 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
     public static function getPermissionPrefixes(): array
     {
         return [
-            'view_any',    // los permisos del Shield usuales            
+            'view_any',    // los permisos del Shield usuales       
             'create',
-            'marcacion_remota',
             'ver_marcacion_propia',
             'ver_marcacion_sucursal',
             'ver_marcacion_todos',
+            'exportar_pdf',
 
         ];
     }
