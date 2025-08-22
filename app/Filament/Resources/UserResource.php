@@ -80,12 +80,24 @@ class UserResource extends Resource
                     ->label('Roles')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
-                        'Administrador' => 'danger',
-                        'super_admin' => 'danger',
-                        'Directiva' => 'warning',
-                        'Empleado' => 'success',
-                        'Administracion Regional' => 'info',
-                        default => 'gray',
+                        'Super Admin'              => 'danger',
+                        'Administrador De Sistema' => 'danger',
+                        'Gerencia'                 => 'warning',
+                        'Encargado Regional'       => 'info',
+                        'Empleado'                 => 'success',
+                        'Recursos Humanos'         => 'purple',
+                        'Almacenes'                => 'cyan',
+                        'Comercial'                => 'teal',
+                        'Licitaciones'             => 'amber',
+                        'Soporte Técnico'          => 'indigo',
+
+                        // Roles genéricos
+                        'Administrador'            => 'danger',
+                        'super_admin'              => 'danger',
+                        'Directiva'                => 'warning',
+                        'Administracion Regional'  => 'info',
+
+                        default                    => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('email_verified_at')
                     ->dateTime()
@@ -121,7 +133,7 @@ class UserResource extends Resource
         return [
             //
         ];
-    }    
+    }
 
     public static function getPages(): array
     {
