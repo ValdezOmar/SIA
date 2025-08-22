@@ -73,24 +73,27 @@ class UserResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('email')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label('Roles')
+                    ->sortable()
                     ->badge()
                     ->color(fn(?string $state) => match (true) {
                         in_array($state, ['Super Admin', 'Administrador De Sistema', 'super_admin']) => 'danger',
-                        in_array($state, ['Gerencia', 'Directiva', 'Administrador']) => 'warning',
-                        in_array($state, ['Encargado Regional', 'Administracion Regional']) => 'info',
+                        in_array($state, ['Gerencia', 'Directiva', 'Administrador', 'Encargado Regional', 'Recursos Humanos']) => 'warning',
+                        in_array($state, ['Administracion Regional']) => 'info',
                         $state === 'Empleado' => 'success',
-                        in_array($state, ['Recursos Humanos', 'Almacenes', 'Comercial', 'Licitaciones', 'Soporte Técnico']) => 'primary',
+                        in_array($state, ['Almacenes', 'Comercial', 'Licitaciones', 'Soporte Técnico']) => 'primary',
                         default => 'gray',
                     }),
-                Tables\Columns\TextColumn::make('email_verified_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                // Tables\Columns\TextColumn::make('email_verified_at')
+                //     ->dateTime()
+                //     ->sortable()
+                //     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
