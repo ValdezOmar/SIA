@@ -79,25 +79,13 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label('Roles')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'Super Admin'              => 'danger',
-                        'Administrador De Sistema' => 'danger',
-                        'Gerencia'                 => 'warning',
-                        'Encargado Regional'       => 'info',
-                        'Empleado'                 => 'success',
-                        'Recursos Humanos'         => 'purple',
-                        'Almacenes'                => 'cyan',
-                        'Comercial'                => 'teal',
-                        'Licitaciones'             => 'amber',
-                        'Soporte Técnico'          => 'indigo',
-
-                        // Roles genéricos
-                        'Administrador'            => 'danger',
-                        'super_admin'              => 'danger',
-                        'Directiva'                => 'warning',
-                        'Administracion Regional'  => 'info',
-
-                        default                    => 'gray',
+                    ->color(fn(?string $state) => match (true) {
+                        in_array($state, ['Super Admin', 'Administrador De Sistema', 'super_admin']) => 'danger',
+                        in_array($state, ['Gerencia', 'Directiva', 'Administrador']) => 'warning',
+                        in_array($state, ['Encargado Regional', 'Administracion Regional']) => 'info',
+                        $state === 'Empleado' => 'success',
+                        in_array($state, ['Recursos Humanos', 'Almacenes', 'Comercial', 'Licitaciones', 'Soporte Técnico']) => 'primary',
+                        default => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('email_verified_at')
                     ->dateTime()
