@@ -114,10 +114,15 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     ->default('')
                     ->reactive()
                     ->afterStateUpdated(function ($state, $set) {
-                        // Validar que sea un JSON válido
                         if (!empty($state)) {
                             try {
+                                // Validar JSON
                                 json_decode($state);
+
+                                // Truncar a 255 caracteres si excede
+                                if (strlen($state) > 255) {
+                                    $set('id_equipo', substr($state, 0, 255));
+                                }
                             } catch (\Exception $e) {
                                 $set('id_equipo', '');
                             }
