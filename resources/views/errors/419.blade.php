@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sesión Expirada</title>
+    <title>Error 419 - Sesión expirada</title>
     <script>
         let seconds = 10;
         function countdown() {
@@ -19,8 +19,8 @@
     </script>
     <style>
         body {
-            background: linear-gradient(135deg, #1e3a8a, #1e40af);
-            color: #f1f5f9;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #f8fafc;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             align-items: center;
@@ -31,25 +31,20 @@
         }
         .container {
             max-width: 500px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 30px;
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
         h1 {
-            font-size: 4rem;
+            font-size: 6rem;
             margin: 0;
             color: #facc15;
         }
         p {
-            margin: 15px 0;
+            margin: 10px 0;
             font-size: 1.2rem;
         }
         .redirect {
             margin-top: 20px;
             font-size: 1rem;
-            color: #cbd5e1;
+            color: #94a3b8;
         }
         a.button {
             display: inline-block;
