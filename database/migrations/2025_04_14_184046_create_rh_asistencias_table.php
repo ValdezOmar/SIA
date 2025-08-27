@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('rh_asistencias', function (Blueprint $table) {
             $table->id();
-            $table->string('id_equipo')->nullable(); // ID único del equipo
+            $table->text('id_equipo')->nullable(); // ID único del equipo
             $table->string('user_id'); // ID de usuario registrado en el biométrico
             $table->date('fecha');     // Cambiado de timestamp a date
             $table->time('hora');      // Cambiado de timestamp a time
             $table->boolean('registro_remoto')->nullable(); // Puntero para saber si registraron en sitio
             $table->string('localizacion')->nullable(); // Geolocallzacion para saber donde realizar el registro remoto
             $table->string('justificacion')->nullable(); // Justificacion de porque se esta realizando el marcado remoto
-            $table->boolean('visible')->nullable();//muestra la marcacion en sistema
+            $table->boolean('visible')->default(true);//muestra la marcacion en sistema
             $table->index('user_id', 'asistencias_user_id_index');
             $table->index('fecha', 'asistencias_fecha_index');
             $table->index(['user_id', 'fecha'], 'asistencias_user_fecha_index');

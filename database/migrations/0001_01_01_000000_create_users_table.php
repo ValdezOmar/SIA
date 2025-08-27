@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable(); // Cambiado a nullable
-            $table->string('google_id')->nullable(); // Añadido para almacenar ID de Google
+            $table->text('google_id')->nullable(); // Añadido para almacenar ID de Google
             $table->text('google_token')->nullable(); // Añadido para token de Google
             $table->text('google_refresh_token')->nullable(); // Añadido para refresh token
             $table->rememberToken();
