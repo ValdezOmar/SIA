@@ -18,6 +18,7 @@ class Parametro extends Model
         'fondo_path',
         'color_principal',
         'color_secundario',
+        'login_nativo',
 
         // Integraciones externas
         'google_activo',

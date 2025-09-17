@@ -29,19 +29,13 @@ class DashboardPanelProvider extends PanelProvider
             ->default()
             ->id('dashboard')
             ->path('dashboard')
-            ->login()
-            ->colors([
-                'primary'       => '#009BA4', // principal (botones, enlaces, etc.)
-                'primary-hover' => '#51CDD2', // hover o acento
-                'secondary'     => '#3066BE', // secundario
-                'accent'        => '#6D9DC5', // campos activos, bordes, detalles
-                'muted'         => '#AEECEF', // fondos suaves, elementos pasivosFFF
-            ])
+            ->login()            
             // ->brandName('SISTEMA INTEGRADO DE ADMINISTRACION')
-            ->brandLogo(asset('images/logo.svg'))// Logo que se muestra en la esquina superior izquierda del panel
-            ->brandLogoHeight('2.1rem')// Altura del logo
+            ->brandLogo(asset('/images/logo.png'))// Logo que se muestra en la esquina superior izquierda del panel
+            ->brandLogoHeight('3rem')// Altura del logo
             ->sidebarCollapsibleOnDesktop(true)// Permite que la barra lateral (sidebar) sea colapsable en escritorio
-            //Gestion de rutas automaticasr
+            
+            //Gestion de rutas automaticas
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources') // Descubre y registra automáticamente los recursos (CRUDs) dentro de app/Filament/Resources
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')// Descubre y registra automáticamente las páginas personalizadas en app/Filament/Pages
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
@@ -70,6 +64,7 @@ class DashboardPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            
             // MENU DE GRUPOS DE LA APLICACION
             ->navigationGroups([
                 'Recursos Humanos',
@@ -77,18 +72,22 @@ class DashboardPanelProvider extends PanelProvider
                 'Configuración',
                 // ... otros grupos
             ])
+            
             //RUTA FAVICON
-            ->favicon(asset('images/favicon.ico'))
+            ->favicon(asset('/images/favicon.ico'))
+            
             //Spatie configuration
             ->login(GoogleAuthProvider::class)
             ->authGuard('web')
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
+            
             // GEstion de los plugins
             ->plugins([
                 FilamentShieldPlugin::make(),
                 DashStackThemePlugin::make()
             ])
+            
             //Items del menu superior del avatar
             ->userMenuItems([
                 'perfil' => \Filament\Navigation\MenuItem::make()

@@ -17,8 +17,7 @@ return new class extends Migration
             $table->string('logo_path', 255)->nullable();
             $table->string('favicon_path', 255)->nullable();
             $table->string('fondo_path', 255)->nullable(); //Fondo de login
-            $table->string('color_principal', 20)->nullable();
-            $table->string('color_secundario', 20)->nullable();
+            $table->string('color_principal', 20)->nullable();            
 
             // Integraciones externas
             $table->boolean('google_activo')->default(0);
@@ -27,6 +26,7 @@ return new class extends Migration
             $table->text('google_redirect_uri')->nullable();
 
             // Configuración interna
+            $table->boolean('login_nativo')->default(1);
             $table->string('timezone', 100)->default('America/La_Paz');
             
             $table->timestamps();

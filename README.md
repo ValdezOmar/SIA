@@ -47,6 +47,7 @@ php artisan db:seed
 php artisan db:seed EmpleadoSeeder 
 php artisan shield:generate --all
 php artisan db:seed RolePermissionSeeder
+php artisan db:seed ParametrosSeeder #Importante Ejecutar en produccion o desarrollo, si falla la migracion de la tabla de parametros comentar temporalmente el first() de vendor\nuxtifyts\dash-stack-theme\config\filament-dash-stack-theme.php
 
 # Para desarrollo (limpiar)
 php artisan optimize:clear

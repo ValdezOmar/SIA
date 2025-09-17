@@ -13,5 +13,5 @@ class Sistema extends Cluster
     protected static ?string $navigationLabel = 'Sistema';
     protected static ?string $navigationGroup = 'Configuración';
     protected static ?int $navigationSort = 2;
-    protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;   
+    // protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;   
 }

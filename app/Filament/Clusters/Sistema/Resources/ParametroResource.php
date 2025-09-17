@@ -4,110 +4,178 @@ namespace App\Filament\Clusters\Sistema\Resources;
 
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\ParametroResource\Pages;
-use App\Filament\Clusters\Sistema\Resources\ParametroResource\RelationManagers;
 use App\Models\Sistema\Parametro;
-use Filament\Forms;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Columns\ColorColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Illuminate\Support\Facades\File;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ParametroResource extends Resource
 {
     protected static ?string $model = Parametro::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
     protected static ?string $cluster = Sistema::class;
+    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $modelLabel = 'Parametros Generales';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\FileUpload::make('logo_path')
-                    ->label('Logo')
-                    ->image()
-                    ->directory('parametros')
-                    ->imageEditor(),
-
-                Forms\Components\FileUpload::make('favicon_path')
-                    ->label('Favicon')
-                    ->image()
-                    ->directory('parametros'),
-
-                Forms\Components\FileUpload::make('fondo_path')
-                    ->label('Fondo de Login')
-                    ->image()
-                    ->directory('parametros'),
-
-                Forms\Components\ColorPicker::make('color_principal')
-                    ->label('Color Principal')
-                    ->required(),
-
-                Forms\Components\ColorPicker::make('color_secundario')
-                    ->label('Color Secundario')
-                    ->required(),
-
-                Forms\Components\Section::make('Integración con Google')
+                // Sección de imágenes
+                Section::make('Imágenes del sistema')
+                    ->columns(3)
+                    ->description('Sube los logos y el fondo de login del sistema. Formatos recomendados y tamaño máximo 2MB.')
                     ->schema([
-                        Forms\Components\Toggle::make('google_activo')
-                            ->label('Activar Google Login'),
+                        FileUpload::make('logo_path')
+                            ->label('Logo Principal')
+                            ->hint('Formatos aceptados: PNG, SVG.')
+                            ->image()
+                            ->acceptedFileTypes(['image/png', 'image/svg+xml'])
+                            ->maxSize(2048)
+                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
+                                $destination = public_path('images/logo.png');
+                                File::ensureDirectoryExists(public_path('images'));
+                                File::copy($file->getRealPath(), $destination);
+                                return '/images/logo.png';
+                            })
+                            ->default(fn() => file_exists(public_path('images/logo.png')) ? '/images/logo.png' : null),
 
-                        Forms\Components\TextInput::make('google_client_id')
+                        FileUpload::make('favicon_path')
+                            ->label('Favicon')
+                            ->hint('Formatos aceptados: .ICO o PNG.')
+                            ->image()
+                            ->acceptedFileTypes(['image/x-icon', 'image/vnd.microsoft.icon', 'image/png'])
+                            ->maxSize(2048)
+                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
+                                $destination = public_path('images/favicon.ico');
+                                File::ensureDirectoryExists(public_path('images'));
+                                File::copy($file->getRealPath(), $destination);
+                                return '/images/favicon.ico';
+                            })
+                            ->default(fn() => file_exists(public_path('images/favicon.ico')) ? '/images/favicon.ico' : null),
+
+                        FileUpload::make('fondo_path')
+                            ->label('Fondo de Login')
+                            ->hint('Formatos aceptados: PNG o JPEG. ')
+                            ->image()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png'])
+                            ->maxSize(2048)
+                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
+                                $destination = public_path('images/fondo.jpg');
+                                File::ensureDirectoryExists(public_path('images'));
+                                File::copy($file->getRealPath(), $destination);
+                                return '/images/fondo.jpg';
+                            })
+                            ->default(fn() => file_exists(public_path('images/fondo.jpg')) ? '/images/fondo.jpg' : null),
+                    ]),
+
+                // Sección de configuración básica
+                Section::make('Parámetros iniciales')
+                    ->columns(3)
+                    ->description('Configura los colores principales y la zona horaria del sistema.')
+                    ->schema([
+                        ColorPicker::make('color_principal')
+                            ->label('Color Principal')
+                            ->required()
+                            ->helperText('Color principal que se aplicará en la interfaz del sistema.'),
+
+                        Select::make('timezone')
+                            ->label('País / Zona Horaria')
+                            ->options(function () {
+                                $envTimezones = env('TIMEZONES');
+                                $zones = $envTimezones ? explode(',', $envTimezones) : \DateTimeZone::listIdentifiers();
+
+                                $options = [];
+                                foreach ($zones as $tz) {
+                                    $parts = explode('/', $tz);
+                                    $country = $parts[0];
+                                    $city = $parts[1] ?? '';
+                                    $options[$tz] = $country . ($city ? " ($city)" : '');
+                                }
+                                return $options;
+                            })
+                            ->searchable()
+                            ->required()
+                            ->helperText('Selecciona la zona horaria según el país para compatibilidad con el sistema.'),
+
+                        Toggle::make('login_nativo')
+                            ->label('Activar Login Nativo')
+                            ->hint('¡Manipular con cuidado!')
+                            ->reactive()
+                            ->afterStateHydrated(function ($state, callable $set, callable $get) {
+                                if (!$state && !$get('google_activo')) {
+                                    $set('login_nativo', true);
+                                }
+                            }),
+                    ]),
+
+                // Sección de integración con Google
+                Section::make('Integración con Google')
+                    ->description('Solo se recomienda activar Google Login con cuentas Google Corporativo.')
+                    ->collapsible()
+                    ->columns(1)
+                    ->schema([
+                        Toggle::make('google_activo')
+                            ->label('Activar Google Login')
+                            ->reactive()
+                            ->required(fn($get) => !$get('login_nativo')),
+
+                        TextInput::make('google_client_id')
                             ->label('Client ID')
-                            ->visible(fn($get) => $get('google_activo')),
+                            ->disabled(fn($get) => !$get('google_activo')) // deshabilitado si google_activo es false
+                            ->required(fn($get) => $get('google_activo'))
+                            ->placeholder('Ej: 1234567890.apps.googleusercontent.com'),
 
-                        Forms\Components\TextInput::make('google_client_secret')
+                        TextInput::make('google_client_secret')
                             ->label('Client Secret')
                             ->password()
-                            ->visible(fn($get) => $get('google_activo')),
+                            ->disabled(fn($get) => !$get('google_activo')) // deshabilitado si google_activo es false
+                            ->required(fn($get) => $get('google_activo')),
 
-                        Forms\Components\TextInput::make('google_redirect_uri')
+                        TextInput::make('google_redirect_uri')
                             ->label('Redirect URI')
-                            ->visible(fn($get) => $get('google_activo')),
-                    ])
-                    ->collapsible(),
+                            ->disabled(fn($get) => !$get('google_activo')) // deshabilitado si google_activo es false
+                            ->required(fn($get) => $get('google_activo'))
+                            ->placeholder('Ej: https://midominio.com/auth/google/callback'),
+                    ]),
 
-                Forms\Components\Select::make('timezone')
-                    ->label('Zona Horaria')
-                    ->options([
-                        'America/La_Paz' => 'America/La_Paz',
-                        'America/Lima' => 'America/Lima',
-                        'America/Bogota' => 'America/Bogotá',
-                        'America/Santiago' => 'America/Santiago',
-                    ])
-                    ->searchable(),
             ]);
     }
 
     public static function table(Table $table): Table
     {
-        // Como es registro único, mostramos solo 1 fila
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('logo_path')->label('Logo'),
-                Tables\Columns\ColorColumn::make('color_principal')->label('Color Principal'),
-                Tables\Columns\ColorColumn::make('color_secundario')->label('Color Secundario'),
-                Tables\Columns\IconColumn::make('google_activo')->boolean()->label('Google Login'),
-                Tables\Columns\TextColumn::make('timezone')->label('Zona Horaria'),
+                
+                ColorColumn::make('color_principal')->label('Color Principal'),
+                IconColumn::make('google_activo')->boolean()->label('Google Login'),
+                IconColumn::make('login_nativo')->boolean()->label('Login Nativo'),
+                TextColumn::make('timezone')->label('Zona Horaria'),
             ])
-            ->defaultSort('id', 'asc');
+            ->paginated(false);
     }
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListParametros::route('/'),
-            
             'edit' => Pages\EditParametro::route('/{record}/edit'),
         ];
     }
