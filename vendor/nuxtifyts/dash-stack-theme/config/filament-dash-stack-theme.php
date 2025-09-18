@@ -1,11 +1,19 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-$parametros = DB::table('conf_parametros')->first();
+$primary = '#009BA4';   // valores por defecto
+$secondary = '#3066BE';
 
-$primary = $parametros->color_principal ?? '#009BA4';
-$secondary = $parametros->color_secundario ?? '#3066BE';
+if (Schema::hasTable('conf_parametros')) {
+    $parametros = DB::table('conf_parametros')->first();
+
+    if ($parametros) {
+        $primary   = $parametros->color_principal ?? $primary;
+        $secondary = $parametros->color_secundario ?? $secondary;
+    }
+}
 
 return [
     'default-colors' => [
