@@ -73,8 +73,7 @@ return [
 
         'widgets' => [
             'AccountWidget',
-            'FilamentInfoWidget',
-            'NextcloudWidget',
+            'FilamentInfoWidget',            
         ],
 
         'resources' => [

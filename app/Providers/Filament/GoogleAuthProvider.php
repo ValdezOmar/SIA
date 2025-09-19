@@ -17,7 +17,6 @@ class GoogleAuthProvider extends Login
     public function form(Form $form): Form
     {
         $parametros = Parametro::first();
-
         $components = [];
 
         if ($parametros->google_activo) {

@@ -4,12 +4,11 @@ namespace App\Filament\Widgets;
 
 use App\Models\Almacen\Articulo;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Carbon;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class EstadoVencimientoChart extends ChartWidget
 {
-    protected static ?string $heading = 'Estado de ítems por vencer (con stock disponible)';
+    protected static ?string $heading = 'Stock por vencer';
     use HasWidgetShield;
 
     protected function getType(): string
