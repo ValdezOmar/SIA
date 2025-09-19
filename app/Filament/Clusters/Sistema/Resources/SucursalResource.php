@@ -29,8 +29,8 @@ class SucursalResource extends Resource implements HasShieldPermissions
                     ->description('Datos principales de la sucursal.')
                     ->schema([
                         Forms\Components\Select::make('empresa_id')
-                            ->label('Sociedad')
-                            ->relationship('sociedad', 'razon_social')
+                            ->label('Empresa')
+                            ->relationship('empresa', 'razon_social')
                             ->required()
                             ->searchable()
                             ->preload()
@@ -91,8 +91,8 @@ class SucursalResource extends Resource implements HasShieldPermissions
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('sociedad.razon_social')
-                    ->label('Sociedad')
+                Tables\Columns\TextColumn::make('empresa.razon_social')
+                    ->label('Empresa')
                     ->sortable()
                     ->searchable(),
 
