@@ -28,7 +28,7 @@ class SucursalResource extends Resource implements HasShieldPermissions
                 Forms\Components\Section::make('Información General')
                     ->description('Datos principales de la sucursal.')
                     ->schema([
-                        Forms\Components\Select::make('sociedad_id')
+                        Forms\Components\Select::make('empresa_id')
                             ->label('Sociedad')
                             ->relationship('sociedad', 'razon_social')
                             ->required()

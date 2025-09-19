@@ -30,12 +30,12 @@ class Empresa extends Model
         return $this->belongsToMany(
             Area::class,
             'conf_area_empresa',   // nombre real de la tabla pivote
-            'sociedad_id',     // FK hacia conf_empresas
+            'empresa_id',     // FK hacia conf_empresas
             'area_id'               // FK hacia conf_areas
         );
     }
     public function sucursales()
     {
-        return $this->hasMany(Sucursal::class, 'sociedad_id');
+        return $this->hasMany(Sucursal::class, 'empresa_id');
     }
 }
