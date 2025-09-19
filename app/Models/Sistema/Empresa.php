@@ -9,7 +9,7 @@ class Empresa extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'conf_sociedades';
+    protected $table = 'conf_empresas';
     protected $fillable = [
         'razon_social',
         'nombre_comercial',
@@ -30,7 +30,7 @@ class Empresa extends Model
         return $this->belongsToMany(
             Area::class,
             'conf_area_sociedad',   // nombre real de la tabla pivote
-            'sociedad_id',     // FK hacia conf_sociedades
+            'sociedad_id',     // FK hacia conf_empresas
             'area_id'               // FK hacia conf_areas
         );
     }
