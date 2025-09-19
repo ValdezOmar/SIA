@@ -11,7 +11,7 @@ class NextcloudWidget extends Widget
     use HasWidgetShield;
 
     protected static string $view = 'filament.widgets.nextcloud-widget';
-    protected static ?string $heading = 'Archivos Compartidos';
+    protected static ?string $heading = 'Nextcloud widget';
 
     public function getNextcloudUrl(): string
     {

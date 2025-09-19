@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\Sistema\Resources;
 
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\EmpresaResource\Pages;
+use App\Filament\Clusters\Sistema\Resources\EmpresaResource\RelationManagers\EmpresaAreasRelationManager;
 use App\Models\Sistema\Empresa;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -16,7 +17,7 @@ class EmpresaResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Empresa::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
+    protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
     protected static ?string $pluralModelLabel = 'Configuración de empresa';
     protected static ?string $navigationLabel = 'Empresas';
 
@@ -150,7 +151,7 @@ class EmpresaResource extends Resource implements HasShieldPermissions
     public static function getRelations(): array
     {
         return [
-            //
+            //EmpresaAreasRelationManager::class,
         ];
     }
 

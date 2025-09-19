@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\Sistema\Resources;
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\AreaResource\Pages;
 use App\Filament\Clusters\Sistema\Resources\AreaResource\RelationManagers\CargosRelationManager;
+use App\Filament\Clusters\Sistema\Resources\AreaResource\RelationManagers\EmpresasRelationManager;
 use App\Models\Sistema\Area;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -17,7 +18,7 @@ class AreaResource extends Resource implements HasShieldPermissions
 {
      protected static ?string $model = Area::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-office';
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $navigationLabel = 'Áreas';
     protected static ?string $pluralLabel = 'Áreas';
     protected static ?string $cluster = Sistema::class;
@@ -78,6 +79,7 @@ class AreaResource extends Resource implements HasShieldPermissions
     {
         return [
             CargosRelationManager::class,
+            EmpresasRelationManager::class
         ];
     }
 

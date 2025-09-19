@@ -26,9 +26,9 @@ class ParametroResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Parametro::class;
     protected static ?string $cluster = Sistema::class;
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
     protected static ?string $modelLabel = 'Parametros Generales';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = -100;
 
     public static function form(Form $form): Form
     {

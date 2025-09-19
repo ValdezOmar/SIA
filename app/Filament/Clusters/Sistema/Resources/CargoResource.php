@@ -17,7 +17,7 @@ class CargoResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Cargo::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?string $navigationIcon = 'heroicon-o-briefcase';
     protected static ?string $navigationLabel = 'Cargos';
     protected static ?string $cluster = Sistema::class;
 
