@@ -11,8 +11,9 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class AreaResource extends Resource
+class AreaResource extends Resource implements HasShieldPermissions
 {
      protected static ?string $model = Area::class;
 
@@ -60,6 +61,17 @@ class AreaResource extends Resource
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
             ]);
+    }
+        //Permisos personalizados de filament shield
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view_any', //Mostrar en menú
+            'view', //Ver registro
+            'create', //Crear Registro
+            'update', //Actualizar registro            
+            'delete' //Eliminar Registro
+        ];
     }
 
     public static function getRelations(): array

@@ -23,7 +23,7 @@ class EmpleadoPolicy
      */
     public function view(User $user, Empleado $empleado): bool
     {
-        return $user->can('view_r::r::h::h::empleado');
+        return $user->can('{{ View }}');
     }
 
     /**
@@ -47,7 +47,7 @@ class EmpleadoPolicy
      */
     public function delete(User $user, Empleado $empleado): bool
     {
-        return $user->can('delete_r::r::h::h::empleado');
+        return $user->can('{{ Delete }}');
     }
 
     /**

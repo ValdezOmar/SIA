@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Policies\RRHH;
+namespace App\Policies\Sistema;
 
 use App\Models\User;
-use App\Models\RRHH\Directorio;
+use App\Models\Sistema\Empresa;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class DirectorioPolicy
+class EmpresaPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class DirectorioPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_r::r::h::h::directorio');
+        return $user->can('view_any_empresa');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Directorio $directorio): bool
+    public function view(User $user, Empresa $empresa): bool
     {
-        return $user->can('{{ View }}');
+        return $user->can('view_empresa');
     }
 
     /**
@@ -31,23 +31,23 @@ class DirectorioPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('{{ Create }}');
+        return $user->can('create_empresa');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Directorio $directorio): bool
+    public function update(User $user, Empresa $empresa): bool
     {
-        return $user->can('{{ Update }}');
+        return $user->can('update_empresa');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Directorio $directorio): bool
+    public function delete(User $user, Empresa $empresa): bool
     {
-        return $user->can('{{ Delete }}');
+        return $user->can('delete_empresa');
     }
 
     /**
@@ -61,7 +61,7 @@ class DirectorioPolicy
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, Directorio $directorio): bool
+    public function forceDelete(User $user, Empresa $empresa): bool
     {
         return $user->can('{{ ForceDelete }}');
     }
@@ -77,7 +77,7 @@ class DirectorioPolicy
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, Directorio $directorio): bool
+    public function restore(User $user, Empresa $empresa): bool
     {
         return $user->can('{{ Restore }}');
     }
@@ -93,7 +93,7 @@ class DirectorioPolicy
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, Directorio $directorio): bool
+    public function replicate(User $user, Empresa $empresa): bool
     {
         return $user->can('{{ Replicate }}');
     }

@@ -64,11 +64,11 @@ return [
     */
 
     'resource_permission_prefixes_labels' => [
-        'view' => 'Ver un registro en particular',
+        'view' => 'Ver registro',
         'view_any' => 'Ver el listado de registros',
         'create' => 'Crear',
         'update' => 'Actualizar',
-        'delete' => 'Eliminar un registro en particular',
+        'delete' => 'Eliminar registro',
         'delete_any' => 'Eliminar varios registros a la vez',
         'force_delete' => 'Forzar elminación de un registro en particular',
         'force_delete_any' => 'Forzar eliminación de varios registros',

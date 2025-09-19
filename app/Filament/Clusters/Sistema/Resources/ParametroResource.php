@@ -20,8 +20,9 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Support\Facades\File;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class ParametroResource extends Resource
+class ParametroResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Parametro::class;
     protected static ?string $cluster = Sistema::class;
@@ -158,13 +159,25 @@ class ParametroResource extends Resource
     {
         return $table
             ->columns([
-                
+
                 ColorColumn::make('color_principal')->label('Color Principal'),
                 IconColumn::make('google_activo')->boolean()->label('Google Login'),
                 IconColumn::make('login_nativo')->boolean()->label('Login Nativo'),
                 TextColumn::make('timezone')->label('Zona Horaria'),
             ])
+            ->actions([
+                \Filament\Tables\Actions\ViewAction::make(),
+            ])
             ->paginated(false);
+    }
+    //Permisos personalizados de filament shield
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view_any', //Mostrar en menú
+            'view', //Ver registro
+            'update', //Actualizar registro            
+        ];
     }
 
     public static function getRelations(): array

@@ -23,7 +23,7 @@ class PerfilEmpleadoPolicy
      */
     public function view(User $user, PerfilEmpleado $perfilEmpleado): bool
     {
-        return $user->can('view_r::r::h::h::perfil::empleado');
+        return $user->can('{{ View }}');
     }
 
     /**
@@ -31,7 +31,7 @@ class PerfilEmpleadoPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_r::r::h::h::perfil::empleado');
+        return $user->can('{{ Create }}');
     }
 
     /**
@@ -47,7 +47,7 @@ class PerfilEmpleadoPolicy
      */
     public function delete(User $user, PerfilEmpleado $perfilEmpleado): bool
     {
-        return $user->can('delete_r::r::h::h::perfil::empleado');
+        return $user->can('{{ Delete }}');
     }
 
     /**

@@ -10,15 +10,14 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class SucursalResource extends Resource
+class SucursalResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Sucursal::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
-
     protected static ?string $cluster = Sistema::class;
 
+    protected static ?string $navigationIcon = 'heroicon-o-building-storefront';    
     protected static ?string $modelLabel = 'Sucursal';
     protected static ?string $pluralModelLabel = 'Sucursales';
 
@@ -142,6 +141,17 @@ class SucursalResource extends Resource
                         ->label('Eliminar seleccionadas'),
                 ]),
             ]);
+    }
+    //Permisos personalizados de filament shield
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view_any', //Mostrar en menú
+            'view', //Ver registro
+            'create', //Crear Registro
+            'update', //Actualizar registro            
+            'delete' //Eliminar Registro
+        ];
     }
 
     public static function getPages(): array
