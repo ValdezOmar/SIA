@@ -4,6 +4,9 @@ namespace App\Filament\Resources\RRHH;
 
 use App\Filament\Resources\RRHH\EmpleadoResource\Pages;
 use App\Models\RRHH\Empleado;
+use App\Models\Sistema\Cargo;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -285,17 +288,18 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             ->hidden(fn(Get $get) => $get('activo')),
 
                         Select::make('empresa')
+                            ->label('Empresa')
                             ->required()
-                            ->options([
-                                'Novanexa' => 'Novanexa',
-                                'Ireilab' => 'Ireilab',
-                                'Requilab' => 'Requilab',
-                            ])
+                            ->relationship('empresa', 'razon_social')
+                            ->searchable()
+                            ->preload()
                             ->live()
-                            ->hint('Empresa a la que pertenece el empleado')
-                            ->hintIcon('heroicon-o-building-library')
-                            ->afterStateUpdated(function (Get $get, Set $set) {
-                                $set('correo_corporativo', static::generarCorreoCorporativo($get));
+                            ->afterStateUpdated(function ($state, Set $set) {
+                                // limpiar dependientes al cambiar empresa
+                                $set('cargo_id', null);
+                                $set('sucursal_id', null);
+                                $seguro = Empresa::find($state)?->seguro_medico;
+                                $set('seguro_medico', $seguro);
                             }),
 
                         Select::make('estado_contrato')
@@ -323,69 +327,89 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             ->hintIcon('heroicon-o-currency-dollar')
                             ->required(),
 
+                        // Select::make('cargo')
+                        //     ->required()
+                        //     ->label('Cargo')
+                        //     ->hint('Puesto o función actual del empleado')
+                        //     ->hintIcon('heroicon-o-briefcase')
+                        //     ->options([
+                        //         'Analista de Licitaciones' => 'Analista de Licitaciones',
+                        //         'Aplicaciones y Asesora Bioquímica' => 'Aplicaciones y Asesora Bioquímica',
+                        //         'Asesor Bioquímico Comercial' => 'Asesor Bioquímico Comercial',
+                        //         'Asesor Bioquímico Aplicacionista' => 'Asesor Bioquímico Aplicacionista',
+                        //         'Asistente Administrativo' => 'Asistente Administrativo',
+                        //         'Asistente de Contabilidad' => 'Asistente de Contabilidad',
+                        //         'Asistente de Licitaciones' => 'Asistente de Licitaciones',
+                        //         'Auxiliar Administrativo y Comercial' => 'Auxiliar Administrativo y Comercial',
+                        //         'Auxiliar Contable' => 'Auxiliar Contable',
+                        //         'Auxiliar de Almacén' => 'Auxiliar de Almacén',
+                        //         'Auxiliar Técnico' => 'Auxiliar Técnico',
+                        //         'Contador' => 'Contador',
+                        //         'Encargado Nacional de Almacén' => 'Encargado Nacional de Almacén',
+                        //         'Encargado de Almacén' => 'Encargado de Almacén',
+                        //         'Encargado de Licitaciones' => 'Encargado de Licitaciones',
+                        //         'Encargado Regional' => 'Encargado Regional',
+                        //         'Encargado de Contabilidad' => 'Encargado de Contabilidad',
+                        //         'Encargado de Recursos Humanos' => 'Encargado de Recursos Humanos',
+                        //         'Encargado de Logistica e Importaciones' => 'Encargado de Logistica e Importaciones',
+                        //         'Encargado de Tecnologías de la Información' => 'Encargado de Tecnologías de la Información',
+                        //         'Ejecutivo de Ventas' => 'Ejecutiva de Ventas',
+                        //         'Gerente Administrativo Financiero' => 'Gerente Administrativo Financiero',
+                        //         'Gerente Ejecutivo' => 'Gerente Ejecutivo',
+                        //         'Gerente General' => 'Gerente General',
+                        //         'Gerente de Importaciones' => 'Gerente de Importaciones',
+                        //         'Gerente Operativa' => 'Gerente Operativa',
+                        //         'Mensajería' => 'Mensajería',
+                        //         'Regente Farmacéutico' => 'Regente Farmacéutico',
+                        //         'Auxiliar Técnico' => 'Auxiliar Técnico'
+                        //     ])
+                        //     ->searchable()
+                        //     ->native(false),
+
                         Select::make('cargo')
-                            ->required()
                             ->label('Cargo')
-                            ->hint('Puesto o función actual del empleado')
-                            ->hintIcon('heroicon-o-briefcase')
-                            ->options([
-                                'Analista de Licitaciones' => 'Analista de Licitaciones',
-                                'Aplicaciones y Asesora Bioquímica' => 'Aplicaciones y Asesora Bioquímica',
-                                'Asesor Bioquímico Comercial' => 'Asesor Bioquímico Comercial',
-                                'Asesor Bioquímico Aplicacionista' => 'Asesor Bioquímico Aplicacionista',
-                                'Asistente Administrativo' => 'Asistente Administrativo',
-                                'Asistente de Contabilidad' => 'Asistente de Contabilidad',
-                                'Asistente de Licitaciones' => 'Asistente de Licitaciones',
-                                'Auxiliar Administrativo y Comercial' => 'Auxiliar Administrativo y Comercial',
-                                'Auxiliar Contable' => 'Auxiliar Contable',
-                                'Auxiliar de Almacén' => 'Auxiliar de Almacén',
-                                'Auxiliar Técnico' => 'Auxiliar Técnico',
-                                'Contador' => 'Contador',
-                                'Encargado Nacional de Almacén' => 'Encargado Nacional de Almacén',
-                                'Encargado de Almacén' => 'Encargado de Almacén',
-                                'Encargado de Licitaciones' => 'Encargado de Licitaciones',
-                                'Encargado Regional' => 'Encargado Regional',
-                                'Encargado de Contabilidad' => 'Encargado de Contabilidad',
-                                'Encargado de Recursos Humanos' => 'Encargado de Recursos Humanos',
-                                'Encargado de Logistica e Importaciones' => 'Encargado de Logistica e Importaciones',
-                                'Encargado de Tecnologías de la Información' => 'Encargado de Tecnologías de la Información',
-                                'Ejecutivo de Ventas' => 'Ejecutiva de Ventas',
-                                'Gerente Administrativo Financiero' => 'Gerente Administrativo Financiero',
-                                'Gerente Ejecutivo' => 'Gerente Ejecutivo',
-                                'Gerente General' => 'Gerente General',
-                                'Gerente de Importaciones' => 'Gerente de Importaciones',
-                                'Gerente Operativa' => 'Gerente Operativa',
-                                'Mensajería' => 'Mensajería',
-                                'Regente Farmacéutico' => 'Regente Farmacéutico',
-                                'Auxiliar Técnico' => 'Auxiliar Técnico'
-                            ])
+                            ->required()
+                            ->options(function (Get $get) {
+                                $empresaId = $get('empresa');
+
+                                if (! $empresaId) {
+                                    return [];
+                                }
+
+                                return Cargo::whereHas('area.empresas', function ($q) use ($empresaId) {
+                                    $q->where('conf_empresas.id', $empresaId);
+                                })
+                                    ->pluck('nombre', 'id');
+                            })
                             ->searchable()
+                            ->preload()
                             ->native(false),
 
                         Select::make('sucursal')
-                            ->label('Sucursal/Departamento')
+                            ->label('Sucursal')
                             ->required()
-                            ->options([
-                                'La Paz' => 'La Paz',
-                                'Santa Cruz' => 'Santa Cruz',
-                                'Cochabamba' => 'Cochabamba',
-                                'Oruro' => 'Oruro',
-                                'Potosí' => 'Potosí',
-                                'Tarija' => 'Tarija',
-                                'Sucre' => 'Sucre',
-                                'Beni' => 'Beni',
-                                'Pando' => 'Pando',
-                            ])
+                            ->options(function (Get $get) {
+                                $empresaId = $get('empresa');
+                                if (! $empresaId) {
+                                    return [];
+                                }
+
+                                return Sucursal::where('empresa_id', $empresaId)
+                                    ->pluck('nombre', 'id')
+                                    ->toArray();
+                            })
+                            ->reactive() // muy importante
                             ->hint('Ubicación donde trabaja el empleado')
                             ->hintIcon('heroicon-o-building-office')
-                            ->searchable()  //  permite buscar entre las opciones
-                            ->native(false), // Opcional: mejora la UI en algunos navegadores
+                            ->searchable()
+                            ->native(false),
 
                         Fieldset::make('Contacto empresarial')
 
                             ->schema([
                                 TextInput::make('correo_corporativo')
                                     ->required()
+                                    ->live()
                                     ->email()
                                     ->label('Correo Corporativo')
                                     ->hint('Correo electrónico asignado por la empresa')
@@ -421,14 +445,11 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                     ->hint('Afiliación al seguro social')
                                     ->hintIcon('heroicon-o-shield-check'),
 
-                                Select::make('caja_salud')
-                                    ->options([
-                                        'Caja Caminos' => 'Caja Caminos',
-                                        'Caja Petrolera' => 'Caja Petrolera',
-                                        'Caja Seguro Universitario' => 'Caja Cordes',
-                                    ])
-                                    ->label('Caja de Salud')
-                                    ->hint('Caja de salud a la que está afiliado')
+                                TextInput::make('seguro_medico')
+                                    ->label('Seguro Médico')
+                                    ->disabled() // para que el usuario no lo edite
+                                    ->dehydrated() // se guarda en empleados
+                                    ->hint('Seguro al que estará afiliado')
                                     ->hintIcon('heroicon-o-heart'),
                             ])
                             ->columns(3),
@@ -613,7 +634,6 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
     // Obtiene los datos del empleado y genera el correo
     protected static function generarCorreoCorporativo(Get $get): ?string
     {
-        // Validar que los campos requeridos existan
         if (empty($get('nombres')) || empty($get('apellidos')) || empty($get('empresa'))) {
             return null;
         }
@@ -621,20 +641,22 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
         $nombres = explode(' ', $get('nombres'));
         $apellidos = explode(' ', $get('apellidos'));
 
-        // Obtener primer nombre y apellido
         $primerNombre = strtolower($nombres[0]);
         $primerApellido = strtolower($apellidos[0]);
 
-        // Limpiar caracteres especiales y acentos
         $primerNombre = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerNombre));
         $primerApellido = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerApellido));
 
-        // Validar y limpiar nombre de empresa
-        $empresa = strtolower($get('empresa'));
-        $empresa = preg_replace('/[^a-z0-9]/', '', $empresa); // Eliminar caracteres no válidos
-        $empresa = $empresa ?: 'novanexa'; // Default si está vacío
+        // Obtener el dominio de la empresa
+        $empresaId = $get('empresa');
+        $empresa = Empresa::find($empresaId);
+        $dominio = $empresa?->sitio_web ?? 'novanexa.com.bo';
 
-        return "{$primerNombre}.{$primerApellido}@{$empresa}.com.bo";
+        // Limpiar el dominio si tiene http/https o barra final
+        $dominio = preg_replace('#^https?://#', '', $dominio); // quitar http/https
+        $dominio = rtrim($dominio, '/'); // quitar barra final si existe
+
+        return "{$primerNombre}.{$primerApellido}@{$dominio}";
     }
 
     //Permisos personalizados de filament shield

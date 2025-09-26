@@ -16,17 +16,17 @@ return new class extends Migration
             // Identificación
             $table->string('razon_social');
             $table->string('nombre_comercial')->nullable();
-            $table->string('nit', 50)->nullable();
-            $table->string('nro_matricula', 50)->nullable();
-
+            $table->string('nit')->nullable();
+            $table->string('nro_matricula')->nullable();
+            $table->string('seguro_medico')->nullable();
             // Datos de contacto
             $table->text('direccion')->nullable();
-            $table->string('ciudad', 150)->nullable();
-            $table->string('pais', 100)->default('Bolivia');
-            $table->string('telefono', 50)->nullable();
-            $table->string('celular', 50)->nullable();
-            $table->string('email', 150)->nullable();
-            $table->string('sitio_web', 150)->nullable();
+            $table->string('ciudad')->nullable();
+            $table->string('pais')->default('Bolivia');
+            $table->string('telefono')->nullable();
+            $table->string('celular')->nullable();
+            $table->string('email')->nullable();
+            $table->string('sitio_web')->nullable();
             
             $table->boolean('empresa_activo')->default(1);
                         

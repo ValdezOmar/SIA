@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('genero')->nullable(); // hombre, mujer, otro
             $table->string('nacionalidad')->default('Boliviana');
             //Datos Personales Adicionales
-            $table->enum('estado_civil', ['soltero', 'casado', 'viudo', 'divorciado'])->nullable();
+            $table->string('estado_civil')->nullable();
             $table->integer('cantidad_hijos')->nullable();
             $table->string('telefono_personal')->nullable();
             $table->string('correo_personal')->nullable();
@@ -42,8 +42,8 @@ return new class extends Migration
             $table->string('correo_corporativo')->nullable();
             $table->string('numero_corporativo')->nullable();
             $table->string('cargo')->nullable(); // cargo actual
-            $table->enum('sucursal', ['La Paz', 'Santa Cruz', 'Cochabamba', 'Oruro', 'Potosí', 'Tarija', 'Sucre', 'Beni', 'Pando'])->nullable(); // departamento donde trabaja
-            $table->enum('empresa', ['Novanexa', 'Ireilab', 'Requilab'])->nullable();    
+            $table->string('sucursal')->nullable(); // departamento donde trabaja
+            $table->string('empresa')->nullable();    
             $table->decimal('salario', 10, 2)->nullable();                   
             //Control
             $table->timestamps();

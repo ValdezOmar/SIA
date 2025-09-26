@@ -116,4 +116,18 @@ class Empleado extends Model
             }
         });
     }
+    //realcion con Empresa
+    public function empresa()
+    {
+        return $this->belongsTo(\App\Models\Sistema\Empresa::class, 'empresa');
+    }
+    public function cargo()
+    {
+        return $this->belongsTo(\App\Models\Sistema\Cargo::class, 'cargo');
+    }
+
+    public function sucursal()
+    {
+        return $this->belongsTo(\App\Models\Sistema\Sucursal::class, 'sucursal');
+    }
 }

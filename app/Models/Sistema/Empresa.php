@@ -22,7 +22,8 @@ class Empresa extends Model
         'celular',
         'email',
         'sitio_web',
-        'empresa_activo'
+        'empresa_activo',
+        'seguro_medico'
     ];
 
     public function areas()
@@ -37,5 +38,16 @@ class Empresa extends Model
     public function sucursales()
     {
         return $this->hasMany(Sucursal::class, 'empresa_id');
+    }
+    public function cargos()
+    {
+        return $this->hasManyThrough(
+            Cargo::class,
+            Area::class,
+            'id',      // PK en areas
+            'area_id', // FK en cargos
+            'id',      // PK en empresas
+            'id'       // PK en areas
+        );
     }
 }

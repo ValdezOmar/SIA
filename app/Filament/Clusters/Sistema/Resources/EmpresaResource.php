@@ -87,6 +87,10 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                             ->label('Sitio Web')
                             ->url()
                             ->maxLength(150),
+                        Forms\Components\TextInput::make('seguro_medico')
+                            ->label('Caja de Salud')                            
+                            ->hint('Caja de salud asignada a la empresa.')
+                            ->hintIcon('heroicon-o-heart')
                     ])
                     ->columns(2),
 
