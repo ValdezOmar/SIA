@@ -31,6 +31,8 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Notifications\Notification;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 
 class EmpleadoResource extends Resource implements HasShieldPermissions
 {
@@ -462,24 +464,27 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
     {
         $user = Auth::user();
 
-        // Construir la consulta base
         $baseQuery = Empleado::query()
-            ->orderBy('sucursal')
-            ->orderBy('apellidos')
-            ->orderBy('nombres');
-
-        // Si el usuario tiene rol "administracion regional", filtrar por su sucursal
-        if ($user->hasRole('Administracion Regional')) {
-            // Obtener la sucursal del usuario actual (asumiendo que está asociado a un empleado)
-            $empleadoUsuario = Empleado::where('correo_corporativo', $user->email)->first();
-
-            if ($empleadoUsuario && $empleadoUsuario->sucursal) {
-                $baseQuery->where('sucursal', $empleadoUsuario->sucursal);
-                Log::debug('Filtrando por sucursal para administración regional', [
-                    'sucursal' => $empleadoUsuario->sucursal
-                ]);
+            ->with(['empresa', 'sucursal'])
+            ->orderBy('rh_empleados.apellidos')
+            ->orderBy('rh_empleados.nombres');
+        // Verificar si el usuario tiene el permiso específico
+        if ($user->can('ver_empleados_sucursal_r::r::h::h::empleado')) {
+            if (!$user->can('ver_empleados_todos_r::r::h::h::empleado')) {
+                // Buscar el empleado que corresponde al usuario actual
+                $empleadoUsuario = Empleado::whereRaw('LOWER(correo_corporativo) = ?', [strtolower($user->email)])->first();
+                if ($empleadoUsuario && $empleadoUsuario->sucursal) {
+                    // Filtrar por la sucursal del empleado-usuario
+                    $baseQuery->where('sucursal', $empleadoUsuario->sucursal);
+                } else {
+                    // Si no encuentra empleado o no tiene sucursal, no mostrar nada
+                    $baseQuery->whereRaw('0 = 1');
+                }
             }
+        } elseif ($user->can('ver_empleados_todos_r::r::h::h::empleado')) {
+            Log::info(" mostrando todos los empleados");
         }
+
         //Contruccion de la tabla principal que muetre a los empleados
         return $table
             ->query($baseQuery)
@@ -595,14 +600,16 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
 
             //Filtros de Busqueda
             ->filters([
-                Tables\Filters\SelectFilter::make('empresa')
-                    ->options([
-                        'Novanexa' => 'Novanexa',
-                        'Ireilab' => 'Ireilab',
-                        'Requilab' => 'Requilab',
-                    ]),
+                SelectFilter::make('empresa')
+                    ->options(function () {
+                        return Empresa::where('empresa_activo', true)
+                            ->pluck('razon_social', 'id')
+                            ->toArray();
+                    })
+                    ->searchable()
+                    ->label('Empresa'),
 
-                Tables\Filters\SelectFilter::make('estado_contrato')
+                SelectFilter::make('estado_contrato')
                     ->options([
                         'Contrato plazo fijo' => 'Contrato plazo fijo',
                         'Contrato indefinido' => 'Contrato indefinido',
@@ -615,7 +622,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ])
                     ->label('Tipo de Contrato'),
 
-                Tables\Filters\TernaryFilter::make('activo')
+                TernaryFilter::make('rh_empleados.activo')
                     ->label('Estado Activo')
                     ->default(true),
             ])
@@ -666,6 +673,8 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
             'view_any',    // los permisos del Shield usuales       
             'create',
             'update',
+            'ver_empleados_sucursal',
+            'ver_empleados_todos'
         ];
     }
     public static function getPages(): array

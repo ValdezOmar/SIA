@@ -4,14 +4,17 @@ namespace App\Filament\Clusters\Sistema\Resources;
 
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\EmpresaResource\Pages;
-use App\Filament\Clusters\Sistema\Resources\EmpresaResource\RelationManagers\EmpresaAreasRelationManager;
 use App\Models\Sistema\Empresa;
-use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 
 class EmpresaResource extends Resource implements HasShieldPermissions
 {
@@ -27,25 +30,25 @@ class EmpresaResource extends Resource implements HasShieldPermissions
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Identificación')
+                 Section::make('Identificación')
                     ->schema([
-                        Forms\Components\TextInput::make('razon_social')
+                         TextInput::make('razon_social')
                             ->label('Razón Social')
                             ->required()
                             ->maxLength(255),
 
-                        Forms\Components\TextInput::make('nombre_comercial')
+                         TextInput::make('nombre_comercial')
                             ->label('Nombre Comercial')
                             ->maxLength(255),
 
-                        Forms\Components\TextInput::make('nit')
+                         TextInput::make('nit')
                             ->label('NIT')
                             ->maxLength(50),
 
-                        Forms\Components\TextInput::make('nro_matricula')
+                         TextInput::make('nro_matricula')
                             ->label('Nro. Matrícula')
                             ->maxLength(50),
-                        Forms\Components\Select::make('areas')
+                         Select::make('areas')
                             ->label('Áreas de la empresa')
                             ->multiple()
                             ->relationship('areas', 'nombre')
@@ -55,46 +58,46 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Datos de Contacto')
+                 Section::make('Datos de Contacto')
                     ->schema([
-                        Forms\Components\Textarea::make('direccion')
+                         Textarea::make('direccion')
                             ->label('Dirección')
                             ->rows(2),
 
-                        Forms\Components\TextInput::make('ciudad')
+                         TextInput::make('ciudad')
                             ->label('Ciudad')
                             ->maxLength(150),
 
-                        Forms\Components\TextInput::make('pais')
+                         TextInput::make('pais')
                             ->label('País')
                             ->default('Bolivia')
                             ->maxLength(100),
 
-                        Forms\Components\TextInput::make('telefono')
+                         TextInput::make('telefono')
                             ->label('Teléfono')
                             ->maxLength(50),
 
-                        Forms\Components\TextInput::make('celular')
+                         TextInput::make('celular')
                             ->label('Celular')
                             ->maxLength(50),
 
-                        Forms\Components\TextInput::make('email')
+                         TextInput::make('email')
                             ->label('Email')
                             ->email()
                             ->maxLength(150),
 
-                        Forms\Components\TextInput::make('sitio_web')
+                         TextInput::make('sitio_web')
                             ->label('Sitio Web')
                             ->url()
                             ->maxLength(150),
-                        Forms\Components\TextInput::make('seguro_medico')
+                         TextInput::make('seguro_medico')
                             ->label('Caja de Salud')                            
                             ->hint('Caja de salud asignada a la empresa.')
                             ->hintIcon('heroicon-o-heart')
                     ])
                     ->columns(2),
 
-                Forms\Components\Toggle::make('empresa_activo')
+                 Toggle::make('empresa_activo')
                     ->label('Empresa Activa')
                     ->default(true),
             ]);

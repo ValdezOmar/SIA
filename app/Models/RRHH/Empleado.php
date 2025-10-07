@@ -2,6 +2,9 @@
 
 namespace App\Models\RRHH;
 
+use App\Models\Sistema\Cargo;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Storage;
@@ -116,18 +119,26 @@ class Empleado extends Model
             }
         });
     }
-    //realcion con Empresa
+    //relaciones
     public function empresa()
     {
-        return $this->belongsTo(\App\Models\Sistema\Empresa::class, 'empresa');
-    }
-    public function cargo()
-    {
-        return $this->belongsTo(\App\Models\Sistema\Cargo::class, 'cargo');
+        return $this->belongsTo(Empresa::class, 'empresa', 'id');
     }
 
     public function sucursal()
     {
-        return $this->belongsTo(\App\Models\Sistema\Sucursal::class, 'sucursal');
+        return $this->belongsTo(Sucursal::class, 'sucursal', 'id');
+    }
+
+    // Accesor para obtener el nombre de la empresa
+    public function getEmpresaNombreAttribute()
+    {
+        return $this->empresa ? $this->empresa->razon_social : 'Sin empresa';
+    }
+
+    // Accesor para obtener el nombre de la sucursal  
+    public function getSucursalNombreAttribute()
+    {
+        return $this->sucursal ? $this->sucursal->nombre : 'Sin sucursal';
     }
 }
