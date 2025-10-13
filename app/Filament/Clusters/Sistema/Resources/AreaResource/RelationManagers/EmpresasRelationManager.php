@@ -6,6 +6,9 @@ use Filament\Forms;
 use Filament\Tables;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Forms\Form;
+use Filament\Tables\Actions\AttachAction;
+use Filament\Tables\Actions\DetachAction;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class EmpresasRelationManager extends RelationManager
@@ -27,26 +30,32 @@ class EmpresasRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('razon_social')
             ->columns([
-                Tables\Columns\TextColumn::make('razon_social')
+                TextColumn::make('razon_social')
                     ->label('Razón Social')
                     ->sortable()
                     ->searchable()
                     ->weight('bold'),
 
-                Tables\Columns\TextColumn::make('ciudad')
+                TextColumn::make('ciudad')
                     ->label('Ciudad')
                     ->badge()
                     ->color('success'),
             ])
             ->headerActions([
-                Tables\Actions\AttachAction::make()
+                AttachAction::make()
                     ->label('Vincular Empresa')
-                    ->preloadRecordSelect()
-                    ->recordSelectSearchable(),
+                    ->recordSelect(function ($select) {
+                        return $select
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('Seleccione una empresa...');
+                    }),
             ])
             ->actions([
-                Tables\Actions\DetachAction::make()
+                DetachAction::make()
                     ->label('Quitar'),
-            ]);
+            ])
+            ->emptyStateHeading('Sin empresas asociadas')
+            ->emptyStateDescription('Puedes vincular una o más empresas a esta área.');
     }
 }
