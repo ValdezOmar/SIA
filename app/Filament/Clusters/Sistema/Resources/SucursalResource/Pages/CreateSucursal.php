@@ -9,4 +9,10 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateSucursal extends CreateRecord
 {
     protected static string $resource = SucursalResource::class;
+
+    //Redirigir al index
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

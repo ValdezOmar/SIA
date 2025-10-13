@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateArea extends CreateRecord
 {
     protected static string $resource = AreaResource::class;
+    //Redirigir al index
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }
