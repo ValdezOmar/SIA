@@ -180,7 +180,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                             }
 
                                             DB::transaction(function () use ($empleado, $data) {
-                                                $usuario = auth()->user()?->name ?? 'Sistema';
+                                                $usuario = Auth::user()?->name ?? 'Sistema';
                                                 $fecha = now()->format('d/m/Y H:i');
 
                                                 // 🔹 Inactivar todos los contratos del empleado
