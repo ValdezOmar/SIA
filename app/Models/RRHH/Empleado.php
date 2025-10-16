@@ -130,6 +130,11 @@ class Empleado extends Model
         return $this->belongsTo(Sucursal::class, 'sucursal', 'id');
     }
 
+    public function historialLaboral()
+    {
+        return $this->hasMany(HistorialLaboral::class, 'empleado_id');
+    }
+
     // Accesor para obtener el nombre de la empresa
     public function getEmpresaNombreAttribute()
     {

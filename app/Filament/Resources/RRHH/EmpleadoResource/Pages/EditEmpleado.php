@@ -21,13 +21,8 @@ class EditEmpleado extends EditRecord
     public function getTitle(): string|Htmlable
     {
         return ''; // Oculta el título por completo
-    }
+    }    
     
-    // Redirigir al listado principal después de guardar
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('index');
-    }
     //Funcion para guardar el array de gps
     public function mutateFormDataBeforeSave(array $data): array
     {

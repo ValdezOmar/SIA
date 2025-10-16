@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\RRHH;
 
 use App\Filament\Resources\RRHH\EmpleadoResource\Pages;
+use App\Filament\Resources\RRHH\EmpleadoResource\RelationManagers\HistorialLaboralRelationManager;
 use App\Models\RRHH\Empleado;
+use App\Models\RRHH\HistorialLaboral;
 use App\Models\Sistema\Cargo;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
@@ -31,12 +33,21 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Notifications\Notification;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Filament\Actions\CreateAction;
+use Filament\Forms\Components\Repeater;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Tabs\Tab;
+use Filament\Forms\Components\Textarea;
+use Illuminate\Support\Facades\DB;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action;
 
 class EmpleadoResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Empleado::class;
+    protected static array $tempEmpleadoData = [];
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $modelLabel = 'Empleados'; //Seccion para configurar el nombre en Filament-Shield
@@ -50,7 +61,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
     {
         return $form
             ->schema([
-                // Sección superior (Card empleado)con foto y datos básicos
+                // Card superior con foto y datos básicos
                 Grid::make()
                     ->schema([
                         FileUpload::make('foto')
@@ -102,46 +113,120 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         Grid::make()
                             ->schema([
                                 Placeholder::make('nombre_completo')
-                                    ->label('👤Nombre:')
+                                    ->label('Nombre:')
                                     ->content(fn($get) => $get('nombres') . ' ' . $get('apellidos'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('ci/dni')
-                                    ->label('🪪CI/DNI:')
+                                    ->label('CI/DNI:')
                                     ->content(fn($get) => ' ' . $get('ci'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('email')
-                                    ->label('📧Email:')
+                                    ->label('Email:')
                                     ->content(fn($get) => ' ' . $get('correo_corporativo'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
-                                Placeholder::make('numero_coporativo')
-                                    ->label('📱Teléfono:')
+                                Placeholder::make('numero_corporativo')
+                                    ->label('Teléfono:')
                                     ->content(fn($get) => ' ' . $get('numero_corporativo'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
-
+                                ////
                                 Toggle::make('activo')
-                                    ->default(true)
                                     ->label(fn($state) => $state ? 'Empleado Activo' : 'Empleado Inactivo')
                                     ->live()
-                                    ->afterStateUpdated(function ($state, Set $set) {
-                                        if (!$state) {
-                                            $set('fecha_desvinculacion', now()->format('Y-m-d'));
+                                    ->reactive()
+                                    ->afterStateUpdated(function ($state, $set, $get, $record) {
+                                        if (!$record) return;
+                                        $record->activo = $state;
+                                        $record->save();
+                                    })
+                                    ->columnSpanFull(),
+                                Actions::make([
+                                    Action::make('desvincular')
+                                        ->label('Confirmar desvinculación')
+                                        ->visible(function ($record) {
+                                            // Verifica que el empleado esté inactivo
+                                            if (! $record || $record->activo != false) {
+                                                return false;
+                                            }
+                                            // Verifica que exista al menos un historial laboral activo
+                                            $tieneHistorialActivo = HistorialLaboral::where('empleado_id', $record->id)
+                                                ->where('activo', true)
+                                                ->exists();
+                                            return $tieneHistorialActivo;
+                                        })
+                                        ->color('danger')
+                                        ->icon('heroicon-o-archive-box-x-mark')
+                                        ->requiresConfirmation()
+                                        ->modalHeading('Desvincular empleado')
+                                        ->modalDescription('Esta acción marcará al empleado como inactivo, cerrará todos los contratos y registrará el motivo.')
+                                        ->form([
+                                            Textarea::make('motivo')
+                                                ->label('Motivo de desvinculación')
+                                                ->required()
+                                                ->placeholder('Ejemplo: Renuncia voluntaria, fin de contrato, etc.'),
+                                        ])
+                                        ->action(function (array $data, $livewire) {
+                                            /** @var \App\Models\Empleado $empleado */
+                                            $empleado = $livewire->getRecord();
+
+                                            if (! $empleado) {
+                                                return;
+                                            }
+
+                                            DB::transaction(function () use ($empleado, $data) {
+                                                $usuario = auth()->user()?->name ?? 'Sistema';
+                                                $fecha = now()->format('d/m/Y H:i');
+
+                                                // 🔹 Inactivar todos los contratos del empleado
+                                                HistorialLaboral::where('empleado_id', $empleado->id)
+                                                    ->update(['activo' => false]);
+
+                                                // 🔹 Actualizar el último contrato con información detallada
+                                                $ultimo = HistorialLaboral::where('empleado_id', $empleado->id)
+                                                    ->latest('id')
+                                                    ->first();
+
+                                                if ($ultimo) {
+                                                    $observacionesAnteriores = trim($ultimo->observaciones ?? '');
+                                                    $nuevoTexto = <<<TXT
+                                                        OBSERVACION:
+                                                        {$observacionesAnteriores}
+                                                        _________________________________________
+                                                        - FECHA DE DESVINCULACIÓN: {$fecha}
+                                                        - USUARIO: {$usuario}
+                                                        - MOTIVO: {$data['motivo']}
+                                                        _________________________________________
+                                                        TXT;
+
+                                                    $ultimo->update([
+                                                        'observaciones' => trim($nuevoTexto),
+                                                        'fecha_baja' => now(),
+                                                        'activo' => false,
+                                                    ]);
+                                                }
+
+                                                // 🔹 Marcar empleado como inactivo
+                                                $empleado->update([
+                                                    'activo' => false,
+                                                    'fecha_desvinculacion' => now(),
+                                                ]);
+                                            });
+
                                             Notification::make()
-                                                ->title('Desvinculación registrada')
+                                                ->title('Empleado desvinculado correctamente')
                                                 ->success()
                                                 ->send();
-                                        } else {
-                                            $set('fecha_desvinculacion', null);
-                                        }
-                                    })
-                                    ->columnSpanFull()
-                                    ->extraAttributes(['class' => 'flex justify-center']),
+                                        }),
+                                ])
+                                    ->columnSpanFull(),
+
+                                ////     
                             ])
                             ->columnSpan(['md' => 2, 'lg' => 1])
                             ->extraAttributes(['class' => 'flex flex-col justify-center']),
@@ -149,314 +234,123 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->columns(['md' => 2, 'lg' => 2])
                     ->columnSpan('full'),
 
-                // Sección de información básica
-                Section::make('Información Básica')
-                    ->schema([
-                        TextInput::make('nombres')
-                            ->required()
-                            ->maxLength(255)
-                            ->hint('Nombres completos del empleado')
-                            ->hintIcon('heroicon-o-user')
-                            ->afterStateUpdated(function (Get $get, Set $set) {
-                                $set('correo_corporativo', static::generarCorreoCorporativo($get));
-                            })
-                            ->dehydrateStateUsing(fn($state) => ucwords(strtolower($state))),
-
-                        TextInput::make('apellidos')
-                            ->required()
-                            ->maxLength(255)
-                            ->hint('Apellidos completos del empleado')
-                            ->hintIcon('heroicon-o-user')
-                            ->afterStateUpdated(function (Get $get, Set $set) {
-                                $set('correo_corporativo', static::generarCorreoCorporativo($get));
-                            })
-                            ->dehydrateStateUsing(fn($state) => ucwords(strtolower($state))),
-
-                        TextInput::make('ci')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->label('Cédula de Identidad')
-                            ->hint('Número único de identificación')
-                            ->hintIcon('heroicon-o-identification'),
-
-                        DatePicker::make('fecha_nacimiento')
-                            ->label('Fecha de Nacimiento')
-                            ->hint('Fecha de nacimiento del empleado')
-                            ->hintIcon('heroicon-o-cake'),
-
-                        Select::make('genero')
-                            ->options([
-                                'hombre' => 'Hombre',
-                                'mujer' => 'Mujer',
-                                'Otro' => 'Otro',
-                            ])
-                            ->hint('Género del empleado')
-                            ->hintIcon('heroicon-o-user-circle'),
-
-                        TextInput::make('nacionalidad')
-                            ->required()
-                            ->default('Boliviana')
-                            ->hint('Nacionalidad del empleado')
-                            ->hintIcon('heroicon-o-flag'),
-
-                        Fieldset::make('Direccion y croquis de domicilio')
+                //Secciones organizadas en Tabs
+                Tabs::make('Información del Empleado')
+                    ->tabs([
+                        //TAB PERSONAL
+                        Tab::make('Personal')
+                            ->icon('heroicon-o-user')
                             ->schema([
-                                TextInput::make('direccion')
-                                    ->maxLength(255)
-                                    ->label('Dirección completa')
-                                    ->hint('Busque en el mapa la ubicacion de su domicilio')
-                                    ->hintIcon('heroicon-o-exclamation-triangle'),
+                                Fieldset::make('Información Básica')
+                                    ->schema([
+                                        TextInput::make('nombres')
+                                            ->required()
+                                            ->maxLength(255),
 
-                                // Campo para el mapa (interactivo)                                
-                                Field::make('ubicacion_gps')
-                                    ->label('Ubicación GPS')
+                                        TextInput::make('apellidos')
+                                            ->required()
+                                            ->maxLength(255),
 
-                                    ->view('filament.forms.components.map-picker'),
-                            ])
-                            ->columns(1),
-                    ])
-                    ->columns(2),
+                                        TextInput::make('ci')
+                                            ->required()
+                                            ->unique(ignoreRecord: true)
+                                            ->label('Cédula de Identidad')
+                                            //->hint('Número único de identificación')
+                                            ->hintIcon('heroicon-o-identification'),
 
-                // Sección de datos personales adicionales
-                Section::make('Datos Personales Adicionales')
-                    ->schema([
-                        Select::make('estado_civil')
-                            ->options([
-                                'soltero' => 'Soltero/a',
-                                'casado' => 'Casado/a',
-                                'viudo' => 'Viudo/a',
-                                'divorciado' => 'Divorciado/a',
-                            ])
-                            ->label('Estado Civil')
-                            ->hint('Estado civil actual del empleado')
-                            ->hintIcon('heroicon-o-heart'),
+                                        DatePicker::make('fecha_nacimiento')
+                                            ->label('Fecha de Nacimiento')
+                                            ->hintIcon('heroicon-o-cake'),
 
-                        TextInput::make('cantidad_hijos')
-                            ->default(0)
-                            ->numeric()
-                            ->label('Número de Hijos')
-                            ->hint('Cantidad de hijos del empleado')
-                            ->hintIcon('heroicon-o-user-group'),
+                                        Select::make('genero')
+                                            ->options([
+                                                'hombre' => 'Hombre',
+                                                'mujer' => 'Mujer',
+                                            ])
+                                            ->hint('Género del empleado')
+                                            ->hintIcon('heroicon-o-user-circle'),
 
-                        TextInput::make('telefono_personal')
-                            ->tel()
-                            ->label('Teléfono Personal')
-                            ->hint('Número de contacto personal')
-                            ->hintIcon('heroicon-o-phone'),
+                                        TextInput::make('nacionalidad')
+                                            ->required()
+                                            ->default('Boliviana')
+                                            ->hint('Nacionalidad')
+                                            ->hintIcon('heroicon-o-flag'),
 
-                        TextInput::make('correo_personal')
-                            ->email()
-                            ->label('Correo Personal')
-                            ->hint('Correo electrónico personal')
-                            ->hintIcon('heroicon-o-envelope'),
 
-                        Fieldset::make('Contacto de Emergencia')
+                                    ])
+                                    ->columns(3),
+                                Fieldset::make('Direccion y croquis de domicilio')
+                                    ->schema([
+                                        TextInput::make('direccion')
+                                            ->maxLength(255)
+                                            ->label('Dirección completa')
+                                            ->hint('Busque en el mapa la ubicacion de su domicilio')
+                                            ->hintIcon('heroicon-o-exclamation-triangle'),
 
-                            ->schema([
-                                TextInput::make('persona_contacto')
-                                    ->label('Nombre de contacto')
-                                    ->hint('Persona a contactar en caso de emergencia')
-                                    ->hintIcon('heroicon-o-exclamation-triangle'),
+                                        // Campo para el mapa (interactivo)                                
+                                        Field::make('ubicacion_gps')
+                                            ->label('Ubicación GPS')
 
-                                TextInput::make('numero_contacto')
-                                    ->tel()
-                                    ->label('Teléfono de contacto')
-                                    ->hint('Número de la persona de emergencia')
-                                    ->hintIcon('heroicon-o-phone'),
+                                            ->view('filament.forms.components.map-picker'),
+                                    ])
+                                    ->columns(1),
 
-                                TextInput::make('persona_parentesco')
-                                    ->label('Parentesco de contacto')
-                                    ->hint('Parentesco de la persona')
-                                    ->hintIcon('heroicon-o-exclamation-triangle'),
-                            ])
-                            ->columns(3),
-                    ])
-                    ->columns(2),
+                                Fieldset::make('Información Adicional')
+                                    ->schema([
+                                        Select::make('estado_civil')
+                                            ->options([
+                                                'soltero' => 'Soltero/a',
+                                                'casado' => 'Casado/a',
+                                                'viudo' => 'Viudo/a',
+                                                'divorciado' => 'Divorciado/a',
+                                            ])
+                                            ->label('Estado Civil')
+                                            ->hintIcon('heroicon-o-heart'),
 
-                // Sección de datos laborales
-                Section::make('Datos Laborales')
-                    //->disabled()
-                    ->schema([
-                        DatePicker::make('fecha_ingreso')
-                            ->required()
-                            ->label('Fecha de Ingreso')
-                            ->hint('Fecha en que el empleado se incorporó a la empresa')
-                            ->hintIcon('heroicon-o-calendar'),
+                                        TextInput::make('cantidad_hijos')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->label('Número de Hijos')
+                                            ->hintIcon('heroicon-o-user-group'),
 
-                        DatePicker::make('fecha_desviculacion')
-                            ->label('Desvinculación')
-                            ->hint('Fecha en que el empleado dejó la empresa')
-                            ->hintIcon('heroicon-o-calendar')
-                            ->hidden(fn(Get $get) => $get('activo')),
+                                        TextInput::make('telefono_personal')
+                                            ->tel()
+                                            ->label('Teléfono Personal')
+                                            ->hintIcon('heroicon-o-phone'),
 
-                        Select::make('empresa')
-                            ->label('Empresa')
-                            ->required()
-                            ->relationship('empresa', 'razon_social')
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->afterStateUpdated(function ($state, Set $set) {
-                                // limpiar dependientes al cambiar empresa
-                                $set('cargo_id', null);
-                                $set('sucursal_id', null);
-                                $seguro = Empresa::find($state)?->seguro_medico;
-                                $set('seguro_medico', $seguro);
-                            }),
+                                        TextInput::make('correo_personal')
+                                            ->email()
+                                            ->label('Correo Personal')
+                                            ->hintIcon('heroicon-o-envelope'),
+                                        TextInput::make('nua_cua')
+                                            ->label('Número NUA/CUA')
+                                            ->hintIcon('heroicon-o-shield-check'),
+                                        TextInput::make('afp')
+                                            ->label('Gestora')
+                                            ->default('Gestora Pública')
+                                            ->hintIcon('heroicon-o-banknotes'),
 
-                        Select::make('estado_contrato')
-                            ->required()
-                            ->options([
-                                'Contrato plazo fijo' => 'Contrato plazo fijo',
-                                'Contrato indefinido' => 'Contrato indefinido',
-                                'Contrato por servicios' => 'Contrato por servicios',
-                                'Contrato por obra' => 'Contrato por obra',
-                                'Planta' => 'Planta',
-                                'Pasante' => 'Pasante',
-                                'Periodo de prueba' => 'Periodo de prueba',
-                                'Otro' => 'Otro tipo',
-                            ])
-                            ->default('Otro')
-                            ->label('Estado de Contrato')
-                            ->hint('Situación actual del contrato laboral')
-                            ->hintIcon('heroicon-o-document-text'),
 
-                        TextInput::make('salario')
-                            ->numeric()
-                            ->prefix('Bs.')
-                            ->label('Salario Mensual')
-                            ->hint('Salario sin descuentos')
-                            ->hintIcon('heroicon-o-currency-dollar')
-                            ->required(),
+                                    ])
+                                    ->columns(3),
+                                Fieldset::make('Contacto de Emergencia')
+                                    ->schema([
+                                        TextInput::make('persona_contacto')
+                                            ->label('Nombre de Contacto')
+                                            ->hintIcon('heroicon-o-exclamation-triangle'),
 
-                        // Select::make('cargo')
-                        //     ->required()
-                        //     ->label('Cargo')
-                        //     ->hint('Puesto o función actual del empleado')
-                        //     ->hintIcon('heroicon-o-briefcase')
-                        //     ->options([
-                        //         'Analista de Licitaciones' => 'Analista de Licitaciones',
-                        //         'Aplicaciones y Asesora Bioquímica' => 'Aplicaciones y Asesora Bioquímica',
-                        //         'Asesor Bioquímico Comercial' => 'Asesor Bioquímico Comercial',
-                        //         'Asesor Bioquímico Aplicacionista' => 'Asesor Bioquímico Aplicacionista',
-                        //         'Asistente Administrativo' => 'Asistente Administrativo',
-                        //         'Asistente de Contabilidad' => 'Asistente de Contabilidad',
-                        //         'Asistente de Licitaciones' => 'Asistente de Licitaciones',
-                        //         'Auxiliar Administrativo y Comercial' => 'Auxiliar Administrativo y Comercial',
-                        //         'Auxiliar Contable' => 'Auxiliar Contable',
-                        //         'Auxiliar de Almacén' => 'Auxiliar de Almacén',
-                        //         'Auxiliar Técnico' => 'Auxiliar Técnico',
-                        //         'Contador' => 'Contador',
-                        //         'Encargado Nacional de Almacén' => 'Encargado Nacional de Almacén',
-                        //         'Encargado de Almacén' => 'Encargado de Almacén',
-                        //         'Encargado de Licitaciones' => 'Encargado de Licitaciones',
-                        //         'Encargado Regional' => 'Encargado Regional',
-                        //         'Encargado de Contabilidad' => 'Encargado de Contabilidad',
-                        //         'Encargado de Recursos Humanos' => 'Encargado de Recursos Humanos',
-                        //         'Encargado de Logistica e Importaciones' => 'Encargado de Logistica e Importaciones',
-                        //         'Encargado de Tecnologías de la Información' => 'Encargado de Tecnologías de la Información',
-                        //         'Ejecutivo de Ventas' => 'Ejecutiva de Ventas',
-                        //         'Gerente Administrativo Financiero' => 'Gerente Administrativo Financiero',
-                        //         'Gerente Ejecutivo' => 'Gerente Ejecutivo',
-                        //         'Gerente General' => 'Gerente General',
-                        //         'Gerente de Importaciones' => 'Gerente de Importaciones',
-                        //         'Gerente Operativa' => 'Gerente Operativa',
-                        //         'Mensajería' => 'Mensajería',
-                        //         'Regente Farmacéutico' => 'Regente Farmacéutico',
-                        //         'Auxiliar Técnico' => 'Auxiliar Técnico'
-                        //     ])
-                        //     ->searchable()
-                        //     ->native(false),
+                                        TextInput::make('numero_contacto')
+                                            ->tel()
+                                            ->label('Teléfono de Contacto')
+                                            ->hintIcon('heroicon-o-phone'),
 
-                        Select::make('cargo')
-                            ->label('Cargo')
-                            ->required()
-                            ->options(function (Get $get) {
-                                $empresaId = $get('empresa');
-
-                                if (! $empresaId) {
-                                    return [];
-                                }
-
-                                return Cargo::whereHas('area.empresas', function ($q) use ($empresaId) {
-                                    $q->where('conf_empresas.id', $empresaId);
-                                })
-                                    ->pluck('nombre', 'id');
-                            })
-                            ->searchable()
-                            ->preload()
-                            ->native(false),
-
-                        Select::make('sucursal')
-                            ->label('Sucursal')
-                            ->required()
-                            ->options(function (Get $get) {
-                                $empresaId = $get('empresa');
-                                if (! $empresaId) {
-                                    return [];
-                                }
-
-                                return Sucursal::where('empresa_id', $empresaId)
-                                    ->pluck('nombre', 'id')
-                                    ->toArray();
-                            })
-                            ->reactive() // muy importante
-                            ->hint('Ubicación donde trabaja el empleado')
-                            ->hintIcon('heroicon-o-building-office')
-                            ->searchable()
-                            ->native(false),
-
-                        Fieldset::make('Contacto empresarial')
-
-                            ->schema([
-                                TextInput::make('correo_corporativo')
-                                    ->required()
-                                    ->live()
-                                    ->email()
-                                    ->label('Correo Corporativo')
-                                    ->hint('Correo electrónico asignado por la empresa')
-                                    ->hintIcon('heroicon-o-envelope')
-                                    ->default(function (Get $get) {
-                                        return static::generarCorreoCorporativo($get);
-                                    })
-                                    ->dehydrated()
-
-                                    ->afterStateUpdated(function (Get $get, Set $set) {
-                                        $set('correo_corporativo', static::generarCorreoCorporativo($get));
-                                    }),
-
-                                TextInput::make('numero_corporativo')
-                                    ->tel()
-                                    ->label('Teléfono Corporativo')
-                                    ->hint('Teléfono proporcionado por la empresa')
-                                    ->hintIcon('heroicon-o-phone'),
-                            ])
-                            ->columns(2),
-
-                        Fieldset::make('Datos adicionales')
-
-                            ->schema([
-                                TextInput::make('afp')
-                                    ->label('Nombre de Gestora')
-                                    ->hint('Nombre de afiliación AFP')
-                                    ->default('Gestora Pública')
-                                    ->hintIcon('heroicon-o-banknotes'),
-
-                                TextInput::make('nua_cua')
-                                    ->label('Numero NUA/CUA')
-                                    ->hint('Afiliación al seguro social')
-                                    ->hintIcon('heroicon-o-shield-check'),
-
-                                TextInput::make('seguro_medico')
-                                    ->label('Seguro Médico')
-                                    ->disabled() // para que el usuario no lo edite
-                                    ->dehydrated() // se guarda en empleados
-                                    ->hint('Seguro al que estará afiliado')
-                                    ->hintIcon('heroicon-o-heart'),
-                            ])
-                            ->columns(3),
-                    ])
-                    ->columns(2),
+                                        TextInput::make('persona_parentesco')
+                                            ->label('Parentesco')
+                                            ->hintIcon('heroicon-o-heart'),
+                                    ])
+                                    ->columns(3),
+                            ]),
+                    ])->columnSpanFull(),
             ]);
     }
 
@@ -560,41 +454,22 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->openUrlInNewTab()
                     ->getStateUsing(fn($record) => isset($record->coordenadas['lat'], $record->coordenadas['lng'])
                         ? '🗺️ Ver Croquis'
-                        : '❌ No registro Croquis'),
+                        : '❌ Sin Croquis'),
 
                 ToggleColumn::make('activo')
                     ->label('Estado')
-                    ->sortable()
-                    ->afterStateUpdated(function ($record, $state) {
-                        if (!$state) {
-                            // Establecer fecha de desvinculación si se desactiva
-                            $record->fecha_desvinculacion = now();
-                            $record->save();
+                    ->disabled()
+                    ->beforeStateUpdated(function ($state, $record) {
+                        // Guardar cambios en tiempo real
+                        $record->update([
+                            'activo' => $state,
+                        ]);
 
-                            // Mostrar notificación
-                            Notification::make()
-                                ->title('Empleado desvinculado')
-                                ->body("Se registró la desvinculación el " . now()->format('d/m/Y'))
-                                ->success()
-                                ->send();
-                        } else {
-                            // Limpiar fecha si se reactiva
-                            $record->fecha_desvinculacion = null;
-                            $record->save();
-
-                            Notification::make()
-                                ->title('Empleado reactivado')
-                                ->success()
-                                ->send();
-                        }
-                    })
-                    ->tooltip(fn($record) => $record->activo
-                        ? 'Empleado activo'
-                        : 'Desvinculado el ' . ($record->fecha_desvinculacion?->format('d/m/Y') ?? 'sin fecha'))
-                    ->updateStateUsing(function ($record, $state) {
-                        // Actualizar el estado sin guardar aún
-                        $record->activo = $state;
-                        return $state;
+                        // Notificación opcional
+                        Notification::make()
+                            ->title($state ? 'Empleado activado' : 'Empleado marcado como inactivo')
+                            ->success()
+                            ->send();
                     }),
             ])
 
@@ -626,7 +501,6 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->label('Estado Activo')
                     ->default(true),
             ])
-            ->actions([])
 
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -638,32 +512,9 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
             ->striped();
     }
 
-    // Obtiene los datos del empleado y genera el correo
-    protected static function generarCorreoCorporativo(Get $get): ?string
+    public static function getTempEmpleadoData(): array
     {
-        if (empty($get('nombres')) || empty($get('apellidos')) || empty($get('empresa'))) {
-            return null;
-        }
-
-        $nombres = explode(' ', $get('nombres'));
-        $apellidos = explode(' ', $get('apellidos'));
-
-        $primerNombre = strtolower($nombres[0]);
-        $primerApellido = strtolower($apellidos[0]);
-
-        $primerNombre = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerNombre));
-        $primerApellido = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerApellido));
-
-        // Obtener el dominio de la empresa
-        $empresaId = $get('empresa');
-        $empresa = Empresa::find($empresaId);
-        $dominio = $empresa?->sitio_web ?? 'novanexa.com.bo';
-
-        // Limpiar el dominio si tiene http/https o barra final
-        $dominio = preg_replace('#^https?://#', '', $dominio); // quitar http/https
-        $dominio = rtrim($dominio, '/'); // quitar barra final si existe
-
-        return "{$primerNombre}.{$primerApellido}@{$dominio}";
+        return static::$tempEmpleadoData;
     }
 
     //Permisos personalizados de filament shield
@@ -675,6 +526,13 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
             'update',
             'ver_empleados_sucursal',
             'ver_empleados_todos'
+        ];
+    }
+    //Relaciones 
+    public static function getRelations(): array
+    {
+        return [
+            HistorialLaboralRelationManager::class,
         ];
     }
     public static function getPages(): array
