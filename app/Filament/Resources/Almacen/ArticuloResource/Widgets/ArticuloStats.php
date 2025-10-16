@@ -83,7 +83,7 @@ class ArticuloStats extends BaseWidget
             Stat::make('Total de Artículos y fecha de actualizacion', Number::format($totalItems))
                 ->description($syncHtmlWrapped)
                 ->descriptionIcon('heroicon-o-arrow-path')
-                ->color('primary'),
+                ->color('success'),
 
             Stat::make('Stock Total', Number::format($totalStock))
                 ->description('Unidades disponibles en el listado')
