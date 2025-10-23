@@ -23,6 +23,7 @@ class HistorialLaboral extends Model
         'salario',
         'tipo_contrato',
         'seguro_medico',
+        'sucursal',
         'correo_corporativo',
         'numero_corporativo',
         'observaciones',

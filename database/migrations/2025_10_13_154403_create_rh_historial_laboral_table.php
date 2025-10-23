@@ -30,6 +30,7 @@ return new class extends Migration
             $table->decimal('salario', 12, 2)->nullable();
             $table->string('tipo_contrato')->nullable();     
             $table->string('seguro_medico')->nullable();
+            $table->string('sucursal')->nullable();
             $table->string('correo_corporativo')->nullable();
             $table->string('numero_corporativo')->nullable();
             $table->text('observaciones')->nullable();
