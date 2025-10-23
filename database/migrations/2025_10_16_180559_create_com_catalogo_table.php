@@ -1,0 +1,37 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('com_catalogo', function (Blueprint $table) {
+            $table->id();
+            $table->string('codigo_articulo')->unique()->nullable(); // relación con alm_articulos     
+            // Datos del catálogo
+            $table->text('foto_catalogo')->nullable();
+            $table->text('descripcion')->nullable();
+            $table->string('categoria')->nullable();
+            $table->integer('stock_minimo')->nullable();
+            $table->boolean('activo')->default(true);
+            //Datos de sistema
+            $table->timestamps();
+            // Índices para rendimiento
+            $table->index(['codigo_articulo', 'activo']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('com_catalogo');
+    }
+};
