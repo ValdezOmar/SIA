@@ -75,7 +75,8 @@ class HistorialLaboralRelationManager extends RelationManager
                                 : []
                         )
                         ->reactive()
-                        ->searchable(),
+                        ->searchable()
+                        ->placeholder('Seleccione una empresa primero'),
 
                     Select::make('cargo_id')
                         ->label('Cargo')
@@ -158,7 +159,7 @@ class HistorialLaboralRelationManager extends RelationManager
                     DatePicker::make('fecha_inicio')
                         ->label('Inicio de contrato')
                         ->prefixIcon('heroicon-o-calendar'),
-                        //->required(),
+                    //->required(),
 
                     DatePicker::make('fecha_fin')
                         ->label('Fin de contrato')
@@ -179,7 +180,7 @@ class HistorialLaboralRelationManager extends RelationManager
                         ->disabled()
                         ->dehydrated()
                         ->prefixIcon('heroicon-o-heart'),
-                        
+
                     TextInput::make('correo_corporativo')
                         ->label('Correo Corporativo')
                         ->email()
@@ -198,12 +199,12 @@ class HistorialLaboralRelationManager extends RelationManager
                                 $set('correo_corporativo', $this->generarCorreoCorporativoDesdeEmpleado($empleado, $get('empresa_id')));
                             }
                         }),
-                        
+
                     TextInput::make('numero_corporativo')
                         ->label('Número Corporativo')
                         ->prefixIcon('heroicon-o-phone'),
                 ]),
-                
+
             Section::make('Documento')
                 ->description('Adjunta un PDF del contrato (max 15mb)')
                 ->icon('heroicon-o-document')
@@ -227,7 +228,7 @@ class HistorialLaboralRelationManager extends RelationManager
                             return $ci . '.' . $file->getClientOriginalExtension();
                         })
                 ]),
-                
+
             Section::make('Observaciones')
                 ->schema([
                     Textarea::make('observaciones')
@@ -313,6 +314,11 @@ class HistorialLaboralRelationManager extends RelationManager
                             default => 'gray',
                         };
                     }),
+
+                TextColumn::make('sucursal.nombre')
+                    ->label('Sucursal')
+                    ->badge()
+                    ->color('info'),
 
                 IconColumn::make('activo')
                     ->label('Estado')

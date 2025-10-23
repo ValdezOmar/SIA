@@ -22,15 +22,18 @@ return new class extends Migration
                 ->nullOnDelete();
             $table->foreignId('cargo_id')
                 ->nullable()
-                ->constrained('conf_cargos') 
+                ->constrained('conf_cargos')
+                ->nullOnDelete();
+            $table->foreignId('sucursal_id')
+                ->nullable()
+                ->constrained('conf_sucursales')
                 ->nullOnDelete();
             $table->date('fecha_inicio')->nullable();
             $table->date('fecha_fin')->nullable();
-            $table->date('fecha_baja')->nullable();            
+            $table->date('fecha_baja')->nullable();
             $table->decimal('salario', 12, 2)->nullable();
-            $table->string('tipo_contrato')->nullable();     
-            $table->string('seguro_medico')->nullable();
-            $table->string('sucursal')->nullable();
+            $table->string('tipo_contrato')->nullable();
+            $table->string('seguro_medico')->nullable();            
             $table->string('correo_corporativo')->nullable();
             $table->string('numero_corporativo')->nullable();
             $table->text('observaciones')->nullable();

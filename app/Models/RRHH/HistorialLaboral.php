@@ -4,6 +4,7 @@ namespace App\Models\RRHH;
 
 use App\Models\Sistema\Cargo;
 use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -53,6 +54,10 @@ class HistorialLaboral extends Model
     public function cargo()
     {
         return $this->belongsTo(Cargo::class, 'cargo_id');
+    }
+    public function sucursal()
+    {
+        return $this->belongsTo(Sucursal::class, 'sucursal_id');
     }
 
     //Evento: solo un registro activo por empleado
