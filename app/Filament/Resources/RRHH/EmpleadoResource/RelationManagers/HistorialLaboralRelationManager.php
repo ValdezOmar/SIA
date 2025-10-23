@@ -64,7 +64,7 @@ class HistorialLaboralRelationManager extends RelationManager
                             }
                         }),
 
-                    Select::make('sucursal')
+                    Select::make('sucursal_id')
                         ->label('Sucursal')
                         ->prefixIcon('heroicon-o-map-pin')
                         ->required()
