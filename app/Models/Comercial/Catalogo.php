@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Catalogo extends Model
 {
-   use HasFactory;
+    use HasFactory;
 
     protected $table = 'com_catalogo';
 
@@ -21,9 +21,10 @@ class Catalogo extends Model
         'activo',
     ];
 
-    // 🔹 Relación: un catálogo tiene muchos artículos
+    //Relación: un catálogo tiene muchos artículos
     public function articulos()
     {
         return $this->hasMany(Articulo::class, 'codigo', 'codigo_articulo');
-    }
+    }    
+    
 }

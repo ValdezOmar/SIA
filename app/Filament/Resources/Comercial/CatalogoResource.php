@@ -28,6 +28,7 @@ use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Builder;
 
 class CatalogoResource extends Resource implements HasShieldPermissions
 {
@@ -206,11 +207,9 @@ class CatalogoResource extends Resource implements HasShieldPermissions
                     ->label('Item Almacén')
                     ->html()
                     ->getStateUsing(function ($record) {
-                        $articulo = DB::table('alm_articulos')
-                            ->where('codigo', $record->codigo_articulo)
-                            ->first();
+                        $articulo = \App\Models\Almacen\Articulo::where('codigo', $record->codigo_articulo)->first();
 
-                        if (!$articulo) {
+                        if (! $articulo) {
                             return "<div><strong class='text-gray-500 dark:text-gray-400'>No encontrado</strong></div>";
                         }
 
@@ -225,7 +224,18 @@ class CatalogoResource extends Resource implements HasShieldPermissions
                     ";
                     })
                     ->wrap()
-                    ->searchable(['descripcion', 'codigo', 'codigo_alterno']),
+                    ->searchable(
+                        query: function (Builder $query, string $search): Builder {
+                            return $query
+                                ->where('com_catalogo.codigo_articulo', 'like', "%{$search}%")
+                                ->orWhereExists(function ($sub) use ($search) {
+                                    $sub->selectRaw(1)
+                                        ->from('alm_articulos')
+                                        ->whereColumn('alm_articulos.codigo', 'com_catalogo.codigo_articulo')
+                                        ->where('alm_articulos.descripcion', 'like', "%{$search}%");
+                                });
+                        }
+                    ),
 
                 TextColumn::make('categoria')
                     ->label('Categoría')
