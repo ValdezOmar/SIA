@@ -25,6 +25,9 @@ class Catalogo extends Model
     public function articulos()
     {
         return $this->hasMany(Articulo::class, 'codigo', 'codigo_articulo');
-    }    
-    
+    }
+    public function articulo()
+    {
+        return $this->belongsTo(\App\Models\Almacen\Articulo::class, 'codigo_articulo', 'codigo');
+    }
 }
