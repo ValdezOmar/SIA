@@ -174,18 +174,15 @@
                     </h3>
                     <div class="space-y-3">
                         <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                            <span class="font-semibold text-gray-700">Lugar:</span>
-                            <span class="text-gray-600">{{ $equipo->lugar ?? 'N/A' }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
                             <span class="font-semibold text-gray-700">Dirección:</span>
                             <span class="text-gray-600">{{ $equipo->direccion ?? 'N/A' }}</span>
                         </div>
+                        
                         <div class="flex justify-between items-center py-2">
                             <span class="font-semibold text-gray-700">Frec. Mantenimiento:</span>
                             <span class="text-gray-600">
                                 @if($equipo->freq_mantenimiento && is_array($equipo->freq_mantenimiento))
-                                    {{ implode(', ', $equipo->freq_mantenimiento) }}
+                                    {{ implode(' : ',$equipo->freq_mantenimiento)   }}
                                 @else
                                     N/A
                                 @endif
@@ -209,7 +206,7 @@
                             <i class="fas fa-user text-green-600 text-xl"></i>
                         </div>
                         <div>
-                            <p class="font-semibold text-gray-800">{{ $equipo->tecnico->nombre_completo ?? 'N/A' }}</p>
+                            <p class="font-semibold text-gray-800">{{ $equipo->tecnico->full_name ?? 'N/A' }}</p>
                             <p class="text-gray-600 text-sm">Técnico especializado</p>
                         </div>
                     </div>
@@ -252,7 +249,7 @@
 
             <!-- Footer -->
             <div class="text-center mt-8 text-gray-500">
-                <p>© {{ date('Y') }} Sistema de Gestión de Equipos. Todos los derechos reservados.</p>
+                <p>© {{ date('Y') }} Sistema de Gestión de Equipos.</p>
             </div>
         </div>
     </div>
