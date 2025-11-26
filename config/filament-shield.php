@@ -52,7 +52,7 @@ return [
     ],
 
     'entities' => [
-        'pages' => true,
+        'pages' => false,
         'widgets' => true,
         'resources' => true,
         'custom_permissions' => true,
@@ -77,7 +77,7 @@ return [
         ],
 
         'resources' => [
-            
+            \App\Filament\Clusters\HelpDesk\Resources\HelpDesk\EventoEntradaResource::class
         ],
     ],
 

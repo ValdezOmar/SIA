@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\PublicEquipoController;
 use Laravel\Socialite\Facades\Socialite;
 
 // Redirige la ruta raíz al dashboard de Filament
@@ -14,3 +15,7 @@ Route::get('/', function () {
 //Redireccion a los dominios de llamada de google
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
+
+//Ruta publica de los equipos:
+Route::get('/equipos/{codigo}', [PublicEquipoController::class, 'show'])
+    ->name('public.equipos.show');

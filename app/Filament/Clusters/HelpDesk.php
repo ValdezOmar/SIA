@@ -5,12 +5,12 @@ namespace App\Filament\Clusters;
 use Filament\Clusters\Cluster;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class Sistema extends Cluster implements HasShieldPermissions
+class HelpDesk extends Cluster implements HasShieldPermissions
 {
-    protected static ?string $slug = 'configuracion';
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
-    protected static ?string $navigationLabel = 'Sistema';
-    protected static ?string $navigationGroup = 'Configuración';
+    protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
+    protected static ?string $slug = 'help-desk';    
+    protected static ?string $navigationLabel = 'Help Desk';
+    protected static ?string $navigationGroup = 'Comercial';
     protected static ?int $navigationSort = 2;
     
     //Evitar que Shield genere permisos para este cluster
