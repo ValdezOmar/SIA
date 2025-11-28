@@ -87,11 +87,11 @@ class ClienteResource extends Resource
                     ])->columns(2),
 
                 Section::make('Información Adicional')
-                    ->required()
                     ->description('Detalles complementarios del cliente')
                     ->icon('heroicon-o-information-circle')
                     ->schema([
                         Select::make('tipo_institucion')
+                            ->required()
                             ->label('Tipo de Institución')
                             ->placeholder('Seleccione el tipo de institución')
                             ->helperText('Clasificación del tipo de organización en Bolivia')
