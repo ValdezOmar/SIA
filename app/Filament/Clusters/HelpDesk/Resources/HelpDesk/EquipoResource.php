@@ -585,14 +585,14 @@ class EquipoResource extends Resource
                     ->label('Ubicación')
                     ->icon('heroicon-o-map-pin')
                     ->color('danger')
-                    ->tooltip('Abrir en Google Maps')
+                    ->tooltip('Google Maps')
                     ->url(
                         fn(Equipo $record): ?string =>
                         $record->ubicacion_gps &&
                             isset($record->ubicacion_gps['lat']) &&
                             isset($record->ubicacion_gps['lng'])
                             ? "https://www.google.com/maps?q={$record->ubicacion_gps['lat']},{$record->ubicacion_gps['lng']}"
-                            : null
+                            : 'Sin datos'
                     )
                     ->openUrlInNewTab()
                     ->disabled(
@@ -600,7 +600,16 @@ class EquipoResource extends Resource
                         !($record->ubicacion_gps &&
                             isset($record->ubicacion_gps['lat']) &&
                             isset($record->ubicacion_gps['lng']))
-                    ),               
+                    ),
+                    
+                IconColumn::make('doc_adjunto')
+                    ->label('PDF')
+                    ->icon(fn($state): string => $state ? 'heroicon-o-document-check' : 'heroicon-o-x-circle')
+                    ->color(fn($state): string => $state ? 'primary' : 'danger')
+                    ->tooltip(fn($state): string => $state ? 'Descargar PDF' : 'Sin documento')
+                    ->url(fn($state) => $state ? Storage::url($state) : null)
+                    ->openUrlInNewTab()
+                    ->disabled(fn($state): bool => !$state),
 
                 IconColumn::make('activo')
                     ->label('Estado')
