@@ -156,19 +156,10 @@ class ClienteResource extends Resource
                     ->weight('semibold')
                     ->icon('heroicon-o-building-office'),
 
-                TextColumn::make('telefono')
-                    ->icon('heroicon-o-phone')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: false),
-
-                TextColumn::make('correo')
-                    ->icon('heroicon-o-envelope')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: false),
-
                 TextColumn::make('ciudad')
+                    ->label('Ciudad/Localidad')
                     ->icon('heroicon-o-map-pin')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('tipo_institucion')
                     ->label('Tipo')
@@ -215,6 +206,16 @@ class ClienteResource extends Resource
 
                         default => 'gray',
                     })
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                TextColumn::make('telefono')
+                    ->icon('heroicon-o-phone')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('correo')
+                    ->icon('heroicon-o-envelope')
+                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
