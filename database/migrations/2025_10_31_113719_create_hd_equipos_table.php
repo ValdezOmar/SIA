@@ -17,7 +17,7 @@ return new class extends Migration
             //Datos basicos
             $table->string('codigo', 100)->unique();
             $table->foreignId('cliente_id')->nullable()->constrained('com_clientes')->nullOnDelete();
-            $table->string('descripcion');
+            $table->text('descripcion')->nullable();
             $table->string('marca')->nullable();
             $table->string('modelo')->nullable();
             $table->string('num_serie')->nullable();            

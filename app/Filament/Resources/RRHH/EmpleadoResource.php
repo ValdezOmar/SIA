@@ -135,7 +135,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                     ->content(fn($get) => ' ' . $get('numero_corporativo'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
-                                ////
+                               
                                 Toggle::make('activo')
                                     ->label(fn($state) => $state ? 'Empleado Activo' : 'Empleado Inactivo')
                                     ->live()
@@ -224,9 +224,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                                 ->send();
                                         }),
                                 ])
-                                    ->columnSpanFull(),
-
-                                ////     
+                                    ->columnSpanFull(), 
                             ])
                             ->columnSpan(['md' => 2, 'lg' => 1])
                             ->extraAttributes(['class' => 'flex flex-col justify-center']),
@@ -290,7 +288,6 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                         // Campo para el mapa (interactivo)                                
                                         Field::make('ubicacion_gps')
                                             ->label('Ubicación GPS')
-
                                             ->view('filament.forms.components.map-picker'),
                                     ])
                                     ->columns(1),

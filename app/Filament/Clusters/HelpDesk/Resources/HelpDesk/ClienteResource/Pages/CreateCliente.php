@@ -9,4 +9,10 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateCliente extends CreateRecord
 {
     protected static string $resource = ClienteResource::class;
+
+    // Redirigir al index después de crear
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

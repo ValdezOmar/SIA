@@ -9,7 +9,7 @@
         <div class="flex gap-2">
             <div class="flex-1">
                 <x-filament::input.wrapper>
-                    <x-filament::input type="text" x-model="coordinates" readonly :placeholder="empty($state) ? 'Seleccione la ubicación de su domicilio en el mapa' : 'Coordenadas GPS'" class="w-full" />
+                    <x-filament::input type="text" x-model="coordinates" readonly :placeholder="empty($state) ? 'Seleccione la ubicación del croquis en el mapa' : 'Coordenadas GPS'" class="w-full" />
                 </x-filament::input.wrapper>
             </div>
             <x-filament::button type="button" @click="toggleMap()" color="gray" icon="heroicon-o-map"
@@ -138,7 +138,7 @@
                         lat: -16.5000,
                         lng: -68.1500
                     };
-                    this.coordinates = 'Seleccione la ubicación de su domicilio en el mapa';
+                    this.coordinates = 'Seleccione la ubicación del croquis en el mapa';
                 },
 
                 get locationJson() {

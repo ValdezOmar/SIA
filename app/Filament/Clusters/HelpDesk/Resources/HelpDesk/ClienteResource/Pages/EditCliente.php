@@ -13,7 +13,13 @@ class EditCliente extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+           // Actions\DeleteAction::make(),
         ];
+    }
+    
+    // Redirigir al index después de crear
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }
