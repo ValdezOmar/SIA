@@ -72,7 +72,7 @@ class AppServiceProvider extends ServiceProvider
                 if ($param && $param->timezone) {
                     config(['app.timezone' => $param->timezone]);
                     date_default_timezone_set($param->timezone);
-                    Log::info("Zona horaria establecida desde BD: {$param->timezone}");
+                    //Log::info("Zona horaria establecida desde BD: {$param->timezone}");
                     return;
                 }
             }
@@ -104,7 +104,7 @@ class AppServiceProvider extends ServiceProvider
                         'services.google.redirect'      => $param->google_redirect_uri,
                     ]);
 
-                    Log::info("Configuración de Google cargada desde BD.");
+                    //Log::info("Configuración de Google cargada desde BD.");
                     return;
                 }
             }

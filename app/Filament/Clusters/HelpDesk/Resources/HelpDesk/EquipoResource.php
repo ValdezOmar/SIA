@@ -6,6 +6,7 @@ use App\Filament\Clusters\HelpDesk;
 use App\Filament\Clusters\HelpDesk\Resources\HelpDesk\EquipoResource\Pages;
 use App\Models\HelpDesk\Equipo;
 use App\Models\RRHH\Empleado;
+use App\Models\Sistema\Sucursal;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -38,6 +39,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Saade\FilamentMapPicker\Forms\MapPicker;
 
+
 class EquipoResource extends Resource
 {
     protected static ?string $model = Equipo::class;
@@ -65,8 +67,13 @@ class EquipoResource extends Resource
                                             ->description('Suba una foto clara del equipo')
                                             ->icon('heroicon-o-camera')
                                             ->schema([
+                                                TextInput::make('codigo')
+                                                    ->disabled()
+                                                    ->label(' ')
+                                                    ->placeholder('Codigo del equipo')
+                                                    ->prefixIcon('heroicon-o-qr-code'),
                                                 FileUpload::make('foto_equipo')
-                                                    ->label('Foto del Equipo')
+                                                    ->label(' ')
                                                     ->image()
                                                     ->directory('equipos/fotos')
                                                     ->disk('public')
@@ -88,7 +95,9 @@ class EquipoResource extends Resource
                                                         $codigo = $get('codigo') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('codigo')) : 'equipo_' . uniqid();
                                                         return $codigo . '.' . $file->getClientOriginalExtension();
                                                     })
-                                                    ->imagePreviewHeight('250')
+                                                    ->imagePreviewHeight('200')
+                                                    ->previewable(true)
+                                                    ->placeholder(fn($state): string => $state ? '' : 'No hay imagen cargada')
                                                     ->extraAttributes([
                                                         'class' => 'rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300',
                                                     ])
@@ -97,7 +106,7 @@ class EquipoResource extends Resource
                                             ->compact(),
 
                                         Section::make('Estado del Equipo')
-                                            ->description('Control de activación en el sistema')
+                                            ->description(' ')
                                             ->icon('heroicon-o-power')
                                             ->schema([
                                                 Toggle::make('activo')
@@ -105,7 +114,7 @@ class EquipoResource extends Resource
                                                     ->default(true)
                                                     ->onColor('success')
                                                     ->offColor('danger')
-                                                    ->helperText('Desactive para ocultar este equipo en el sistema'),
+                                                    ->helperText('Desactive para dar de baja del sistema'),
                                             ])
                                             ->compact(),
                                     ])
@@ -144,14 +153,21 @@ class EquipoResource extends Resource
                                                             ->prefixIcon('heroicon-o-building-storefront'),
 
                                                         Select::make('sucursal_id')
-                                                            ->label('Sucursal/Localidad')
-                                                            ->relationship('sucursalRelacion', 'nombre')
-                                                            ->searchable()
-                                                            ->preload()
+                                                            ->label('Sucursal')
+
                                                             ->required()
+                                                            ->options(
+                                                                fn(Get $get) =>
+                                                                $get('empresa_id')
+                                                                    ? Sucursal::where('empresa_id', $get('empresa_id'))->pluck('nombre', 'id')->toArray()
+                                                                    : []
+                                                            )
+                                                            ->reactive()
+                                                            ->searchable()
                                                             ->placeholder('Seleccione sucursal')
                                                             ->helperText('Ubicación física del equipo')
                                                             ->prefixIcon('heroicon-o-map-pin'),
+
                                                     ])
                                                     ->columns([
                                                         'sm' => 1,
@@ -160,12 +176,7 @@ class EquipoResource extends Resource
 
                                                 Grid::make()
                                                     ->schema([
-                                                        TextInput::make('codigo')
-                                                            ->disabled()
-                                                            ->label('Código Interno')
-                                                            ->placeholder('Ej: EQ-MED-001')
-                                                            ->helperText('Código único de identificación')
-                                                            ->prefixIcon('heroicon-o-qr-code'),
+
                                                         Select::make('marca')
                                                             ->label('Fabricante')
                                                             ->options([
@@ -220,7 +231,7 @@ class EquipoResource extends Resource
                                                     ])
                                                     ->columns([
                                                         'sm' => 1,
-                                                        'lg' => 2,
+                                                        'lg' => 3,
                                                     ]),
 
                                                 RichEditor::make('descripcion')
@@ -237,10 +248,9 @@ class EquipoResource extends Resource
                                                         'undo',
                                                     ])
                                                     ->placeholder('Describa las características técnicas, funciones y especificaciones del equipo...')
-                                                    ->helperText('Incluya información relevante para el mantenimiento y soporte')
                                                     ->columnSpanFull()
                                                     ->extraInputAttributes([
-                                                        'style' => 'min-height: 100px;',
+                                                        'style' => 'min-height: 200px;',
                                                     ]),
                                             ]),
                                     ])
@@ -263,26 +273,99 @@ class EquipoResource extends Resource
                     ->schema([
                         Grid::make()
                             ->schema([
-                                DatePicker::make('fecha_venta')
-                                    ->label('Fecha de Compra')
+                                // Placeholder para mostrar qué campos son visibles
+                                Forms\Components\Placeholder::make('info_campos')
+                                    ->content(function (Get $get): string {
+                                        $tipo = $get('tipo_venta');
+                                        if (!$tipo) return 'Seleccione un tipo de venta para ver los campos y una descripción corta';
+
+                                        $descripcion = match ($tipo) {
+                                            'Venta' => '📋 Equipo vendido con factura al cliente, fecha de entrega comercial y documentos de garantía',
+                                            'Comodato' => '📋 Equipo en préstamo al cliente con condiciones de compra de reactivos',
+                                            'Alquiler' => '📋 Equipo en préstamo al cliente con condiciones de pago por uso',
+                                            'Prestamo' => '📋 Equipo entregado temporalmente por negociaciones comerciales',
+                                            'Devolucion' => '📋 Equipo devuelto por el cliente por fallas técnicas de fábrica',
+                                            'Repocicion' => '📋 Equipo entregado al cliente por repocicion del equipo devuelto',
+
+                                            default => '📋 Campos no definidos para este tipo'
+                                        };
+
+                                        return $descripcion;
+                                    })
+                                    ->columnSpanFull(),
+                                //->extraAttributes(['class' => 'bg-blue-50 border border-blue-200 rounded-lg p-4']),
+                                Select::make('tipo_venta')
+                                    ->label('Tipo de Venta')
+                                    ->options([
+                                        'Comodato' => 'Comodato',
+                                        'Venta' => 'Venta',
+                                        'Alquiler' => 'Alquiler',
+                                        'Prestamo' => 'Préstamo',
+                                        'Devolucion' => 'Devolución',
+                                        'Repocicion' => 'Repocición',
+                                        'Otro' => 'Otro',
+                                    ])
+                                    ->placeholder('Seleccione el tipo de venta')
+                                    ->helperText('Modalidad de la transacción')
+                                    ->searchable()
+                                    ->preload()
+                                    ->live()
+                                    ->required()
+                                    ->prefixIcon('heroicon-o-shopping-bag'),
+
+                                // Campos que siempre se muestran
+                                DatePicker::make('fecha_entrega')
+                                    ->label('Fecha de Entrega')
                                     ->displayFormat('d/m/Y')
-                                    ->helperText('Fecha de adquisición del equipo')
-                                    ->prefixIcon('heroicon-o-calendar'),
+                                    ->helperText('Fecha de entrega del equipo')
+                                    ->prefixIcon('heroicon-o-calendar')
+                                    ->visible(function (Get $get): bool {
+                                        $tipo = $get('tipo_venta');
+                                        return in_array($tipo, ['Comodato', 'Alquiler', 'Prestamo', 'Devolucion', 'Venta', 'Repocicion', 'Otro']);
+                                    }),
+
+                                DatePicker::make('fecha_instalacion')
+                                    ->label('Fecha de Instalación')
+                                    ->displayFormat('d/m/Y')
+                                    ->helperText('Fecha de instalación del equipo')
+                                    ->prefixIcon('heroicon-o-wrench-screwdriver')
+                                    ->visible(function (Get $get): bool {
+                                        $tipo = $get('tipo_venta');
+                                        return in_array($tipo, ['Comodato', 'Alquiler', 'Prestamo', 'Devolucion', 'Venta', 'Repocicion', 'Otro']);
+                                    }),
+
+                                DatePicker::make('fecha_devolucion')
+                                    ->label('Fecha de Devolución')
+                                    ->displayFormat('d/m/Y')
+                                    ->helperText('Fecha de devolución (si aplica)')
+                                    ->prefixIcon('heroicon-o-arrow-left')
+                                    ->visible(function (Get $get): bool {
+                                        $tipo = $get('tipo_venta');
+                                        return in_array($tipo, ['Comodato', 'Alquiler', 'Prestamo', 'Devolucion', 'Otro']);
+                                    }),
 
                                 DatePicker::make('garantia_desde')
                                     ->label('Inicio de Garantía')
                                     ->displayFormat('d/m/Y')
                                     ->helperText('Fecha inicial de la garantía')
-                                    ->prefixIcon('heroicon-o-shield-check'),
+                                    ->prefixIcon('heroicon-o-shield-check')
+                                    ->visible(function (Get $get): bool {
+                                        $tipo = $get('tipo_venta');
+                                        return in_array($tipo, ['Venta', 'Devolucion', 'Repocicion', 'Otro']);
+                                    }),
 
                                 DatePicker::make('garantia_hasta')
                                     ->label('Fin de Garantía')
                                     ->displayFormat('d/m/Y')
                                     ->helperText('Fecha de vencimiento de garantía')
-                                    ->prefixIcon('heroicon-o-clock'),
+                                    ->prefixIcon('heroicon-o-clock')
+                                    ->visible(function (Get $get): bool {
+                                        $tipo = $get('tipo_venta');
+                                        return in_array($tipo, ['Venta', 'Devolucion', 'Repocicion', 'Otro']);
+                                    }),
 
                                 FileUpload::make('doc_adjunto')
-                                    ->label('Póliza de Garantía')
+                                    ->label('Documento Adjunto')
                                     ->directory('garantia_equipos')
                                     ->disk('public')
                                     ->acceptedFileTypes(['application/pdf'])
@@ -290,18 +373,33 @@ class EquipoResource extends Resource
                                     ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
                                         $codigo = $get('codigo')
                                             ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('codigo'))
-                                            : 'garantia_' . uniqid();
+                                            : 'documento_' . uniqid();
                                         return $codigo . '.pdf';
                                     })
-                                    ->helperText('PDF de la póliza de garantía (máx. 5MB)')
+                                    ->helperText('PDF de garantía o contrato (máx. 5MB)')
                                     ->downloadable()
-                                    ->openable(),
+                                    ->openable()
+                                    ->visible(function (Get $get): bool {
+                                        $tipo = $get('tipo_venta');
+                                        return in_array($tipo, ['Comodato', 'Alquiler', 'Prestamo', 'Devolucion', 'Venta', 'Repocicion', 'Otro']);
+                                    }),
                             ])
                             ->columns([
                                 'sm' => 1,
                                 'md' => 2,
-                                'lg' => 4,
+                                'lg' => 3,
                             ]),
+
+                        Textarea::make('observaciones')
+                            ->label('Observaciones')
+                            ->placeholder('Observaciones durante la entrega, instalación o funcionamiento...')
+                            ->helperText('Notas relevantes sobre el equipo')
+                            ->rows(3)
+                            ->visible(function (Get $get): bool {
+                                $tipo = $get('tipo_venta');
+                                return in_array($tipo, ['Comodato', 'Alquiler', 'Prestamo', 'Devolucion', 'Venta', 'Repocicion', 'Otro']);
+                            })
+                            ->columnSpanFull(),
                     ])
                     ->columnSpanFull(),
 
@@ -342,6 +440,10 @@ class EquipoResource extends Resource
                                                             ->options([
                                                                 'semana' => 'Semana',
                                                                 'mes' => 'Mes',
+                                                                'bimestre' => 'Bimestre',
+                                                                'trimestre' => 'Trimestre',
+                                                                'cuatrimestre' => 'Cuatrimestre',
+                                                                'semestre' => 'Semestre',
                                                                 'año' => 'Año',
                                                             ])
                                                             ->placeholder('Seleccione')
@@ -402,8 +504,13 @@ class EquipoResource extends Resource
 
                                 Field::make('ubicacion_gps')
                                     ->label('Ubicación GPS')
-
-                                    ->view('filament.forms.components.map-picker'),
+                                    ->view('filament.forms.components.map-picker')
+                                    ->dehydrated()
+                                    ->afterStateHydrated(function ($state, $set) {
+                                        if (is_string($state)) {
+                                            $set(json_decode($state, true));
+                                        }
+                                    })
                             ])
                             ->columnSpan([
                                 'sm' => 1,

@@ -14,21 +14,24 @@ class Equipo extends Model
 
     protected $table = 'hd_equipos';
 
-    protected $fillable = [
+   protected $fillable = [
         'codigo',
         'cliente_id',
         'descripcion',
         'marca',
         'modelo',
         'num_serie',
-        'observaciones',
-        'fecha_venta',
+        'observaciones', 
+        'tipo_venta',  
+        'fecha_entrega', 
+        'fecha_instalacion', 
+        'fecha_devolucion',  
         'garantia_desde',
         'garantia_hasta',
         'foto_equipo',
         'doc_adjunto',
         'empresa_id',
-        'sucursal',
+        'sucursal_id',      
         'tecnico_asignado',
         'tel_soporte',
         'freq_mantenimiento',
@@ -41,10 +44,13 @@ class Equipo extends Model
         'freq_mantenimiento' => 'array',
         'ubicacion_gps' => 'array',
         'activo' => 'boolean',
-        'fecha_venta' => 'date',
+        'fecha_entrega' => 'date',    
+        'fecha_instalacion' => 'date', 
+        'fecha_devolucion' => 'date',  
         'garantia_desde' => 'date',
         'garantia_hasta' => 'date',
     ];
+    
     protected static function booted()
     {
         static::creating(function ($equipo) {
@@ -66,7 +72,8 @@ class Equipo extends Model
             $equipo->codigo = "{$marca}-{$empresa}-{$secuencia}";
         });
     }
-    // Relaciones
+    
+    // Relaciones con modelos
     public function cliente()
     {
         return $this->belongsTo(Cliente::class, 'cliente_id');
@@ -79,7 +86,7 @@ class Equipo extends Model
 
     public function sucursalRelacion()
     {
-        return $this->belongsTo(Sucursal::class, 'sucursal');
+        return $this->belongsTo(Sucursal::class, 'sucursal_id');
     }
 
     public function tecnico()

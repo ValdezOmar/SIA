@@ -1,5 +1,6 @@
 <div x-data="mapPicker()" x-init="init(@js($getState() ?? []))" class="w-full">
-    <input type="hidden" name="ubicacion_gps" x-model="locationJson">
+    <input type="hidden" x-model="locationJson" x-on:input="$wire.set('data.ubicacion_gps', locationJson)">
+
 
     <!-- Debug visual (solo en desarrollo) -->
     <div x-show="false" x-text="'DEBUG: ' + JSON.stringify($data)"></div>
