@@ -430,11 +430,21 @@
 
                                         *Enlace del equipo:* {{ url()->current() }}`;
 
-                    const telefonoSoporte = '{{ $equipo->tel_soporte }}';
-                    const mensajeCodificado = encodeURIComponent(mensajeBase);
-                    const urlWhatsApp = `https://wa.me/${telefonoSoporte}?text=${mensajeCodificado}`;
-                    
-                    window.open(urlWhatsApp, '_blank');
+                     // Asegurar que el número tenga código de país (ajusta el +51 según tu país)
+                        let telefonoSoporte = '{{ $equipo->tel_soporte }}';
+                        
+                        // agregar código de país
+                        if (!telefonoSoporte.startsWith('+')) {
+                            // Remover cualquier espacio o caracter especial
+                            telefonoSoporte = telefonoSoporte.replace(/\D/g, '');
+                            // Agregar código de país 
+                            telefonoSoporte = '+591' + telefonoSoporte;
+                        }
+                        
+                        const mensajeCodificado = encodeURIComponent(mensajeBase);
+                        const urlWhatsApp = `https://wa.me/${telefonoSoporte}?text=${mensajeCodificado}`;
+                        
+                        window.open(urlWhatsApp, '_blank');
                 });
             }
         });
