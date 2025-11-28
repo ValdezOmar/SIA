@@ -21,6 +21,7 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -86,6 +87,7 @@ class ClienteResource extends Resource
                     ])->columns(2),
 
                 Section::make('Información Adicional')
+                    ->required()
                     ->description('Detalles complementarios del cliente')
                     ->icon('heroicon-o-information-circle')
                     ->schema([
@@ -114,6 +116,8 @@ class ClienteResource extends Resource
                             ->native(false),
 
                         TextInput::make('ciudad')
+                            ->label('DepartamentoX')
+                            ->required()
                             ->prefixIcon('heroicon-o-building-storefront')
                             ->placeholder('Ej: La Paz, Santa Cruz, Cochabamba')
                             ->formatStateUsing(fn($state) => $state ? ucwords(strtolower($state)) : '')
@@ -235,7 +239,7 @@ class ClienteResource extends Resource
                     ->trueLabel('Solo activos')
                     ->falseLabel('Solo inactivos'),
 
-                Tables\Filters\SelectFilter::make('tipo_institucion')
+                SelectFilter::make('tipo_institucion')
                     ->label('Tipo de Institución')
                     ->options([
                         'Empresa Privada' => 'Empresa Privada',
