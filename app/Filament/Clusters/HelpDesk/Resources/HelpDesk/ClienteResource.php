@@ -119,9 +119,9 @@ class ClienteResource extends Resource
                             ->label('Departamento o localidad')
                             ->required()
                             ->prefixIcon('heroicon-o-building-storefront')
-                            ->placeholder('Ej: La Paz, Santa Cruz, Cochabamba')
-                            ->formatStateUsing(fn($state) => $state ? ucwords(strtolower($state)) : '')
-                            ->dehydrateStateUsing(fn($state) => $state ? ucwords(strtolower($state)) : null),
+                            ->placeholder('Ej: LA PAZ, SANTA CRUZ, COCHABAMBA')
+                            ->formatStateUsing(fn($state) => $state ? strtoupper($state) : '')
+                            ->dehydrateStateUsing(fn($state) => $state ? strtoupper($state) : null),
 
                         Textarea::make('observaciones')
                             ->rows(3)
