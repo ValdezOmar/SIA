@@ -507,8 +507,8 @@ class EquipoResource extends Resource
                                     ->rows(6)
                                     ->columnSpanFull(),
 
-                                Field::make('ubicacion_gps')                                   
-                                    ->view('filament.forms.components.map-picker'), 
+                                Field::make('ubicacion_gps')
+                                    ->view('filament.forms.components.map-picker'),
                             ])
                             ->columnSpan([
                                 'sm' => 1,
@@ -581,6 +581,27 @@ class EquipoResource extends Resource
                     )
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                TextColumn::make('ubicacion_gps')
+                    ->label('Ubicación')
+                    ->icon('heroicon-o-map-pin')
+                    ->color('danger')
+                    ->tooltip('Abrir en Google Maps')
+                    ->url(
+                        fn(Equipo $record): ?string =>
+                        $record->ubicacion_gps &&
+                            isset($record->ubicacion_gps['lat']) &&
+                            isset($record->ubicacion_gps['lng'])
+                            ? "https://www.google.com/maps?q={$record->ubicacion_gps['lat']},{$record->ubicacion_gps['lng']}"
+                            : null
+                    )
+                    ->openUrlInNewTab()
+                    ->disabled(
+                        fn(Equipo $record): bool =>
+                        !($record->ubicacion_gps &&
+                            isset($record->ubicacion_gps['lat']) &&
+                            isset($record->ubicacion_gps['lng']))
+                    ),               
+
                 IconColumn::make('activo')
                     ->label('Estado')
                     ->boolean()
@@ -610,7 +631,7 @@ class EquipoResource extends Resource
                     ->getOptionLabelFromRecordUsing(fn(Empleado $record) => $record->full_name)
                     ->label('Técnico Responsable')
                     ->searchable()
-                    ->preload(),                
+                    ->preload(),
             ])
             ->actions([
                 ViewAction::make()
