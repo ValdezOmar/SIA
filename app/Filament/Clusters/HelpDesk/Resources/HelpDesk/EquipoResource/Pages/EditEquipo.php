@@ -17,6 +17,7 @@ class EditEquipo extends EditRecord
             //Actions\DeleteAction::make(),
         ];
     }
+    
     //Funcion para guardar el array de gps
     public function mutateFormDataBeforeSave(array $data): array
     {
@@ -38,5 +39,11 @@ class EditEquipo extends EditRecord
         }
 
         return $data;
+    }
+
+    // Redirigir al index después de crear
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }
