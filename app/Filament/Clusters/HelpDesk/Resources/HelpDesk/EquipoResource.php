@@ -428,6 +428,7 @@ class EquipoResource extends Resource
                                                 Grid::make()
                                                     ->schema([
                                                         TextInput::make('freq_mantenimiento.value')
+                                                            ->required()
                                                             ->label('Frecuencia')
                                                             ->numeric()
                                                             ->minValue(1)
@@ -436,6 +437,7 @@ class EquipoResource extends Resource
                                                             ->suffixIcon('heroicon-o-clock'),
 
                                                         Select::make('freq_mantenimiento.key')
+                                                            ->required()
                                                             ->label('Periodo')
                                                             ->options([
                                                                 'semana' => 'Semana',
@@ -459,6 +461,7 @@ class EquipoResource extends Resource
                                         Group::make()
                                             ->schema([
                                                 Select::make('tecnico_asignado')
+                                                    ->required()
                                                     ->relationship('tecnico', 'nombres') // Campo base para la relación
                                                     ->getOptionLabelFromRecordUsing(fn(Empleado $record) => $record->full_name)
                                                     ->label('Técnico Responsable')
@@ -469,6 +472,7 @@ class EquipoResource extends Resource
                                                     ->prefixIcon('heroicon-o-user'),
 
                                                 TextInput::make('tel_soporte')
+                                                    ->required()
                                                     ->label('Teléfono de Soporte')
                                                     ->tel()
                                                     ->placeholder('Ej: +591 12345678')
@@ -497,20 +501,14 @@ class EquipoResource extends Resource
                             ->schema([
                                 Textarea::make('direccion')
                                     ->label('Dirección Exacta')
+                                    ->required()
                                     ->placeholder('Describa la ubicación específica dentro de la institución...')
                                     ->helperText('Ej: Piso 2, Laboratorio Central, Ala Norte')
                                     ->rows(6)
                                     ->columnSpanFull(),
 
-                                Field::make('ubicacion_gps')
-                                    ->label('Ubicación GPS')
-                                    ->view('filament.forms.components.map-picker')
-                                    ->dehydrated()
-                                    ->afterStateHydrated(function ($state, $set) {
-                                        if (is_string($state)) {
-                                            $set(json_decode($state, true));
-                                        }
-                                    })
+                                Field::make('ubicacion_gps')                                   
+                                    ->view('filament.forms.components.map-picker'), 
                             ])
                             ->columnSpan([
                                 'sm' => 1,
@@ -535,7 +533,6 @@ class EquipoResource extends Resource
                     ->square()
                     ->defaultImageUrl(url('/images/default-product.jpg'))
                     ->size(50),
-                //->extraAttributes(['class' => 'border-2 border-gray-200']),
 
                 TextColumn::make('codigo')
                     ->label('Código')
@@ -549,7 +546,7 @@ class EquipoResource extends Resource
                     ->label('Modelo')
                     ->searchable()
                     ->badge()
-                    ->color('gray'),
+                    ->color('primary'),
 
                 TextColumn::make('num_serie')
                     ->label('N° Serie')
@@ -593,13 +590,6 @@ class EquipoResource extends Resource
                     ->falseColor('danger')
                     ->sortable(),
 
-                TextColumn::make('descripcion')
-                    ->label('Equipo')
-                    ->searchable()
-                    ->limit(50)
-                    ->tooltip(fn(Equipo $record): string => $record->descripcion ?? '')
-                    ->wrap()
-                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TernaryFilter::make('activo')
@@ -607,11 +597,6 @@ class EquipoResource extends Resource
                     ->placeholder('Todos los equipos')
                     ->trueLabel('Solo activos')
                     ->falseLabel('Solo inactivos'),
-
-                SelectFilter::make('marca')
-                    ->label('Fabricante')
-                    ->searchable()
-                    ->preload(),
 
                 SelectFilter::make('cliente_id')
                     ->label('Cliente')
@@ -621,28 +606,16 @@ class EquipoResource extends Resource
 
                 SelectFilter::make('tecnico_asignado')
                     ->label('Técnico Asignado')
-                    ->relationship('tecnico', 'nombres')
+                    ->relationship('tecnico', 'nombres') // Campo base para la relación
+                    ->getOptionLabelFromRecordUsing(fn(Empleado $record) => $record->full_name)
+                    ->label('Técnico Responsable')
                     ->searchable()
-                    ->preload(),
+                    ->preload(),                
             ])
             ->actions([
                 ViewAction::make()
                     ->color('blue')
                     ->icon('heroicon-o-eye'),
-            ])
-            ->bulkActions([
-                DeleteBulkAction::make()
-                    ->label('Eliminar seleccionados'),
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('activar')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(fn($records) => $records->each->update(['activo' => true])),
-                    Tables\Actions\BulkAction::make('desactivar')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->action(fn($records) => $records->each->update(['activo' => false])),
-                ]),
             ])
             ->emptyStateHeading('No hay equipos registrados')
             ->emptyStateDescription('Comienza agregando el primer equipo al sistema.')

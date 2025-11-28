@@ -116,7 +116,7 @@ class ClienteResource extends Resource
                             ->native(false),
 
                         TextInput::make('ciudad')
-                            ->label('DepartamentoX')
+                            ->label('Departamento o localidad')
                             ->required()
                             ->prefixIcon('heroicon-o-building-storefront')
                             ->placeholder('Ej: La Paz, Santa Cruz, Cochabamba')
