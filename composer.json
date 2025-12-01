@@ -19,6 +19,7 @@
         "laravel/tinker": "^2.10.1",
         "nuxtifyts/dash-stack-theme": "^1.2",
         "pxlrbt/filament-excel": "^2.4",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-google-calendar": "^3.8",
         "spatie/laravel-permission": "^6.17"
     },

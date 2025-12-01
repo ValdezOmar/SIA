@@ -151,6 +151,7 @@
                                     <span class="font-semibold text-gray-700 ml-2">Empresa:</span>
                                     <span class="ml-2 text-gray-600 uppercase">{{ $equipo->empresa->razon_social ?? 'N/A' }}</span>
                                 </div>
+                                @auth
                                 <div class="flex items-center">
                                     <i class="fas fa-users text-purple-500 w-6"></i>
                                     <span class="font-semibold text-gray-700 ml-2">Cliente:</span>
@@ -161,6 +162,7 @@
                                     <span class="font-semibold text-gray-700 ml-2">Sucursal:</span>
                                     <span class="ml-2 text-gray-600 uppercase">{{ $equipo->direccion ?? 'N/A' }}</span>
                                 </div>
+                                @endauth
                             </div>
                         </div>
 

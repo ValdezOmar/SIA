@@ -262,20 +262,20 @@ class ClienteResource extends Resource
                     ->icon('heroicon-o-cog-6-tooth')
                     ->size('sm'),
             ])
-            ->bulkActions([
-                DeleteBulkAction::make()
-                    ->label('Eliminar seleccionados'),
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('activar')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(fn($records) => $records->each->update(['activo' => true])),
-                    Tables\Actions\BulkAction::make('desactivar')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->action(fn($records) => $records->each->update(['activo' => false])),
-                ]),
-            ])
+            // ->bulkActions([
+            //     DeleteBulkAction::make()
+            //         ->label('Eliminar seleccionados'),
+            //     Tables\Actions\BulkActionGroup::make([
+            //         Tables\Actions\BulkAction::make('activar')
+            //             ->icon('heroicon-o-check-circle')
+            //             ->color('success')
+            //             ->action(fn($records) => $records->each->update(['activo' => true])),
+            //         Tables\Actions\BulkAction::make('desactivar')
+            //             ->icon('heroicon-o-x-circle')
+            //             ->color('danger')
+            //             ->action(fn($records) => $records->each->update(['activo' => false])),
+            //     ]),
+            // ])
             ->emptyStateHeading('No hay clientes registrados')
             ->emptyStateDescription('Comienza creando tu primer cliente.')
             ->emptyStateIcon('heroicon-o-user-group')

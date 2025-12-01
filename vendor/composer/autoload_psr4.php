@@ -50,6 +50,7 @@ return array(
     'Spatie\\Invade\\' => array($vendorDir . '/spatie/invade/src'),
     'Spatie\\GoogleCalendar\\' => array($vendorDir . '/spatie/laravel-google-calendar/src'),
     'Spatie\\Color\\' => array($vendorDir . '/spatie/color/src'),
+    'SimpleSoftwareIO\\QrCode\\' => array($vendorDir . '/simplesoftwareio/simple-qrcode/src'),
     'Sabberworm\\CSS\\' => array($vendorDir . '/sabberworm/php-css-parser/src'),
     'RyanChandler\\BladeCaptureDirective\\Database\\Factories\\' => array($vendorDir . '/ryangjchandler/blade-capture-directive/database/factories'),
     'RyanChandler\\BladeCaptureDirective\\' => array($vendorDir . '/ryangjchandler/blade-capture-directive/src'),
@@ -130,6 +131,7 @@ return array(
     'Database\\Factories\\' => array($baseDir . '/database/factories', $vendorDir . '/laravel/pint/database/factories'),
     'DanHarrin\\LivewireRateLimiting\\' => array($vendorDir . '/danharrin/livewire-rate-limiting/src'),
     'DanHarrin\\DateFormatConverter\\' => array($vendorDir . '/danharrin/date-format-converter/src'),
+    'DASPRiD\\Enum\\' => array($vendorDir . '/dasprid/enum/src'),
     'Cron\\' => array($vendorDir . '/dragonmantank/cron-expression/src/Cron'),
     'Composer\\Semver\\' => array($vendorDir . '/composer/semver/src'),
     'Composer\\Pcre\\' => array($vendorDir . '/composer/pcre/src'),
@@ -144,6 +146,7 @@ return array(
     'BezhanSalleh\\FilamentShield\\' => array($vendorDir . '/bezhansalleh/filament-shield/src'),
     'Barryvdh\\LaravelIdeHelper\\' => array($vendorDir . '/barryvdh/laravel-ide-helper/src'),
     'Barryvdh\\DomPDF\\' => array($vendorDir . '/barryvdh/laravel-dompdf/src'),
+    'BaconQrCode\\' => array($vendorDir . '/bacon/bacon-qr-code/src'),
     'App\\' => array($baseDir . '/app', $vendorDir . '/laravel/pint/app'),
     'AnourValar\\EloquentSerialize\\' => array($vendorDir . '/anourvalar/eloquent-serialize/src'),
 );

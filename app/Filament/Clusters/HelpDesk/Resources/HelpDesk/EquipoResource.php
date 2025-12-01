@@ -37,8 +37,9 @@ use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\DeleteBulkAction;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Saade\FilamentMapPicker\Forms\MapPicker;
-
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Tables\Actions\BulkAction;
 
 class EquipoResource extends Resource
 {
@@ -601,7 +602,7 @@ class EquipoResource extends Resource
                             isset($record->ubicacion_gps['lat']) &&
                             isset($record->ubicacion_gps['lng']))
                     ),
-                    
+
                 IconColumn::make('doc_adjunto')
                     ->label('PDF')
                     ->icon(fn($state): string => $state ? 'heroicon-o-document-check' : 'heroicon-o-x-circle')
@@ -646,6 +647,71 @@ class EquipoResource extends Resource
                 ViewAction::make()
                     ->color('blue')
                     ->icon('heroicon-o-eye'),
+            ])
+            ->bulkActions([
+                BulkAction::make('generar_qr_pdf')
+                    ->label('Generar Códigos QR (PDF)')
+                    ->icon('heroicon-o-qr-code')
+                    ->color('success')
+                    ->action(function ($records) {
+                        // Generar QR codes y datos para cada equipo
+                        $equiposData = [];
+
+                        foreach ($records as $equipo) {
+                            // URL del equipo
+                            $url = url('/equipos/' . $equipo->codigo);
+
+                            // Usar formato SVG (no necesita Imagick)
+                            $qrCode = QrCode::format('svg')
+                                ->size(200)
+                                ->generate($url);
+
+                            // Para SVG, lo guardamos como texto
+                            $qrCodeBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrCode);                           
+
+                            $equiposData[] = [
+                                'codigo' => $equipo->codigo,
+                                'marca' => $equipo->marca ?? 'N/A',
+                                'modelo' => $equipo->modelo ?? 'N/A',
+                                'num_serie' => $equipo->num_serie ?? 'N/A',
+                                'empresa' => $equipo->empresa->razon_social ?? 'N/A',
+                                'cliente' => $equipo->cliente->razon_social ?? 'N/A',
+                                'url' => $url,
+                                'qr_code' => $qrCodeBase64,
+                            ];
+                        }
+
+                        // Verificar si hay datos
+                        if (empty($equiposData)) {
+                            throw new \Exception('No se seleccionaron equipos para generar códigos QR.');
+                        }
+
+                        $pdf = Pdf::loadView('exports.equipos-qr', [
+                            'equipos' => $equiposData,
+                            'fecha' => now()->format('d/m/Y H:i:s'),
+                            'total' => count($equiposData),
+                        ]);
+
+                        // Configurar el PDF
+                        $pdf->setPaper('A4', 'portrait');
+                        $pdf->setOptions([
+                            'isHtml5ParserEnabled' => true,
+                            'isRemoteEnabled' => true,
+                            'defaultFont' => 'sans-serif',
+                        ]);
+
+                        // Descargar el PDF
+                        return response()->streamDownload(
+                            fn() => print($pdf->output()),
+                            'codigos-qr-equipos-' . now()->format('Y-m-d-H-i-s') . '.pdf'
+                        );
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Generar Códigos QR en PDF')
+                    ->modalDescription('¿Está seguro de generar códigos QR para los equipos seleccionados? Se generará un PDF descargable.')
+                    ->modalSubmitActionLabel('Generar PDF')
+                    ->deselectRecordsAfterCompletion(),
+              
             ])
             ->emptyStateHeading('No hay equipos registrados')
             ->emptyStateDescription('Comienza agregando el primer equipo al sistema.')
