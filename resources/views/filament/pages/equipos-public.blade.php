@@ -293,7 +293,7 @@
                             <span class="font-semibold text-gray-700">Frec. Mantenimiento:</span>
                             <span class="text-gray-600">
                                 @if($equipo->freq_mantenimiento && is_array($equipo->freq_mantenimiento))
-                                    {{ $equipo->freq_mantenimiento['value'] ?? '' }} {{ $equipo->freq_mantenimiento['key'] ?? '' }}
+                                    {{ $equipo->freq_mantenimiento['value'] ?? '' }} / {{ $equipo->freq_mantenimiento['key'] ?? '' }}
                                 @else
                                     N/A
                                 @endif
@@ -410,25 +410,25 @@
                         descripcionProblema = "Por favor, necesito asistencia técnica para este equipo. ¡Gracias!";
                     }
 
-                    const mensajeBase = `*SOLICITO SOPORTE TÉCNICO*
+                  const mensajeBase = `
+*SOLICITO SOPORTE TÉCNICO*
+*INFORMACIÓN DEL EQUIPO:*
+┌────────────────────────
+│ *Marca:* {{ $equipo->marca ?? 'N/A' }}
+│ *Modelo:* {{ $equipo->modelo ?? 'N/A' }}
+│ *N° Serie:* {{ $equipo->num_serie ?? 'N/A' }}
+│ *Código:* {{ $equipo->codigo }}
+├────────────────────────
+│ *Empresa:* {{ $equipo->empresa->razon_social ?? 'N/A' }}
+│ *Cliente:* {{ $equipo->cliente->razon_social ?? 'N/A' }}
+│ *Departamento:* {{ $equipo->sucursalRelacion->nombre ?? 'N/A' }}
+└────────────────────────
 
-                                        *INFORMACIÓN DEL EQUIPO:*
+*DESCRIPCIÓN DEL PROBLEMA:*
+${descripcionProblema}
 
-                                        ┌─────────────────────────────
-                                        │ *Marca:* {{ $equipo->marca ?? 'N/A' }}
-                                        │ *Modelo:* {{ $equipo->modelo ?? 'N/A' }}
-                                        │ *N° Serie:* {{ $equipo->num_serie ?? 'N/A' }}
-                                        │ *Código:* {{ $equipo->codigo }}
-                                        ├─────────────────────────────
-                                        │ *Empresa:* {{ $equipo->empresa->razon_social ?? 'N/A' }}
-                                        │ *Cliente:* {{ $equipo->cliente->razon_social ?? 'N/A' }}
-                                        │ *Departamento:* {{ $equipo->sucursalRelacion->nombre ?? 'N/A' }}
-                                        └─────────────────────────────
-
-                                        *DESCRIPCIÓN DEL PROBLEMA:*
-                                        ${descripcionProblema}
-
-                                        *Enlace del equipo:* {{ url()->current() }}`;
+*Enlace del equipo:* {{ url()->current() }}
+`.trim();
 
                      // Asegurar que el número tenga código de país (ajusta el +51 según tu país)
                         let telefonoSoporte = '{{ $equipo->tel_soporte }}';
