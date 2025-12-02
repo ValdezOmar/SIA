@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\HelpDesk\Resources\HelpDesk;
 
 use App\Filament\Clusters\HelpDesk;
 use App\Filament\Clusters\HelpDesk\Resources\HelpDesk\TicketResource\Pages;
+use App\Models\HelpDesk\Equipo;
 use App\Models\HelpDesk\Ticket;
 use App\Models\RRHH\Empleado;
 use Filament\Forms\Components\DatePicker;
@@ -16,11 +17,16 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ViewColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class TicketResource extends Resource
 {
@@ -28,8 +34,8 @@ class TicketResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
     protected static ?string $navigationGroup = 'Asistencia al Cliente';
-    protected static ?string $navigationLabel = 'Tickets de clientes';
-    protected static ?string $pluralModelLabel = 'Tickets de clientes';
+    protected static ?string $navigationLabel = 'Tickets';
+    protected static ?string $pluralModelLabel = 'Tickets';
 
     protected static ?string $cluster = HelpDesk::class;
 
@@ -37,209 +43,345 @@ class TicketResource extends Resource
     {
         return $form
             ->schema([
-                Section::make('Información de solicitud')
+                Section::make('Información del Cliente')
                     ->schema([
                         TextInput::make('codigo')
-                            ->label('Numero de Ticket')
+                            ->label('N° Ticket')
                             ->disabled()
                             ->dehydrated()
                             ->default(fn() => Ticket::generarCodigo())
-                            ->unique(ignoreRecord: true)->columnSpan(2),
+                            ->unique(ignoreRecord: true),
 
-                        DateTimePicker::make('fecha_solicitada')
-                            ->label('Fecha Solicitada')
-                            ->required()
-                            ->default(now()),
-
-                        DateTimePicker::make('fecha_programada')
-                            ->label('Fecha Programada')
-                            ->required()
-                            ->default(now()),
-
-                        TextInput::make('cli_solicitante')
-                            ->label('Nombre de cliente')
-                            ->required()
-                            ->maxLength(255),
-
-                        TextInput::make('cli_telefono')
-                            ->label('Teléfono de contacto')
-                            ->tel()
-                            ->maxLength(50),
-                    ])
-                    ->columns(2),
-
-                Section::make('Información del Ticket')
-                    ->schema([
                         Select::make('equipo_id')
                             ->label('Equipo')
-                            ->relationship('equipo', 'codigo')
                             ->required()
-                            ->searchable()
-                            ->preload(),
-
-                        Select::make('destinatario_id')
-                            ->label('Técnico Asignado')
-                            ->options(Empleado::where('activo', true)->get()
-                                ->pluck('full_name', 'id'))
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->hint('Seleccione el equipo del cliente')
+                            ->relationship(
+                                name: 'equipo',
+                                titleAttribute: 'codigo',
+                                modifyQueryUsing: fn($query) => $query->with('cliente')
+                            )
+                            ->getOptionLabelFromRecordUsing(function (Equipo $equipo) {
+                                $info = $equipo->codigo;
 
+                                // Agregar cliente
+                                $cliente = $equipo->cliente?->razon_social ?? 'Sin cliente';
+                                $info .= ' / ' . Str::limit($cliente, 20);
+
+                                //Agregar descripción si existe
+                                if ($equipo->cliente?->ciudad) {
+                                    $info .= ' / ' . Str::limit($equipo->cliente->ciudad, 20);
+                                }
+
+                                return $info;
+                            })
+                            ->searchDebounce(500) // Evitar demasiadas consultas
+                            ->columnSpan(2)
+                            ->live()
+                            ->afterStateUpdated(function ($state, $set) {
+                                if ($state) {
+                                    // Cargar información adicional cuando se selecciona un equipo
+                                    $equipo = Equipo::with('cliente')->find($state);
+                                    if ($equipo && $equipo->cliente) {
+                                        // Auto-completar información del cliente
+                                        $set('cli_solicitante', $equipo->cliente->razon_social);
+                                        // Puedes agregar más campos si necesitas
+                                    }
+                                }
+                            }),
+
+                        TextInput::make('cli_solicitante')
+                            ->label('Nombre del Cliente')
+                            ->required()
+                            ->maxLength(255)
+                            ->columnSpan(2),
+
+                        TextInput::make('cli_telefono')
+                            ->label('Teléfono de Contacto')
+                            ->tel()
+                            ->required()
+                            ->maxLength(50),
+
+
+                    ])
+                    ->columns(3),
+
+                Section::make('Detalles del Ticket')
+                    ->schema([
                         Select::make('tipo')
-                            ->label('Tipo')
+                            ->label('Tipo de Ticket')
                             ->required()
                             ->options([
-                                'preventivo' => 'Preventivo',
-                                'correctivo' => 'Correctivo',
-                            ]),
+                                'preventivo' => '🛡️ Preventivo',
+                                'correctivo' => '🔧 Correctivo',
+                            ])
+                            ->native(false),
 
                         Select::make('prioridad')
                             ->label('Prioridad')
                             ->required()
                             ->options([
-                                'baja' => 'Baja',
-                                'media' => 'Media',
-                                'alta' => 'Alta',
-                                'urgente' => 'Urgente',
+                                'baja' => '🔵 Baja',
+                                'media' => '🟡 Media',
+                                'alta' => '🟠 Alta',
+                                'urgente' => '🔴 Urgente',
                             ])
-                            ->default('media'),
+                            ->default('media')
+                            ->native(false),
 
-                        Textarea::make('diagnostico')
-                            ->label('Diagnóstico')
-                            ->rows(3)
-                            ->columnSpan(3),
+                        Select::make('estado')
+                            ->label('Estado')
+                            ->required()
+                            ->options([
+                                'abierto' => '🟢 Abierto',
+                                'en_proceso' => '🟡 En Proceso',
+                                'pendiente' => '🔵 Pendiente',
+                                'cerrado' => '⚫ Cerrado',
+                            ])
+                            ->default('abierto')
+                            ->native(false),
 
-                        FileUpload::make('adjunto')
-                            ->label('Respaldos')
-                            ->directory('respaldo_equipos')
-                            ->acceptedFileTypes(['application/pdf'])
-                            ->maxSize(4096),
+                        Select::make('destinatario_id')
+                            ->label('Técnico Asignado')
+                            ->options(function () {
+                                return Empleado::where('activo', true)
+                                    ->get()
+                                    ->mapWithKeys(fn($empleado) => [
+                                        $empleado->id => "{$empleado->full_name}" .
+                                            ($empleado->cargo ? " - {$empleado->cargo}" : "")
+                                    ]);
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            //->hint('Técnico responsable del ticket')
+                            ->default(function ($livewire, $get) {
+                                // Si estamos editando, mantener el valor actual
+                                if ($livewire instanceof \Filament\Resources\Pages\EditRecord) {
+                                    return $livewire->record->destinatario_id;
+                                }
+
+                                // Si estamos creando, obtener del equipo
+                                $equipoId = $get('equipo_id');
+                                if ($equipoId) {
+                                    $equipo = \App\Models\HelpDesk\Equipo::with('tecnico')->find($equipoId);
+                                    if ($equipo?->tecnico_asignado && $equipo->tecnico?->activo) {
+                                        return $equipo->tecnico_asignado;
+                                    }
+                                }
+
+                                // Si no hay técnico en el equipo, usar el usuario actual si es técnico
+                                $currentUser = Auth::user();
+                                if ($currentUser->empleado && $currentUser->empleado->activo) {
+                                    return $currentUser->empleado->id;
+                                }
+
+                                return null;
+                            })
+                            ->live()
+                            ->helperText(function ($get, $livewire) {
+                                $equipoId = $get('equipo_id');
+
+                                // Si estamos editando, mostrar información actual
+                                if ($livewire instanceof \Filament\Resources\Pages\EditRecord) {
+                                    $ticket = $livewire->record;
+                                    if ($ticket->destinatario) {
+                                        return "Actualmente asignado: {$ticket->destinatario->full_name}";
+                                    }
+                                }
+
+                                // Si estamos creando y hay equipo seleccionado
+                                if ($equipoId && !($livewire instanceof \Filament\Resources\Pages\EditRecord)) {
+                                    $equipo = \App\Models\HelpDesk\Equipo::with('tecnico')->find($equipoId);
+                                    if ($equipo?->tecnico) {
+                                        return "Técnico del equipo: {$equipo->tecnico->full_name}";
+                                    }
+                                }
+
+                                return "Seleccione el técnico responsable";
+                            })
+                            ->columnSpan(1),
                     ])
                     ->columns(4),
+
+                Section::make('Fechas y Programación')
+                    ->schema([
+                        DateTimePicker::make('fecha_solicitada')
+                            ->label('Fecha de Solicitud')
+                            ->required()
+                            ->default(now())
+                            ->displayFormat('d/m/Y H:i'),
+
+                        DateTimePicker::make('fecha_programada')
+                            ->label('Fecha Programada')
+                            ->required()
+                            ->default(now()->addDay())
+                            ->displayFormat('d/m/Y H:i')
+                            ->hint('Fecha estimada para atención'),
+
+                        Textarea::make('diagnostico')
+                            ->label('Diagnóstico / Descripción')
+                            ->rows(4)
+                            ->required()
+                            ->placeholder('Describa el problema o solicitud...')
+                            ->columnSpan(2),
+                    ])
+                    ->columns(2),
+
+                Section::make('Documentos Adjuntos')
+                    ->schema([
+                        FileUpload::make('adjunto')
+                            ->label('Archivos Adjuntos')
+                            ->directory('tickets_adjuntos')
+                            ->multiple()
+                            ->maxFiles(5)
+                            ->acceptedFileTypes([
+                                'application/pdf',
+                                'image/jpeg',
+                                'image/png',
+                                'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                            ])
+                            ->maxSize(5120)
+                            ->hint('Máx. 5 archivos, 5MB cada uno')
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsible(),
             ]);
     }
 
     public static function table(Table $table): Table
     {
+        $currentUserId = Auth::user()->empleado?->id ?? null;
+
         return $table
+            ->defaultPaginationPageOption(25)
+            ->defaultSort('fecha_solicitada', 'desc')
             ->columns([
                 TextColumn::make('codigo')
-                    ->label('Código')
+                    ->label('TICKET')
                     ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('destinatario.full_name')
-                    ->label('Técnico Asignado')
                     ->sortable()
-                    ->searchable(),
+                    ->description(fn(Ticket $record): string => $record->prioridad ?? '')
+                    ->weight('bold')
+                    ->color('primary')
+                    ->tooltip('Ver detalles del ticket'),
+
+                TextColumn::make('cli_solicitante')
+                    ->label('CLIENTE')
+                    ->searchable()
+                    ->sortable()
+                    ->limit(20)
+                    ->tooltip(fn(Ticket $record): string => $record->cli_solicitante ?? '')
+                    ->description(fn(Ticket $record): string => $record->cli_telefono ?? ''),
 
                 TextColumn::make('equipo.codigo')
-                    ->label('Equipo')
+                    ->label('EQUIPO')
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->description(fn(Ticket $record): string => $record->equipo?->cliente?->razon_social ?? 'N/A')
+                    ->tooltip(fn(Ticket $record): string => $record->equipo?->cliente?->razon_social ?? ''),
 
-                TextColumn::make('equipo.cliente.razon_social')
-                    ->label('Cliente')
+                ViewColumn::make('info')
+                    ->label('INFORMACIÓN')
+                    ->view('filament.forms.components.ticket-info')
+                    ->viewData(['model' => Ticket::class])
+                    ->sortable(false),
+
+                // IconColumn::make('prioridad')
+                //     ->label('PRIORIDAD')
+                //     ->icon(fn(string $state): string => match ($state) {
+                //         'urgente' => 'heroicon-o-exclamation-triangle',
+                //         'alta' => 'heroicon-o-exclamation-circle',
+                //         'media' => 'heroicon-o-clock',
+                //         'baja' => 'heroicon-o-arrow-down',
+                //         default => 'heroicon-o-minus',
+                //     })
+                //     ->color(fn(string $state): string => match ($state) {
+                //         'urgente' => 'danger',
+                //         'alta' => 'warning',
+                //         'media' => 'info',
+                //         'baja' => 'gray',
+                //         default => 'gray',
+                //     })
+                //     ->tooltip(fn(Ticket $record): string => ucfirst($record->prioridad ?? '')),
+
+                TextColumn::make('destinatario.full_name')
+                    ->label('ASIGNADO A')
                     ->sortable()
-                    ->searchable(),
-
-                TextColumn::make('fecha_solicitada')
-                    ->label('Fecha Solicitada')
-                    ->dateTime()
-                    ->sortable(),
+                    ->searchable()
+                    ->badge()
+                    ->color(fn(Ticket $record) => $record->destinatario_id == $currentUserId ? 'success' : 'gray')
+                    ->tooltip('Técnico responsable'),
 
                 TextColumn::make('fecha_programada')
-                    ->label('Fecha Programada')
-                    ->dateTime()
+                    ->label('PROGRAMADO')
+                    ->dateTime('d/m H:i')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->color(
+                        fn(Ticket $record): string =>
+                        $record->fecha_programada  && $record->estado != 'cerrado'
+                            ? 'danger'
+                            : 'gray'
+                    )
+                    ->tooltip('Fecha programada para atención'),
 
-                TextColumn::make('empleado_creacion')
-                    ->label('Creado Por')
-                    ->searchable()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('created_at')
-                    ->label('Creado')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('updated_at')
-                    ->label('Actualizado')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-
-                TextColumn::make('tipo')
-                    ->label('Tipo')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'soporte' => 'info',
-                        'incidente' => 'danger',
-                        'requerimiento' => 'warning',
-                        'mejora' => 'success',
-                        default => 'gray',
-                    }),
-
-                TextColumn::make('prioridad')
-                    ->label('Prioridad')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'baja' => 'gray',
-                        'media' => 'warning',
-                        'alta' => 'danger',
-                        'critica' => 'danger',
-                        default => 'gray',
-                    }),
-
-                TextColumn::make('estado')
-                    ->label('Estado')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'abierto' => 'success',
-                        'en_proceso' => 'warning',
-                        'pendiente' => 'info',
-                        'resuelto' => 'primary',
-                        'cerrado' => 'gray',
-                        default => 'gray',
-                    }),
-
-
+                IconColumn::make('adjunto')
+                    ->label('Adjunto📎')
+                    ->icon('heroicon-o-paper-clip')
+                    ->color('info')
+                    //->visible(fn(Ticket $record): bool => !empty($record->adjunto))
+                    ->tooltip('Tiene archivos adjuntos'),
             ])
             ->filters([
-                SelectFilter::make('tipo')
-                    ->label('Tipo')
+                Filter::make('vencidos')
+                    ->label('⚠️Tickets Vencidos')
+                    ->query(
+                        fn(Builder $query): Builder =>
+                        $query->where('fecha_programada', '<', now())
+                            ->whereNotIn('estado', ['cerrado'])
+                    ),
+                    
+                Filter::make('asignados_a_mi')
+                    ->label('📌Asignados a mí')
+                    ->query(
+                        fn(Builder $query): Builder =>
+                        $currentUserId ? $query->where('destinatario_id', $currentUserId) : $query
+                    )
+                    ->default(),
+                    
+                SelectFilter::make('estado')
+                    ->label('Estado')
+                    ->multiple()
                     ->options([
-                        'soporte' => 'Soporte',
-                        'incidente' => 'Incidente',
-                        'requerimiento' => 'Requerimiento',
-                        'mejora' => 'Mejora',
-                    ]),
+                        'abierto' => '🟢 Abierto',
+                        'en_proceso' => '🟡 En Proceso',
+                        'pendiente' => '🔵 Pendiente',
+                        'cerrado' => '⚫ Cerrado',
+                    ])
+                    ->default(['abierto', 'en_proceso', 'pendiente']),
 
                 SelectFilter::make('prioridad')
                     ->label('Prioridad')
+                    ->multiple()
                     ->options([
-                        'baja' => 'Baja',
-                        'media' => 'Media',
-                        'alta' => 'Alta',
-                        'critica' => 'Crítica',
+                        'urgente' => '🔴 Urgente',
+                        'alta' => '🟠 Alta',
+                        'media' => '🟡 Media',
+                        'baja' => '🔵 Baja',
                     ]),
 
-                SelectFilter::make('estado')
-                    ->label('Estado')
+                SelectFilter::make('tipo')
+                    ->label('Tipo')
                     ->options([
-                        'abierto' => 'Abierto',
-                        'en_proceso' => 'En Proceso',
-                        'pendiente' => 'Pendiente',
-                        'resuelto' => 'Resuelto',
-                        'cerrado' => 'Cerrado',
-                    ]),
+                        'preventivo' => '🛡️Preventivo',
+                        'correctivo' => '🔧Correctivo',
+                    ]),                
 
                 Filter::make('fecha_solicitada')
-                    ->label('Fecha Solicitada')
+                    ->label('Fecha de Solicitud')
                     ->form([
                         DatePicker::make('desde'),
                         DatePicker::make('hasta'),
@@ -255,21 +397,80 @@ class TicketResource extends Resource
                                 fn(Builder $query, $date): Builder => $query->whereDate('fecha_solicitada', '<=', $date),
                             );
                     }),
-            ])
+                
+            ])   //,layout: FiltersLayout::AboveContentCollapsible //para cambiar el layout por encima
+            ->filtersFormColumns(2)
+            
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Action::make('cambiar_estado')
+                    ->label('Cambiar Estado')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('success')
+                    ->tooltip('Cambiar estado')
+                    ->iconButton()
+                    ->form([
+                        Select::make('estado')
+                            ->label('Nuevo Estado')
+                            ->options([
+                                'abierto' => '🟢 Abierto',
+                                'en_proceso' => '🟡 En Proceso',
+                                'pendiente' => '🔵 Pendiente',
+                                'cerrado' => '⚫ Cerrado',
+                            ])
+                            ->required(),
+                    ])
+                    ->action(function (Ticket $record, array $data): void {
+                        $record->update(['estado' => $data['estado']]);
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\BulkAction::make('cambiar_estado_masivo')
+                        ->label('Cambiar Estado')
+                        ->icon('heroicon-o-arrow-path')
+                        ->form([
+                            Select::make('estado')
+                                ->label('Nuevo Estado')
+                                ->options([
+                                    'abierto' => 'Abierto',
+                                    'en_proceso' => 'En Proceso',
+                                    'pendiente' => 'Pendiente',
+                                    'cerrado' => 'Cerrado',
+                                ])
+                                ->required(),
+                        ])
+                        ->action(function (array $data, $records): void {
+                            $records->each->update(['estado' => $data['estado']]);
+                        }),
+
+                    Tables\Actions\BulkAction::make('reasignar_masivo')
+                        ->label('Reasignar Técnicos')
+                        ->icon('heroicon-o-user-plus')
+                        ->form([
+                            Select::make('destinatario_id')
+                                ->label('Asignar a Técnico')
+                                ->options(Empleado::where('activo', true)->get()
+                                    ->pluck('full_name', 'id'))
+                                ->searchable()
+                                ->preload()
+                                ->required(),
+                        ])
+                        ->action(function (array $data, $records): void {
+                            $records->each->update(['destinatario_id' => $data['destinatario_id']]);
+                        }),
                 ]),
             ])
             ->emptyStateActions([
-                Tables\Actions\CreateAction::make(),
-            ]);
+                Tables\Actions\CreateAction::make()
+                    ->label('Crear Nuevo Ticket')
+                    ->icon('heroicon-o-plus-circle'),
+            ])
+            ->striped()
+            ->deferLoading()
+            ->persistFiltersInSession()
+            ->persistSearchInSession();
     }
+
     public static function getRelations(): array
     {
         return [
@@ -283,6 +484,21 @@ class TicketResource extends Resource
             'index' => Pages\ListTickets::route('/'),
             'create' => Pages\CreateTicket::route('/create'),
             'edit' => Pages\EditTicket::route('/{record}/edit'),
+            //'view' => Pages\ViewTicket::route('/{record}'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::whereIn('estado', ['abierto', 'en_proceso', 'pendiente'])->count();
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        $count = static::getModel()::whereIn('estado', ['abierto', 'en_proceso', 'pendiente'])->count();
+
+        if ($count == 0) return 'success';
+        if ($count <= 5) return 'warning';
+        return 'danger';
     }
 }

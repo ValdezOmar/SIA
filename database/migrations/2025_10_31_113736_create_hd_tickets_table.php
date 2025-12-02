@@ -25,7 +25,7 @@ return new class extends Migration
             $table->dateTime('fecha_solicitada')->nullable();
             $table->dateTime('fecha_programada')->nullable();
             $table->string('empleado_creacion')->nullable();
-            $table->string('adjunto')->nullable();
+            $table->json('adjunto')->nullable();
             $table->timestamps();
         });
     }

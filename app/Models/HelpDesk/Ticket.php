@@ -27,6 +27,10 @@ class Ticket extends Model
         'adjunto',
         'destinatario_id'
     ];
+    
+    protected $casts = [
+        'adjunto' => 'array',        
+    ];
 
     protected static function boot()
     {
@@ -91,7 +95,7 @@ class Ticket extends Model
     {
         return $this->hasMany(Evento::class, 'hd_ticket_id');
     }
-    
+
     public function destinatario()
     {
         return $this->belongsTo(Empleado::class, 'destinatario_id');
