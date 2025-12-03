@@ -15,6 +15,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Resources\Pages\EditRecord;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
@@ -129,19 +130,7 @@ class TicketResource extends Resource
                                 'urgente' => '🔴 Urgente',
                             ])
                             ->default('media')
-                            ->native(false),
-
-                        Select::make('estado')
-                            ->label('Estado')
-                            ->required()
-                            ->options([
-                                'abierto' => '🟢 Abierto',
-                                'en_proceso' => '🟡 En Proceso',
-                                'pendiente' => '🔵 Pendiente',
-                                'cerrado' => '⚫ Cerrado',
-                            ])
-                            ->default('abierto')
-                            ->native(false),
+                            ->native(false),                        
 
                         Select::make('destinatario_id')
                             ->label('Técnico Asignado')
@@ -159,14 +148,14 @@ class TicketResource extends Resource
                             //->hint('Técnico responsable del ticket')
                             ->default(function ($livewire, $get) {
                                 // Si estamos editando, mantener el valor actual
-                                if ($livewire instanceof \Filament\Resources\Pages\EditRecord) {
+                                if ($livewire instanceof EditRecord) {
                                     return $livewire->record->destinatario_id;
                                 }
 
                                 // Si estamos creando, obtener del equipo
                                 $equipoId = $get('equipo_id');
                                 if ($equipoId) {
-                                    $equipo = \App\Models\HelpDesk\Equipo::with('tecnico')->find($equipoId);
+                                    $equipo = Equipo::with('tecnico')->find($equipoId);
                                     if ($equipo?->tecnico_asignado && $equipo->tecnico?->activo) {
                                         return $equipo->tecnico_asignado;
                                     }
@@ -185,7 +174,7 @@ class TicketResource extends Resource
                                 $equipoId = $get('equipo_id');
 
                                 // Si estamos editando, mostrar información actual
-                                if ($livewire instanceof \Filament\Resources\Pages\EditRecord) {
+                                if ($livewire instanceof EditRecord) {
                                     $ticket = $livewire->record;
                                     if ($ticket->destinatario) {
                                         return "Actualmente asignado: {$ticket->destinatario->full_name}";
@@ -193,8 +182,8 @@ class TicketResource extends Resource
                                 }
 
                                 // Si estamos creando y hay equipo seleccionado
-                                if ($equipoId && !($livewire instanceof \Filament\Resources\Pages\EditRecord)) {
-                                    $equipo = \App\Models\HelpDesk\Equipo::with('tecnico')->find($equipoId);
+                                if ($equipoId && !($livewire instanceof EditRecord)) {
+                                    $equipo = Equipo::with('tecnico')->find($equipoId);
                                     if ($equipo?->tecnico) {
                                         return "Técnico del equipo: {$equipo->tecnico->full_name}";
                                     }
@@ -204,7 +193,7 @@ class TicketResource extends Resource
                             })
                             ->columnSpan(1),
                     ])
-                    ->columns(4),
+                    ->columns(3),
 
                 Section::make('Fechas y Programación')
                     ->schema([
@@ -261,16 +250,15 @@ class TicketResource extends Resource
             ->defaultSort('fecha_solicitada', 'desc')
             ->columns([
                 TextColumn::make('codigo')
-                    ->label('TICKET')
+                    ->label('Ticket')
                     ->searchable()
-                    ->sortable()
-                    ->description(fn(Ticket $record): string => $record->prioridad ?? '')
+                    ->sortable()                    
                     ->weight('bold')
                     ->color('primary')
                     ->tooltip('Ver detalles del ticket'),
 
                 TextColumn::make('cli_solicitante')
-                    ->label('CLIENTE')
+                    ->label('Cliente')
                     ->searchable()
                     ->sortable()
                     ->limit(20)
@@ -278,38 +266,41 @@ class TicketResource extends Resource
                     ->description(fn(Ticket $record): string => $record->cli_telefono ?? ''),
 
                 TextColumn::make('equipo.codigo')
-                    ->label('EQUIPO')
+                    ->label('Equipo')
                     ->sortable()
                     ->searchable()
                     ->description(fn(Ticket $record): string => $record->equipo?->cliente?->razon_social ?? 'N/A')
                     ->tooltip(fn(Ticket $record): string => $record->equipo?->cliente?->razon_social ?? ''),
 
                 ViewColumn::make('info')
-                    ->label('INFORMACIÓN')
+                    ->label('Información')
                     ->view('filament.forms.components.ticket-info')
                     ->viewData(['model' => Ticket::class])
                     ->sortable(false),
 
-                // IconColumn::make('prioridad')
-                //     ->label('PRIORIDAD')
-                //     ->icon(fn(string $state): string => match ($state) {
-                //         'urgente' => 'heroicon-o-exclamation-triangle',
-                //         'alta' => 'heroicon-o-exclamation-circle',
-                //         'media' => 'heroicon-o-clock',
-                //         'baja' => 'heroicon-o-arrow-down',
-                //         default => 'heroicon-o-minus',
-                //     })
-                //     ->color(fn(string $state): string => match ($state) {
-                //         'urgente' => 'danger',
-                //         'alta' => 'warning',
-                //         'media' => 'info',
-                //         'baja' => 'gray',
-                //         default => 'gray',
-                //     })
-                //     ->tooltip(fn(Ticket $record): string => ucfirst($record->prioridad ?? '')),
+                TextColumn::make('prioridad')
+                    ->label('Prioridad')
+                    ->formatStateUsing(fn(string $state): string => ucfirst($state))
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                        'urgente' => 'danger',
+                        'alta' => 'warning',
+                        'media' => 'info',
+                        'baja' => 'gray',
+                        default => 'gray',
+                    })
+                    ->icon(fn(string $state): string => match ($state) {
+                        'urgente' => 'heroicon-o-exclamation-triangle',
+                        'alta' => 'heroicon-o-exclamation-circle',
+                        'media' => 'heroicon-o-clock',
+                        'baja' => 'heroicon-o-arrow-down',
+                        default => 'heroicon-o-minus',
+                    })
+                    ->sortable()
+                    ->searchable(),
 
                 TextColumn::make('destinatario.full_name')
-                    ->label('ASIGNADO A')
+                    ->label('Asignado a:')
                     ->sortable()
                     ->searchable()
                     ->badge()
@@ -317,7 +308,7 @@ class TicketResource extends Resource
                     ->tooltip('Técnico responsable'),
 
                 TextColumn::make('fecha_programada')
-                    ->label('PROGRAMADO')
+                    ->label('Programado')
                     ->dateTime('d/m H:i')
                     ->sortable()
                     ->color(
@@ -343,7 +334,7 @@ class TicketResource extends Resource
                         $query->where('fecha_programada', '<', now())
                             ->whereNotIn('estado', ['cerrado'])
                     ),
-                    
+
                 Filter::make('asignados_a_mi')
                     ->label('📌Asignados a mí')
                     ->query(
@@ -351,7 +342,7 @@ class TicketResource extends Resource
                         $currentUserId ? $query->where('destinatario_id', $currentUserId) : $query
                     )
                     ->default(),
-                    
+
                 SelectFilter::make('estado')
                     ->label('Estado')
                     ->multiple()
@@ -378,7 +369,7 @@ class TicketResource extends Resource
                     ->options([
                         'preventivo' => '🛡️Preventivo',
                         'correctivo' => '🔧Correctivo',
-                    ]),                
+                    ]),
 
                 Filter::make('fecha_solicitada')
                     ->label('Fecha de Solicitud')
@@ -397,10 +388,10 @@ class TicketResource extends Resource
                                 fn(Builder $query, $date): Builder => $query->whereDate('fecha_solicitada', '<=', $date),
                             );
                     }),
-                
+
             ])   //,layout: FiltersLayout::AboveContentCollapsible //para cambiar el layout por encima
             ->filtersFormColumns(2)
-            
+
             ->actions([
                 Action::make('cambiar_estado')
                     ->label('Cambiar Estado')

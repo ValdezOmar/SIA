@@ -22,9 +22,9 @@ return new class extends Migration
             $table->foreignId('area_origen_id')->nullable()->constrained('conf_areas')->nullOnDelete();
             $table->foreignId('area_destino_id')->nullable()->constrained('conf_areas')->nullOnDelete();
             $table->enum('estado', ['entrada', 'pendiente', 'salida', 'cerrado'])->nullable();
-            $table->date('fecha_entrada')->nullable();
-            $table->date('fecha_recepcion')->nullable(); 
-            $table->date('fecha_salida')->nullable();
+            $table->dateTime('fecha_entrada')->nullable();
+            $table->dateTime('fecha_recepcion')->nullable(); 
+            $table->dateTime('fecha_salida')->nullable();
             $table->string('observaciones')->nullable(); //Observaciones de porque se deriva o se rechaza
             //Operaciones de bandeja          
             $table->text('descripcion')->nullable(); 
