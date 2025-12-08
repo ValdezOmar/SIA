@@ -130,7 +130,7 @@ class TicketResource extends Resource
                                 'urgente' => '🔴 Urgente',
                             ])
                             ->default('media')
-                            ->native(false),                        
+                            ->native(false),
 
                         Select::make('destinatario_id')
                             ->label('Técnico Asignado')
@@ -252,7 +252,7 @@ class TicketResource extends Resource
                 TextColumn::make('codigo')
                     ->label('Ticket')
                     ->searchable()
-                    ->sortable()                    
+                    ->sortable()
                     ->weight('bold')
                     ->color('primary')
                     ->tooltip('Ver detalles del ticket'),
@@ -340,19 +340,17 @@ class TicketResource extends Resource
                     ->query(
                         fn(Builder $query): Builder =>
                         $currentUserId ? $query->where('destinatario_id', $currentUserId) : $query
-                    )
-                    ->default(),
+                    ),
 
                 SelectFilter::make('estado')
                     ->label('Estado')
                     ->multiple()
                     ->options([
                         'abierto' => '🟢 Abierto',
-                        'en_proceso' => '🟡 En Proceso',
-                        'pendiente' => '🔵 Pendiente',
+                        'en_proceso' => '🟡 En Proceso',                        
                         'cerrado' => '⚫ Cerrado',
                     ])
-                    ->default(['abierto', 'en_proceso', 'pendiente']),
+                    ->default(['abierto', 'en_proceso']),
 
                 SelectFilter::make('prioridad')
                     ->label('Prioridad')
@@ -404,8 +402,7 @@ class TicketResource extends Resource
                             ->label('Nuevo Estado')
                             ->options([
                                 'abierto' => '🟢 Abierto',
-                                'en_proceso' => '🟡 En Proceso',
-                                'pendiente' => '🔵 Pendiente',
+                                'en_proceso' => '🟡 En Proceso',                                
                                 'cerrado' => '⚫ Cerrado',
                             ])
                             ->required(),
@@ -424,8 +421,7 @@ class TicketResource extends Resource
                                 ->label('Nuevo Estado')
                                 ->options([
                                     'abierto' => 'Abierto',
-                                    'en_proceso' => 'En Proceso',
-                                    'pendiente' => 'Pendiente',
+                                    'en_proceso' => 'En Proceso',                                    
                                     'cerrado' => 'Cerrado',
                                 ])
                                 ->required(),

@@ -51,9 +51,9 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
         $empleadoId = Auth::user()->empleado?->id;
 
         return parent::getEloquentQuery()
-            ->where('estado', 'entrada')
-            ->where('destinatario_id', $empleadoId)
-            ->whereNull('encargado_id')
+            ->where('estado', 'entrada') // Estado puede ser "entrada" o "salida"
+            ->where('destinatario_id', $empleadoId)    // Y destinatario es el empleado
+            ->whereNull('encargado_id')                // Y encargado_id es nulo
             ->with(['ticket' => function ($query) {
                 $query->with(['equipo' => function ($q) {
                     $q->with('cliente');
@@ -248,8 +248,8 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
                     ])
                     ->collapsible(false),
 
-                //Acciones del ticket
-                Section::make('Acciones del Ticket')
+                // Acciones del ticket
+                Section::make('Acciones del Remitente')
                     ->description('Complete la información requerida')
                     ->icon('heroicon-o-cog')
                     ->schema([
@@ -266,8 +266,6 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
                                     ])
                                     ->native(false)
                                     ->columnSpan(1),
-
-
 
                                 FileUpload::make('adjunto')
                                     ->label('Archivos Adjuntos')
@@ -291,17 +289,10 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
                             ->rows(2)
                             ->placeholder('Sin observaciones')
                             ->columnSpanFull()
-                            ->visible(fn($get) => filled($get('observaciones'))),
-
-                        Textarea::make('descripcion')
-                            ->label('Trabajo Realizado / Solución')
-                            ->required()
-                            ->rows(4)
-                            ->placeholder('Describa el trabajo realizado, solución aplicada o acciones tomadas...')
-                            ->helperText('Esta información será registrada como parte del historial del ticket')
-                            ->columnSpanFull(),
+                            ->hidden(fn($get) => !filled($get('observaciones'))), // Ocultar si está vacío
                     ])
-                    ->collapsible(false),
+                    ->collapsible(false)
+                    ->hidden(fn($get) => empty($get('observaciones'))), // ← OCULTAR TODA LA SECCIÓN
             ]);
     }
 
@@ -393,16 +384,45 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
                     ->url(fn(Evento $record): string =>
                     EventoEntradaResource::getUrl('edit', ['record' => $record])),
 
+                //Boton aceptar ticket
                 Action::make('aceptar')
                     ->label('Aceptar')
                     ->color('success')
                     ->icon('heroicon-o-check-circle')
                     ->tooltip('Aceptar ticket')
                     ->action(function (Evento $record) {
+                        // Obtener el ID del empleado actual
+                        $empleadoId = Auth::user()->empleado?->id;
+
+                        // 1. Buscar y cerrar el registro anterior (si existe)
+                        // Buscamos el registro donde este empleado era el DESTINATARIO
+                        // y el estado era 'entrada' o 'salida'
+                        if ($record->ticket) {
+                            Evento::where('hd_ticket_id', $record->hd_ticket_id)
+                                ->where('destinatario_id', $empleadoId) // Este empleado era el destinatario
+                                ->whereIn('estado', ['entrada', 'salida']) // En estado pendiente de aceptación
+                                ->where('id', '!=', $record->id) // Excluir el registro actual
+                                ->update([
+                                    'estado' => 'cerrado',
+                                    'fecha_salida' => now(),
+                                ]);
+                        }
+
+                        // 2. Actualizar el registro actual (aceptar en la bandeja)
                         $record->update([
-                            'encargado_id' => Auth::user()->empleado?->id,
+                            'encargado_id' => $empleadoId,
+                            'destinatario_id' => null, // Ya no tiene destinatario, lo tiene el encargado
                             'estado' => 'pendiente',
+                            'fecha_recepcion' => now(), // Fecha en que se aceptó
                         ]);
+
+                        // 3. Actualizar el ticket principal
+                        if ($record->ticket) {
+                            $record->ticket->update([
+                                'estado' => 'en_proceso',
+                                'encargado_id' => $empleadoId,
+                            ]);
+                        }
 
                         Notification::make()
                             ->title('Ticket Aceptado')
@@ -415,6 +435,7 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
                     ->modalHeading('Aceptar Ticket')
                     ->modalDescription('¿Aceptar este ticket para comenzar a trabajar en él?'),
 
+                //Boton derivar ticket con funcionalidades exclusivas para bandeja de entrada
                 Action::make('derivar')
                     ->label('Derivar')
                     ->color('warning')
@@ -434,18 +455,38 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
                             ->searchable()
                             ->preload()
                             ->required(),
+                        Textarea::make('descripcion')
+                            ->label('Observaciones')
+                            ->placeholder('Describe por qué se deriva este ticket...')
+                            ->required(),
                     ])
                     ->action(function (array $data, Evento $record) {
+                        $destinatarioActual = $record->destinatario_id;
                         $record->update([
+                            'remitente_id' => $destinatarioActual,
+                            'encargado_id' => $destinatarioActual,
                             'destinatario_id' => $data['destinatario_id'],
                             'estado' => 'salida',
                             'fecha_salida' => now(),
                         ]);
 
+                        Evento::create([
+                            'hd_ticket_id' => $record->hd_ticket_id,
+                            'remitente_id' => $record->encargado_id,
+                            'destinatario_id' => $data['destinatario_id'],
+                            'area_origen_id' => $record->area_destino_id,
+                            'area_destino_id' => Empleado::find($data['destinatario_id'])?->area_id,
+                            'estado' => 'entrada',
+                            'fecha_entrada' => now(),
+                            'observaciones' => $data['descripcion'],
+                            'descripcion' => $record->descripcion,
+                            'prioridad' => $record->prioridad,
+                        ]);
+
                         if ($record->ticket) {
                             $record->ticket->update([
                                 'destinatario_id' => $data['destinatario_id'],
-                                'estado' => 'derivado',
+                                'estado' => 'en_proceso',
                             ]);
                         }
 
@@ -454,10 +495,13 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
                             ->body('El ticket ha sido derivado a otro técnico.')
                             ->success()
                             ->send();
+
+                        return redirect(EventoEntradaResource::getUrl('index'));
                     })
                     ->requiresConfirmation()
                     ->modalHeading('Derivar Ticket')
-                    ->modalDescription('¿Derivar este ticket a otro técnico?'),
+                    ->modalDescription('¿Derivar este ticket a otro técnico?')
+                    ->hidden(fn(Evento $record): bool => !is_null($record->observaciones)), // SOLO SE MUESTRA SI OBSERVACIONES ES NULL
             ])
             ->bulkActions([
                 BulkActionGroup::make([
@@ -476,6 +520,36 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
             ])
             ->striped()
             ->deferLoading();
+    }
+
+    //Badge contador de bandeja
+    public static function getNavigationBadge(): ?string
+    {
+        $count = Auth::user()->empleado?->id
+            ? static::getModel()::where('estado', 'entrada')
+            ->where('destinatario_id', Auth::user()->empleado->id)
+            ->whereNull('encargado_id')
+            ->count()
+            : 0;
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    //Color de estado de Badge
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        $count = Auth::user()->empleado?->id
+            ? static::getModel()::where('estado', 'entrada')
+            ->where('destinatario_id', Auth::user()->empleado->id)
+            ->whereNull('encargado_id')
+            ->count()
+            : 0;
+
+        return match (true) {
+            $count == 0 => 'success',
+            $count <= 3 => 'warning',
+            default => 'danger',
+        };
     }
 
     protected static function handleRecordCreation(array $data): Model
@@ -507,33 +581,5 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
     public static function getRelations(): array
     {
         return [];
-    }
-
-    public static function getNavigationBadge(): ?string
-    {
-        $count = Auth::user()->empleado?->id
-            ? static::getModel()::where('estado', 'entrada')
-            ->where('destinatario_id', Auth::user()->empleado->id)
-            ->whereNull('encargado_id')
-            ->count()
-            : 0;
-
-        return $count > 0 ? (string) $count : null;
-    }
-
-    public static function getNavigationBadgeColor(): string|array|null
-    {
-        $count = Auth::user()->empleado?->id
-            ? static::getModel()::where('estado', 'entrada')
-            ->where('destinatario_id', Auth::user()->empleado->id)
-            ->whereNull('encargado_id')
-            ->count()
-            : 0;
-
-        return match (true) {
-            $count == 0 => 'success',
-            $count <= 3 => 'warning',
-            default => 'danger',
-        };
     }
 }

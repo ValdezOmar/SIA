@@ -25,7 +25,7 @@ return new class extends Migration
             $table->dateTime('fecha_entrada')->nullable();
             $table->dateTime('fecha_recepcion')->nullable(); 
             $table->dateTime('fecha_salida')->nullable();
-            $table->string('observaciones')->nullable(); //Observaciones de porque se deriva o se rechaza
+            $table->text('observaciones')->nullable(); //Observaciones de porque se deriva o se rechaza
             //Operaciones de bandeja          
             $table->text('descripcion')->nullable(); 
             $table->string('prioridad')->nullable();      //'baja', 'media', 'alta', 'urgente'      
