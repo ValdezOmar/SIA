@@ -14,6 +14,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\View;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Resources\Resource;
@@ -238,6 +239,20 @@ class TicketResource extends Resource
                             ->columnSpanFull(),
                     ])
                     ->collapsible(),
+
+                Section::make('Historial de Eventos')
+                    ->description('Registro cronológico de acciones realizadas')
+                    ->icon('heroicon-o-clock')
+                    ->schema([
+                        View::make('filament.forms.components.historial-eventos')
+                            ->hiddenLabel()
+                            ->viewData([
+                                'ticket' => fn($livewire) => $livewire->record?->load('eventosOrdenados'),
+                            ]),
+                    ])
+                    ->collapsible()
+                    ->collapsed(false),
+
             ]);
     }
 
@@ -347,7 +362,7 @@ class TicketResource extends Resource
                     ->multiple()
                     ->options([
                         'abierto' => '🟢 Abierto',
-                        'en_proceso' => '🟡 En Proceso',                        
+                        'en_proceso' => '🟡 En Proceso',
                         'cerrado' => '⚫ Cerrado',
                     ])
                     ->default(['abierto', 'en_proceso']),
@@ -402,7 +417,7 @@ class TicketResource extends Resource
                             ->label('Nuevo Estado')
                             ->options([
                                 'abierto' => '🟢 Abierto',
-                                'en_proceso' => '🟡 En Proceso',                                
+                                'en_proceso' => '🟡 En Proceso',
                                 'cerrado' => '⚫ Cerrado',
                             ])
                             ->required(),
@@ -421,7 +436,7 @@ class TicketResource extends Resource
                                 ->label('Nuevo Estado')
                                 ->options([
                                     'abierto' => 'Abierto',
-                                    'en_proceso' => 'En Proceso',                                    
+                                    'en_proceso' => 'En Proceso',
                                     'cerrado' => 'Cerrado',
                                 ])
                                 ->required(),

@@ -27,9 +27,9 @@ class Ticket extends Model
         'adjunto',
         'destinatario_id'
     ];
-    
+
     protected $casts = [
-        'adjunto' => 'array',        
+        'adjunto' => 'array',
     ];
 
     protected static function boot()
@@ -73,6 +73,14 @@ class Ticket extends Model
         }
 
         return $gestion . str_pad($nuevaSerie, 4, '0', STR_PAD_LEFT);
+    }
+    
+    //Linea de eventos para el historial
+    public function eventosOrdenados()
+    {
+        return $this->hasMany(Evento::class, 'hd_ticket_id')
+            ->with(['remitente', 'destinatario', 'encargado']) // ¡IMPORTANTE: cargar relaciones!
+            ->orderBy('created_at', 'desc');
     }
 
     public function getGestionAttribute()
