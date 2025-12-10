@@ -226,6 +226,8 @@ class TicketResource extends Resource
                             ->label('Archivos Adjuntos')
                             ->directory('tickets_adjuntos')
                             ->multiple()
+                            ->openable()
+                            ->downloadable()
                             ->maxFiles(5)
                             ->acceptedFileTypes([
                                 'application/pdf',
@@ -234,8 +236,12 @@ class TicketResource extends Resource
                                 'application/msword',
                                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                             ])
-                            ->maxSize(5120)
+                            ->maxSize(5120) // 5MB en kilobytes
                             ->hint('Máx. 5 archivos, 5MB cada uno')
+                            ->preserveFilenames()
+                            ->getUploadedFileNameForStorageUsing(
+                                fn($file): string => (string) str()->uuid() . '.' . $file->getClientOriginalExtension()
+                            )
                             ->columnSpanFull(),
                     ])
                     ->collapsible(),

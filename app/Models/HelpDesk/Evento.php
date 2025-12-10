@@ -25,9 +25,18 @@ class Evento extends Model
         'fecha_recepcion',
         'fecha_salida',
         'observaciones',
+        'adjunto_remitente',
         'descripcion',
         'prioridad',
         'adjunto',
+    ];
+    //CASTEO DE DATOS
+    protected $casts = [
+        'adjunto_remitente' => 'array',
+        'adjunto' => 'array',
+        'fecha_entrada' => 'datetime',
+        'fecha_recepcion' => 'datetime',
+        'fecha_salida' => 'datetime',
     ];
 
     // Relaciones

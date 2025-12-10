@@ -16,6 +16,23 @@ use Illuminate\Support\Facades\Auth;
 class EditEventoEntrada extends EditRecord
 {
     protected static string $resource = EventoEntradaResource::class;
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        // Cargar el ticket con sus eventos
+        $record = $this->record;
+
+        if ($record && $record->ticket) {
+            // Esto hará que los datos estén disponibles en $livewire->record->ticket
+            $record->load([
+                'ticket.eventosOrdenados' => function ($query) {
+                    $query->with(['remitente', 'destinatario', 'encargado'])
+                        ->orderBy('created_at', 'desc');
+                }
+            ]);
+        }
+
+        return $data;
+    }
 
     // Botones que aparecen al pie del formulario
     protected function getFormActions(): array
@@ -40,7 +57,7 @@ class EditEventoEntrada extends EditRecord
                             ->whereIn('estado', ['entrada', 'salida']) // En estado pendiente de aceptación
                             ->where('id', '!=', $record->id) // Excluir el registro actual
                             ->update([
-                                'estado' => 'cerrado',
+                                'estado' => 'atendido',
                                 'fecha_salida' => now(),
                             ]);
                     }
@@ -115,6 +132,7 @@ class EditEventoEntrada extends EditRecord
                         'area_destino_id' => Empleado::find($data['destinatario_id'])?->area_id,
                         'estado' => 'entrada',
                         'fecha_entrada' => now(),
+                        'adjunto_remitente' => 'adjunto',
                         'observaciones' => $data['descripcion'],
                         'prioridad' => $record->prioridad,
                     ]);

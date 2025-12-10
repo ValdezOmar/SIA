@@ -446,6 +446,7 @@ class EventoPendienteResource extends Resource
                             'area_destino_id' => Empleado::find($data['destinatario_id'])?->area_id, // Área del nuevo técnico
                             'estado' => 'entrada', // Estado inicial para el nuevo técnico
                             'fecha_entrada' => now(),
+                            'adjunto_remitente' => $data['adjunto'],
                             'observaciones' => $data['descripcion'], // Observaciones de la derivación
                             'descripcion' => $record->descripcion, // Mantener la descripción original
                             'prioridad' => $record->prioridad, // Mantener la prioridad original
@@ -508,7 +509,7 @@ class EventoPendienteResource extends Resource
                             ->success()
                             ->send();
 
-                        return redirect(EventoEntradaResource::getUrl('index'));
+                        return redirect(EventoPendienteResource::getUrl('index'));
                     })
                     ->hidden(
                         fn(Evento $record): bool =>
@@ -518,8 +519,6 @@ class EventoPendienteResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Cerrar Ticket')
                     ->modalDescription('¿Estás seguro de cerrar este ticket? Esta acción no se puede deshacer.'),
-
-
             ])
 
             ->bulkActions([

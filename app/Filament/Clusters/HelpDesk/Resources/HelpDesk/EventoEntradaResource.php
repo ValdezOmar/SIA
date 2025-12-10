@@ -28,6 +28,7 @@ use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\View;
 use Filament\Notifications\Notification;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\BulkActionGroup;
@@ -248,51 +249,217 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
                     ])
                     ->collapsible(false),
 
-                // Acciones del ticket
-                Section::make('Acciones del Remitente')
-                    ->description('Complete la información requerida')
-                    ->icon('heroicon-o-cog')
+                // Acciones del ticket - MEJORADO PARA BANDEJA DE ENTRADA (Solo lectura)
+                Section::make('Detalles del Envío')
+                    ->description('Información proporcionada por el remitente')
+                    ->icon('heroicon-o-paper-airplane')
                     ->schema([
-                        Grid::make(3)
+                        // Prioridad asignada (solo lectura)
+                        Grid::make(2)
                             ->schema([
-                                Select::make('prioridad')
-                                    ->label('Prioridad')
-                                    ->required()
-                                    ->options([
-                                        'baja' => '🔵 Baja',
-                                        'media' => '🟡 Media',
-                                        'alta' => '🟠 Alta',
-                                        'urgente' => '🔴 Urgente',
-                                    ])
-                                    ->native(false)
+                                Placeholder::make('prioridad_actual')
+                                    ->label('Prioridad Asignada')
+                                    ->content(function ($livewire) {
+                                        $prioridad = $livewire->record?->prioridad;
+                                        if (!$prioridad) return new HtmlString('
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">Sin prioridad</span>
+                            </div>
+                        ');
+
+                                        $config = match ($prioridad) {
+                                            'urgente' => [
+                                                'color' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+                                                'icon' => 'heroicon-o-exclamation-triangle',
+                                                'label' => 'Urgente'
+                                            ],
+                                            'alta' => [
+                                                'color' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+                                                'icon' => 'heroicon-o-exclamation-circle',
+                                                'label' => 'Alta'
+                                            ],
+                                            'media' => [
+                                                'color' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+                                                'icon' => 'heroicon-o-clock',
+                                                'label' => 'Media'
+                                            ],
+                                            'baja' => [
+                                                'color' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+                                                'icon' => 'heroicon-o-arrow-down',
+                                                'label' => 'Baja'
+                                            ],
+                                            default => [
+                                                'color' => 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+                                                'icon' => 'heroicon-o-minus',
+                                                'label' => ucfirst($prioridad)
+                                            ]
+                                        };
+
+                                        return new HtmlString('
+                            <div class="flex items-center gap-3 p-3 rounded-lg ' . $config['color'] . '">
+                                <x-heroicon-o-' . str_replace('heroicon-o-', '', $config['icon']) . ' class="w-5 h-5" />
+                                <span class="font-semibold">' . $config['label'] . '</span>
+                            </div>
+                        ');
+                                    })
                                     ->columnSpan(1),
 
-                                FileUpload::make('adjunto')
-                                    ->label('Archivos Adjuntos')
-                                    ->directory('eventos/entradas/' . date('Y/m'))
-                                    ->multiple()
-                                    ->maxFiles(5)
-                                    ->acceptedFileTypes([
-                                        'application/pdf',
-                                        'image/*',
-                                        'application/msword',
-                                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-                                    ])
-                                    ->maxSize(10240)
-                                    ->hint('Máx. 5 archivos, 10MB c/u')
-                                    ->columnSpan(2),
+                                Placeholder::make('fecha_asignacion')
+                                    ->label('Fecha de Recepción')
+                                    ->content(function ($livewire) {
+                                        $fecha = $livewire->record?->fecha_entrada;
+                                        if (!$fecha) return new HtmlString('
+                                            <span class="text-sm text-gray-500 dark:text-gray-400">No disponible</span>
+                                        ');
+
+                                        $fechaFormateada = is_string($fecha) ?
+                                            date('d/m/Y H:i', strtotime($fecha)) :
+                                            $fecha->format('d/m/Y H:i');
+
+                                        return new HtmlString('
+                            <div class="space-y-1">
+                                <div class="gap-3">
+                                    <x-heroicon-o-calendar class="w-4 h-4 text-gray-400" />
+                                    <span class="font-small text-gray-900 dark:text-gray-100">' . $fechaFormateada . '</span></br>
+                                </div>
+                                
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Hace ' . (is_string($fecha) ?
+                                            \Carbon\Carbon::parse($fecha)->diffForHumans() :
+                                            $fecha->diffForHumans()) . '</p>
+                            </div>
+                            
+                        ');
+                                    })
+                                    ->columnSpan(1),
                             ]),
 
-                        Textarea::make('observaciones')
-                            ->label('Observaciones del Remitente')
-                            ->disabled()
-                            ->rows(2)
-                            ->placeholder('Sin observaciones')
-                            ->columnSpanFull()
-                            ->hidden(fn($get) => !filled($get('observaciones'))), // Ocultar si está vacío
+                        // Archivos adjuntos del remitente
+                        Grid::make(1)
+                            ->schema([
+                                Placeholder::make('adjuntos_remitente')
+                                    ->label('Archivos Adjuntos del Remitente')
+                                    ->content(function ($livewire) {
+                                        $adjuntos = $livewire->record?->adjunto_remitente;
+
+                                        if (empty($adjuntos)) {
+                                            return new HtmlString('
+                                <div class="p-4 text-center border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                                    <x-heroicon-o-paper-clip class="w-8 h-8 mx-auto text-gray-400" />
+                                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No hay archivos adjuntos</p>
+                                </div>
+                            ');
+                                        }
+
+                                        // Si es JSON decodificarlo
+                                        if (is_string($adjuntos)) {
+                                            $adjuntos = json_decode($adjuntos, true) ?? [];
+                                        }
+
+                                        if (!is_array($adjuntos) || empty($adjuntos)) {
+                                            return new HtmlString('
+                                <div class="p-4 text-center border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                                    <x-heroicon-o-paper-clip class="w-8 h-8 mx-auto text-gray-400" />
+                                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No hay archivos adjuntos</p>
+                                </div>
+                            ');
+                                        }
+
+                                        $html = '<div class="space-y-2">';
+                                        $html .= '<p class="text-xs text-gray-500 dark:text-gray-400 mb-2">' . count($adjuntos) . ' archivo(s) adjunto(s)</p>';
+                                        $html .= '<div class="grid gap-2">';
+
+                                        foreach ($adjuntos as $index => $adjunto) {
+                                            if (is_string($adjunto) && !empty($adjunto)) {
+                                                $nombreArchivo = basename($adjunto);
+                                                $extension = pathinfo($nombreArchivo, PATHINFO_EXTENSION);
+                                                $icono = match (strtolower($extension)) {
+                                                    'pdf' => 'heroicon-o-document-text',
+                                                    'jpg', 'jpeg', 'png', 'gif' => 'heroicon-o-photo',
+                                                    'doc', 'docx' => 'heroicon-o-document',
+                                                    default => 'heroicon-o-paper-clip'
+                                                };
+
+                                                $html .= '
+                                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                                    <div class="gap-3">
+                                        <x-heroicon-o-' . str_replace('heroicon-o-', '', $icono) . ' class="w-5 h-5 text-gray-400" />
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-xs">' . e($nombreArchivo) . '</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">' . e($extension) . '</p>
+                                        </div>
+                                    </div>
+                                    <a href="' . e(asset('storage/' . $adjunto)) . '" 
+                                       target="_blank" 
+                                       class="px-3 py-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-md transition-colors">
+                                        <x-heroicon-o-arrow-down-tray class="w-4 h-4" />
+                                        Descargar
+                                    </a>
+                                </div>';
+                                            }
+                                        }
+
+                                        $html .= '</div>';
+                                        $html .= '</div>';
+
+                                        return new HtmlString($html);
+                                    })
+                                    ->extraAttributes(['class' => 'p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'])
+                                    ->columnSpanFull(),
+                            ])
+                            ->columnSpanFull(),
+
+                        // Observaciones del remitente (si existen)
+                        Grid::make(1)
+                            ->schema([
+                                Placeholder::make('observaciones_remitente')
+                                    ->label('Observaciones del Remitente')
+                                    ->content(function ($livewire) {
+                                        $observaciones = $livewire->record?->observaciones;
+
+                                        if (empty($observaciones)) {
+                                            return new HtmlString('
+                                <div class="p-4 text-center border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                                    <x-heroicon-o-chat-bubble-left-right class="w-8 h-8 mx-auto text-gray-400" />
+                                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Sin observaciones adicionales</p>
+                                </div>
+                            ');
+                                        }
+
+                                        return new HtmlString('
+                            <div class="space-y-3">
+                                <div class=" gap-2">
+                                    <x-heroicon-o-chat-bubble-left-right class="w-5 h-5 text-gray-400" />
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Comentarios del envío</span>
+                                </div>
+                                <div class="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 rounded-lg">
+                                    <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">' . nl2br(e($observaciones)) . '</p>
+                                </div>
+                            </div>
+                        ');
+                                    })
+                                    ->extraAttributes(['class' => 'p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'])
+                                    ->columnSpanFull(),
+                            ])
+                            ->columnSpanFull(),
                     ])
                     ->collapsible(false)
-                    ->hidden(fn($get) => empty($get('observaciones'))), // ← OCULTAR TODA LA SECCIÓN
+                    ->description('Esta sección muestra la información que el remitente incluyó al enviar este ticket. Todos los datos son de solo lectura.')
+                    ->icon('heroicon-o-information-circle')
+                    ->collapsed(false),
+
+                // //Historial de eventos   
+                // Section::make('Historial de Eventos')
+                //     ->description('Registro cronológico de acciones realizadas')
+                //     ->icon('heroicon-o-clock')
+                //     ->schema([
+                //         View::make('filament.forms.components.historial-eventos')
+                //             ->hiddenLabel()
+                //             ->viewData([
+                //                 'ticket' => fn($livewire) => $livewire->record?->load('eventosOrdenados'),
+                //             ]),
+                //     ])
+                //     ->collapsible()
+                //     ->collapsed(false),
             ]);
     }
 
@@ -403,7 +570,7 @@ class EventoEntradaResource extends Resource implements HasShieldPermissions
                                 ->whereIn('estado', ['entrada', 'salida']) // En estado pendiente de aceptación
                                 ->where('id', '!=', $record->id) // Excluir el registro actual
                                 ->update([
-                                    'estado' => 'cerrado',
+                                    'estado' => 'atendido',
                                     'fecha_salida' => now(),
                                 ]);
                         }

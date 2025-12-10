@@ -22,23 +22,48 @@ class CreateTicket extends CreateRecord
             'hd_ticket_id' => $this->record->id,
             'remitente_id' => Auth::user()->empleado?->id ?? 1,
             'destinatario_id' => $destinatarioId,
-            'estado' => 'cerrado',
+            'estado' => 'atendido',
             'fecha_salida' => now(),
             'observaciones' => 'Creacion del ticket y derivado por sistema',
             'prioridad' => $this->record->prioridad,
         ]);
         // Crear el evento después de crear el ticket
         // Evento entrada con created_at +1 segundo
-        DB::table('hd_eventos')->insert([
+        $adjuntosRemitente = [];
+
+        if (isset($this->data['adjunto']) && is_array($this->data['adjunto'])) {
+            // Filament ya ha procesado los archivos y los guardó
+            // Solo guardamos las rutas, no los archivos temporales
+            foreach ($this->data['adjunto'] as $adjunto) {
+                if (is_string($adjunto) && !empty($adjunto)) {
+                    $adjuntosRemitente[] = $adjunto;
+                }
+            }
+        }
+         DB::table('hd_eventos')->insert([
             'hd_ticket_id'   => $this->record->id,
             'remitente_id'   => Auth::user()->empleado?->id ?? 1,
             'destinatario_id' => $destinatarioId,
             'estado'         => 'entrada',
             'fecha_entrada'  => now()->addSecond(),
             'prioridad'      => $this->record->prioridad,
+            'adjunto_remitente' => !empty($adjuntosRemitente) ? json_encode($adjuntosRemitente) : null,
             'created_at'     => now()->addSecond(),
             'updated_at'     => now()->addSecond(),
         ]);
+
+        // Evento::create([
+        //     'hd_ticket_id' => $this->record->id,
+        //     'remitente_id' => Auth::user()->empleado?->id ?? 1,
+        //     'destinatario_id' => $destinatarioId,
+        //     'estado' => 'entrada',
+        //     'fecha_entrada' => now()->addSeconds(2),
+        //     'prioridad' => $this->record->prioridad,
+        //     'adjunto_remitente' => !empty($adjuntosRemitente) ? $adjuntosRemitente : null,
+        //     'observaciones' => 'Ticket creado con adjuntos del remitente',
+        //     'created_at' => now()->addSeconds(2),
+        //     'updated_at' => now()->addSeconds(2),
+        // ]);
     }
 
     // Redirigir al index después de crear

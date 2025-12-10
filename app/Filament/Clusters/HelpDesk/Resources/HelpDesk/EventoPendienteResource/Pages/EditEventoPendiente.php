@@ -41,7 +41,7 @@ class EditEventoPendiente extends EditRecord
                             ->whereIn('estado', ['entrada', 'salida']) // En estado pendiente de aceptación
                             ->where('id', '!=', $record->id) // Excluir el registro actual
                             ->update([
-                                'estado' => 'cerrado',
+                                'estado' => 'atendido',
                                 'fecha_salida' => now(),
                             ]);
                     }
@@ -93,40 +93,39 @@ class EditEventoPendiente extends EditRecord
                         ->preload()
                         ->required(),
                 ])
-                ->action(function (array $data, Evento $record) {
+                ->action(function (array $data) {
+
+                    $evento = $this->record;
+
                     try {
-                        // 1. GUARDAR EL FORMULARIO COMPLETO usando el método saveForm()
-                        $this->callHook('beforeSave');
-                        $this->form->model($record)->saveRelationships();
-                        $record->save();
+                        /** 1. GUARDAR CAMBIOS DEL FORMULARIO ANTES DE DERIVAR */
+                        $this->save();
 
-                        // 2. Refrescar para obtener datos actualizados
-                        $record->refresh();
+                        $evento->refresh();
 
-                        // 3. Realizar la derivación
-                        $record->update([
+                        /** 2. Actualizar el evento actual como salida */
+                        $evento->update([
                             'destinatario_id' => $data['destinatario_id'],
                             'estado' => 'salida',
                             'fecha_salida' => now(),
                         ]);
 
-                        // 4. Crear nuevo registro para el destinatario
+                        /** 3. Crear nuevo evento de entrada */
                         Evento::create([
-                            'hd_ticket_id' => $record->hd_ticket_id,
-                            'remitente_id' => $record->encargado_id,
+                            'hd_ticket_id'    => $evento->hd_ticket_id,
+                            'remitente_id'    => $evento->encargado_id,
                             'destinatario_id' => $data['destinatario_id'],
-                            'area_origen_id' => $record->area_destino_id,
+                            'area_origen_id'  => $evento->area_destino_id,
                             'area_destino_id' => Empleado::find($data['destinatario_id'])?->area_id,
-                            'estado' => 'entrada',
-                            'fecha_entrada' => now(),
-                            'observacion' => $record->descripcion,
-                            'prioridad' => $record->prioridad,
-
+                            'estado'          => 'entrada',
+                            'fecha_entrada'   => now(),
+                            'observaciones'     => $evento->descripcion,
+                            'prioridad'       => $evento->prioridad,
                         ]);
 
-                        // 5. Actualizar ticket principal
-                        if ($record->ticket) {
-                            $record->ticket->update([
+                        /** 4. Actualizar ticket principal */
+                        if ($evento->ticket) {
+                            $evento->ticket->update([
                                 'destinatario_id' => $data['destinatario_id'],
                                 'estado' => 'en_proceso',
                             ]);
@@ -134,12 +133,13 @@ class EditEventoPendiente extends EditRecord
 
                         Notification::make()
                             ->title('Ticket Derivado')
-                            ->body('El ticket ha sido derivado a otro técnico.')
+                            ->body('Se guardaron los cambios y se derivó correctamente.')
                             ->success()
                             ->send();
 
                         return redirect(EventoPendienteResource::getUrl('index'));
                     } catch (\Exception $e) {
+
                         Notification::make()
                             ->title('Error al derivar')
                             ->body('Ocurrió un error: ' . $e->getMessage())
@@ -147,55 +147,56 @@ class EditEventoPendiente extends EditRecord
                             ->send();
                     }
                 })
+
                 ->requiresConfirmation()
                 ->modalHeading('Derivar Ticket')
                 ->modalDescription('¿Derivar este ticket a otro técnico?'),
 
-            //Cerrar Ticket
             Action::make('cerrar')
                 ->label('Cerrar Ticket')
-                ->color('warning')
+                ->color('danger')
                 ->icon('heroicon-o-check-circle')
-                ->tooltip('Cerrar ticket')
-                // ->form([
-                //     Textarea::make('observaciones')
-                //         ->label('Observaciones de cierre')
-                //         ->placeholder('Describe la solución o motivo del cierre...')
-                //         ->required(),
-                // ])
-                ->action(function (array $data, Evento $record) {
-                    // 1. Cerrar el evento actual
+                ->tooltip('Cerrar ticket con la descripción actual')
+                ->action(function (Evento $record) {
+                    // Obtener la descripción del formulario
+                    $descripcion = $this->form->getState()['descripcion'] ?? 'Ticket cerrado sin descripción';
+
+                    // 1. Marcar evento actual como atendido
                     $record->update([
-                        'estado' => 'cerrado',
+                        'estado' => 'atendido',
                         'fecha_salida' => now(),
-                        // 'observaciones' => ($record->observaciones ? $record->observaciones . "\n" : "") .
-                        //     "CERRADO: " . $data['observaciones'] . " - Por: " . Auth::user()->name . " - Fecha: " . now()->format('Y-m-d H:i'),
                     ]);
 
-                    // 2. Cerrar el ticket principal
+                    // 2. Crear nuevo evento de cierre
+                    Evento::create([
+                        'hd_ticket_id' => $record->hd_ticket_id,
+                        'remitente_id' => Auth::user()->empleado?->id ?? 1,
+                        'destinatario_id' => $record->destinatario_id,
+                        'estado' => 'cerrado',
+                        'fecha_entrada' => now(),
+                        'observaciones' => $descripcion,
+                        'descripcion' => $descripcion,
+                        'prioridad' => $record->prioridad,
+                    ]);
+
+                    // 3. Atender el ticket actual
                     if ($record->ticket) {
                         $record->ticket->update([
-                            'estado' => 'cerrado',
+                            'estado' => 'atendido',
                             'fecha_cierre' => now(),
                         ]);
                     }
 
-                    Notification::make()
+                    \Filament\Notifications\Notification::make()
                         ->title('Ticket Cerrado')
-                        ->body('El ticket ha sido cerrado exitosamente.')
                         ->success()
                         ->send();
 
                     return redirect(EventoPendienteResource::getUrl('index'));
                 })
-                ->hidden(
-                    fn(Evento $record): bool =>
-                    $record->estado === 'cerrado' ||
-                        !in_array($record->estado, ['pendiente', 'entrada', 'salida'])
-                )
                 ->requiresConfirmation()
                 ->modalHeading('Cerrar Ticket')
-                ->modalDescription('¿Estás seguro de cerrar este ticket? Esta acción no se puede deshacer.'),
+                ->modalDescription('¿Usar la descripción actual para cerrar el ticket?'),
 
             // Botón CANCELAR
             Action::make('cancelar')

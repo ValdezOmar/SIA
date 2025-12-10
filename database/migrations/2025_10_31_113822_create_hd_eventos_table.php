@@ -15,21 +15,22 @@ return new class extends Migration
             $table->id();
             //Datos de origen y estado de ticket en bandeja
             $table->foreignId('hd_ticket_id')->constrained('hd_tickets')->cascadeOnDelete();
-            $table->foreignId('remitente_id')->nullable()->constrained('rh_empleados')->nullOnDelete();//Remitente es el que creo o envio el ticket
-            $table->foreignId('encargado_id')->nullable()->constrained('rh_empleados')->nullOnDelete();//Encargado es el destinatario del que creo el ticket y es el encargado de resolverlo, puede tener 2 estados Entrada y Pendiente
-            $table->foreignId('destinatario_id')->nullable()->constrained('rh_empleados')->nullOnDelete();//Destinatario es a la persona que se le derivo el ticket y tien dos estados Salida o cerrado, si esta en estado salida se muestra en la entrada del Encargado 
-           
-            $table->foreignId('area_origen_id')->nullable()->constrained('conf_areas')->nullOnDelete();
-            $table->foreignId('area_destino_id')->nullable()->constrained('conf_areas')->nullOnDelete();
-            $table->enum('estado', ['entrada', 'pendiente', 'salida', 'cerrado'])->nullable();
+            $table->foreignId('remitente_id')->nullable()->constrained('rh_empleados')->cascadeOnDelete();//Remitente es el que creo o envio el ticket
+            $table->foreignId('encargado_id')->nullable()->constrained('rh_empleados')->cascadeOnDelete();//Encargado es el destinatario del que creo el ticket y es el encargado de resolverlo, puede tener 2 estados Entrada y Pendiente
+            $table->foreignId('destinatario_id')->nullable()->constrained('rh_empleados')->cascadeOnDelete();//Destinatario es a la persona que se le derivo el ticket y tien dos estados Salida o cerrado, si esta en estado salida se muestra en la entrada del Encargado            
+            $table->foreignId('area_origen_id')->nullable()->constrained('conf_areas')->cascadeOnDelete();
+            $table->foreignId('area_destino_id')->nullable()->constrained('conf_areas')->cascadeOnDelete();
+            $table->enum('estado', ['entrada', 'pendiente', 'salida', 'cerrado', 'atendido'])->nullable();
             $table->dateTime('fecha_entrada')->nullable();
             $table->dateTime('fecha_recepcion')->nullable(); 
             $table->dateTime('fecha_salida')->nullable();
-            $table->text('observaciones')->nullable(); //Observaciones de porque se deriva o se rechaza
+            //Observaciones de porque se deriva o se rechaza
+            $table->text('observaciones')->nullable(); 
+            $table->json('adjunto_remitente')->nullable();
             //Operaciones de bandeja          
             $table->text('descripcion')->nullable(); 
             $table->string('prioridad')->nullable();      //'baja', 'media', 'alta', 'urgente'      
-            $table->string('adjunto')->nullable();
+            $table->json('adjunto')->nullable();
             
             $table->timestamps();
         });

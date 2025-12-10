@@ -403,8 +403,8 @@ class EventoSalidaResource extends Resource
                             $registroEntrada->delete();
 
                             // También puedes registrar esto en observaciones
-                            $record->observaciones = ($record->observaciones ? $record->observaciones . "\n" : "")
-                                . "Registro de entrada eliminado al recuperar. ID eliminado: " . $registroEntrada->id;
+                            // $record->observaciones = ($record->observaciones ? $record->observaciones . "\n" : "")
+                            //     . "Registro de entrada eliminado al recuperar. ID eliminado: " . $registroEntrada->id;
                         }
 
                         // 3. Actualizar el registro actual (recuperar)
@@ -436,35 +436,14 @@ class EventoSalidaResource extends Resource
                         fn(Evento $record): bool =>
                         is_null($record->destinatario_id) ||
                             $record->estado === 'cerrado' ||
+                            $record->estado === 'atendido' ||
                             $record->estado === 'pendiente' // No mostrar si ya está pendiente
                     )
                     ->requiresConfirmation()
                     ->modalHeading('Recuperar Ticket')
-                    ->modalDescription('¿Recuperar este ticket? Se eliminará el registro de entrada creado para el técnico destinatario.')
-                    ->modalSubmitActionLabel('Sí, recuperar y eliminar')
-                    ->modalCancelActionLabel('Cancelar'),
-
-                Action::make('aceptar')
-                    ->label('Aceptar')
-                    ->color('success')
-                    ->icon('heroicon-o-check-circle')
-                    ->tooltip('Aceptar ticket')
-                    ->action(function (Evento $record) {
-                        $record->update([
-                            'encargado_id' => Auth::user()->empleado?->id,
-                            'estado' => 'pendiente',
-                        ]);
-
-                        Notification::make()
-                            ->title('Ticket Aceptado')
-                            ->body('El ticket ha sido aceptado y está ahora en proceso.')
-                            ->success()
-                            ->send();
-                    })
-                    ->hidden(fn(Evento $record): bool => !is_null($record->encargado_id))
-                    ->requiresConfirmation()
-                    ->modalHeading('Aceptar Ticket')
-                    ->modalDescription('¿Aceptar este ticket para comenzar a trabajar en él?'),
+                    ->modalDescription('¿Recuperar este ticket? Se eliminará el registro del entrada para el destinatario.')
+                    ->modalSubmitActionLabel('Sí, recuperar')
+                    ->modalCancelActionLabel('Cancelar'),               
                
             ])
             ->bulkActions([
