@@ -649,6 +649,15 @@ class EquipoResource extends Resource
                     ->trueColor('success')
                     ->falseColor('danger')
                     ->sortable(),
+                
+                TextColumn::make('created_at')
+                ->label('Fecha de creación')
+                ->dateTime('d/m/Y H:i')
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true) // Oculto por defecto
+                ->description(fn(Equipo $record): string => 
+                    $record->created_at->diffForHumans()
+                ),
 
             ])
             ->filters([
@@ -757,8 +766,10 @@ class EquipoResource extends Resource
                     ->label('Agregar Equipo')
                     ->icon('heroicon-o-plus'),
             ])
-            ->deferLoading()
+            ->paginated(true)
             ->striped()
+            ->defaultPaginationPageOption(50)
+            ->paginationPageOptions([10, 25, 50, 100, 'all']) 
             ->defaultSort('created_at', 'desc');
     }
 
