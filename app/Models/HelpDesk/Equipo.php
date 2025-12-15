@@ -7,6 +7,7 @@ use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Cache;
 
 class Equipo extends Model
 {
@@ -14,24 +15,24 @@ class Equipo extends Model
 
     protected $table = 'hd_equipos';
 
-   protected $fillable = [
+    protected $fillable = [
         'codigo',
         'cliente_id',
         'descripcion',
         'marca',
         'modelo',
         'num_serie',
-        'observaciones', 
-        'tipo_venta',  
-        'fecha_entrega', 
-        'fecha_instalacion', 
-        'fecha_devolucion',  
+        'observaciones',
+        'tipo_venta',
+        'fecha_entrega',
+        'fecha_instalacion',
+        'fecha_devolucion',
         'garantia_desde',
         'garantia_hasta',
         'foto_equipo',
         'doc_adjunto',
         'empresa_id',
-        'sucursal_id',      
+        'sucursal_id',
         'tecnico_asignado',
         'tel_soporte',
         'freq_mantenimiento',
@@ -44,35 +45,46 @@ class Equipo extends Model
         'freq_mantenimiento' => 'array',
         'ubicacion_gps' => 'array',
         'activo' => 'boolean',
-        'fecha_entrega' => 'date',    
-        'fecha_instalacion' => 'date', 
-        'fecha_devolucion' => 'date',  
+        'fecha_entrega' => 'date',
+        'fecha_instalacion' => 'date',
+        'fecha_devolucion' => 'date',
         'garantia_desde' => 'date',
         'garantia_hasta' => 'date',
     ];
-    
+
     protected static function booted()
     {
         static::creating(function ($equipo) {
-            // Tomar primeras 3 letras de la marca
-            $marca = strtoupper(substr($equipo->marca ?? 'GEN', 0, 3));
+            // Crear una clave única para esta combinación marca/empresa
+            $lockKey = "equipo_counter:{$equipo->marca}:{$equipo->empresa_id}";
 
-            // Tomar primeras 3 letras de la empresa
-            $empresa = strtoupper(substr($equipo->empresa?->razon_social ?? 'GEN', 0, 3));
+            // Usar un lock para evitar condiciones de carrera
+            $lock = Cache::lock($lockKey, 10); // 10 segundos de timeout
 
-            // Contar equipos existentes con la misma marca y empresa
-            $contador = self::where('marca', $equipo->marca)
-                ->whereHas('empresa', fn($q) => $q->where('razon_social', $equipo->empresa?->razon_social ?? 'GEN'))
-                ->count() + 1;
+            if ($lock->get()) {
+                try {
+                    // Tomar primeras 3 letras de la marca
+                    $marca = strtoupper(substr($equipo->marca ?? 'GEN', 0, 3));
 
-            // Secuencia con 3 dígitos
-            $secuencia = str_pad($contador, 3, '0', STR_PAD_LEFT);
+                    // Tomar primeras 3 letras de la empresa
+                    $empresa = strtoupper(substr($equipo->empresa?->razon_social ?? 'GEN', 0, 3));
 
-            // Generar código final
-            $equipo->codigo = "{$marca}-{$empresa}-{$secuencia}";
+                    // Contar equipos existentes
+                    $contador = self::where('marca', $equipo->marca)
+                        ->whereHas('empresa', fn($q) => $q->where('razon_social', $equipo->empresa?->razon_social ?? 'GEN'))
+                        ->count() + 1;
+
+                    // Secuencia con 3 dígitos
+                    $secuencia = str_pad($contador, 3, '0', STR_PAD_LEFT);
+
+                    // Generar código final
+                    $equipo->codigo = "{$marca}-{$empresa}-{$secuencia}";
+                } finally {
+                    $lock->release();
+                }
+            }
         });
     }
-    
     // Relaciones con modelos
     public function cliente()
     {
