@@ -96,7 +96,7 @@ class Equipo extends Model
         return $this->belongsTo(Empresa::class, 'empresa_id');
     }
 
-    public function sucursal()
+    public function sucursalRelacion()
     {
         return $this->belongsTo(Sucursal::class, 'sucursal_id');
     }

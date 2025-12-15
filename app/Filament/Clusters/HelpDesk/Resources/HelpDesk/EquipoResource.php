@@ -583,32 +583,32 @@ class EquipoResource extends Resource
                     )
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('sucursal.nombre')
-                    ->label('Sucursal y Técnico')
-                    ->searchable()
-                    ->sortable()
-                    ->searchable(
-                        query: fn(Builder $query, string $search): Builder =>
-                        $query->where(function ($q) use ($search) {
-                            $q->whereHas(
-                                'sucursal',
-                                fn($subQ) =>
-                                $subQ->where('nombre', 'like', "%{$search}%")
-                            )->orWhereHas(
-                                'tecnico',
-                                fn($subQ) =>
-                                $subQ->where('nombres', 'like', "%{$search}%")
-                                    ->orWhere('apellidos', 'like', "%{$search}%")
-                            );
-                        })
-                    )
-                    ->badge()
-                    ->color('gray')
-                    ->description(
-                        fn(Equipo $record): string =>
-                        $record->tecnico?->full_name ?? 'Sin técnico'
-                    )
-                    ->toggleable(isToggledHiddenByDefault: false),
+                // TextColumn::make('sucursal.nombre')
+                //     ->label('Sucursal y Técnico')
+                //     ->searchable()
+                //     ->sortable()
+                //     ->searchable(
+                //         query: fn(Builder $query, string $search): Builder =>
+                //         $query->where(function ($q) use ($search) {
+                //             $q->whereHas(
+                //                 'sucursal',
+                //                 fn($subQ) =>
+                //                 $subQ->where('nombre', 'like', "%{$search}%")
+                //             )->orWhereHas(
+                //                 'tecnico',
+                //                 fn($subQ) =>
+                //                 $subQ->where('nombres', 'like', "%{$search}%")
+                //                     ->orWhere('apellidos', 'like', "%{$search}%")
+                //             );
+                //         })
+                //     )
+                //     ->badge()
+                //     ->color('gray')
+                //     ->description(
+                //         fn(Equipo $record): string =>
+                //         $record->tecnico?->full_name ?? 'Sin técnico'
+                //     )
+                //     ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('ubicacion_gps')
                     ->label('Ubicación')
