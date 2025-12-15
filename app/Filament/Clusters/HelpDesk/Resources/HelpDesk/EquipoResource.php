@@ -40,6 +40,7 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Tables\Actions\BulkAction;
+use Illuminate\Database\Eloquent\Builder;
 
 class EquipoResource extends Resource
 {
@@ -582,6 +583,33 @@ class EquipoResource extends Resource
                     )
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                TextColumn::make('sucursal.nombre')
+                    ->label('Sucursal y Técnico')
+                    ->searchable()
+                    ->sortable()
+                    ->searchable(
+                        query: fn(Builder $query, string $search): Builder =>
+                        $query->where(function ($q) use ($search) {
+                            $q->whereHas(
+                                'sucursal',
+                                fn($subQ) =>
+                                $subQ->where('nombre', 'like', "%{$search}%")
+                            )->orWhereHas(
+                                'tecnico',
+                                fn($subQ) =>
+                                $subQ->where('nombres', 'like', "%{$search}%")
+                                    ->orWhere('apellidos', 'like', "%{$search}%")
+                            );
+                        })
+                    )
+                    ->badge()
+                    ->color('gray')
+                    ->description(
+                        fn(Equipo $record): string =>
+                        $record->tecnico?->full_name ?? 'Sin técnico'
+                    )
+                    ->toggleable(isToggledHiddenByDefault: false),
+
                 TextColumn::make('ubicacion_gps')
                     ->label('Ubicación')
                     ->icon('heroicon-o-map-pin')
@@ -601,7 +629,8 @@ class EquipoResource extends Resource
                         !($record->ubicacion_gps &&
                             isset($record->ubicacion_gps['lat']) &&
                             isset($record->ubicacion_gps['lng']))
-                    ),
+                    )
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 IconColumn::make('doc_adjunto')
                     ->label('PDF')
@@ -628,6 +657,13 @@ class EquipoResource extends Resource
                     ->placeholder('Todos los equipos')
                     ->trueLabel('Solo activos')
                     ->falseLabel('Solo inactivos'),
+
+                // SelectFilter::make('tecnico_asignado')
+                //     ->label('Técnico Asignado')
+                //     ->relationship('tecnico', 'nombres')
+                //     ->getOptionLabelFromRecordUsing(fn(Empleado $record) => $record->full_name)
+                //     ->searchable()
+                //     ->preload(),
 
                 SelectFilter::make('cliente_id')
                     ->label('Cliente')
@@ -667,7 +703,7 @@ class EquipoResource extends Resource
                                 ->generate($url);
 
                             // Para SVG, lo guardamos como texto
-                            $qrCodeBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrCode);                           
+                            $qrCodeBase64 = 'data:image/svg+xml;base64,' . base64_encode($qrCode);
 
                             $equiposData[] = [
                                 'codigo' => $equipo->codigo,
@@ -711,7 +747,7 @@ class EquipoResource extends Resource
                     ->modalDescription('¿Está seguro de generar códigos QR para los equipos seleccionados? Se generará un PDF descargable.')
                     ->modalSubmitActionLabel('Generar PDF')
                     ->deselectRecordsAfterCompletion(),
-              
+
             ])
             ->emptyStateHeading('No hay equipos registrados')
             ->emptyStateDescription('Comienza agregando el primer equipo al sistema.')
