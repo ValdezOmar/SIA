@@ -67,15 +67,18 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         FileUpload::make('foto')
                             ->label('')
                             ->image()
-                            ->directory('empleados')
                             ->disk('public')
+                            ->directory('empleados')
                             ->visibility('public')
-                            ->imageEditor()
-                            ->imageEditorMode(2)
+
+                            // UI solamente (NO toca el archivo)
                             ->openable()
                             ->downloadable()
-                            ->loadingIndicatorPosition('center')
+                            ->panelLayout('circle')
                             ->panelAspectRatio('1:1')
+                            ->alignCenter()
+
+                            // Control visual del preview
                             ->removeUploadedFileButtonPosition('upper-center')
                             ->uploadButtonPosition('right')
                             ->uploadProgressIndicatorPosition('right')
@@ -91,8 +94,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                 'class' => 'flex flex-col items-center' // Clases de Tailwind para respaldo
                             ])
                             ->imageCropAspectRatio('1:1')  // Relación de aspecto cuadrada
-                            ->default(fn($record) => $record?->foto)
-                            ->alignCenter()
+                            ->default(fn($record) => $record?->foto)                            
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
                                 $ci = $get('ci')
                                     ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci'))
