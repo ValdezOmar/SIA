@@ -67,18 +67,14 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         FileUpload::make('foto')
                             ->label('')
                             ->image()
-                            ->disk('public')
                             ->directory('empleados')
+                            ->disk('public')
                             ->visibility('public')
-
-                            // UI solamente (NO toca el archivo)
+                            ->imageEditor()
                             ->openable()
                             ->downloadable()
-                            ->panelLayout('circle')
+                            ->loadingIndicatorPosition('center')
                             ->panelAspectRatio('1:1')
-                            ->alignCenter()
-
-                            // Control visual del preview
                             ->removeUploadedFileButtonPosition('upper-center')
                             ->uploadButtonPosition('right')
                             ->uploadProgressIndicatorPosition('right')
@@ -94,14 +90,14 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                 'class' => 'flex flex-col items-center' // Clases de Tailwind para respaldo
                             ])
                             ->imageCropAspectRatio('1:1')  // Relación de aspecto cuadrada
-                            ->default(fn($record) => $record?->foto)                            
-                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
-                                $ci = $get('ci')
-                                    ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci'))
-                                    : 'default_' . uniqid();
-
-                                return $ci . '.jpg';
-                            })
+                            ->default(fn($record) => $record?->foto)
+                            ->alignCenter()
+                            ->getUploadedFileNameForStorageUsing(
+                                function (TemporaryUploadedFile $file, Get $get): string {
+                                    $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_' . uniqid();
+                                    return $ci . '.' . $file->getClientOriginalExtension();
+                                }
+                            )
                             ->placeholder(function ($get) {
                                 // Si no hay foto, mostrar iniciales con avatar por defecto
                                 $nombres = $get('nombres') ?? '';
@@ -112,12 +108,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                     'iniciales' => $iniciales ?: 'NA',
                                     'defaultImage' => asset('images/default-avatar.jpg')
                                 ]);
-                            })
-                            ->rules([
-                                'image',
-                                'mimes:jpg,jpeg,png',
-                                'max:5120', // 5MB
-                            ]),
+                            }),
 
                         Grid::make()
                             ->schema([
@@ -144,7 +135,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                     ->content(fn($get) => ' ' . $get('numero_corporativo'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
-
+                               
                                 Toggle::make('activo')
                                     ->label(fn($state) => $state ? 'Empleado Activo' : 'Empleado Inactivo')
                                     ->live()
@@ -233,7 +224,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                                 ->send();
                                         }),
                                 ])
-                                    ->columnSpanFull(),
+                                    ->columnSpanFull(), 
                             ])
                             ->columnSpan(['md' => 2, 'lg' => 1])
                             ->extraAttributes(['class' => 'flex flex-col justify-center']),
