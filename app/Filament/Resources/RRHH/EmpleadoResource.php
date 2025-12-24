@@ -66,40 +66,60 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->schema([
                         FileUpload::make('foto')
                             ->label('')
-                            ->image()
-                            ->directory('empleados')
+                            ->image() // Solo para previsualización, NO re-procesa la imagen
                             ->disk('public')
+                            ->directory('empleados')
                             ->visibility('public')
-                            ->imageEditor()
+
+                            // Evita errores de reemplazo
+                            ->deleteUploadedFileUsing(function ($state, $record) {
+                                // Elimina la foto anterior al reemplazarla
+                                if ($record && $record->foto) {
+                                    $path = storage_path('app/public/' . $record->foto);
+                                    if (file_exists($path)) {
+                                        unlink($path);
+                                    }
+                                }
+                                return true;
+                            })
+
                             ->openable()
                             ->downloadable()
                             ->loadingIndicatorPosition('center')
+                            ->panelLayout('circle')
                             ->panelAspectRatio('1:1')
                             ->removeUploadedFileButtonPosition('upper-center')
                             ->uploadButtonPosition('right')
                             ->uploadProgressIndicatorPosition('right')
-                            ->panelLayout('circle')    // Layout especial para avatares
-                            ->extraAttributes([
-                                'style' => '
-                                    width: 300px; 
-                                    height: 300px;
-                                    margin: 0 auto; /* Centrado horizontal */
-                                    display: flex; /* Para centrado vertical si es necesario */
-                                    justify-content: center;
-                                ',
-                                'class' => 'flex flex-col items-center' // Clases de Tailwind para respaldo
-                            ])
-                            ->imageCropAspectRatio('1:1')  // Relación de aspecto cuadrada
-                            ->default(fn($record) => $record?->foto)
                             ->alignCenter()
-                            ->getUploadedFileNameForStorageUsing(
-                                function (TemporaryUploadedFile $file, Get $get): string {
-                                    $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_' . uniqid();
-                                    return $ci . '.' . $file->getClientOriginalExtension();
-                                }
-                            )
+
+                            // Previsualización solo visual (CSS controla tamaño 300x300)
+                            ->extraAttributes([
+                                'class' => 'avatar-upload',
+                                'style' => 'width: 300px; height: 300px; margin: 0 auto; display: flex; justify-content: center;'
+                            ])
+
+                            // Validación segura
+                            ->rules([
+                                'image',
+                                'mimes:jpg,jpeg,png',
+                                'max:5120', // 5MB
+                            ])
+
+                            // Mantener la calidad original y nombre seguro
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
+                                $ci = $get('ci')
+                                    ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci'))
+                                    : 'default_' . uniqid();
+
+                                return $ci . '.' . $file->getClientOriginalExtension();
+                            })
+
+                            // Valor por defecto
+                            ->default(fn($record) => $record?->foto)
+
+                            // Placeholder si no hay imagen
                             ->placeholder(function ($get) {
-                                // Si no hay foto, mostrar iniciales con avatar por defecto
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
                                 $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
@@ -135,7 +155,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                     ->content(fn($get) => ' ' . $get('numero_corporativo'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
-                               
+
                                 Toggle::make('activo')
                                     ->label(fn($state) => $state ? 'Empleado Activo' : 'Empleado Inactivo')
                                     ->live()
@@ -224,7 +244,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                                 ->send();
                                         }),
                                 ])
-                                    ->columnSpanFull(), 
+                                    ->columnSpanFull(),
                             ])
                             ->columnSpan(['md' => 2, 'lg' => 1])
                             ->extraAttributes(['class' => 'flex flex-col justify-center']),
@@ -243,11 +263,20 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                     ->schema([
                                         TextInput::make('nombres')
                                             ->required()
-                                            ->maxLength(255),
+                                            ->maxLength(255)
+                                            ->afterStateUpdated(function (string $state, callable $set) {
+                                                // Convierte a minúscula y luego primera letra en mayúscula
+                                                $formatted = ucfirst(strtolower(trim($state)));
+                                                $set($formatted);
+                                            }),
 
                                         TextInput::make('apellidos')
                                             ->required()
-                                            ->maxLength(255),
+                                            ->maxLength(255)
+                                            ->afterStateUpdated(function (string $state, callable $set) {
+                                                $formatted = ucfirst(strtolower(trim($state)));
+                                                $set($formatted);
+                                            }),
 
                                         TextInput::make('ci')
                                             ->required()
