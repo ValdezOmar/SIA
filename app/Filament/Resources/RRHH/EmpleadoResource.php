@@ -72,7 +72,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             ->visibility('public')
 
                             // Evita errores de reemplazo
-                            ->afterStateUpdated(function ($state, $set, $record) {
+                            ->afterStateUpdated(function ($state, $set, $record, $component) {
                                 // Elimina la foto anterior si hay una y se sube un nuevo archivo
                                 if ($record && $record->foto && $state !== $record->foto) {
                                     $path = storage_path('app/public/' . $record->foto);
@@ -80,8 +80,8 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                         unlink($path);
                                     }
                                 }
-                                // Se guarda el nuevo estado normalmente
-                                $set($state);
+                                // Guardamos el nuevo estado correctamente
+                                $set($component->getName(), $state);
                             })
 
                             ->openable()
