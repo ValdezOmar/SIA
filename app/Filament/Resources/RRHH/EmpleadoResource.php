@@ -82,7 +82,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                 }
                                 // Se guarda el nuevo estado normalmente
                                 $set($state);
-                            })ug
+                            })
 
                             ->openable()
                             ->downloadable()
