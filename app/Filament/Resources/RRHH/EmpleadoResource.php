@@ -412,10 +412,12 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                 ImageColumn::make('foto')
                     ->label('')
                     ->circular()
-                    ->defaultImageUrl(function ($record) {
-                        // Mostrar la foto del empleado si existe, de lo contrario el avatar por defecto
-                        return $record->foto ? asset('storage/' . $record->foto) : asset('images/default-avatar.jpg');
-                    }),
+                    ->defaultImageUrl(
+                        fn($record) =>
+                        $record->foto
+                            ? asset('storage/' . $record->foto) . '?t=' . filemtime(storage_path('app/public/' . $record->foto))
+                            : asset('images/default-avatar.jpg')
+                    ),
 
                 TextColumn::make('nombre_completo')
                     ->label('Datos del Empleado')
