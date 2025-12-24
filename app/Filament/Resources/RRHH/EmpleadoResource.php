@@ -66,55 +66,67 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->schema([
                         FileUpload::make('foto')
                             ->label('')
-                            ->image() // Solo preview
+                            ->image() // Solo para previsualización, NO re-procesa la imagen
                             ->disk('public')
                             ->directory('empleados')
                             ->visibility('public')
+
+                            // Evita errores de reemplazo
+                            ->deleteUploadedFileBeforeStorage(function ($state, $record) {
+                                // Solo si hay un archivo antiguo y se sube uno nuevo
+                                if ($record && $record->foto && $state !== $record->foto) {
+                                    $path = storage_path('app/public/' . $record->foto);
+                                    if (file_exists($path)) {
+                                        unlink($path);
+                                    }
+                                }
+                            })
+
                             ->openable()
                             ->downloadable()
+                            ->loadingIndicatorPosition('center')
                             ->panelLayout('circle')
                             ->panelAspectRatio('1:1')
                             ->removeUploadedFileButtonPosition('upper-center')
                             ->uploadButtonPosition('right')
                             ->uploadProgressIndicatorPosition('right')
                             ->alignCenter()
+
+                            // Previsualización solo visual (CSS controla tamaño 300x300)
                             ->extraAttributes([
                                 'class' => 'avatar-upload',
                                 'style' => 'width: 300px; height: 300px; margin: 0 auto; display: flex; justify-content: center;'
                             ])
+
+                            // Validación segura
                             ->rules([
                                 'image',
                                 'mimes:jpg,jpeg,png',
-                                'max:5120',
+                                'max:5120', // 5MB
                             ])
+
+                            // Mantener la calidad original y nombre seguro
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
                                 $ci = $get('ci')
                                     ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci'))
                                     : 'default_' . uniqid();
+
                                 return $ci . '.' . $file->getClientOriginalExtension();
                             })
+
+                            // Valor por defecto
                             ->default(fn($record) => $record?->foto)
+
+                            // Placeholder si no hay imagen
                             ->placeholder(function ($get) {
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
                                 $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
+
                                 return view('filament.forms.components.avatar-placeholder', [
                                     'iniciales' => $iniciales ?: 'NA',
                                     'defaultImage' => asset('images/default-avatar.jpg')
                                 ]);
-                            })
-
-                            // <-- Hook para eliminar la foto anterior si se sube una nueva
-                            ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->getLivewire()->hook('beforeSave', function ($record) use ($component) {
-                                    $newFile = $component->getState();
-                                    if ($newFile && $record->foto && $record->foto !== $newFile) {
-                                        $path = storage_path('app/public/' . $record->foto);
-                                        if (file_exists($path)) {
-                                            unlink($path);
-                                        }
-                                    }
-                                });
                             }),
 
                         Grid::make()
