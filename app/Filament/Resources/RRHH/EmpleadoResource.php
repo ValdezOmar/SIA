@@ -264,17 +264,17 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                         TextInput::make('nombres')
                                             ->required()
                                             ->maxLength(255)
-                                            ->afterStateUpdated(function (string $state, callable $set) {
-                                                // Convierte a minúscula y luego primera letra en mayúscula
-                                                $formatted = ucfirst(strtolower(trim($state)));
-                                                $set($formatted);
+                                            ->afterStateUpdated(function ($state, Set $set) {
+                                                // Convierte a minúsculas y luego primera letra de cada palabra en mayúscula
+                                                $formatted = mb_convert_case(trim($state), MB_CASE_TITLE, "UTF-8");
+                                                $set($formatted); // Filament Set::__invoke
                                             }),
 
                                         TextInput::make('apellidos')
                                             ->required()
                                             ->maxLength(255)
-                                            ->afterStateUpdated(function (string $state, callable $set) {
-                                                $formatted = ucfirst(strtolower(trim($state)));
+                                            ->afterStateUpdated(function ($state, Set $set) {
+                                                $formatted = mb_convert_case(trim($state), MB_CASE_TITLE, "UTF-8");
                                                 $set($formatted);
                                             }),
 
