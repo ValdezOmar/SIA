@@ -66,10 +66,11 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->schema([
                         FileUpload::make('foto')
                             ->label('')
-                            ->image() // Solo para previsualización, NO re-procesa la imagen
+                            ->image() // Solo para previsualización
                             ->disk('public')
                             ->directory('empleados')
-                            ->visibility('public')                          
+                            ->visibility('public')
+
                             ->openable()
                             ->downloadable()
                             ->loadingIndicatorPosition('center')
@@ -93,7 +94,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                 'max:5120', // 5MB
                             ])
 
-                            // Mantener la calidad original y nombre seguro
+                            // Nombre de archivo seguro
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
                                 $ci = $get('ci')
                                     ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci'))
@@ -115,8 +116,30 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                     'iniciales' => $iniciales ?: 'NA',
                                     'defaultImage' => asset('images/default-avatar.jpg')
                                 ]);
-                            }),
+                            })
 
+                            // ELIMINAR FOTO ANTIGUA Y REEMPLAZAR AL GUARDAR
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                // Esto asegura que el componente tenga acceso al estado inicial
+                                $component->reactiveState['original'] = $record?->foto;
+                            })
+                            ->afterStateUpdated(function ($state, $set, $record, $component) {
+                                // Solo si hay un archivo previo y se sube uno nuevo
+                                $oldFile = $component->reactiveState['original'] ?? null;
+
+                                if ($oldFile && $state && $state !== $oldFile) {
+                                    $path = storage_path('app/public/' . $oldFile);
+                                    if (file_exists($path)) {
+                                        unlink($path); // elimina la foto antigua
+                                    }
+                                }
+
+                                // Guarda el nuevo estado correctamente
+                                $set($component->getName(), $state);
+
+                                // Actualiza el estado original para la próxima edición
+                                $component->reactiveState['original'] = $state;
+                            }),
                         Grid::make()
                             ->schema([
                                 Placeholder::make('nombre_completo')
