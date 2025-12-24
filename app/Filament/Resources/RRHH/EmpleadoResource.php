@@ -43,6 +43,7 @@ use Filament\Forms\Components\Textarea;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Actions\Action;
+use Illuminate\Support\Facades\Storage;
 
 class EmpleadoResource extends Resource implements HasShieldPermissions
 {
@@ -118,16 +119,16 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
 
                                 // Si hay un archivo previo y se sube uno nuevo
                                 if ($oldFile && $state && $state !== $oldFile) {
-                                    // Maneja string o array (por si alguna configuración devuelve array)
                                     $files = is_array($oldFile) ? $oldFile : [$oldFile];
                                     foreach ($files as $file) {
                                         Storage::disk('public')->delete($file);
                                     }
                                 }
 
-                                $set($state); // guarda el nuevo archivo
+                                // Guardar el nuevo archivo correctamente
+                                $set($state, true); // <-- segundo argumento obligatorio
                             }),
-                            
+
                         Grid::make()
                             ->schema([
                                 Placeholder::make('nombre_completo')
