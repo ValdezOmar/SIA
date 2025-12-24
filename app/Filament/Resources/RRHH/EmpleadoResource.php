@@ -112,21 +112,28 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             })
 
                             // Eliminar foto anterior al actualizar
-                            ->afterStateUpdated(function ($state, $set, $record) {
-                                if (!$record) return;
-
-                                $oldFile = $record->foto;
-
-                                // Si hay un archivo previo y se sube uno nuevo
-                                if ($oldFile && $state && $state !== $oldFile) {
-                                    $files = is_array($oldFile) ? $oldFile : [$oldFile];
-                                    foreach ($files as $file) {
-                                        Storage::disk('public')->delete($file);
-                                    }
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
+                                $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_' . uniqid();
+                                return $ci . '.' . $file->getClientOriginalExtension();
+                            })
+                            ->saveUploadedFileUsing(function (
+                                TemporaryUploadedFile $file,
+                                $state,
+                                Get $get,
+                                Set $set,
+                                $record,
+                            ) {
+                                // Borrar archivo anterior si existe
+                                if ($record && $record->foto && Storage::disk('public')->exists($record->foto)) {
+                                    Storage::disk('public')->delete($record->foto);
                                 }
 
-                                // Guardar el nuevo archivo correctamente
-                                $set($state, true); // <-- segundo argumento obligatorio
+                                // Guardar nuevo archivo (ya copiado)
+                                return $file->storePubliclyAs(
+                                    'empleados',
+                                    $get('ci') . '.' . $file->getClientOriginalExtension(),
+                                    'public'
+                                );
                             }),
 
                         Grid::make()
