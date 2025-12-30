@@ -8,6 +8,8 @@ use App\Models\Sistema\Sucursal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 class Equipo extends Model
 {
@@ -54,35 +56,54 @@ class Equipo extends Model
 
     protected static function booted()
     {
-        static::creating(function ($equipo) {
-            // Crear una clave única para esta combinación marca/empresa
-            $lockKey = "equipo_counter:{$equipo->marca}:{$equipo->empresa_id}";
+        static::creating(function (Equipo $equipo) {
 
-            // Usar un lock para evitar condiciones de carrera
-            $lock = Cache::lock($lockKey, 10); // 10 segundos de timeout
-
-            if ($lock->get()) {
+            for ($intentos = 0; $intentos < 3; $intentos=+1) {
                 try {
-                    // Tomar primeras 3 letras de la marca
-                    $marca = strtoupper(substr($equipo->marca ?? 'GEN', 0, 3));
 
-                    // Tomar primeras 3 letras de la empresa
-                    $empresa = strtoupper(substr($equipo->empresa?->razon_social ?? 'GEN', 0, 3));
+                    DB::transaction(function () use ($equipo) {
 
-                    // Contar equipos existentes
-                    $contador = self::where('marca', $equipo->marca)
-                        ->whereHas('empresa', fn($q) => $q->where('razon_social', $equipo->empresa?->razon_social ?? 'GEN'))
-                        ->count() + 1;
+                        $marca = strtoupper(substr($equipo->marca ?? 'GEN', 0, 3));
+                        $empresa = strtoupper(
+                            substr($equipo->empresa?->razon_social ?? 'GEN', 0, 3)
+                        );
 
-                    // Secuencia con 3 dígitos
-                    $secuencia = str_pad($contador, 3, '0', STR_PAD_LEFT);
+                        $ultimoCodigo = DB::table('hd_equipos')
+                            ->where('marca', $equipo->marca)
+                            ->where('empresa_id', $equipo->empresa_id)
+                            ->where('codigo', 'like', "{$marca}-{$empresa}-%")
+                            ->lockForUpdate()
+                            ->orderByDesc('id')
+                            ->value('codigo');
 
-                    // Generar código final
-                    $equipo->codigo = "{$marca}-{$empresa}-{$secuencia}";
-                } finally {
-                    $lock->release();
+                        $siguiente = $ultimoCodigo
+                            ? ((int) substr($ultimoCodigo, -3)) + 1
+                            : 1;
+
+                        $equipo->codigo = sprintf(
+                            '%s-%s-%03d',
+                            $marca,
+                            $empresa,
+                            $siguiente
+                        );
+                    });
+
+                    // Si llega aquí, se generó correctamente
+                    return;
+                } catch (QueryException $e) {
+
+                    // Duplicate entry (MySQL / MariaDB)
+                    if (($e->errorInfo[1] ?? null) !== 1062) {
+                        throw $e;
+                    }
+
+                    usleep(100000); // 100 ms
                 }
             }
+
+            throw new \RuntimeException(
+                'No se pudo generar un código único para el equipo después de varios intentos.'
+            );
         });
     }
     // Relaciones con modelos
