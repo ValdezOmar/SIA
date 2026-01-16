@@ -65,24 +65,32 @@ class Equipo extends Model
                     substr($equipo->empresa?->razon_social ?? 'GEN', 0, 3)
                 );
 
+                // Obtener el mayor correlativo usado
                 $ultimoCodigo = DB::table('hd_equipos')
                     ->where('marca', $equipo->marca)
                     ->where('empresa_id', $equipo->empresa_id)
                     ->where('codigo', 'like', "{$marca}-{$empresa}-%")
                     ->lockForUpdate()
-                    ->orderByDesc('id')
+                    ->orderByDesc('codigo')
                     ->value('codigo');
 
-                $siguiente = $ultimoCodigo
+                $contador = $ultimoCodigo
                     ? ((int) substr($ultimoCodigo, -3)) + 1
                     : 1;
 
-                $equipo->codigo = sprintf(
-                    '%s-%s-%03d',
-                    $marca,
-                    $empresa,
-                    $siguiente
-                );
+                // Buscar el siguiente código disponible
+                do {
+                    $codigo = sprintf('%s-%s-%03d', $marca, $empresa, $contador);
+
+                    $existe = DB::table('hd_equipos')
+                        ->where('codigo', $codigo)
+                        ->exists();
+
+                    $contador++;
+                } while ($existe);
+
+                // Asignar solo cuando esté libre
+                $equipo->codigo = $codigo;
             });
         });
     }
