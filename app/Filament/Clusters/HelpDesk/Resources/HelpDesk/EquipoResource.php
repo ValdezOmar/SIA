@@ -368,6 +368,7 @@ class EquipoResource extends Resource
 
                                 FileUpload::make('doc_adjunto')
                                     ->label('Documento Adjunto')
+                                    ->multiple()
                                     ->directory('garantia_equipos')
                                     ->disk('public')
                                     ->acceptedFileTypes(['application/pdf'])
@@ -632,14 +633,15 @@ class EquipoResource extends Resource
                     )
                     ->toggleable(isToggledHiddenByDefault: false),
 
-                IconColumn::make('doc_adjunto')
-                    ->label('PDF')
-                    ->icon(fn($state): string => $state ? 'heroicon-o-document-check' : 'heroicon-o-x-circle')
-                    ->color(fn($state): string => $state ? 'primary' : 'danger')
-                    ->tooltip(fn($state): string => $state ? 'Descargar PDF' : 'Sin documento')
-                    ->url(fn($state) => $state ? Storage::url($state) : null)
-                    ->openUrlInNewTab()
-                    ->disabled(fn($state): bool => !$state),
+                TextColumn::make('doc_adjunto')
+                    ->label('Docs')
+                    ->badge()
+                    ->color('primary')
+                    ->formatStateUsing(
+                        fn($state) =>
+                        is_array($state) ? count($state) . ' PDF(s)' : '0'
+                    )
+                    ->tooltip('Ver documentos adjuntos'),
 
                 IconColumn::make('activo')
                     ->label('Estado')
@@ -649,15 +651,16 @@ class EquipoResource extends Resource
                     ->trueColor('success')
                     ->falseColor('danger')
                     ->sortable(),
-                
+
                 TextColumn::make('created_at')
-                ->label('Fecha de creación')
-                ->dateTime('d/m/Y H:i')
-                ->sortable()
-                ->toggleable(isToggledHiddenByDefault: true) // Oculto por defecto
-                ->description(fn(Equipo $record): string => 
-                    $record->created_at->diffForHumans()
-                ),
+                    ->label('Fecha de creación')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true) // Oculto por defecto
+                    ->description(
+                        fn(Equipo $record): string =>
+                        $record->created_at->diffForHumans()
+                    ),
 
             ])
             ->filters([
@@ -769,7 +772,7 @@ class EquipoResource extends Resource
             ->paginated(true)
             ->striped()
             ->defaultPaginationPageOption(50)
-            ->paginationPageOptions([10, 25, 50, 100, 'all']) 
+            ->paginationPageOptions([10, 25, 50, 100, 'all'])
             ->defaultSort('created_at', 'desc');
     }
 

@@ -30,7 +30,7 @@ return new class extends Migration
             $table->date('garantia_desde')->nullable();
             $table->date('garantia_hasta')->nullable();
             $table->string('foto_equipo')->nullable();
-            $table->string('doc_adjunto')->nullable();
+            $table->json('doc_adjunto')->nullable();
 
             //Datos adicionales
             $table->foreignId('empresa_id')->nullable()->constrained('conf_empresas')->nullOnDelete();

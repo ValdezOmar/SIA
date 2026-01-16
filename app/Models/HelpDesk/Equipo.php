@@ -46,6 +46,7 @@ class Equipo extends Model
     protected $casts = [
         'freq_mantenimiento' => 'array',
         'ubicacion_gps' => 'array',
+        'doc_adjunto' => 'array',
         'activo' => 'boolean',
         'fecha_entrega' => 'date',
         'fecha_instalacion' => 'date',
