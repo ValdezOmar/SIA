@@ -64,7 +64,7 @@ class HistorialLaboralRelationManager extends RelationManager
                             }
                         }),
 
-                    Select::make('sucursal')
+                    Select::make('sucursal_id')
                         ->label('Sucursal')
                         ->prefixIcon('heroicon-o-map-pin')
                         ->required()
@@ -103,7 +103,7 @@ class HistorialLaboralRelationManager extends RelationManager
 
                     Select::make('tipo_contrato')
                         ->label('Tipo de Contrato')
-                        //->required()
+                        ->required()
                         ->prefixIcon('heroicon-o-document-text')
                         ->options([
                             'Contrato indefinido' => 'Contrato indefinido',
@@ -158,18 +158,18 @@ class HistorialLaboralRelationManager extends RelationManager
 
                     DatePicker::make('fecha_inicio')
                         ->label('Inicio de contrato')
-                        ->prefixIcon('heroicon-o-calendar'),
-                    //->required(),
+                        ->prefixIcon('heroicon-o-calendar')
+                        ->required(),
 
                     DatePicker::make('fecha_fin')
                         ->label('Fin de contrato')
-                        //->required()
+                        ->required()
                         ->prefixIcon('heroicon-o-calendar-days')
                         ->visible(fn(Get $get) => $get('tipo_contrato') !== 'Contrato indefinido'),
 
                     TextInput::make('salario')
                         ->label('Salario (Bs)')
-                        //->required()
+                        ->required()
                         ->numeric()
                         ->prefix('Bs')
                         ->step(0.01)
