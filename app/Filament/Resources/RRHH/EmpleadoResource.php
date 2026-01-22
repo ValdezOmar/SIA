@@ -445,7 +445,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->color('primary')
                     ->description(
                         fn(Empleado $record) =>
-                        $record->historialActivo?->sucursal?->descripcion
+                        $record->historialActivo?->sucursal?->nombre
                             ?? 'Sin sucursal'
                     ),
 
