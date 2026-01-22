@@ -434,7 +434,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             <small>{$record->apellidos}<br>CI: {$record->ci}</small>
                         </div>
                     ")
-                    ->searchable(['nombres', 'apellidos', 'ci']),                           
+                    ->searchable(['nombres', 'apellidos', 'ci']),
 
                 TextColumn::make('historialActivo.empresa.razon_social')
                     ->label('Empresa')
@@ -442,19 +442,26 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->color('primary')
                     ->description(
                         fn(Empleado $record) =>
-                        $record->historialActivo?->sucursal?->nombre
+                        $record->historialActivo?->sucursal?->descripcion
                             ?? 'Sin sucursal'
                     )
-                    ->searchable([
-                        'historialActivo.empresa.razon_social',
-                        'historialActivo.sucursal.descripcion',
-                    ])
-                    ->sortable(),                
-                    
+                    ->sortable()
+                    ->searchable(
+                        query: function (Builder $query, string $search): Builder {
+                            return $query->whereHas('historialActivo', function ($q) use ($search) {
+                                $q->whereHas('empresa', function ($q2) use ($search) {
+                                    $q2->where('razon_social', 'like', "%{$search}%");
+                                })->orWhereHas('sucursal', function ($q2) use ($search) {
+                                    $q2->where('descripcion', 'like', "%{$search}%");
+                                });
+                            });
+                        }
+                    ),
+
                 TextColumn::make('historialActivo.tipo_contrato')
                     ->label('Contrato')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn(?string $state): string => match ($state) {
                         'Contrato plazo fijo'      => 'info',
                         'Contrato indefinido'      => 'success',
                         'Contrato por servicios'   => 'warning',
@@ -470,10 +477,18 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         $record->historialActivo?->cargo?->nombre
                             ?? 'Sin cargo'
                     )
-                    ->searchable([
-                        'historialActivo.tipo_contrato',
-                        'historialActivo.cargo.descripcion',
-                    ]),
+                    ->sortable()
+                    ->searchable(
+                        query: function (Builder $query, string $search): Builder {
+                            return $query->whereHas('historialActivo', function (Builder $q) use ($search) {
+                                $q->where('tipo_contrato', 'like', "%{$search}%")
+                                    ->orWhereHas('cargo', function (Builder $q2) use ($search) {
+                                        $q2->where('descripcion', 'like', "%{$search}%")
+                                            ->orWhere('nombre', 'like', "%{$search}%");
+                                    });
+                            });
+                        }
+                    ),
 
                 TextColumn::make('historialActivo.fecha_inicio')
                     ->label('Ingreso')
@@ -530,37 +545,59 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             ->success()
                             ->send();
                     }),
+
+                TextColumn::make('created_at')
+                    ->label('Creación')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
             ])
 
             //Filtros de Busqueda
             ->filters([
-                SelectFilter::make('empresa')
+                // Filtro por empresa del historial laboral activo
+                SelectFilter::make('empresa_id')
+                    ->label('Empresa')
                     ->options(function () {
                         return Empresa::where('empresa_activo', true)
                             ->pluck('razon_social', 'id')
                             ->toArray();
                     })
-                    ->searchable()
-                    ->label('Empresa'),
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('historialActivo', function (Builder $q) use ($data) {
+                                $q->where('empresa_id', $data['value']);
+                            });
+                        }
+                    }),
 
+                // Filtro por tipo de contrato del historial laboral activo
                 SelectFilter::make('estado_contrato')
+                    ->label('Tipo de Contrato')
                     ->options([
-                        'Contrato plazo fijo' => 'Contrato plazo fijo',
-                        'Contrato indefinido' => 'Contrato indefinido',
-                        'Contrato por servicios' => 'Contrato por servicios',
-                        'Contrato por obra' => 'Contrato por obra',
-                        'Planta' => 'Planta',
-                        'Pasante' => 'Pasante',
-                        'Periodo de prueba' => 'Periodo de prueba',
-                        'Otro' => 'Otro tipo',
+                        'Contrato plazo fijo'      => 'Contrato plazo fijo',
+                        'Contrato indefinido'      => 'Contrato indefinido',
+                        'Contrato por servicios'   => 'Contrato por servicios',
+                        'Contrato por obra'        => 'Contrato por obra',
+                        'Planta'                   => 'Planta',
+                        'Pasante'                  => 'Pasante',
+                        'Periodo de prueba'        => 'Periodo de prueba',
+                        'Otro'                     => 'Otro tipo',
                     ])
-                    ->label('Tipo de Contrato'),
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('historialActivo', function (Builder $q) use ($data) {
+                                $q->where('tipo_contrato', $data['value']);
+                            });
+                        }
+                    }),
 
-                TernaryFilter::make('rh_empleados.activo')
+                // Filtro por estado activo del empleado (campo directo)
+                TernaryFilter::make('activo')
                     ->label('Estado Activo')
                     ->default(true),
             ])
-
+            
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
@@ -576,9 +613,10 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
         return parent::getEloquentQuery()
             ->with([
                 'historialActivo.cargo',
-                'historialActivo.sucursal',
                 'historialActivo.empresa',
-            ]);
+                'historialActivo.sucursal',
+            ])
+            ->orderByDesc('created_at');
     }
 
     public static function getTempEmpleadoData(): array
