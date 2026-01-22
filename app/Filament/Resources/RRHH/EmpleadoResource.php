@@ -44,6 +44,7 @@ use Filament\Forms\Components\Textarea;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Tables\Columns\IconColumn;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -446,7 +447,8 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         fn(Empleado $record) =>
                         $record->historialActivo?->sucursal?->descripcion
                             ?? 'Sin sucursal'
-                    ),
+                    )
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('historialActivo.tipo_contrato')
                     ->label('Contrato')
@@ -466,14 +468,16 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         fn(Empleado $record) =>
                         $record->historialActivo?->cargo?->nombre
                             ?? 'Sin cargo'
-                    ),
+                    )
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('historialActivo.fecha_inicio')
                     ->label('Ingreso')
-                    ->date('d/m/Y'),
+                    ->date('d/m/Y')
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('historialActivo.fecha_fin')
-                    ->label('Final Contrato')                    
+                    ->label('Final Contrato')
                     ->badge()
                     // Fuerza un valor cuando viene null desde BD
                     ->default('Indefinido')
@@ -525,7 +529,8 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             $diasRestantes > 15 => 'success',
                             default              => 'gray',
                         };
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('historialActivo.salario')
                     ->label('Salario')
@@ -554,7 +559,34 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->openUrlInNewTab()
                     ->getStateUsing(fn($record) => isset($record->coordenadas['lat'], $record->coordenadas['lng'])
                         ? '🗺️ Ver Croquis'
-                        : '❌ Sin Croquis'),
+                        : '❌ Sin Croquis')
+                    ->toggleable(isToggledHiddenByDefault: false),
+                        
+                IconColumn::make('historialActivo.documento')
+                    ->label('Documento')
+                    ->getStateUsing(
+                        fn($record) =>
+                        filled($record->historialActivo?->documento)
+                    )
+                    ->icon(
+                        fn(bool $state) =>
+                        $state
+                            ? 'heroicon-o-document-text'
+                            : 'heroicon-o-x-circle'
+                    )
+                    ->color(
+                        fn(bool $state) =>
+                        $state
+                            ? 'success'   // verde cuando tiene archivo
+                            : 'gray'      // gris cuando no tiene
+                    )
+                    ->tooltip(
+                        fn(bool $state) =>
+                        $state
+                            ? 'Documento adjunto'
+                            : 'Sin documento'
+                    )
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 // ToggleColumn::make('activo')
                 //     ->label('Estado')
