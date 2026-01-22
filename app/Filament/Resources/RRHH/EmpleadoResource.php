@@ -447,8 +447,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         fn(Empleado $record) =>
                         $record->historialActivo?->sucursal?->descripcion
                             ?? 'Sin sucursal'
-                    )
-                    ->toggleable(isToggledHiddenByDefault: false),
+                    ),
 
                 TextColumn::make('historialActivo.tipo_contrato')
                     ->label('Contrato')
@@ -468,8 +467,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         fn(Empleado $record) =>
                         $record->historialActivo?->cargo?->nombre
                             ?? 'Sin cargo'
-                    )
-                    ->toggleable(isToggledHiddenByDefault: false),
+                    ),
 
                 TextColumn::make('historialActivo.fecha_inicio')
                     ->label('Ingreso')
@@ -529,8 +527,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             $diasRestantes > 15 => 'success',
                             default              => 'gray',
                         };
-                    })
-                    ->toggleable(isToggledHiddenByDefault: false),
+                    }),
 
                 TextColumn::make('historialActivo.salario')
                     ->label('Salario')
