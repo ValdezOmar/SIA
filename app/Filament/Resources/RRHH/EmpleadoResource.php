@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Filament\Notifications\Notification;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Carbon\Carbon;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Repeater;
 use Filament\Tables\Filters\SelectFilter;
@@ -392,9 +393,9 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
 
         $baseQuery = Empleado::query()
             ->with(['empresa', 'sucursal']);
-            // ->orderBy('rh_empleados.created_at', 'desc')
-            // ->orderBy('rh_empleados.apellidos')
-            // ->orderBy('rh_empleados.nombres');
+        // ->orderBy('rh_empleados.created_at', 'desc')
+        // ->orderBy('rh_empleados.apellidos')
+        // ->orderBy('rh_empleados.nombres');
         // Verificar si el usuario tiene el permiso específico
         if ($user->can('ver_empleados_sucursal_r::r::h::h::empleado')) {
             if (!$user->can('ver_empleados_todos_r::r::h::h::empleado')) {
@@ -446,8 +447,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         $record->historialActivo?->sucursal?->descripcion
                             ?? 'Sin sucursal'
                     )
-                    ->sortable()
-                    ,
+                    ->sortable(),
 
                 TextColumn::make('historialActivo.tipo_contrato')
                     ->label('Contrato')
@@ -468,8 +468,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         $record->historialActivo?->cargo?->nombre
                             ?? 'Sin cargo'
                     )
-                    ->sortable()
-                   ,
+                    ->sortable(),
 
                 TextColumn::make('historialActivo.fecha_inicio')
                     ->label('Ingreso')
@@ -478,8 +477,59 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
 
                 TextColumn::make('historialActivo.fecha_fin')
                     ->label('Final Contrato')
-                    ->date('d/m/Y')
-                    ->sortable(),
+                    ->sortable()
+                    ->badge()
+
+                    // Fuerza un valor cuando viene null desde BD
+                    ->default('Indefinido')
+
+                    ->getStateUsing(
+                        fn($record) =>
+                        $record->historialActivo?->fecha_fin
+                    )
+
+                    ->formatStateUsing(function ($state, $record) {
+
+                        // Indefinido
+                        if ($state === 'Indefinido') {
+                            return 'Indefinido';
+                        }
+
+                        $fechaFin = Carbon::parse($state);
+                        $fechaFormateada = $fechaFin->format('d/m/Y');
+
+                        if (!$record->activo) {
+                            return $fechaFormateada;
+                        }
+
+                        $diasRestantes = Carbon::today()->diffInDays($fechaFin, false);
+
+                        return match (true) {
+                            $diasRestantes < 0   => "{$fechaFormateada} (Vencido)",
+                            $diasRestantes <= 15 => "{$fechaFormateada} (Faltan {$diasRestantes} días)",
+                            default              => $fechaFormateada,
+                        };
+                    })
+
+                    ->color(function ($state, $record) {
+
+                        if ($state === 'Indefinido') {
+                            return 'primary';
+                        }
+
+                        if (!$record->activo) {
+                            return 'gray';
+                        }
+
+                        $fechaFin = Carbon::parse($state);
+                        $diasRestantes = Carbon::today()->diffInDays($fechaFin, false);
+
+                        return match (true) {
+                            $diasRestantes < 0   => 'danger',
+                            $diasRestantes <= 15 => 'warning',
+                            default              => 'gray',
+                        };
+                    }),
 
                 TextColumn::make('historialActivo.salario')
                     ->label('Salario')
@@ -597,7 +647,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                 'historialActivo.empresa',
                 'historialActivo.sucursal',
             ]);
-            //->orderByDesc('created_at');
+        //->orderByDesc('created_at');
     }
 
     public static function getTempEmpleadoData(): array

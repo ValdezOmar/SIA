@@ -274,44 +274,58 @@ class HistorialLaboralRelationManager extends RelationManager
                     ->date('d/m/Y'),
 
                 TextColumn::make('fecha_fin')
-                    ->label('Fin contrato')
-                    ->formatStateUsing(function ($state, $record) {
-                        if (!$state) {
-                            return '-';
-                        }
-
-                        $fechaFin = Carbon::parse($state)->format('d/m/Y');
-
-                        // Si no está activo, solo mostramos la fecha en gris sin cálculo
-                        if (!$record->activo) {
-                            return $fechaFin;
-                        }
-
-                        $hoy = Carbon::today();
-                        $diasRestantes = $hoy->diffInDays(Carbon::parse($state), false);
-
-                        if ($diasRestantes < 0) {
-                            return "{$fechaFin} (Vencido)";
-                        } elseif ($diasRestantes <= 15) {
-                            return "{$fechaFin} (Faltan {$diasRestantes} días)";
-                        }
-
-                        return $fechaFin;
-                    })
+                    ->label('Final Contrato')
+                    ->sortable()
                     ->badge()
-                    ->color(function ($state, $record) {
-                        if (!$state || !$record->activo) {
-                            return 'gray'; // siempre gris si no está activo
+
+                    // Fuerza un valor cuando viene null desde BD
+                    ->default('Indefinido')
+
+                    ->getStateUsing(
+                        fn($record) =>
+                        $record->historialActivo?->fecha_fin
+                    )
+
+                    ->formatStateUsing(function ($state, $record) {
+
+                        // Indefinido
+                        if ($state === 'Indefinido') {
+                            return 'Indefinido';
                         }
 
                         $fechaFin = Carbon::parse($state);
-                        $hoy = Carbon::today();
-                        $diasRestantes = $hoy->diffInDays($fechaFin, false);
+                        $fechaFormateada = $fechaFin->format('d/m/Y');
+
+                        if (!$record->activo) {
+                            return $fechaFormateada;
+                        }
+
+                        $diasRestantes = Carbon::today()->diffInDays($fechaFin, false);
 
                         return match (true) {
-                            $diasRestantes < 0 => 'danger',
+                            $diasRestantes < 0   => "{$fechaFormateada} (Vencido)",
+                            $diasRestantes <= 15 => "{$fechaFormateada} (Faltan {$diasRestantes} días)",
+                            default              => $fechaFormateada,
+                        };
+                    })
+
+                    ->color(function ($state, $record) {
+
+                        if ($state === 'Indefinido') {
+                            return 'primary';
+                        }
+
+                        if (!$record->activo) {
+                            return 'gray';
+                        }
+
+                        $fechaFin = Carbon::parse($state);
+                        $diasRestantes = Carbon::today()->diffInDays($fechaFin, false);
+
+                        return match (true) {
+                            $diasRestantes < 0   => 'danger',
                             $diasRestantes <= 15 => 'warning',
-                            default => 'gray',
+                            default              => 'gray',
                         };
                     }),
 
