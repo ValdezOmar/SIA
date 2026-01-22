@@ -275,7 +275,7 @@ class HistorialLaboralRelationManager extends RelationManager
 
                 TextColumn::make('fecha_fin')
                     ->label('Final Contrato')
-                    ->sortable()
+                    //->sortable()
                     ->badge()
 
                     // Fuerza un valor cuando viene null desde BD
@@ -325,6 +325,7 @@ class HistorialLaboralRelationManager extends RelationManager
                         return match (true) {
                             $diasRestantes < 0   => 'danger',
                             $diasRestantes <= 15 => 'warning',
+                             $diasRestantes > 15 => 'success',
                             default              => 'gray',
                         };
                     }),

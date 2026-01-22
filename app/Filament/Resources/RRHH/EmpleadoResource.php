@@ -446,8 +446,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         fn(Empleado $record) =>
                         $record->historialActivo?->sucursal?->descripcion
                             ?? 'Sin sucursal'
-                    )
-                    ->sortable(),
+                    ),
 
                 TextColumn::make('historialActivo.tipo_contrato')
                     ->label('Contrato')
@@ -467,19 +466,15 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         fn(Empleado $record) =>
                         $record->historialActivo?->cargo?->nombre
                             ?? 'Sin cargo'
-                    )
-                    ->sortable(),
+                    ),
 
                 TextColumn::make('historialActivo.fecha_inicio')
                     ->label('Ingreso')
-                    ->date('d/m/Y')
-                    ->sortable(),
+                    ->date('d/m/Y'),
 
                 TextColumn::make('historialActivo.fecha_fin')
-                    ->label('Final Contrato')
-                    ->sortable()
+                    ->label('Final Contrato')                    
                     ->badge()
-
                     // Fuerza un valor cuando viene null desde BD
                     ->default('Indefinido')
 
@@ -527,14 +522,14 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         return match (true) {
                             $diasRestantes < 0   => 'danger',
                             $diasRestantes <= 15 => 'warning',
+                            $diasRestantes > 15 => 'success',
                             default              => 'gray',
                         };
                     }),
 
                 TextColumn::make('historialActivo.salario')
                     ->label('Salario')
-                    ->money('BOB')
-                    ->sortable(),
+                    ->money('BOB'),
 
                 // TextColumn::make('fecha_ingreso')
                 //     ->label('Fechas')
