@@ -44,12 +44,12 @@ use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Actions\Action;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Builder;
 
 class EmpleadoResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Empleado::class;
     protected static array $tempEmpleadoData = [];
-
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $modelLabel = 'Empleados'; //Seccion para configurar el nombre en Filament-Shield
     protected static ?string $pluralModelLabel = 'Listado de Empleados';
@@ -434,51 +434,76 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             <small>{$record->apellidos}<br>CI: {$record->ci}</small>
                         </div>
                     ")
-                    ->searchable(['nombres', 'apellidos', 'ci']),
+                    ->searchable(['nombres', 'apellidos', 'ci']),                           
 
-                TextColumn::make('empresa')
-                    ->searchable()
-                    ->sortable()
-                    ->description((fn(Empleado $record) => $record->sucursal))
-                    ->searchable(['empresa', 'sucursal']),
-
-
-                TextColumn::make('estado_contrato')
+                TextColumn::make('historialActivo.empresa.razon_social')
+                    ->label('Empresa')
+                    ->badge()
+                    ->color('primary')
+                    ->description(
+                        fn(Empleado $record) =>
+                        $record->historialActivo?->sucursal?->nombre
+                            ?? 'Sin sucursal'
+                    )
+                    ->searchable([
+                        'historialActivo.empresa.razon_social',
+                        'historialActivo.sucursal.descripcion',
+                    ])
+                    ->sortable(),                
+                    
+                TextColumn::make('historialActivo.tipo_contrato')
                     ->label('Contrato')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
-                        'Contrato plazo fijo' => 'info',
-                        'Contrato indefinido' => 'success',
-                        'Contrato por servicios' => 'warning',
-                        'Contrato por obra' => 'warning',
-                        'Planta' => 'success',
-                        'Pasante' => 'gray',
-                        'Periodo de prueba' => 'danger',
-                        'Otro' => 'danger',
-                        default => 'gray',
+                        'Contrato plazo fijo'      => 'info',
+                        'Contrato indefinido'      => 'success',
+                        'Contrato por servicios'   => 'warning',
+                        'Contrato por obra'        => 'warning',
+                        'Planta'                   => 'success',
+                        'Pasante'                  => 'gray',
+                        'Periodo de prueba'        => 'danger',
+                        'Otro'                     => 'danger',
+                        default                    => 'gray',
                     })
-                    ->description((fn(Empleado $record) => $record->cargo))
-                    ->searchable(['estado_contrato', 'cargo']),
+                    ->description(
+                        fn(Empleado $record) =>
+                        $record->historialActivo?->cargo?->nombre
+                            ?? 'Sin cargo'
+                    )
+                    ->searchable([
+                        'historialActivo.tipo_contrato',
+                        'historialActivo.cargo.descripcion',
+                    ]),
 
-                TextColumn::make('fecha_ingreso')
-                    ->label('Fechas')
-                    ->formatStateUsing(function ($record) {
-                        $textoFechaIngreso = $record->fecha_ingreso?->format('d/m/Y') ?? 'Sin fecha';
-
-                        if ($record->fecha_desvinculacion) {
-                            $textoFechaDesvinculacion = $record->fecha_desvinculacion->format('d/m/Y');
-                            return "<div>{$textoFechaIngreso}<br><span class='text-red-500 text-xs'>Desvinculado: {$textoFechaDesvinculacion}</span></div>";
-                        }
-
-                        return $textoFechaIngreso;
-                    })
-                    ->html()
+                TextColumn::make('historialActivo.fecha_inicio')
+                    ->label('Ingreso')
+                    ->date('d/m/Y')
                     ->sortable(),
 
-                TextColumn::make('salario')
+                TextColumn::make('historialActivo.fecha_fin')
+                    ->label('Final Contrato')
+                    ->date('d/m/Y')
+                    ->sortable(),
+
+                TextColumn::make('historialActivo.salario')
                     ->label('Salario')
                     ->money('BOB')
                     ->sortable(),
+
+                // TextColumn::make('fecha_ingreso')
+                //     ->label('Fechas')
+                //     ->formatStateUsing(function ($record) {
+                //         $textoFechaIngreso = $record->fecha_ingreso?->format('d/m/Y') ?? 'Sin fecha';
+
+                //         if ($record->fecha_desvinculacion) {
+                //             $textoFechaDesvinculacion = $record->fecha_desvinculacion->format('d/m/Y');
+                //             return "<div>{$textoFechaIngreso}<br><span class='text-red-500 text-xs'>Desvinculado: {$textoFechaDesvinculacion}</span></div>";
+                //         }
+
+                //         return $textoFechaIngreso;
+                //     })
+                //     ->html()
+                //     ->sortable(),                
 
                 TextColumn::make('coordenadas.texto')
                     ->label('Ubicación Domicilio')
@@ -544,6 +569,16 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
             ->paginated([10, 25, 50, 100, 'all']) // Opciones de paginación disponibles
             ->defaultPaginationPageOption(100)
             ->striped();
+    }
+    //Invoca el eager para el historial en la tabla   
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with([
+                'historialActivo.cargo',
+                'historialActivo.sucursal',
+                'historialActivo.empresa',
+            ]);
     }
 
     public static function getTempEmpleadoData(): array

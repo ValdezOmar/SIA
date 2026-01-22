@@ -146,4 +146,10 @@ class Empleado extends Model
     {
         return $this->sucursal ? $this->sucursal->nombre : 'Sin sucursal';
     }
+    //Historial de personal
+    public function historialActivo()
+    {
+        return $this->hasOne(HistorialLaboral::class, 'empleado_id')
+            ->where('activo', true);
+    }
 }
