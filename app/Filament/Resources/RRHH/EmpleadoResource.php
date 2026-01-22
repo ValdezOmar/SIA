@@ -391,9 +391,10 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
         $user = Auth::user();
 
         $baseQuery = Empleado::query()
-            ->with(['empresa', 'sucursal'])
-            ->orderBy('rh_empleados.apellidos')
-            ->orderBy('rh_empleados.nombres');
+            ->with(['empresa', 'sucursal']);
+            // ->orderBy('rh_empleados.created_at', 'desc')
+            // ->orderBy('rh_empleados.apellidos')
+            // ->orderBy('rh_empleados.nombres');
         // Verificar si el usuario tiene el permiso específico
         if ($user->can('ver_empleados_sucursal_r::r::h::h::empleado')) {
             if (!$user->can('ver_empleados_todos_r::r::h::h::empleado')) {
@@ -595,8 +596,8 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                 'historialActivo.cargo',
                 'historialActivo.empresa',
                 'historialActivo.sucursal',
-            ])
-            ->orderByDesc('created_at');
+            ]);
+            //->orderByDesc('created_at');
     }
 
     public static function getTempEmpleadoData(): array
