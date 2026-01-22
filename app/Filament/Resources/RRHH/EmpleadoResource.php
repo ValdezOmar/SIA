@@ -446,17 +446,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             ?? 'Sin sucursal'
                     )
                     ->sortable()
-                    ->searchable(
-                        query: function (Builder $query, string $search): Builder {
-                            return $query->whereHas('historialActivo', function ($q) use ($search) {
-                                $q->whereHas('empresa', function ($q2) use ($search) {
-                                    $q2->where('razon_social', 'like', "%{$search}%");
-                                })->orWhereHas('sucursal', function ($q2) use ($search) {
-                                    $q2->where('descripcion', 'like', "%{$search}%");
-                                });
-                            });
-                        }
-                    ),
+                    ,
 
                 TextColumn::make('historialActivo.tipo_contrato')
                     ->label('Contrato')
@@ -478,17 +468,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             ?? 'Sin cargo'
                     )
                     ->sortable()
-                    ->searchable(
-                        query: function (Builder $query, string $search): Builder {
-                            return $query->whereHas('historialActivo', function (Builder $q) use ($search) {
-                                $q->where('tipo_contrato', 'like', "%{$search}%")
-                                    ->orWhereHas('cargo', function (Builder $q2) use ($search) {
-                                        $q2->where('descripcion', 'like', "%{$search}%")
-                                            ->orWhere('nombre', 'like', "%{$search}%");
-                                    });
-                            });
-                        }
-                    ),
+                   ,
 
                 TextColumn::make('historialActivo.fecha_inicio')
                     ->label('Ingreso')
@@ -530,21 +510,21 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         ? '🗺️ Ver Croquis'
                         : '❌ Sin Croquis'),
 
-                ToggleColumn::make('activo')
-                    ->label('Estado')
-                    ->disabled()
-                    ->beforeStateUpdated(function ($state, $record) {
-                        // Guardar cambios en tiempo real
-                        $record->update([
-                            'activo' => $state,
-                        ]);
+                // ToggleColumn::make('activo')
+                //     ->label('Estado')
+                //     ->disabled()
+                //     ->beforeStateUpdated(function ($state, $record) {
+                //         // Guardar cambios en tiempo real
+                //         $record->update([
+                //             'activo' => $state,
+                //         ]);
 
-                        // Notificación opcional
-                        Notification::make()
-                            ->title($state ? 'Empleado activado' : 'Empleado marcado como inactivo')
-                            ->success()
-                            ->send();
-                    }),
+                //         // Notificación opcional
+                //         Notification::make()
+                //             ->title($state ? 'Empleado activado' : 'Empleado marcado como inactivo')
+                //             ->success()
+                //             ->send();
+                //     }),
 
                 TextColumn::make('created_at')
                     ->label('Creación')
@@ -597,7 +577,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->label('Estado Activo')
                     ->default(true),
             ])
-            
+
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
