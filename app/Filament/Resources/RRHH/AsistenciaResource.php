@@ -166,6 +166,10 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             if ($fechaFin->greaterThan($now)) {
                 $fechaFin = $now->copy();
             }
+            // SI la fecha fin es mayor o igual a día 26, ajustar también la fecha inicio
+            if ($fechaFin->day >= 26 && $fechaFin->isSameMonth($now)) {
+                $fechaInicio = $fechaFin->copy()->day(26);
+            }
 
             // Crear label descriptivo (ej. "Abril 2025 (26 mar - 25 abr)")
             $mesNombre = $fechaSeleccionada->translatedFormat('F Y');
@@ -175,16 +179,17 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         } else {
             // Determinar período actual basado en día del mes
             if ($now->day >= 26) {
-                $fechaInicio = $now->copy()->day(26);
+                $fechaInicio = $now->copy()->day(26);  // Esto está bien
                 $fechaFin = $now->copy()->addMonth()->day(25);
-            } else {
-                $fechaInicio = $now->copy()->subMonth()->day(26);
-                $fechaFin = $now->copy()->day(25);
-            }
 
-            // Ajustar fecha fin si excede la fecha actual
-            if ($fechaFin->greaterThan($now)) {
-                $fechaFin = $now->copy();
+                if ($fechaFin->greaterThan($now)) {
+                    $fechaFin = $now->copy();
+                }
+
+                // Asegurar que $fechaInicio no sea del mes anterior
+                if ($fechaInicio->month != $fechaFin->month) {
+                    $fechaInicio = $fechaFin->copy()->day(26);
+                }
             }
 
             // Label para período actual
@@ -271,6 +276,19 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             ->groupBy('date')
             ->orderBy('date', 'desc')
             ->pluck('date');
+        // Asegurar que todas las fechas del período aparezcan (incluso sin registros)
+        $allDatesInRange = collect();
+        $currentDate = $fechaInicio->copy();
+
+        while ($currentDate <= $fechaFin) {
+            if (!$currentDate->isWeekend()) {
+                $allDatesInRange->push($currentDate->format('Y-m-d'));
+            }
+            $currentDate->addDay();
+        }
+
+        // Combinar fechas con registros + fechas sin registros
+        $uniqueDates = $allDatesInRange->unique()->sortDesc()->values();
 
         Log::debug('Fechas únicas con asistencias encontradas', [
             'cantidad_fechas' => $uniqueDates->count(),
