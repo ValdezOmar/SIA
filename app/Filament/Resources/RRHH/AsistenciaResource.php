@@ -167,10 +167,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             if ($fechaFin->greaterThan($now)) {
                 $fechaFin = $now->copy();
             }
-            // SI la fecha fin es mayor o igual a día 26, ajustar también la fecha inicio
-            if ($fechaFin->day >= 26 && $fechaFin->isSameMonth($now)) {
-                $fechaInicio = $fechaFin->copy()->day(26);
-            }
 
             // Crear label descriptivo (ej. "Abril 2025 (26 mar - 25 abr)")
             $mesNombre = $fechaSeleccionada->translatedFormat('F Y');
@@ -180,17 +176,16 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         } else {
             // Determinar período actual basado en día del mes
             if ($now->day >= 26) {
-                $fechaInicio = $now->copy()->day(26);  // Esto está bien
+                $fechaInicio = $now->copy()->day(26);
                 $fechaFin = $now->copy()->addMonth()->day(25);
+            } else {
+                $fechaInicio = $now->copy()->subMonth()->day(26);
+                $fechaFin = $now->copy()->day(25);
+            }
 
-                if ($fechaFin->greaterThan($now)) {
-                    $fechaFin = $now->copy();
-                }
-
-                // Asegurar que $fechaInicio no sea del mes anterior
-                if ($fechaInicio->month != $fechaFin->month) {
-                    $fechaInicio = $fechaFin->copy()->day(26);
-                }
+            // Ajustar fecha fin si excede la fecha actual
+            if ($fechaFin->greaterThan($now)) {
+                $fechaFin = $now->copy();
             }
 
             // Label para período actual
@@ -449,35 +444,35 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             //Filtros de selleion de la tabla
             ->filters([
                 // Filtro por mes primario que lista los periodos de asistencia
-                SelectFilter::make('mes')
-                    ->options(function () {
-                        $options = [];
-                        $now = now();
-                        $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
+                // SelectFilter::make('mes')
+                //     ->options(function () {
+                //         $options = [];
+                //         $now = now();
+                //         $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
 
-                        while ($startDate <= $now) {
-                            $periodo = self::getPeriodoFechas($startDate->format('Y-m'));
-                            $options[$startDate->format('Y-m')] = $periodo['label'];
-                            $startDate->addMonth();
-                        }
+                //         while ($startDate <= $now) {
+                //             $periodo = self::getPeriodoFechas($startDate->format('Y-m'));
+                //             $options[$startDate->format('Y-m')] = $periodo['label'];
+                //             $startDate->addMonth();
+                //         }
 
-                        return array_reverse($options, true); // Ordenar de más reciente a más antiguo
-                    })
-                    ->label('Período')
-                    ->placeholder('Seleccione un periodo')
-                    ->query(function (Builder $query, array $data) {
-                        $mesSeleccionado = $data['value'] ?? null;
+                //         return array_reverse($options, true); // Ordenar de más reciente a más antiguo
+                //     })
+                //     ->label('Período')
+                //     ->placeholder('Seleccione un periodo')
+                //     ->query(function (Builder $query, array $data) {
+                //         $mesSeleccionado = $data['value'] ?? null;
 
-                        if (!$mesSeleccionado) {
-                            $now = now();
-                            $mesSeleccionado = ($now->day > 25) ?
-                                $now->copy()->addMonth()->format('Y-m') :
-                                $now->format('Y-m');
-                        }
+                //         if (!$mesSeleccionado) {
+                //             $now = now();
+                //             $mesSeleccionado = ($now->day > 25) ?
+                //                 $now->copy()->addMonth()->format('Y-m') :
+                //                 $now->format('Y-m');
+                //         }
 
-                        $periodo = self::getPeriodoFechas($mesSeleccionado);
-                        Session::put('periodo_asistencias', $periodo);
-                    }),
+                //         $periodo = self::getPeriodoFechas($mesSeleccionado);
+                //         Session::put('periodo_asistencias', $periodo);
+                //     }),
 
                 //FIltro de sucursales
                 SelectFilter::make('sucursal')
