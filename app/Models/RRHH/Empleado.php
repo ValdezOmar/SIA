@@ -146,11 +146,18 @@ class Empleado extends Model
     {
         return $this->sucursal ? $this->sucursal->nombre : 'Sin sucursal';
     }
-    
+
     //Historial de personal
     public function historialActivo()
     {
         return $this->hasOne(HistorialLaboral::class, 'empleado_id')
             ->where('activo', true);
     }
+    // Cargo del empleado
+    public function cargo()
+    {
+        return $this->belongsTo(\App\Models\Sistema\Cargo::class, 'cargo', 'id');
+    }
+
+   
 }

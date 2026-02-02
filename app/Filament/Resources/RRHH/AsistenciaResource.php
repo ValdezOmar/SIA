@@ -224,13 +224,19 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         // Construir la consulta base
         $baseQuery = Empleado::query()
             ->where('activo', true)
-            ->with(['asistencias' => function ($q) use ($fechaInicio, $fechaFin) {
-                $q->whereBetween('fecha', [$fechaInicio, $fechaFin])
-                    ->where('visible', true);
-            }])            
-            ->orderBy('sucursal')  
-            ->orderBy('nombres');          
-            
+            ->with([
+                'asistencias' => function ($q) use ($fechaInicio, $fechaFin) {
+                    $q->whereBetween('fecha', [$fechaInicio, $fechaFin])
+                        ->where('visible', true);
+                },
+                // CARGAR HISTORIAL LABORAL ACTIVO con sus relaciones
+                'historialActivo' => function ($q) {
+                    $q->with(['empresa', 'cargo', 'sucursal']);
+                }
+            ])
+            ->orderBy('sucursal')
+            ->orderBy('nombres');
+
 
         // Verificar permisos en orden de prioridad
         if ($user->can('ver_marcacion_todos_r::r::h::h::asistencia')) {
@@ -279,21 +285,55 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             TextColumn::make('nombre_completo')
                 ->label('Datos del Empleado')
                 ->html()
-                ->getStateUsing(fn($record) => "
-                    <div>
-                        <strong>{$record->nombres}</strong><br>
-                        <small>{$record->apellidos}<br>CI: {$record->ci}</small><br>
-                        <span style='font-size: 0.6rem'>{$record->cargo}</span>
-                    </div>
-                ")
+                ->getStateUsing(function ($record) {
+                    $cargoTexto = 'Sin cargo';
+
+                    // Obtener cargo del historial laboral activo
+                    if ($record->historialActivo && $record->historialActivo->cargo) {
+                        $cargoTexto = $record->historialActivo->cargo->nombre;
+                    }
+
+                    return "
+            <div>
+                <strong>{$record->nombres}</strong><br>
+                <small>{$record->apellidos}<br>CI: {$record->ci}</small><br>
+                <span style='font-size: 0.6rem'>{$cargoTexto}</span>
+            </div>
+        ";
+                })
                 ->searchable(['nombres', 'apellidos', 'ci']),
 
             TextColumn::make('empresa')
                 ->label('Empresa')
                 ->searchable()
                 ->sortable()
-                ->description((fn(Empleado $record) => $record->sucursal))
-                ->searchable(['empresa', 'sucursal']),
+                ->description(function (Empleado $record) {
+                    // Obtener sucursal del historial laboral activo
+                    if ($record->historialActivo && $record->historialActivo->sucursal) {
+                        return $record->historialActivo->sucursal->nombre;
+                    }
+                    return 'Sin sucursal';
+                })
+                ->formatStateUsing(function (Empleado $record) {
+                    // Obtener empresa del historial laboral activo
+                    if ($record->historialActivo && $record->historialActivo->empresa) {
+                        return $record->historialActivo->empresa->razon_social;
+                    }
+                    return 'Sin empresa';
+                })
+                ->searchable(query: function (Builder $query, string $search): Builder {
+                    return $query->where(function ($q) use ($search) {
+                        $q->whereHas('historialActivo.empresa', function ($subq) use ($search) {
+                            $subq->where('razon_social', 'like', "%{$search}%");
+                        })
+                            ->orWhereHas('historialActivo.sucursal', function ($subq) use ($search) {
+                                $subq->where('nombre', 'like', "%{$search}%");
+                            })
+                            ->orWhereHas('historialActivo.cargo', function ($subq) use ($search) {
+                                $subq->where('nombre', 'like', "%{$search}%");
+                            });
+                    });
+                }),
 
             //Realiza el calculo de los retrasos, los cuenta y los inserta en la tabla de resumen Estado
             TextColumn::make('estado')
@@ -426,18 +466,18 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     ->preload(),
 
                 //FIltro de sucursales
-                SelectFilter::make('sucursal')
-                    ->options(function () {
-                        return Empleado::where('activo', true)
-                            ->pluck('sucursal', 'sucursal')
-                            ->unique()
-                            ->sort();
-                    })
-                    ->searchable(),
+                // SelectFilter::make('sucursal')
+                //     ->options(function () {
+                //         return Empleado::where('activo', true)
+                //             ->pluck('sucursal', 'sucursal')
+                //             ->unique()
+                //             ->sort();
+                //     })
+                //     ->searchable(),
             ])
             //Botonera de la Cabecera para hacer acciones adicionales
             ->headerActions([
-               
+
                 //Exporatacion a archivo PDF de las marcaciones
                 Action::make('exportPdf')
                     // Restringir exportación si es empleado
