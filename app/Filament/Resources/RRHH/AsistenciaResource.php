@@ -150,10 +150,10 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                         'class' => 'bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800',
                     ]),
             ]);
-    }
+    } // Fin Formulario de registro de asistencias remotas
 
     //Obtiene periodo de fechas de marcaciones
-    protected static function getPeriodoFechas(?string $mesSeleccionado = null): array
+    public static function getPeriodoFechas(?string $mesSeleccionado = null): array
     {
         $now = now();
 
@@ -207,13 +207,30 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         // Obtener el usuario actual
         $user = Auth::user();
 
+        // Obtenemos el período de la sesión (o calculamos el actual si no hay filtro)
+        $periodo = Session::get('periodo_asistencias', self::getPeriodoFechas());
+        $fechaInicio = $periodo['inicio'];
+        $fechaFin = $periodo['fin'];
+
+        // Obtener fechas únicas con marcaciones del período actual      
+        $uniqueDates = DB::table('rh_asistencias')
+            ->select(DB::raw('DATE(fecha) as date'))
+            ->whereBetween('fecha', [$fechaInicio, $fechaFin])
+            ->where('visible', true)
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->pluck('date');
+
         // Construir la consulta base
         $baseQuery = Empleado::query()
             ->where('activo', true)
-            //->with(['asistencias'])  //Lista solo los que tienen marcaciones
-            ->orderBy('sucursal')
-            ->orderBy('apellidos')
-            ->orderBy('nombres');
+            ->with(['asistencias' => function ($q) use ($fechaInicio, $fechaFin) {
+                $q->whereBetween('fecha', [$fechaInicio, $fechaFin])
+                    ->where('visible', true);
+            }])            
+            ->orderBy('sucursal')  
+            ->orderBy('nombres');          
+            
 
         // Verificar permisos en orden de prioridad
         if ($user->can('ver_marcacion_todos_r::r::h::h::asistencia')) {
@@ -223,16 +240,13 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             $empleadoUsuario = Empleado::where('correo_corporativo', $user->email)->first();
             if ($empleadoUsuario && $empleadoUsuario->sucursal) {
                 $baseQuery->where('sucursal', $empleadoUsuario->sucursal);
-                Log::debug('Filtrando por sucursal para usuario', [
-                    'sucursal' => $empleadoUsuario->sucursal
-                ]);
             }
         } elseif ($user->can('ver_marcacion_propia_r::r::h::h::asistencia')) {
             // Puede ver solo sus propias marcaciones
             $baseQuery->where('correo_corporativo', $user->email);
         } else {
             // No tiene permisos → retornar tabla vacía
-            Log::debug('Sin permiso de acceso!', [
+            Log::debug('Sin permiso de acceso a asistencias!', [
                 'Usuario' => $user->name
             ]);
             return $table
@@ -245,36 +259,9 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->emptyStateIcon('heroicon-o-exclamation-circle');
         }
 
-        Log::debug('Iniciando construcción de tabla de asistencias');
-
-        // Obtenemos el período de la sesión (o calculamos el actual si no hay filtro)
-        $periodo = Session::get('periodo_asistencias', self::getPeriodoFechas());
-        $fechaInicio = $periodo['inicio'];
-        $fechaFin = $periodo['fin'];
-
-        Log::debug('Período de consulta determinado', [
-            'fecha_inicio' => $fechaInicio->format('Y-m-d'),
-            'fecha_fin' => $fechaFin->format('Y-m-d'),
-            'source' => Session::has('periodo_asistencias') ? 'session' : 'calculated'
-        ]);
-
-        // Obtener fechas únicas con marcaciones del período actual
-        Log::debug('Consultando fechas únicas con asistencias', [
-            'fecha_inicio' => $fechaInicio->format('Y-m-d'),
-            'fecha_fin' => $fechaFin->format('Y-m-d')
-        ]);
-
-        $uniqueDates = DB::table('rh_asistencias')
-            ->select(DB::raw('DATE(fecha) as date'))
-            ->whereBetween('fecha', [$fechaInicio, $fechaFin])
-            ->where('visible', true)
-            ->groupBy('date')
-            ->orderBy('date', 'desc')
-            ->pluck('date');
-
-        Log::debug('Fechas únicas con asistencias encontradas', [
-            'cantidad_fechas' => $uniqueDates->count(),
-            'fechas' => $uniqueDates->toArray()
+        Log::debug('Iniciando construcción de tabla de asistencias', [
+            'Usuario' => $user->name,
+            'Rol' => $user->getRoleNames(),
         ]);
 
         // Columnas base optimizadas para espacio
@@ -313,10 +300,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->label('Estado')
                 ->html()
                 ->getStateUsing(function ($record) use ($uniqueDates, $fechaInicio, $fechaFin) {
-                    $cacheKey = 'estado_' . $record->ci;
-
-                    Log::debug('Calculando estado para empleado', ['ci' => $record->ci]);
-
                     $retrasos = 0;
                     $omision = 0;
                     $faltas = 0;
@@ -328,8 +311,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     $diasLaborales = $fechaInicio->diffInDaysFiltered(function ($date) {
                         return !$date->isWeekend();
                     }, $fechaFin);
-
-                    Log::debug('Días laborales en período', ['count' => $diasLaborales]);
 
                     foreach ($uniqueDates as $date) {
                         $carbonDate = Carbon::parse($date);
@@ -343,16 +324,11 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
 
                         if ($asistenciasVisibles->isEmpty()) {
                             $faltas++;
-                            Log::debug('Falta registrada', ['fecha' => $date]);
                         } else {
                             $primeraMarcacion = Carbon::parse($asistenciasVisibles->first()->hora);
 
                             if ($primeraMarcacion->greaterThan($horaOmision)) {
                                 $omision++;
-                                Log::debug('Omisión registrada', [
-                                    'fecha' => $date,
-                                    'hora' => $primeraMarcacion->format('H:i:s')
-                                ]);
                             } elseif ($primeraMarcacion->greaterThan($horaLimite)) {
                                 if ($primeraMarcacion->greaterThan(Carbon::today()->setTime(8, 35, 59))) {
                                     $retrasos++;
@@ -386,23 +362,14 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->width('120px'),
         ];
 
-        // Columnas dinámicas por fecha
-        Log::debug('Generando columnas dinámicas por fecha', ['count_fechas' => count($uniqueDates)]);
-
         //Realiza el calculo de los retrasos, los pinta en colores segun corresponda para luego dibujar en tabla
         foreach ($uniqueDates as $date) {
             $carbonDate = Carbon::parse($date);
             $formattedDate = $carbonDate->format('d/m');
             $diaSemana = $carbonDate->translatedFormat('D');
 
-            Log::debug('Creando columna para fecha', [
-                'date' => $date,
-                'formattedDate' => $formattedDate,
-                'diaSemana' => $diaSemana
-            ]);
-
             //Realiza el calculo de los retrasos y pinta de colores
-            $columns[] = ViewColumn::make("asistencias_{$date}")
+            $columns[] = ViewColumn::make("{$date}")
                 ->label("{$formattedDate}\n{$diaSemana}")
                 ->view('filament.forms.components.asistencia-datafield')
                 ->viewData([
@@ -414,15 +381,9 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->width('90px');
         }
 
-        Log::debug('Finalizando construcción de tabla', [
-            'total_columnas' => count($columns),
-            'fechas_mostradas' => count($uniqueDates)
-        ]);
-
         return $table
             //Constuccion de la tabla principal donde se evaluan la consuta principal (prvilegios, periodos ,etc)
             ->query(function () use ($baseQuery) {
-                Log::debug('Construyendo consulta principal para tabla');
                 return $baseQuery;
             })
             ->columns($columns)
@@ -437,28 +398,32 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                         $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
 
                         while ($startDate <= $now) {
-                            $periodo = self::getPeriodoFechas($startDate->format('Y-m'));
+                            $periodo = AsistenciaResource::getPeriodoFechas($startDate->format('Y-m'));
                             $options[$startDate->format('Y-m')] = $periodo['label'];
                             $startDate->addMonth();
                         }
 
-                        return array_reverse($options, true); // Ordenar de más reciente a más antiguo
+                        return array_reverse($options, true);
                     })
                     ->label('Período')
                     ->placeholder('Seleccione un periodo')
                     ->query(function (Builder $query, array $data) {
-                        $mesSeleccionado = $data['value'] ?? null;
+                        $mesSeleccionado = $data['value'] ?? now()->format('Y-m');
 
-                        if (!$mesSeleccionado) {
-                            $now = now();
-                            $mesSeleccionado = ($now->day > 25) ?
-                                $now->copy()->addMonth()->format('Y-m') :
-                                $now->format('Y-m');
-                        }
+                        $periodo = AsistenciaResource::getPeriodoFechas($mesSeleccionado);
 
-                        $periodo = self::getPeriodoFechas($mesSeleccionado);
-                        Session::put('periodo_asistencias', $periodo);
-                    })->preload(),
+                        $query->whereHas('asistencias', function ($q) use ($periodo) {
+                            $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']])
+                                ->where('visible', true);
+                        });
+
+                        // Opcional: pasar a la tabla para cálculos de estado
+                        $query->with(['asistencias' => function ($q) use ($periodo) {
+                            $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']])
+                                ->where('visible', true);
+                        }]);
+                    })
+                    ->preload(),
 
                 //FIltro de sucursales
                 SelectFilter::make('sucursal')
@@ -472,6 +437,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             ])
             //Botonera de la Cabecera para hacer acciones adicionales
             ->headerActions([
+               
                 //Exporatacion a archivo PDF de las marcaciones
                 Action::make('exportPdf')
                     // Restringir exportación si es empleado
@@ -511,8 +477,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                         }, 'asistencias_' . now()->format('Y-m-d') . '.pdf');
                     }),
             ])
-            //->recordUrl(null)                  // Desactiva el clic en las filas
-            //->deferLoading()                  // Retrasa carga de la tabla
             ->paginated([10, 25, 50, 100])    // Opciones de paginación
             ->defaultPaginationPageOption(100) // Por defecto: 100 filas
             ->striped();                       // Filas con fondo alternado
