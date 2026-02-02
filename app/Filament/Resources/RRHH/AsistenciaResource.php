@@ -46,7 +46,8 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         $user = Auth::user();
         $empleado = Empleado::where('correo_corporativo', $user->email)->first();
         $ciEmpleado = $empleado ? $empleado->ci : null;
-
+        
+        //Inicio de formulario de registro de asistencia remota
         return $form
             ->schema([
                 Grid::make(2)
@@ -150,10 +151,10 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                         'class' => 'bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800',
                     ]),
             ]);
-    }
+    }//Fin de formulario de registro de asistencia remota
 
     //Obtiene periodo de fechas de marcaciones
-    protected static function getPeriodoFechas(?string $mesSeleccionado = null): array
+    public static function getPeriodoFechas(?string $mesSeleccionado = null): array
     {
         $now = now();
 
@@ -206,7 +207,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         ];
     }
 
-    //Contruye la Tabla de vista prrincipal
+    //Contruye la Tabla de vista principal
     public static function table(Table $table): Table
     {
         // Obtener el usuario actual
@@ -269,13 +270,13 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             'fecha_fin' => $fechaFin->format('Y-m-d')
         ]);
 
-        $uniqueDates = DB::table('rh_asistencias')
-            ->select(DB::raw('DATE(fecha) as date'))
-            ->whereBetween('fecha', [$fechaInicio, $fechaFin])
-            ->where('visible', true)
-            ->groupBy('date')
-            ->orderBy('date', 'desc')
-            ->pluck('date');
+        // $uniqueDates = DB::table('rh_asistencias')
+        //     ->select(DB::raw('DATE(fecha) as date'))
+        //     ->whereBetween('fecha', [$fechaInicio, $fechaFin])
+        //     ->where('visible', true)
+        //     ->groupBy('date')
+        //     ->orderBy('date', 'desc')
+        //     ->pluck('date');
         // Asegurar que todas las fechas del período aparezcan (incluso sin registros)
         $allDatesInRange = collect();
         $currentDate = $fechaInicio->copy();
@@ -290,10 +291,10 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         // Combinar fechas con registros + fechas sin registros
         $uniqueDates = $allDatesInRange->unique()->sortDesc()->values();
 
-        Log::debug('Fechas únicas con asistencias encontradas', [
-            'cantidad_fechas' => $uniqueDates->count(),
-            'fechas' => $uniqueDates->toArray()
-        ]);
+        // Log::debug('Fechas únicas con asistencias encontradas', [
+        //     'cantidad_fechas' => $uniqueDates->count(),
+        //     'fechas' => $uniqueDates->toArray()
+        // ]);
 
         // Columnas base optimizadas para espacio
         $columns = [
@@ -331,9 +332,9 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->label('Estado')
                 ->html()
                 ->getStateUsing(function ($record) use ($uniqueDates, $fechaInicio, $fechaFin) {
-                    $cacheKey = 'estado_' . $record->ci;
+                    //$cacheKey = 'estado_' . $record->ci;
 
-                    Log::debug('Calculando estado para empleado', ['ci' => $record->ci]);
+                    //Log::debug('Calculando estado para empleado', ['ci' => $record->ci]);
 
                     $retrasos = 0;
                     $omision = 0;
@@ -347,7 +348,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                         return !$date->isWeekend();
                     }, $fechaFin);
 
-                    Log::debug('Días laborales en período', ['count' => $diasLaborales]);
+                    //Log::debug('Días laborales en período', ['count' => $diasLaborales]);
 
                     foreach ($uniqueDates as $date) {
                         $carbonDate = Carbon::parse($date);
@@ -361,16 +362,16 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
 
                         if ($asistenciasVisibles->isEmpty()) {
                             $faltas++;
-                            Log::debug('Falta registrada', ['fecha' => $date]);
+                            //Log::debug('Falta registrada', ['fecha' => $date]);
                         } else {
                             $primeraMarcacion = Carbon::parse($asistenciasVisibles->first()->hora);
 
                             if ($primeraMarcacion->greaterThan($horaOmision)) {
                                 $omision++;
-                                Log::debug('Omisión registrada', [
-                                    'fecha' => $date,
-                                    'hora' => $primeraMarcacion->format('H:i:s')
-                                ]);
+                                // Log::debug('Omisión registrada', [
+                                //     'fecha' => $date,
+                                //     'hora' => $primeraMarcacion->format('H:i:s')
+                                // ]);
                             } elseif ($primeraMarcacion->greaterThan($horaLimite)) {
                                 if ($primeraMarcacion->greaterThan(Carbon::today()->setTime(8, 35, 59))) {
                                     $retrasos++;
@@ -413,14 +414,14 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             $formattedDate = $carbonDate->format('d/m');
             $diaSemana = $carbonDate->translatedFormat('D');
 
-            Log::debug('Creando columna para fecha', [
-                'date' => $date,
-                'formattedDate' => $formattedDate,
-                'diaSemana' => $diaSemana
-            ]);
+            // Log::debug('Creando columna para fecha', [
+            //     'date' => $date,
+            //     'formattedDate' => $formattedDate,
+            //     'diaSemana' => $diaSemana
+            // ]);
 
             //Realiza el calculo de los retrasos y pinta de colores
-            $columns[] = ViewColumn::make("asistencias_{$date}")
+            $columns[] = ViewColumn::make("{$date}")
                 ->label("{$formattedDate}\n{$diaSemana}")
                 ->view('filament.forms.components.asistencia-datafield')
                 ->viewData([
@@ -428,8 +429,8 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     'carbonDate' => $carbonDate,
                     'user' => $user,
                 ])
-                ->alignCenter()
-                ->width('90px');
+                ->alignCenter();
+                // ->width('90px');
         }
 
         Log::debug('Finalizando construcción de tabla', [
@@ -476,7 +477,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
 
                         $periodo = self::getPeriodoFechas($mesSeleccionado);
                         Session::put('periodo_asistencias', $periodo);
-                    })->preload(),
+                    }),
 
                 //FIltro de sucursales
                 SelectFilter::make('sucursal')
