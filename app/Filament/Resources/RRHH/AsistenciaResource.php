@@ -46,7 +46,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         $user = Auth::user();
         $empleado = Empleado::where('correo_corporativo', $user->email)->first();
         $ciEmpleado = $empleado ? $empleado->ci : null;
-        
+
         //Inicio de formulario de registro de asistencia remota
         return $form
             ->schema([
@@ -151,7 +151,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                         'class' => 'bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800',
                     ]),
             ]);
-    }//Fin de formulario de registro de asistencia remota
+    } //Fin de formulario de registro de asistencia remota
 
     //Obtiene periodo de fechas de marcaciones
     public static function getPeriodoFechas(?string $mesSeleccionado = null): array
@@ -424,7 +424,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     'user' => $user,
                 ])
                 ->alignCenter();
-                // ->width('90px');
+            // ->width('90px');
         }
 
         Log::debug('Finalizando construcción de tabla', [
@@ -443,35 +443,35 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             //Filtros de selleion de la tabla
             ->filters([
                 // Filtro por mes primario que lista los periodos de asistencia
-                // SelectFilter::make('mes')
-                //     ->options(function () {
-                //         $options = [];
-                //         $now = now();
-                //         $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
+                SelectFilter::make('mes')
+                    ->options(function () {
+                        $options = [];
+                        $now = now();
+                        $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
 
-                //         while ($startDate <= $now) {
-                //             $periodo = self::getPeriodoFechas($startDate->format('Y-m'));
-                //             $options[$startDate->format('Y-m')] = $periodo['label'];
-                //             $startDate->addMonth();
-                //         }
+                        while ($startDate <= $now) {
+                            $periodo = self::getPeriodoFechas($startDate->format('Y-m'));
+                            $options[$startDate->format('Y-m')] = $periodo['label'];
+                            $startDate->addMonth();
+                        }
 
-                //         return array_reverse($options, true); // Ordenar de más reciente a más antiguo
-                //     })
-                //     ->label('Período')
-                //     ->placeholder('Seleccione un periodo')
-                //     ->query(function (Builder $query, array $data) {
-                //         $mesSeleccionado = $data['value'] ?? null;
+                        return array_reverse($options, true); // Ordenar de más reciente a más antiguo
+                    })
+                    ->label('Período')
+                    ->placeholder('Seleccione un periodo')
+                    ->query(function (Builder $query, array $data) {
+                        $mesSeleccionado = $data['value'] ?? null;
 
-                //         if (!$mesSeleccionado) {
-                //             $now = now();
-                //             $mesSeleccionado = ($now->day > 25) ?
-                //                 $now->copy()->addMonth()->format('Y-m') :
-                //                 $now->format('Y-m');
-                //         }
+                        if (!$mesSeleccionado) {
+                            $now = now();
+                            $mesSeleccionado = ($now->day > 25) ?
+                                $now->copy()->addMonth()->format('Y-m') :
+                                $now->format('Y-m');
+                        }
 
-                //         $periodo = self::getPeriodoFechas($mesSeleccionado);
-                //         Session::put('periodo_asistencias', $periodo);
-                //     }),
+                        $periodo = self::getPeriodoFechas($mesSeleccionado);
+                        Session::put('periodo_asistencias', $periodo);
+                    })->preload(),
 
                 //FIltro de sucursales
                 SelectFilter::make('sucursal')
