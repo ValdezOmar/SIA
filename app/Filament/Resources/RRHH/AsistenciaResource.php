@@ -201,7 +201,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             'label' => $label
         ];
     }
-
     //Contruye la Tabla de vista principal
     public static function table(Table $table): Table
     {
