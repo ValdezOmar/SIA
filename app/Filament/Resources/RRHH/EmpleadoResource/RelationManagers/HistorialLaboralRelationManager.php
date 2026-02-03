@@ -275,21 +275,24 @@ class HistorialLaboralRelationManager extends RelationManager
 
                 TextColumn::make('fecha_fin')
                     ->label('Final Contrato')
-                    //->sortable()
                     ->badge()
-
-                    // Fuerza un valor cuando viene null desde BD
                     ->default('Indefinido')
-
                     ->getStateUsing(
                         fn($record) =>
-                        $record->historialActivo?->fecha_fin
+                        // Primero verificar si el tipo de contrato es indefinido
+                        $record->tipo_contrato === 'Contrato indefinido' ||
+                            stripos($record->tipo_contrato, 'indefinido') !== false
+                            ? 'Indefinido'
+                            : $record->fecha_fin // Usar el campo directo del modelo
                     )
-
                     ->formatStateUsing(function ($state, $record) {
-
-                        // Indefinido
+                        // Si es indefinido
                         if ($state === 'Indefinido') {
+                            return 'Indefinido';
+                        }
+
+                        // Si no hay fecha de fin
+                        if (!$state) {
                             return 'Indefinido';
                         }
 
@@ -308,15 +311,13 @@ class HistorialLaboralRelationManager extends RelationManager
                             default              => $fechaFormateada,
                         };
                     })
-
                     ->color(function ($state, $record) {
-
                         if ($state === 'Indefinido') {
                             return 'primary';
                         }
 
                         if (!$record->activo) {
-                            return 'gray';
+                            return 'success';
                         }
 
                         $fechaFin = Carbon::parse($state);
@@ -325,7 +326,7 @@ class HistorialLaboralRelationManager extends RelationManager
                         return match (true) {
                             $diasRestantes < 0   => 'danger',
                             $diasRestantes <= 15 => 'warning',
-                             $diasRestantes > 15 => 'success',
+                            $diasRestantes > 15  => 'success',
                             default              => 'gray',
                         };
                     }),

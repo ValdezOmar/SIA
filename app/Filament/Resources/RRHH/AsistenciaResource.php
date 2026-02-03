@@ -464,16 +464,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                         }]);
                     })
                     ->preload(),
-
-                //FIltro de sucursales
-                // SelectFilter::make('sucursal')
-                //     ->options(function () {
-                //         return Empleado::where('activo', true)
-                //             ->pluck('sucursal', 'sucursal')
-                //             ->unique()
-                //             ->sort();
-                //     })
-                //     ->searchable(),
             ])
             //Botonera de la Cabecera para hacer acciones adicionales
             ->headerActions([
