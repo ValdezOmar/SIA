@@ -2,295 +2,255 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Códigos QR de Equipos</title>
+    <title>QR Equipos</title>
+
     <style>
+        /* ===============================
+           CONFIGURACIÓN BÁSICA
+        ================================ */
         @page {
-            margin: 5mm;
+            size: letter;
+            margin: 6mm;
         }
-        
+
         body {
-            font-family: 'Helvetica', 'Arial', sans-serif;
-            font-size: 11px;
-            line-height: 1.5;
-            color: #2d3748;            
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 9px;
             margin: 0;
-            padding: 2;
+            padding: 0;
+            line-height: 1.2;
         }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding: 25px 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            color: white;
+
+        /* ===============================
+           CONTENEDOR PRINCIPAL - SIN ALTURA FIJA
+        ================================ */
+        .page {
+            width: 100%;
+            page-break-after: always;
         }
-        
-        .header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            margin: 0 0 8px 0;
-            letter-spacing: -0.5px;
+
+        /* ===============================
+           TABLA CON 3 COLUMNAS
+        ================================ */
+        .cards-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
         }
-        
-        .header .subtitle {
-            font-size: 14px;
-            opacity: 0.9;
-            margin: 0 0 10px 0;
-            font-weight: 300;
-        }
-        
-        .header .badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 11px;
-        }
-        
-        .card-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 0px;
-            padding: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            border: 1px solid #e2e8f0;
-            position: relative;
-            overflow: hidden;
+
+        .cards-table td {
+            width: 33.33%;
+            height: 52mm; /* Altura exacta para 5 filas en carta */
+            padding: 2mm;
+            vertical-align: top;
             page-break-inside: avoid;
         }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .card-counter {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 24px;
-            height: 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 50%;
+
+        /* ===============================
+           TARJETA CON ALTURA FIJA
+        ================================ */
+        .card {
+            width: 100%;
+            height: 100%;
+            max-height: 48mm; /* Un poco menos que la celda */
+            border: 1px solid #e2e8f0;
+            padding: 2mm;
+            box-sizing: border-box;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: 700;
+            flex-direction: column;
+            overflow: hidden;
         }
-        
-        .card-title {
+
+        /* ===============================
+           CABECERA DE LA TARJETA
+        ================================ */
+        .card-header {
             text-align: center;
-            margin-bottom: 5px;
-        }
-        
-        .card-title .code {
-            font-size: 15px;
-            font-weight: 800;
-            color: #2d3748;
+            font-weight: bold;
+            font-size: 10px;
+            padding: 1.5mm;
+            border: 1px solid #e2e8f0;
             background: #f8fafc;
-            padding: 6px 15px;
-            border-radius: 2px;
-            display: inline-block;
-            border: 0.8px solid #e2e8f0;
+            margin-bottom: 1mm;
+            flex-shrink: 0;
         }
-        
+
+        /* ===============================
+           QR - TAMAÑO CONTROLADO
+        ================================ */
         .qr-container {
             text-align: center;
-            margin-bottom: 10px;
-            padding: 5px;           
-            
+            margin: 0.5mm 0;
+            flex-shrink: 0;
         }
-        
-        .qr-wrapper {
-            position: relative;            
-            display: inline-block;
-            padding: 5px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+        .qr-container img {
+            width: 80px;
+            height: 80px;
         }
-        
-        .qr-image {
-            width: 200px;
-            height: 200px;
-            display: block;
-            margin: 0 auto;
-            border-radius: 6px;
-        }    
+
+        /* ===============================
+           CONTENIDO CON FLEXBOX
+        ================================ */
+        .card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            text-align: center;
+        }
+
+        .info-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            text-align: center;
+        }
 
         .info-item {
-            display: flex;
-            align-items: center;
-            padding: 5px 180px;            
-        }
-        
-        .info-item:last-child {
-            border-bottom: none;
-        }
-        
-        .label {
-            flex: 0 0 80px;
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 10px;
-        }
-        
-        .value {
-            flex: 1;
-            color: #2d3748;
-            font-size: 11px;
-        }
-        
-        .url-container {
-            background: #f8fafc;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 15px;
-            border-left: 3px solid #667eea;
-        }
-        
-        .info-grid {
-            font-size: 14px;
-            color: #718096;            
-            font-weight: 600;
-        }
-        
-        .url-value {
-            font-size: 9px;
-            color: #4a5568;
-            word-break: break-all;
-        }
-        
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #e2e8f0;
-            color: #718096;
-            font-size: 10px;
-        }
-        
-        .footer-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .page-break {
-            page-break-before: always;
-        }
-        
-        /* Versión compacta para muchos equipos */
-        .compact-card {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            padding: 15px;
-        }
-        
-        .compact-qr {
-            flex: 0 0 100px;
+            font-size: 8px;
+            margin-bottom: 0.3mm;
+            line-height: 1.1;
             text-align: center;
         }
-        
-        .compact-info {
-            flex: 1;
+
+        .info-label {
+            font-weight: bold;
+            text-align: center;
         }
-        
-        /* Grid responsivo */
-        @media (max-width: 768px) {
-            .card-container {
-                grid-template-columns: 1fr;
-            }
+
+        /* ===============================
+           LOGO CONTAINER
+        ================================ */
+        .logo-container {
+            text-align: center;
+            margin: 1mm 0;
+            min-height: 15px;
+            flex-shrink: 0;
         }
-        
-        @media print {
-            body {
-                background: white;
-            }
-            
-            .card {
-                box-shadow: none;
-                border: 1px solid #e2e8f0;
-            }
-            
-            .header {
-                box-shadow: none;
-                background: #667eea;
-            }
+
+        .logo-container img {
+            max-width: 100px;
+            max-height: 50px;
+            object-fit: contain;
+        }
+
+        /* ===============================
+           FOOTER - SIEMPRE ABAJO
+        ================================ */
+        .card-footer {
+            font-size: 8px;
+            color: #666;
+            text-align: center;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 0.5mm;
+            margin-top: 0.5mm;
+            flex-shrink: 0;
+        }
+
+        /* ===============================
+           PÁGINA EN BLANCO (PARA CELDAS VACÍAS)
+        ================================ */
+        .empty-cell {
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
-<body>    
-    
-    
-        <!-- Diseño elegante en grid para pocos equipos -->
-        <div class="card-container">
-            @foreach($equipos as $index => $equipo)
-                <div class="card">
-                    <div class="card-counter">{{ $index + 1 }}</div>                    
 
-                    <div class="card-title">                        
-                        <span class="code">SOLICITUD DE SOPORTE TECNICO <br> {{ $equipo['codigo'] }}</span>
-                    </div>                    
+<body>
+
+@php
+    // Pre-cálculo de URLs para máxima optimización
+    $baseUrl = config('app.url', 'http://localhost:8000');
+    $logos = [
+        1 => $baseUrl . '/storage/logo_novanexa.png',
+        2 => $baseUrl . '/storage/logo_ireilab.png',
+        3 => $baseUrl . '/storage/logo_requilab.png',
+    ];
+    
+    // Preprocesar equipos con logos
+    foreach ($equipos as &$equipo) {
+        $equipo['logo_url'] = isset($logos[$equipo['empresa'] ?? 0]) 
+            ? $logos[$equipo['empresa']] 
+            : null;
+    }
+    unset($equipo); // Romper referencia
+    
+    $cardsPerPage = 12;
+    $pages = array_chunk($equipos, $cardsPerPage);
+@endphp
+
+@foreach($pages as $page)
+    <div class="page">
+        <table class="cards-table">
+            @foreach(array_chunk($page, 3) as $row)
+                <tr>
+                    @foreach($row as $equipo)
+                        <td>
+                            <div class="card">
+                                <div class="card-header">
+                                    SOLICITUD DE SOPORTE TÉCNICO<br>
+                                    COD: {{ $equipo['codigo'] }}
+                                </div>
+                                
+                                <div class="qr-container">
+                                    <img src="{{ $equipo['qr_code'] }}" alt="QR">
+                                </div>
+                                
+                                <div class="card-content">
+                                    <div class="info-container">
+                                        <div class="info-item">
+                                            <span class="info-label">MARCA:</span> {{ $equipo['marca'] }}
+                                        </div>
+                                        
+                                        <div class="info-item">
+                                            <span class="info-label">MODELO:</span> {{ $equipo['modelo'] }}
+                                        </div>
+                                    </div>
+                                    
+                                    {{-- LOGO - SIN SWITCH, SIN FILE_EXISTS --}}
+                                    <div class="logo-container">
+                                        @if(!empty($equipo['logo_url']))
+                                            <img src="{{ $equipo['logo_url'] }}" 
+                                                 alt="Logo"
+                                                 style="max-width: 60px; max-height: 20px;">
+                                        @else
+                                            <div style="font-size: 7px; color: #666;">
+                                                {{ $equipo['cliente'] ?? '' }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                    
+                                    <div class="card-footer">
+                                        ESCANEAR CÓDIGO QR PARA VER DETALLES COMPLETOS
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    @endforeach
                     
-                    <div class="qr-container">
-                        <div class="qr-wrapper">
-                            <img src="{{ $equipo['qr_code'] }}" alt="QR Code" class="qr-image">
-                        </div>
-                    </div>
-                    
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="label">Marca:</span>
-                            <span class="value">{{ $equipo['marca'] }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">Modelo:</span>
-                            <span class="value">{{ $equipo['modelo'] }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">N° Serie:</span>
-                            <span class="value">{{ $equipo['num_serie'] }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">Empresa:</span>
-                            <span class="value">{{ $equipo['empresa'] }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="label">Cliente:</span>
-                            <span class="value">{{ $equipo['cliente'] }}</span>
-                        </div>
-                    </div>                  
-                    
-                    
-                    <div style="text-align: center; margin-top: 12px;">
-                        <span style="font-size: 9px; color: #718096; font-style: italic;">
-                            Escanear código para ver detalles completos
-                        </span>
-                    </div>
-                </div>
+                    @for($i = count($row); $i < 3; $i++)
+                        <td><div class="empty-cell"></div></td>
+                    @endfor
+                </tr>
             @endforeach
-        </div>   
-   
-    
-    
+            
+            @php
+                $emptyRows = 4 - ceil(count($page) / 3);
+            @endphp
+            
+            @for($i = 0; $i < $emptyRows; $i++)
+                <tr>
+                    @for($j = 0; $j < 3; $j++)
+                        <td><div class="empty-cell"></div></td>
+                    @endfor
+                </tr>
+            @endfor
+        </table>
+    </div>
+@endforeach
+
 </body>
 </html>

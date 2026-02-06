@@ -711,7 +711,7 @@ class EquipoResource extends Resource
 
                             // Usar formato SVG (no necesita Imagick)
                             $qrCode = QrCode::format('svg')
-                                ->size(200)
+                                ->size(100)
                                 ->generate($url);
 
                             // Para SVG, lo guardamos como texto
@@ -722,7 +722,7 @@ class EquipoResource extends Resource
                                 'marca' => $equipo->marca ?? 'N/A',
                                 'modelo' => $equipo->modelo ?? 'N/A',
                                 'num_serie' => $equipo->num_serie ?? 'N/A',
-                                'empresa' => $equipo->empresa->razon_social ?? 'N/A',
+                                'empresa' => $equipo->empresa->id ?? 'N/A',
                                 'cliente' => $equipo->cliente->razon_social ?? 'N/A',
                                 'url' => $url,
                                 'qr_code' => $qrCodeBase64,
