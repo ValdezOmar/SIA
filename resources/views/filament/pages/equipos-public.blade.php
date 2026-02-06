@@ -199,16 +199,7 @@
                         </div>
                         @endif
 
-                        <!-- Descripción Detallada con Formato Enriquecido -->
-                        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                            <h3 class="font-semibold text-gray-700 mb-3 flex items-center">
-                                <i class="fas fa-align-left text-blue-500 mr-2"></i>
-                                Descripción Detallada:
-                            </h3>
-                            <div class="rich-content text-gray-700">
-                                {!! $equipo->descripcion !!}
-                            </div>
-                        </div>
+                        
 
                         
                     </div>
@@ -217,6 +208,16 @@
 
             <!-- Información Adicional en Tarjetas - SOLO PARA USUARIOS LOGUEADOS -->
             @auth
+            <!-- Descripción Detallada con Formato Enriquecido -->
+                        <div class="mt-6 p-4 bg-gray-50 rounded-lg card-hover">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-align-left text-blue-500 mr-2"></i>
+                                Descripción Detallada:
+                            </h3>
+                            <div class="rich-content text-gray-700">
+                                {!! $equipo->descripcion !!}
+                            </div>
+                        </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                 <!-- Información de Venta y Garantía - ACTUALIZADO CON NUEVOS CAMPOS -->
                 <div class="bg-white rounded-2xl shadow-lg p-6 card-hover">
