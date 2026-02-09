@@ -89,7 +89,7 @@
     <div class="container mx-auto px-4 py-8">
         <!-- Tarjeta Principal del Equipo -->
         <div class="max-w-6xl mx-auto">
-            <div class="bg-white rounded-2xl shadow-xl card-hover overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
                 <div class="md:flex">
                     <!-- Sección de Foto - MEJORADO -->
                     <div class="md:w-2/5 p-8 bg-gray-50">
