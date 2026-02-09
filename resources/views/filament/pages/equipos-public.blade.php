@@ -433,21 +433,21 @@ ${descripcionProblema}
 *Enlace del equipo:* {{ url()->current() }}
 `.trim();
 
-                     // Asegurar que el número tenga código de país (ajusta el +51 según tu país)
-                        let telefonoSoporte = '{{ $equipo->tel_soporte }}';
-                        
-                        // agregar código de país
-                        if (!telefonoSoporte.startsWith('+')) {
-                            // Remover cualquier espacio o caracter especial
-                            telefonoSoporte = telefonoSoporte.replace(/\D/g, '');
-                            // Agregar código de país 
-                            telefonoSoporte = '+591' + telefonoSoporte;
-                        }
-                        
-                        const mensajeCodificado = encodeURIComponent(mensajeBase);
-                        const urlWhatsApp = `https://wa.me/${telefonoSoporte}?text=${mensajeCodificado}`;
-                        
-                        window.open(urlWhatsApp, '_blank');
+                     // SOLO números
+            let telefonoSoporte = '{{ $equipo->tel_soporte }}'.replace(/\D/g, '');
+
+            // Código país Bolivia
+            if (!telefonoSoporte.startsWith('591')) {
+                telefonoSoporte = '591' + telefonoSoporte;
+            }
+
+            const mensajeCodificado = encodeURIComponent(mensajeBase);
+
+            // URL compatible móvil + PC
+            const urlWhatsApp = `https://api.whatsapp.com/send?phone=${telefonoSoporte}&text=${mensajeCodificado}`;
+
+            // Navegación directa (NO popup)
+            window.location.href = urlWhatsApp;
                 });
             }
         });
