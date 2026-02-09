@@ -74,6 +74,21 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.8; }
         }
+        /* Estilo para el botón de WhatsApp */
+        #whatsappBtn {
+            cursor: pointer;
+        }
+        #whatsappBtn:active {
+            transform: scale(0.98);
+        }
+        .whatsapp-pulse {
+            animation: whatsapp-pulse 2s infinite;
+        }
+        @keyframes whatsapp-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(37, 211, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -187,7 +202,7 @@
                             
                             <button 
                                 id="whatsappBtn"
-                                class="inline-flex items-center justify-center w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300"
+                                class="inline-flex items-center justify-center w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 whatsapp-pulse"
                             >
                                 <i class="fab fa-whatsapp text-xl mr-3"></i>
                                 Solicitar Soporte por WhatsApp
@@ -372,7 +387,7 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // Efectos de hover mejorados
         document.addEventListener('DOMContentLoaded', function() {
@@ -401,10 +416,21 @@
             initMiniMap();
             @endif
 
-            // Configurar el botón de WhatsApp
+            // Configurar el botón de WhatsApp - SOLUCIÓN COMPATIBLE MÓVILES
             const whatsappBtn = document.getElementById('whatsappBtn');
             if (whatsappBtn) {
-                whatsappBtn.addEventListener('click', function() {
+                // Prevenir doble clic
+                let isProcessing = false;
+                
+                whatsappBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    if (isProcessing) return;
+                    isProcessing = true;
+                    
+                    // Agregar efecto visual
+                    this.classList.add('opacity-75');
+                    
                     const descripcionInput = document.getElementById('problemaDescripcion');
                     let descripcionProblema = descripcionInput.value.trim();
                     
@@ -413,7 +439,7 @@
                         descripcionProblema = "Por favor, necesito asistencia técnica para este equipo. ¡Gracias!";
                     }
 
-                  const mensajeBase = `
+                    const mensajeBase = `
 *SOLICITO SOPORTE TÉCNICO*
 *INFORMACIÓN DEL EQUIPO:*
 ┌────────────────────────
@@ -433,40 +459,90 @@ ${descripcionProblema}
 *Enlace del equipo:* {{ url()->current() }}
 `.trim();
 
-                     // SOLO números
-            let telefonoSoporte = '{{ $equipo->tel_soporte }}'.replace(/\D/g, '');
-
-            // Código país Bolivia
-            if (!telefonoSoporte.startsWith('591')) {
-                telefonoSoporte = '591' + telefonoSoporte;
-            }
-
-            const mensajeCodificado = encodeURIComponent(mensajeBase);
-
-            // URL compatible móvil + PC
-            const urlWhatsApp = `https://api.whatsapp.com/send?phone=${telefonoSoporte}&text=${mensajeCodificado}`;
-
-            // Navegación directa (NO popup)
-            window.location.href = urlWhatsApp;
+                    // Limpiar y formatear teléfono correctamente
+                    let telefonoSoporte = '{{ $equipo->tel_soporte }}'.trim().replace(/\s+/g, '').replace(/\D/g, '');
+                    
+                    // Verificar si el número es válido
+                    if (!telefonoSoporte || telefonoSoporte.length < 8) {
+                        alert('Número de teléfono de soporte no válido');
+                        isProcessing = false;
+                        this.classList.remove('opacity-75');
+                        return;
+                    }
+                    
+                    // Asegurar código de país para Bolivia (591)
+                    // Si no empieza con código de país, agregarlo
+                    if (!telefonoSoporte.startsWith('591') && telefonoSoporte.length <= 8) {
+                        telefonoSoporte = '591' + telefonoSoporte;
+                    }
+                    
+                    const mensajeCodificado = encodeURIComponent(mensajeBase);
+                    
+                    // Detectar dispositivo
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                    
+                    let urlWhatsApp;
+                    
+                    // Estrategia diferente según dispositivo
+                    if (isMobile) {
+                        // Para dispositivos móviles
+                        if (isIOS) {
+                            // iOS tiene restricciones, usar web.whatsapp.com
+                            urlWhatsApp = `https://web.whatsapp.com/send?phone=${telefonoSoporte}&text=${mensajeCodencoded}`;
+                        } else {
+                            // Para Android y otros móviles
+                            urlWhatsApp = `https://api.whatsapp.com/send?phone=${telefonoSoporte}&text=${mensajeCodificado}`;
+                        }
+                        
+                        // En móviles, usar location.href
+                        setTimeout(() => {
+                            window.location.href = urlWhatsApp;
+                        }, 100);
+                        
+                    } else {
+                        // Para escritorio - abrir en nueva pestaña
+                        urlWhatsApp = `https://api.whatsapp.com/send?phone=${telefonoSoporte}&text=${mensajeCodificado}`;
+                        window.open(urlWhatsApp, '_blank');
+                    }
+                    
+                    // Restaurar estado después de 2 segundos
+                    setTimeout(() => {
+                        isProcessing = false;
+                        this.classList.remove('opacity-75');
+                    }, 2000);
+                });
+                
+                // También permitir toque en móviles
+                whatsappBtn.addEventListener('touchstart', function(e) {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                whatsappBtn.addEventListener('touchend', function(e) {
+                    this.style.transform = 'scale(1)';
                 });
             }
         });
 
         function initMiniMap() {
-            const lat = {{ $equipo->ubicacion_gps['lat'] }};
-            const lng = {{ $equipo->ubicacion_gps['lng'] }};
-            
-            const map = L.map('mini-map').setView([lat, lng], 15);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+            try {
+                const lat = {{ $equipo->ubicacion_gps['lat'] }};
+                const lng = {{ $equipo->ubicacion_gps['lng'] }};
+                
+                const map = L.map('mini-map').setView([lat, lng], 15);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
 
-            // Agregar marcador
-            L.marker([lat, lng])
-                .addTo(map)
-                .bindPopup('{{ $equipo->codigo }}<br>{{ strip_tags($equipo->cliente->razon_social) }}')
-                .openPopup();
+                // Agregar marcador
+                L.marker([lat, lng])
+                    .addTo(map)
+                    .bindPopup('{{ $equipo->codigo }}<br>{{ strip_tags($equipo->cliente->razon_social) }}')
+                    .openPopup();
+            } catch (error) {
+                console.error('Error al inicializar el mapa:', error);
+            }
         }
     </script>
 </body>
