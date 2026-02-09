@@ -165,9 +165,9 @@
     // Pre-cálculo de URLs para máxima optimización
     $baseUrl = config('app.url', 'http://localhost:8000');
     $logos = [
-        1 => $baseUrl . '/storage/logo_novanexa.png',
-        2 => $baseUrl . '/storage/logo_ireilab.png',
-        3 => $baseUrl . '/storage/logo_requilab.png',
+        1 => $baseUrl . '/storage/logos/logo_novanexa.png',
+        2 => $baseUrl . '/storage/logos/logo_ireilab.png',
+        3 => $baseUrl . '/storage/logos/logo_requilab.png',
     ];
     
     // Preprocesar equipos con logos
