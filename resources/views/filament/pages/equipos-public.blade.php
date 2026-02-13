@@ -349,15 +349,28 @@
                         Documentación
                     </h3>
                     <div class="space-y-2">
-                        @if($equipo->doc_adjunto)
-                        <a href="{{ asset('storage/' . $equipo->doc_adjunto) }}" 
-                           target="_blank"
-                           class="flex items-center text-blue-600 hover:text-blue-800 transition duration-300">
-                            <i class="fas fa-download mr-2"></i>
-                            Descargar documento adjunto
-                        </a>
+                        @if(!empty($equipo->doc_adjunto))
+                            @php
+                                $docs = is_array($equipo->doc_adjunto)
+                                    ? $equipo->doc_adjunto
+                                    : json_decode($equipo->doc_adjunto, true);
+                            @endphp
+
+                            @if(is_array($docs) && count($docs))
+                                @foreach($docs as $doc)
+                                    <a href="{{ asset('storage/' . $doc) }}"
+                                    target="_blank"
+                                    class="flex items-center text-blue-600 hover:text-blue-800 transition duration-300 mb-2">
+                                        <i class="fas fa-download mr-2"></i>
+                                        Descargar documento
+                                    </a>
+                                @endforeach
+                            @else
+                                <p class="text-gray-500">No hay documentos adjuntos</p>
+                            @endif
+
                         @else
-                        <p class="text-gray-500">No hay documentos adjuntos</p>
+                            <p class="text-gray-500">No hay documentos adjuntos</p>
                         @endif
                     </div>
                 </div>
