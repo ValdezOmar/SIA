@@ -175,7 +175,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         } else {
             // Determinar período actual basado en día del mes
             if ($now->day >= 26) {
-                $fechaInicio = $now->copy()->day(26);
+                $fechaInicio = $now->copy()->day(25);
                 $fechaFin = $now->copy()->addMonth()->day(25);
             } else {
                 $fechaInicio = $now->copy()->subMonth()->day(26);
@@ -479,7 +479,8 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                         $empleados = Empleado::where('activo', true)
                             ->with([
                                 'asistencias' => function ($q) use ($fechaInicio, $fechaFin) {
-                                    $q->whereBetween('fecha', [$fechaInicio, $fechaFin]);
+                                    $q->whereBetween('fecha', [$fechaInicio, $fechaFin])
+                                    ->where('visible', true);
                                 }
                             ])
                             ->orderBy('sucursal')
