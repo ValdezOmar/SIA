@@ -15,7 +15,7 @@
         ->get();
 
     if ($asistencias->isEmpty()) {
-        echo $carbonDate->isWeekend() ? '<div style="color:rgb(7, 236, 57); font-weight: 500; padding: 5px; font-size: 0.875rem;">F/S</div>' : '-';
+        echo $carbonDate->isWeekend() ? '<div style="color:rgb(7, 236, 57); font-weight: 500; padding: 5px; font-size: 0.875rem;">F/S</div>' : 'Falta';
         return;
     }
 

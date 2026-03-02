@@ -29,6 +29,8 @@ use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Tables\Columns\ImageColumn;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Carbon\CarbonPeriod;
+use Filament\Notifications\Notification;
 
 class AsistenciaResource extends Resource implements HasShieldPermissions
 {
@@ -175,7 +177,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         } else {
             // Determinar período actual basado en día del mes
             if ($now->day >= 26) {
-                $fechaInicio = $now->copy()->day(25);
+                $fechaInicio = $now->copy()->day(26);
                 $fechaFin = $now->copy()->addMonth()->day(25);
             } else {
                 $fechaInicio = $now->copy()->subMonth()->day(26);
@@ -207,19 +209,22 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         // Obtener el usuario actual
         $user = Auth::user();
 
-        // Obtenemos el período de la sesión (o calculamos el actual si no hay filtro)
-        $periodo = Session::get('periodo_asistencias', self::getPeriodoFechas());
+        // Obtenemos el período de la sesión (o calculamos el actual si no hay filtro)        
+        $mesSeleccionado = request()->get('tableFilters')['mes']['value'] ?? null;
+        $periodo = self::getPeriodoFechas($mesSeleccionado);
         $fechaInicio = $periodo['inicio'];
         $fechaFin = $periodo['fin'];
 
-        // Obtener fechas únicas con marcaciones del período actual      
-        $uniqueDates = DB::table('rh_asistencias')
-            ->select(DB::raw('DATE(fecha) as date'))
-            ->whereBetween('fecha', [$fechaInicio, $fechaFin])
-            ->where('visible', true)
-            ->groupBy('date')
-            ->orderBy('date', 'desc')
-            ->pluck('date');
+        // Obtener fechas únicas con marcaciones del período actual    
+        $period = CarbonPeriod::create($fechaInicio, $fechaFin);
+
+        $uniqueDates = collect();
+        // Recolectar fechas y luego invertir el orden (más recientes primero)
+        foreach ($period as $date) {
+            $uniqueDates->push($date->format('Y-m-d'));
+        }
+        $uniqueDates = $uniqueDates->reverse(); // Esto invierte el orden
+
 
         // Construir la consulta base
         $baseQuery = Empleado::query()
@@ -344,57 +349,70 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     $omision = 0;
                     $faltas = 0;
                     $totalSegundosRetraso = 0;
-                    $horaLimite = Carbon::today()->setTime(8, 30, 00);
-                    $horaOmision = Carbon::today()->setTime(10, 00, 00);
 
-                    // Cálculo de días laborales (optimizado)
-                    $diasLaborales = $fechaInicio->diffInDaysFiltered(function ($date) {
-                        return !$date->isWeekend();
-                    }, $fechaFin);
-
+                    // CORRECCIÓN: Usar la fecha de cada registro para las comparaciones
                     foreach ($uniqueDates as $date) {
                         $carbonDate = Carbon::parse($date);
-                        if ($carbonDate->isWeekend())
-                            continue;
 
-                        // Filtrar solo asistencias visibles antes de procesar
+                        // Saltar fines de semana
+                        if ($carbonDate->isWeekend()) {
+                            continue;
+                        }
+
+                        // Filtrar asistencias visibles para esta fecha
                         $asistenciasVisibles = $record->asistencias->filter(function ($asistencia) use ($date) {
                             return $asistencia->fecha == $date && $asistencia->visible !== false;
                         });
 
                         if ($asistenciasVisibles->isEmpty()) {
                             $faltas++;
-                        } else {
-                            $primeraMarcacion = Carbon::parse($asistenciasVisibles->first()->hora);
-
-                            if ($primeraMarcacion->greaterThan($horaOmision)) {
-                                $omision++;
-                            } elseif ($primeraMarcacion->greaterThan($horaLimite)) {
-                                if ($primeraMarcacion->greaterThan(Carbon::today()->setTime(8, 35, 59))) {
-                                    $retrasos++;
-                                    $diferencia = $horaLimite->diff($primeraMarcacion);
-                                    $segundosRetraso = $diferencia->h * 3600 + $diferencia->i * 60 + $diferencia->s;
-                                    $totalSegundosRetraso += $segundosRetraso;
-                                }
-                            }
+                            continue;
                         }
+
+                        // Obtener primera marcación del día
+                        $primeraMarcacion = $asistenciasVisibles->sortBy('hora')->first();
+
+                        // CORRECCIÓN: Crear objetos Carbon con la fecha específica
+                        $horaMarcacion = Carbon::parse($date . ' ' . $primeraMarcacion->hora);
+
+                        // Definir horas límite para esta fecha específica
+                        $horaEntrada = Carbon::parse($date . ' 08:30:00');
+                        $horaLimiteRetraso = Carbon::parse($date . ' 08:35:59');
+                        $horaOmision = Carbon::parse($date . ' 10:00:00');
+
+                        // Clasificar la marcación
+                        if ($horaMarcacion->greaterThan($horaOmision)) {
+                            $omision++;
+                        } elseif ($horaMarcacion->greaterThan($horaLimiteRetraso)) {
+                            $retrasos++;
+
+                            // CORRECCIÓN: Calcular diferencia desde las 08:30
+                            $diferencia = $horaEntrada->diff($horaMarcacion);
+                            $segundosRetraso = $diferencia->h * 3600 + $diferencia->i * 60 + $diferencia->s;
+                            $totalSegundosRetraso += $segundosRetraso;
+                        }
+                        // Si llega antes de las 08:35:59, no es retraso ni omisión
                     }
 
+                    // Formatear tiempo total de retraso
                     $horasTotal = floor($totalSegundosRetraso / 3600);
                     $minutosTotal = floor(($totalSegundosRetraso % 3600) / 60);
                     $segundosTotal = $totalSegundosRetraso % 60;
-                    $tiempoTotalRetraso = $horasTotal > 0
-                        ? sprintf("%02d:%02d:%02d", $horasTotal, $minutosTotal, $segundosTotal)
-                        : sprintf("%02d:%02d", $minutosTotal, $segundosTotal);
+
+                    if ($horasTotal > 0) {
+                        $tiempoTotalRetraso = sprintf("%02d:%02d:%02d", $horasTotal, $minutosTotal, $segundosTotal);
+                    } else {
+                        $tiempoTotalRetraso = sprintf("%02d:%02d", $minutosTotal, $segundosTotal);
+                    }
 
                     $resultado = "
-                    <div style='line-height: 1.4;'>
-                        <strong>Retrasos:</strong> {$retrasos}<br>
-                        <strong>Tiempo retraso:</strong> {$tiempoTotalRetraso}<br>
-                        <strong>Faltas:</strong> {$faltas}<br>
-                        <strong>Omisiones:</strong> {$omision}
-                    </div>
-                     ";
+        <div style='line-height: 1.4;'>
+            <strong>Retrasos:</strong> {$retrasos}<br>
+            <strong>Tiempo retraso:</strong> {$tiempoTotalRetraso}<br>
+            <strong>Faltas:</strong> {$faltas}<br>
+            <strong>Omisiones:</strong> {$omision}
+        </div>
+        ";
 
                     return $resultado;
                 })
@@ -435,7 +453,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     ->options(function () {
                         $options = [];
                         $now = now();
-                        $startDate = $now->copy()->subMonths(5); // Últimos 6 meses
+                        $startDate = $now->copy()->subMonths(5);
 
                         while ($startDate <= $now) {
                             $periodo = AsistenciaResource::getPeriodoFechas($startDate->format('Y-m'));
@@ -447,23 +465,25 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     })
                     ->label('Período')
                     ->placeholder('Seleccione un periodo')
-                    ->query(function (Builder $query, array $data) {
-                        $mesSeleccionado = $data['value'] ?? now()->format('Y-m');
+                    ->query(function (Builder $query, array $data): Builder {
 
+                        $mesSeleccionado = $data['value'] ?? null;
                         $periodo = AsistenciaResource::getPeriodoFechas($mesSeleccionado);
 
-                        $query->whereHas('asistencias', function ($q) use ($periodo) {
-                            $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']])
-                                ->where('visible', true);
-                        });
-
-                        // Opcional: pasar a la tabla para cálculos de estado
-                        $query->with(['asistencias' => function ($q) use ($periodo) {
-                            $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']])
-                                ->where('visible', true);
-                        }]);
+                        return $query->with([
+                            'asistencias' => function ($q) use ($periodo) {
+                                $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']])
+                                    ->where('visible', true);
+                            }
+                        ]);
                     })
-                    ->preload(),
+                    ->indicateUsing(function (array $data): ?string {
+                        if (! $data['value']) return null;
+
+                        $periodo = AsistenciaResource::getPeriodoFechas($data['value']);
+                        return 'Período: ' . $periodo['label'];
+                    })
+
             ])
             //Botonera de la Cabecera para hacer acciones adicionales
             ->headerActions([
@@ -475,37 +495,75 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     ->label('Exportar a PDF')
                     ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
-                    ->action(function (array $data) use ($fechaInicio, $fechaFin) {
-                        $empleados = Empleado::where('activo', true)
-                            ->with([
-                                'asistencias' => function ($q) use ($fechaInicio, $fechaFin) {
-                                    $q->whereBetween('fecha', [$fechaInicio, $fechaFin])
-                                    ->where('visible', true);
-                                }
-                            ])
-                            ->orderBy('sucursal')
-                            ->orderBy('apellidos')
-                            ->orderBy('nombres')
-                            ->get();
+                    ->action(function (array $data, $livewire) {
+                        try {
+                            // Obtener los filtros actuales para el período
+                            $filters = $livewire->tableFilters;
+                            $mesSeleccionado = $filters['mes']['value'] ?? null;
+                            $periodo = self::getPeriodoFechas($mesSeleccionado);
 
-                        $uniqueDates = DB::table('rh_asistencias')
-                            ->select(DB::raw('DATE(fecha) as date'))
-                            ->whereBetween('fecha', [$fechaInicio, $fechaFin])
-                            ->groupBy('date')
-                            ->orderBy('date', 'desc')
-                            ->limit(31) // Limitar a un mes máximo
-                            ->pluck('date');
+                            // Obtener los empleados CON LOS MISMOS DATOS que muestra la tabla
+                            // Usamos el query de la tabla pero sin paginación
+                            $empleados = $livewire->getFilteredTableQuery()->get();
 
-                        $pdf = Pdf::loadView('exports.asistencias-pdf', [
-                            'empleados' => $empleados,
-                            'fechas' => $uniqueDates,
-                            'fechaInicio' => $fechaInicio,
-                            'fechaFin' => $fechaFin
-                        ]);
+                            // Obtener las fechas del período (igual que en la tabla)
+                            $period = CarbonPeriod::create($periodo['inicio'], $periodo['fin']);
+                            $uniqueDates = collect();
+                            foreach ($period as $date) {
+                                $uniqueDates->push($date->format('Y-m-d'));
+                            }
 
-                        return Response::streamDownload(function () use ($pdf) {
-                            echo $pdf->stream();
-                        }, 'asistencias_' . now()->format('Y-m-d') . '.pdf');
+                            // Cargar las asistencias para cada empleado si no están ya cargadas
+                            // Esto asegura que tengamos todos los datos necesarios
+                            $empleados->load([
+                                'asistencias' => function ($q) use ($periodo) {
+                                    $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']])
+                                        ->where('visible', true)
+                                        ->orderBy('hora');
+                                },
+                                'historialActivo.empresa',
+                                'historialActivo.cargo',
+                                'historialActivo.sucursal'
+                            ]);
+
+                            // Preparar datos para la vista
+                            $filtroSucursal = null;
+                            $user = Auth::user();
+
+                            if ($user->can('ver_marcacion_sucursal_r::r::h::h::asistencia')) {
+                                $empleadoUsuario = Empleado::where('correo_corporativo', $user->email)->first();
+                                $filtroSucursal = $empleadoUsuario->sucursal ?? null;
+                            }
+
+                            // Generar PDF con los mismos datos que la vista
+                            $pdf = Pdf::loadView('exports.asistencias-pdf', [
+                                'empleados' => $empleados,
+                                'fechas' => $uniqueDates,
+                                'fechaInicio' => $periodo['inicio'],
+                                'fechaFin' => $periodo['fin'],
+                                'filtroSucursal' => $filtroSucursal,
+                                'filtroBusqueda' => $filters['search'] ?? null,
+                                'titulo' => 'Reporte de Asistencias - ' . $periodo['label']
+                            ]);
+
+                            // Configurar el PDF para mejor visualización
+                            $pdf->setPaper('A4', 'landscape'); // Cambiar a landscape para mejor visualización de muchas columnas
+
+                            return Response::streamDownload(function () use ($pdf) {
+                                echo $pdf->stream();
+                            }, 'asistencias_' . now()->format('Y-m-d') . '.pdf');
+                        } catch (\Exception $e) {
+                            Log::error('Error generando PDF de asistencias: ' . $e->getMessage(), [
+                                'trace' => $e->getTraceAsString()
+                            ]);
+
+                            // Mostrar error al usuario
+                            Notification::make()
+                                ->title('Error al generar PDF')
+                                ->body('Ocurrió un error: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     }),
             ])
             ->paginated([10, 25, 50, 100])    // Opciones de paginación
