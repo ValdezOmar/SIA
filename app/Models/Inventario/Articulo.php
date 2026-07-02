@@ -10,7 +10,30 @@ class Articulo extends Model
 {
     protected $table = 'alm_articulos';
 
-    protected $guarded = [];
+    protected $fillable = [
+        'codigo',
+        'codigo_alterno',
+        'nombre_comercial',
+        'descripcion',
+        'caracteristicas',
+        'fabricante_id',
+        'grupo_articulo_id',
+        'unidad_medida_id',
+        'inventariable',
+        'comprable',
+        'vendible',
+        'maneja_lotes',
+        'maneja_series',
+        'requiere_serie_en_salida',
+        'metodo_costo',
+        'costo_referencial',
+        'precio_base',
+        'comision',
+        'foto_catalogo',
+        'documentacion_tecnica',
+        'activo',
+        'empresa_id'
+    ];
 
     protected $attributes = [
         'costo_referencial' => 0,
@@ -20,6 +43,23 @@ class Articulo extends Model
         'comprable' => true,
         'vendible' => true,
         'activo' => true,
+        'maneja_lotes' => false,
+        'maneja_series' => false,
+        'requiere_serie_en_salida' => false,
+        'metodo_costo' => 'promedio'
+    ];
+
+    protected $casts = [
+        'inventariable' => 'boolean',
+        'comprable' => 'boolean',
+        'vendible' => 'boolean',
+        'maneja_lotes' => 'boolean',
+        'maneja_series' => 'boolean',
+        'requiere_serie_en_salida' => 'boolean',
+        'activo' => 'boolean',
+        'costo_referencial' => 'decimal:6',
+        'precio_base' => 'decimal:6',
+        'comision' => 'decimal:6',
     ];
 
     // Relación con proveedores a través de la tabla pivote
@@ -56,7 +96,6 @@ class Articulo extends Model
             'atributo_id'
         )->withPivot('valor');
     }
-
 
     public function grupoArticulo()
     {
@@ -102,6 +141,7 @@ class Articulo extends Model
     {
         return $this->hasMany(MovimientoInventario::class);
     }
+    
     public function imagenes()
     {
         return $this->hasMany(ArticuloImagen::class);
@@ -125,5 +165,42 @@ class Articulo extends Model
     public function empresa()
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    // Scopes útiles
+    public function scopeActivo($query)
+    {
+        return $query->where('activo', true);
+    }
+
+    public function scopeInventariable($query)
+    {
+        return $query->where('inventariable', true);
+    }
+
+    public function scopeComprable($query)
+    {
+        return $query->where('comprable', true);
+    }
+
+    public function scopeVendible($query)
+    {
+        return $query->where('vendible', true);
+    }
+
+    // Accesores
+    public function getNombreCompletoAttribute()
+    {
+        return $this->nombre_comercial ?? $this->descripcion ?? $this->codigo;
+    }
+
+    public function getCostoReferencialFormateadoAttribute()
+    {
+        return '$ ' . number_format($this->costo_referencial, 2);
+    }
+
+    public function getPrecioBaseFormateadoAttribute()
+    {
+        return '$ ' . number_format($this->precio_base, 2);
     }
 }

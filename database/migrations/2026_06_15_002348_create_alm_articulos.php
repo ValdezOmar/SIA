@@ -19,15 +19,14 @@ return new class extends Migration
             $table->string('codigo_alterno', 50)
                 ->nullable();
 
-            $table->string('codigo_barras_principal', 100)
+            $table->string('nombre_comercial')
                 ->nullable()
                 ->index();
 
-            $table->text('descripcion')->nullable();
-            $table->text('marca')->nullable();
+            //Datos adicionales
+            $table->string('descripcion')->nullable();
 
-            $table->string('presentacion')
-                ->nullable();
+            $table->text('caracteristicas')->nullable();
 
             $table->foreignId('fabricante_id')
                 ->nullable()
@@ -44,6 +43,7 @@ return new class extends Migration
                 ->constrained('alm_unidades_medida')
                 ->nullOnDelete();
 
+            // Datos de inventario
             $table->boolean('inventariable')
                 ->default(true);
 
@@ -62,6 +62,7 @@ return new class extends Migration
             $table->boolean('requiere_serie_en_salida')
                 ->default(false);
 
+            // Datos de costos y precios
             $table->enum('metodo_costo', [
                 'promedio',
                 'fifo',
@@ -77,15 +78,19 @@ return new class extends Migration
             $table->decimal('comision', 18, 6)
                 ->default(0);
 
+            // Documentos y referencias            
             $table->text('foto_catalogo')
+                ->nullable();
+            
+            $table->text('documentacion_tecnica')
                 ->nullable();
 
             $table->boolean('activo')
                 ->default(true);
-
-            $table->foreignId('empresa_id')
-                ->nullable()
                 
+            // Empresa a la que pertenece el artículo
+            $table->foreignId('empresa_id')
+                ->nullable()                
                 ->constrained('conf_empresas')
                 ->nullOnDelete();
 

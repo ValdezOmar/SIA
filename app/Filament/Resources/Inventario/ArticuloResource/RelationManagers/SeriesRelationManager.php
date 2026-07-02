@@ -22,7 +22,7 @@ class SeriesRelationManager extends RelationManager
 {
     protected static string $relationship = 'series';
 
-    protected static ?string $title = 'Series / Números de Serie';
+    protected static ?string $title = 'Números de Serie';
 
     protected static ?string $modelLabel = 'Serie';
 

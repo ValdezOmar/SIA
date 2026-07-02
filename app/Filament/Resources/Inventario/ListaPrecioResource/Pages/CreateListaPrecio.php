@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateListaPrecio extends CreateRecord
 {
     protected static string $resource = ListaPrecioResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

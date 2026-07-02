@@ -18,6 +18,7 @@ use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Fabricante;
 use App\Models\Inventario\GrupoArticulo;
 use App\Models\Inventario\UnidadMedida;
+use App\Models\Sistema\Empresa;
 use Filament\Forms;
 use Filament\Forms\Components\Card;
 use Filament\Forms\Components\Grid;
@@ -30,6 +31,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -59,7 +61,7 @@ class ArticuloResource extends Resource
     /**
      * Obtener opciones de manera segura sin errores
      */
-    private static function getSafeOptions(string $table, string $labelColumn, string $valueColumn = 'id', array $filters = []): array
+    private static function getSafeOptions(string $table, string $labelColumn, string $valueColumn = 'id', array $filters = [], array $additionalConditions = []): array
     {
         try {
             // Verificar si la tabla existe
@@ -83,6 +85,18 @@ class ArticuloResource extends Resource
                 }
             }
 
+            // Aplicar condiciones adicionales (como SoftDeletes)
+            if (!empty($additionalConditions)) {
+                foreach ($additionalConditions as $column => $value) {
+                    if (Schema::hasColumn($table, $column)) {
+                        $query->where($column, $value);
+                    }
+                }
+            }
+
+            // Ordenar por el label
+            $query->orderBy($labelColumn);
+
             return $query->pluck($labelColumn, $valueColumn)->toArray();
         } catch (\Exception $e) {
             // Si hay cualquier error, devolver array vacío
@@ -102,6 +116,39 @@ class ArticuloResource extends Resource
             return DB::table($table)->exists();
         } catch (\Exception $e) {
             return false;
+        }
+    }
+
+    /**
+     * Obtener opciones de fabricantes de manera segura
+     */
+    private static function getFabricanteOptions(): array
+    {
+        try {
+            if (!Schema::hasTable('alm_fabricantes')) {
+                return [];
+            }
+
+            // Verificar qué columna de nombre existe
+            $labelColumn = 'nombre'; // Por defecto
+
+            if (Schema::hasColumn('alm_fabricantes', 'nombre_comercial')) {
+                $labelColumn = 'nombre_comercial';
+            } elseif (Schema::hasColumn('alm_fabricantes', 'razon_social')) {
+                $labelColumn = 'razon_social';
+            } elseif (Schema::hasColumn('alm_fabricantes', 'nombre')) {
+                $labelColumn = 'nombre';
+            }
+
+            return DB::table('alm_fabricantes')
+                ->select('id', "$labelColumn as label")
+                // ELIMINAR ESTA LÍNEA: ->whereNull('deleted_at')
+                ->orderBy($labelColumn)
+                ->get()
+                ->pluck('label', 'id')
+                ->toArray();
+        } catch (\Exception $e) {
+            return [];
         }
     }
 
@@ -131,17 +178,34 @@ class ArticuloResource extends Resource
 
                                                 TextInput::make('codigo_alterno')
                                                     ->label('Código Alterno')
+                                                    ->maxLength(50)
                                                     ->placeholder('Ej: REF-001')
                                                     ->helperText('Código alternativo o del proveedor'),
 
-                                                TextInput::make('codigo_barras_principal')
-                                                    ->label('Código de Barras')
-                                                    ->placeholder('Ej: 7701234567890')
-                                                    ->helperText('Código de barras principal'),
+                                                TextInput::make('nombre_comercial')
+                                                    ->label('Nombre Comercial')
+                                                    ->maxLength(255)
+                                                    ->placeholder('Ej: Laptop HP ProBook 450')
+                                                    ->helperText('Nombre comercial del artículo para mostrarlo en listados'),
                                             ]),
 
-                                        Grid::make(3)
+                                        Grid::make(2)
                                             ->schema([
+                                                Select::make('empresa_id')
+                                                    ->label('Empresa')
+                                                    ->options(fn() => self::getSafeOptions(
+                                                        'conf_empresas',
+                                                        'nombre_comercial',  // Cambiar 'nombre' por 'nombre_comercial'
+                                                        'id',
+                                                        [],
+                                                        ['deleted_at' => null]  // Filtrar empresas no eliminadas (SoftDeletes)
+                                                    ))
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->placeholder(self::hasData('conf_empresas') ? 'Seleccione una empresa' : 'No hay empresas disponibles')
+                                                    ->helperText('Empresa a la que pertenece el artículo')
+                                                    ->disabled(!self::hasData('conf_empresas')),
+
                                                 Select::make('grupo_articulo_id')
                                                     ->label('Grupo de Artículo')
                                                     ->options(fn() => self::getSafeOptions('alm_grupos_articulos', 'nombre'))
@@ -150,10 +214,13 @@ class ArticuloResource extends Resource
                                                     ->placeholder(self::hasData('alm_grupos_articulos') ? 'Seleccione un grupo' : 'No hay grupos disponibles')
                                                     ->helperText('Clasificación del artículo')
                                                     ->disabled(!self::hasData('alm_grupos_articulos')),
+                                            ]),
 
+                                        Grid::make(2)
+                                            ->schema([
                                                 Select::make('fabricante_id')
                                                     ->label('Fabricante')
-                                                    ->options(fn() => self::getSafeOptions('alm_fabricantes', 'nombre'))
+                                                    ->options(fn() => self::getFabricanteOptions())  // Usar el método específico
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder(self::hasData('alm_fabricantes') ? 'Seleccione un fabricante' : 'No hay fabricantes disponibles')
@@ -171,14 +238,30 @@ class ArticuloResource extends Resource
 
                                         Grid::make(2)
                                             ->schema([
-                                                TextInput::make('presentacion')
-                                                    ->label('Presentación')
-                                                    ->placeholder('Ej: Caja x 12 unidades')
-                                                    ->helperText('Forma de presentación del artículo'),
 
-                                                RichEditor::make('descripcion')
+                                                Toggle::make('activo')
+                                                    ->label('Activo')
+                                                    ->default(true)
+                                                    ->helperText('Artículo disponible para su uso'),
+                                            ]),
+                                    ]),
+
+                                Section::make('Descripción y Características')
+                                    ->icon('heroicon-o-document-text')
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+
+                                                Textarea::make('descripcion')
                                                     ->label('Descripción')
-                                                    ->placeholder('Descripción detallada del artículo...')
+                                                    ->placeholder('Descripción detallada del artículo... 255 caracteres Max.')
+                                                    ->rows(6)
+                                                    ->maxLength(255)  // Limita a 255 caracteres (como string)
+                                                    ->columnSpan(1),
+
+                                                RichEditor::make('caracteristicas')
+                                                    ->label('Características Técnicas')
+                                                    ->placeholder('Especificaciones técnicas del artículo...')
                                                     ->toolbarButtons([
                                                         'bold',
                                                         'italic',
@@ -186,15 +269,17 @@ class ArticuloResource extends Resource
                                                         'bulletList',
                                                         'orderedList',
                                                         'link',
-                                                    ]),
-                                            ]),
+                                                    ])
+                                                    ->columnSpan(1),
 
+                                            ]),
+                                    ]),
+
+                                Section::make('Documentación y Multimedia')
+                                    ->icon('heroicon-o-photo')
+                                    ->schema([
                                         Grid::make(2)
                                             ->schema([
-                                                TextInput::make('marca')
-                                                    ->label('Marca')
-                                                    ->placeholder('Ej: Samsung, HP, etc.'),
-
                                                 FileUpload::make('foto_catalogo')
                                                     ->label('Foto de Catálogo')
                                                     ->image()
@@ -202,21 +287,15 @@ class ArticuloResource extends Resource
                                                     ->imageResizeTargetHeight('400')
                                                     ->directory('articulos/catalogo')
                                                     ->visibility('public')
-                                                    ->helperText('Subir imagen principal del artículo')
-                                                    ->columnSpanFull(),
-                                            ]),
-                                    ]),
+                                                    ->helperText('Subir imagen principal del artículo'),
 
-                                Section::make('Estado del Artículo')
-                                    ->icon('heroicon-o-check-circle')
-                                    ->schema([
-                                        Grid::make(3)
-                                            ->schema([
-                                                Toggle::make('activo')
-                                                    ->label('Activo')
-                                                    ->default(true)
-                                                    ->helperText('Artículo disponible para su uso')
-                                                    ->columnSpan(1),
+                                                FileUpload::make('documentacion_tecnica')
+                                                    ->label('Documentación Técnica')
+                                                    ->directory('articulos/documentacion')
+                                                    ->visibility('public')
+                                                    ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+                                                    ->maxSize(10240)
+                                                    ->helperText('PDF, Word u otros documentos (máx. 10MB)'),
                                             ]),
                                     ]),
                             ]),
@@ -307,13 +386,13 @@ class ArticuloResource extends Resource
                                                     ->prefix('$')
                                                     ->placeholder('0.00')
                                                     ->default(0)
+                                                    ->step(0.000001)
                                                     ->dehydrateStateUsing(fn($state) => $state ?? 0)
                                                     ->helperText('Costo sugerido para compras')
                                                     ->visible(fn(Forms\Get $get) => $get('comprable')),
                                             ]),
                                     ]),
 
-                                // ========== SECCIÓN MEJORADA DE PROVEEDORES ==========
                                 Section::make('Proveedores Asignados')
                                     ->icon('heroicon-o-users')
                                     ->description('Lista de proveedores que suministran este artículo')
@@ -346,8 +425,8 @@ class ArticuloResource extends Resource
                                                         $html .= '<div class="p-3 rounded-lg border ' . $color . '">';
                                                         $html .= '<div class="flex justify-between items-start">';
                                                         $html .= '<div>';
-                                                        $html .= '<p class="font-medium text-gray-800">' . $esPrincipal . $proveedor->nombre . '</p>';
-                                                        $html .= '<p class="text-xs text-gray-500">Código: ' . $proveedor->codigo . '</p>';
+                                                        $html .= '<p class="font-medium text-gray-800">' . $esPrincipal . ($proveedor->nombre ?? 'Proveedor') . '</p>';
+                                                        $html .= '<p class="text-xs text-gray-500">Código: ' . ($proveedor->codigo ?? 'N/A') . '</p>';
 
                                                         if ($item->codigo_proveedor) {
                                                             $html .= '<p class="text-xs text-gray-500">Código Proveedor: ' . $item->codigo_proveedor . '</p>';
@@ -357,7 +436,7 @@ class ArticuloResource extends Resource
                                                             $html .= '<p class="text-xs text-green-600 font-medium">Costo: $ ' . number_format($item->costo_compra, 2) . '</p>';
                                                         }
 
-                                                        if ($proveedor->telefono) {
+                                                        if ($proveedor && isset($proveedor->telefono) && $proveedor->telefono) {
                                                             $html .= '<p class="text-xs text-gray-400">📞 ' . $proveedor->telefono . '</p>';
                                                         }
 
@@ -403,6 +482,7 @@ class ArticuloResource extends Resource
                                                     ->prefix('$')
                                                     ->placeholder('0.00')
                                                     ->default(0)
+                                                    ->step(0.000001)
                                                     ->dehydrateStateUsing(fn($state) => $state ?? 0)
                                                     ->helperText('Precio base para cálculos de venta')
                                                     ->visible(fn(Forms\Get $get) => $get('vendible')),
@@ -413,6 +493,7 @@ class ArticuloResource extends Resource
                                                     ->suffix('%')
                                                     ->placeholder('0.00')
                                                     ->default(0)
+                                                    ->step(0.000001)
                                                     ->dehydrateStateUsing(fn($state) => $state ?? 0)
                                                     ->helperText('Porcentaje de comisión para vendedores')
                                                     ->visible(fn(Forms\Get $get) => $get('vendible')),
@@ -524,11 +605,19 @@ class ArticuloResource extends Resource
                     ->copyable()
                     ->copyMessage('Código copiado'),
 
+                TextColumn::make('nombre_comercial')
+                    ->label('Nombre Comercial')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->limit(30)
+                    ->default('-'),
+
                 TextColumn::make('descripcion')
                     ->label('Descripción')
                     ->searchable()
                     ->limit(30)
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->tooltip(fn($record) => $record->descripcion ?? ''),
 
                 TextColumn::make('grupoArticulo.nombre')
@@ -553,11 +642,11 @@ class ArticuloResource extends Resource
                     ->searchable()
                     ->default('-'),
 
-                TextColumn::make('presentacion')
-                    ->label('Presentación')
-                    ->limit(15)
+                TextColumn::make('empresa.nombre_comercial')  // Cambiar 'nombre' por 'nombre_comercial'
+                    ->label('Empresa')
                     ->toggleable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->searchable()
+                    ->default('-'),
 
                 IconColumn::make('inventariable')
                     ->label('Stock')
@@ -590,14 +679,12 @@ class ArticuloResource extends Resource
                     ->label('Costo Ref.')
                     ->money('USD')
                     ->sortable()
-                    ->toggleable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('precio_base')
                     ->label('Precio Base')
                     ->money('USD')
                     ->sortable()
-                    ->toggleable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('activo')
@@ -630,7 +717,13 @@ class ArticuloResource extends Resource
 
                 Tables\Filters\SelectFilter::make('fabricante_id')
                     ->label('Fabricante')
-                    ->options(fn() => self::getSafeOptions('alm_fabricantes', 'nombre'))
+                    ->options(fn() => self::getFabricanteOptions())  // Usar el método específico
+                    ->searchable()
+                    ->preload(),
+
+                Tables\Filters\SelectFilter::make('empresa_id')
+                    ->label('Empresa')
+                    ->options(fn() => self::getSafeOptions('conf_empresas', 'nombre_comercial', 'id', [], ['deleted_at' => null]))
                     ->searchable()
                     ->preload(),
 
@@ -696,12 +789,14 @@ class ArticuloResource extends Resource
         // Array de relation managers disponibles
         $relations = [];
 
-        // Solo agregar el relation manager de Precios si existe la tabla y la columna
+        if (Schema::hasTable('alm_existencias')) {
+            $relations[] = ExistenciasRelationManager::class;
+        }
+
         if (Schema::hasTable('alm_precios_articulos') && Schema::hasColumn('alm_precios_articulos', 'lista_precio_id')) {
             $relations[] = PreciosRelationManager::class;
         }
-
-        // Agregar el resto de relation managers solo si existen las tablas
+        
         if (Schema::hasTable('alm_codigos_barras')) {
             $relations[] = CodigosBarrasRelationManager::class;
         }
@@ -733,9 +828,6 @@ class ArticuloResource extends Resource
         if (Schema::hasTable('alm_articulos_atributos')) {
             $relations[] = AtributosRelationManager::class;
         }
-        if (Schema::hasTable('alm_existencias')) {
-            $relations[] = ExistenciasRelationManager::class;
-        }
 
         return $relations;
     }
@@ -754,7 +846,6 @@ class ArticuloResource extends Resource
         try {
             $newRecord = $record->replicate();
             $newRecord->codigo = $record->codigo . '-COPY-' . time();
-            $newRecord->codigo_barras_principal = null;
 
             // Asegurar valores por defecto
             $newRecord->costo_referencial = $record->costo_referencial ?? 0;
@@ -767,7 +858,7 @@ class ArticuloResource extends Resource
 
             \Filament\Notifications\Notification::make()
                 ->title('Artículo duplicado exitosamente')
-                ->body('El artículo "' . ($newRecord->descripcion ?? $newRecord->codigo) . '" ha sido creado.')
+                ->body('El artículo "' . ($newRecord->nombre_comercial ?? $newRecord->descripcion ?? $newRecord->codigo) . '" ha sido creado.')
                 ->success()
                 ->send();
         } catch (\Exception $e) {
