@@ -170,11 +170,12 @@ class ArticuloResource extends Resource
                                             ->schema([
                                                 TextInput::make('codigo')
                                                     ->label('Código')
-                                                    ->required()
                                                     ->maxLength(50)
                                                     ->unique(ignoreRecord: true)
-                                                    ->placeholder('Ej: PROD-001')
-                                                    ->helperText('Código único del artículo'),
+                                                    ->placeholder('Se genera automáticamente')
+                                                    ->helperText('Déjalo vacío para generar automáticamente o ingresa uno personalizado')
+                                                    ->disabled() // Deshabilitar en edición
+                                                    ->dehydrated(fn($record) => $record === null), // Solo enviar en creación
 
                                                 TextInput::make('codigo_alterno')
                                                     ->label('Código Alterno')
@@ -796,7 +797,7 @@ class ArticuloResource extends Resource
         if (Schema::hasTable('alm_precios_articulos') && Schema::hasColumn('alm_precios_articulos', 'lista_precio_id')) {
             $relations[] = PreciosRelationManager::class;
         }
-        
+
         if (Schema::hasTable('alm_codigos_barras')) {
             $relations[] = CodigosBarrasRelationManager::class;
         }

@@ -62,6 +62,110 @@ class Articulo extends Model
         'comision' => 'decimal:6',
     ];
 
+    /**
+     * Boot del modelo
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($articulo) {
+            // Si no se proporcionó un código manualmente, generarlo automáticamente
+            if (empty($articulo->codigo)) {
+                $articulo->codigo = self::generarCodigo($articulo);
+            }
+        });
+    }
+
+    /**
+     * Generar código automático para el artículo
+     * Formato: [CÓDIGO_GRUPO]-[CÓDIGO_FABRICANTE]-[CORRELATIVO]
+     */
+    public static function generarCodigo($articulo): string
+    {
+        // Obtener código del grupo (2 primeras letras mayúsculas)
+        $codigoGrupo = 'XX';
+        if ($articulo->grupo_articulo_id) {
+            $grupo = GrupoArticulo::find($articulo->grupo_articulo_id);
+            if ($grupo && $grupo->codigo) {
+                $codigoGrupo = strtoupper(substr($grupo->codigo, 0, 2));
+            } else {
+                // Si el grupo no tiene código, usar las primeras 2 letras del nombre
+                $codigoGrupo = strtoupper(substr($grupo->nombre ?? 'XX', 0, 2));
+            }
+        }
+
+        // Obtener código del fabricante (2 primeras letras mayúsculas)
+        $codigoFabricante = 'XX';
+        if ($articulo->fabricante_id) {
+            $fabricante = Fabricante::find($articulo->fabricante_id);
+            if ($fabricante && $fabricante->codigo) {
+                $codigoFabricante = strtoupper(substr($fabricante->codigo, 0, 2));
+            } else {
+                // Si el fabricante no tiene código, usar las primeras 2 letras del nombre
+                $codigoFabricante = strtoupper(substr($fabricante->nombre ?? 'XX', 0, 2));
+            }
+        }
+
+        // Generar el prefijo
+        $prefijo = $codigoGrupo . '-' . $codigoFabricante;
+
+        // Buscar el último correlativo para este prefijo
+        $ultimo = self::where('codigo', 'LIKE', $prefijo . '-%')
+            ->orderBy('codigo', 'desc')
+            ->first();
+
+        if ($ultimo) {
+            // Extraer el número del último código
+            $partes = explode('-', $ultimo->codigo);
+            $numero = intval(end($partes));
+            $correlativo = str_pad($numero + 1, 3, '0', STR_PAD_LEFT);
+        } else {
+            // Si no existe, empezar desde 001
+            $correlativo = '001';
+        }
+
+        return $prefijo . '-' . $correlativo;
+    }
+    
+    /**
+     * Previsualizar el código que se generará
+     */
+    public static function previsualizarCodigo($grupoId, $fabricanteId): string
+    {
+        $codigoGrupo = 'XX';
+        if ($grupoId) {
+            $grupo = GrupoArticulo::find($grupoId);
+            if ($grupo && $grupo->codigo) {
+                $codigoGrupo = strtoupper(substr($grupo->codigo, 0, 2));
+            }
+        }
+
+        $codigoFabricante = 'XX';
+        if ($fabricanteId) {
+            $fabricante = Fabricante::find($fabricanteId);
+            if ($fabricante && $fabricante->codigo) {
+                $codigoFabricante = strtoupper(substr($fabricante->codigo, 0, 2));
+            }
+        }
+
+        $prefijo = $codigoGrupo . '-' . $codigoFabricante;
+
+        $ultimo = self::where('codigo', 'LIKE', $prefijo . '-%')
+            ->orderBy('codigo', 'desc')
+            ->first();
+
+        if ($ultimo) {
+            $partes = explode('-', $ultimo->codigo);
+            $numero = intval(end($partes));
+            $correlativo = str_pad($numero + 1, 3, '0', STR_PAD_LEFT);
+        } else {
+            $correlativo = '001';
+        }
+
+        return $prefijo . '-' . $correlativo;
+    }
+
     // Relación con proveedores a través de la tabla pivote
     public function proveedores()
     {
@@ -141,7 +245,7 @@ class Articulo extends Model
     {
         return $this->hasMany(MovimientoInventario::class);
     }
-    
+
     public function imagenes()
     {
         return $this->hasMany(ArticuloImagen::class);
