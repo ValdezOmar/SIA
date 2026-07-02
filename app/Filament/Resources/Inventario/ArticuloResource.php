@@ -192,6 +192,37 @@ class ArticuloResource extends Resource
 
                                         Grid::make(2)
                                             ->schema([
+
+                                                Select::make('grupo_articulo_id')
+                                                    ->label('Grupo de Artículo')
+                                                    ->options(fn() => self::getSafeOptions('alm_grupos_articulos', 'nombre'))
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->placeholder(self::hasData('alm_grupos_articulos') ? 'Seleccione un grupo' : 'No hay grupos disponibles')
+                                                    ->helperText('Clasificación del artículo')
+                                                    ->disabled(!self::hasData('alm_grupos_articulos')),
+
+                                                Select::make('fabricante_id')
+                                                    ->label('Fabricante')
+                                                    ->options(fn() => self::getFabricanteOptions())  // Usar el método específico
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->placeholder(self::hasData('alm_fabricantes') ? 'Seleccione un fabricante' : 'No hay fabricantes disponibles')
+                                                    ->disabled(!self::hasData('alm_fabricantes')),
+                                            ]),
+
+                                        Grid::make(2)
+                                            ->schema([
+
+                                                Select::make('unidad_medida_id')
+                                                    ->label('Unidad de Medida')
+                                                    ->options(fn() => self::getSafeOptions('alm_unidades_medida', 'nombre'))
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->placeholder(self::hasData('alm_unidades_medida') ? 'Seleccione una unidad' : 'No hay unidades disponibles')
+                                                    ->helperText('Unidad base del artículo')
+                                                    ->disabled(!self::hasData('alm_unidades_medida')),
+
                                                 Select::make('empresa_id')
                                                     ->label('Empresa')
                                                     ->options(fn() => self::getSafeOptions(
@@ -206,35 +237,6 @@ class ArticuloResource extends Resource
                                                     ->placeholder(self::hasData('conf_empresas') ? 'Seleccione una empresa' : 'No hay empresas disponibles')
                                                     ->helperText('Empresa a la que pertenece el artículo')
                                                     ->disabled(!self::hasData('conf_empresas')),
-
-                                                Select::make('grupo_articulo_id')
-                                                    ->label('Grupo de Artículo')
-                                                    ->options(fn() => self::getSafeOptions('alm_grupos_articulos', 'nombre'))
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->placeholder(self::hasData('alm_grupos_articulos') ? 'Seleccione un grupo' : 'No hay grupos disponibles')
-                                                    ->helperText('Clasificación del artículo')
-                                                    ->disabled(!self::hasData('alm_grupos_articulos')),
-                                            ]),
-
-                                        Grid::make(2)
-                                            ->schema([
-                                                Select::make('fabricante_id')
-                                                    ->label('Fabricante')
-                                                    ->options(fn() => self::getFabricanteOptions())  // Usar el método específico
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->placeholder(self::hasData('alm_fabricantes') ? 'Seleccione un fabricante' : 'No hay fabricantes disponibles')
-                                                    ->disabled(!self::hasData('alm_fabricantes')),
-
-                                                Select::make('unidad_medida_id')
-                                                    ->label('Unidad de Medida')
-                                                    ->options(fn() => self::getSafeOptions('alm_unidades_medida', 'nombre'))
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->placeholder(self::hasData('alm_unidades_medida') ? 'Seleccione una unidad' : 'No hay unidades disponibles')
-                                                    ->helperText('Unidad base del artículo')
-                                                    ->disabled(!self::hasData('alm_unidades_medida')),
                                             ]),
 
                                         Grid::make(2)
