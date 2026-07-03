@@ -754,15 +754,13 @@ class ArticuloResource extends Resource
                         ->requiresConfirmation()
                         ->modalHeading('Duplicar Artículo')
                         ->modalSubheading('¿Deseas crear una copia de este artículo?'),
-
-                    Tables\Actions\DeleteAction::make(),
+                    
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                Tables\Actions\BulkActionGroup::make([                   
                     Tables\Actions\BulkAction::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-check-circle')
@@ -798,13 +796,13 @@ class ArticuloResource extends Resource
             $relations[] = UnidadesRelationManager::class;
         }
 
-        // Imágenes
-        if (Schema::hasTable('alm_articulo_imagenes')) {
-            $relations[] = ImagenesRelationManager::class;
-        }
+        // // Imágenes
+        // if (Schema::hasTable('alm_articulos_imagenes')) {
+        //     $relations[] = ImagenesRelationManager::class;
+        // }
 
         // Atributos
-        if (Schema::hasTable('alm_articulo_atributos')) {
+        if (Schema::hasTable('alm_articulos_atributos')) {
             $relations[] = AtributosRelationManager::class;
         }
 
