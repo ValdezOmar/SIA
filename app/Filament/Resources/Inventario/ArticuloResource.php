@@ -599,13 +599,23 @@ class ArticuloResource extends Resource
                     ->copyable()
                     ->copyMessage('Código copiado'),
 
+                TextColumn::make('codigo_alterno')
+                    ->label('Modelo')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->copyable()
+                    ->copyMessage('Modelo copiado')
+                    ->toggleable(),
+
                 TextColumn::make('nombre_comercial')
                     ->label('Nombre Comercial')
                     ->searchable()
                     ->sortable()
                     ->toggleable()
                     ->limit(30)
-                    ->default('-'),
+                    ->default('-')
+                    ->toggleable(),
 
                 TextColumn::make('grupoArticulo.nombre')
                     ->label('Grupo')
@@ -613,13 +623,15 @@ class ArticuloResource extends Resource
                     ->color('info')
                     ->toggleable()
                     ->searchable()
-                    ->default('-'),
+                    ->default('-')
+                    ->toggleable(),
 
                 TextColumn::make('fabricante.nombre')
                     ->label('Fabricante')
                     ->toggleable()
                     ->searchable()
-                    ->default('-'),
+                    ->default('-')
+                    ->toggleable(),
 
                 TextColumn::make('unidadMedida.abreviatura')
                     ->label('UM')
