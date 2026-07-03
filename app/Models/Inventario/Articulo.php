@@ -127,7 +127,7 @@ class Articulo extends Model
 
         return $prefijo . '-' . $correlativo;
     }
-    
+
     /**
      * Previsualizar el código que se generará
      */
@@ -200,7 +200,26 @@ class Articulo extends Model
             'atributo_id'
         )->withPivot('valor');
     }
+    // Mutadores para manejar la lógica de lotes y series
+    public function setManejaLotesAttribute($value)
+    {
+        $this->attributes['maneja_lotes'] = $value;
+        // Si se activa lotes, desactivar series
+        if ($value) {
+            $this->attributes['maneja_series'] = false;
+            $this->attributes['requiere_serie_en_salida'] = false;
+        }
+    }
 
+    public function setManejaSeriesAttribute($value)
+    {
+        $this->attributes['maneja_series'] = $value;
+        // Si se activa series, desactivar lotes
+        if ($value) {
+            $this->attributes['maneja_lotes'] = false;
+        }
+    }
+    // Relaciones con otros modelos
     public function grupoArticulo()
     {
         return $this->belongsTo(GrupoArticulo::class);

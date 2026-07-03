@@ -28,6 +28,22 @@ class SeriesRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Series';
 
+    /**
+     * Determina si el relation manager debe mostrarse
+     */
+    public static function canViewForRecord($record, $pageClass): bool
+    {
+        // Solo mostrar si el artículo maneja series
+        return $record && $record->maneja_series;
+    }
+
+    public function isReadOnly(): bool
+    {
+        // Si no maneja series, es de solo lectura (esto oculta el contenido)
+        $record = $this->getOwnerRecord();
+        return !$record || !$record->maneja_series;
+    }
+
     public function form(Form $form): Form
     {
         return $form
@@ -76,9 +92,10 @@ class SeriesRelationManager extends RelationManager
                             ->schema([
                                 Select::make('almacen_id')
                                     ->label('Almacén')
-                                    ->options(fn () => Almacen::where('activo', true)
-                                        ->pluck('nombre', 'id')
-                                        ->toArray()
+                                    ->options(
+                                        fn() => Almacen::where('activo', true)
+                                            ->pluck('nombre', 'id')
+                                            ->toArray()
                                     )
                                     ->searchable()
                                     ->preload()
@@ -142,9 +159,9 @@ class SeriesRelationManager extends RelationManager
                                 if (!$articulo) {
                                     return 'No hay artículo asociado.';
                                 }
-                                
+
                                 return "📦 Artículo: {$articulo->codigo} - {$articulo->descripcion}\n" .
-                                       "📋 Unidad: " . ($articulo->unidadMedida->nombre ?? 'N/A');
+                                    "📋 Unidad: " . ($articulo->unidadMedida->nombre ?? 'N/A');
                             })
                             ->columnSpanFull(),
                     ]),
@@ -218,7 +235,7 @@ class SeriesRelationManager extends RelationManager
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable()
-                    ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success')
+                    ->color(fn($state) => $state && $state < now() ? 'danger' : 'success')
                     ->placeholder('-'),
 
                 TextColumn::make('created_at')
@@ -236,9 +253,10 @@ class SeriesRelationManager extends RelationManager
             ->filters([
                 Tables\Filters\SelectFilter::make('almacen_id')
                     ->label('Almacén')
-                    ->options(fn () => Almacen::where('activo', true)
-                        ->pluck('nombre', 'id')
-                        ->toArray()
+                    ->options(
+                        fn() => Almacen::where('activo', true)
+                            ->pluck('nombre', 'id')
+                            ->toArray()
                     )
                     ->searchable()
                     ->preload(),
@@ -266,13 +284,13 @@ class SeriesRelationManager extends RelationManager
                     ->query(function ($query, array $data) {
                         return $query->when(
                             $data['garantia_hasta'],
-                            fn ($query, $fecha) => $query->where('fecha_garantia', '<=', $fecha)
+                            fn($query, $fecha) => $query->where('fecha_garantia', '<=', $fecha)
                         );
                     }),
 
                 Tables\Filters\Filter::make('garantia_vencida')
                     ->label('Garantía Vencida')
-                    ->query(fn ($query) => $query->where('fecha_garantia', '<', now())->whereNotNull('fecha_garantia')),
+                    ->query(fn($query) => $query->where('fecha_garantia', '<', now())->whereNotNull('fecha_garantia')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
@@ -329,7 +347,7 @@ class SeriesRelationManager extends RelationManager
                         ])
                         ->action(function (array $data, $record) {
                             $record->update(['estado' => $data['estado']]);
-                            
+
                             Notification::make()
                                 ->title('Estado actualizado')
                                 ->body('La serie ahora está en estado: ' . ucfirst($data['estado']))
@@ -346,8 +364,8 @@ class SeriesRelationManager extends RelationManager
                                 ->send();
                         }),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -378,7 +396,7 @@ class SeriesRelationManager extends RelationManager
                             foreach ($records as $record) {
                                 $record->update(['estado' => $data['estado']]);
                             }
-                            
+
                             Notification::make()
                                 ->title('Estados actualizados')
                                 ->body('Se actualizaron ' . $records->count() . ' series al estado: ' . ucfirst($data['estado']))

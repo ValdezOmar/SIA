@@ -321,12 +321,27 @@ class ArticuloResource extends Resource
                                                 Toggle::make('maneja_lotes')
                                                     ->label('Maneja Lotes')
                                                     ->helperText('Control por número de lote')
-                                                    ->visible(fn(Forms\Get $get) => $get('inventariable')),
+                                                    ->visible(fn(Forms\Get $get) => $get('inventariable'))
+                                                    ->live() // Importante para que reaccione en tiempo real
+                                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                                        // Si se activa lotes, desactivar series
+                                                        if ($state) {
+                                                            $set('maneja_series', false);
+                                                            $set('requiere_serie_en_salida', false);
+                                                        }
+                                                    }),
 
                                                 Toggle::make('maneja_series')
                                                     ->label('Maneja Series')
                                                     ->helperText('Control por número de serie')
-                                                    ->visible(fn(Forms\Get $get) => $get('inventariable')),
+                                                    ->visible(fn(Forms\Get $get) => $get('inventariable'))
+                                                    ->live() // Importante para que reaccione en tiempo real
+                                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                                        // Si se activa series, desactivar lotes
+                                                        if ($state) {
+                                                            $set('maneja_lotes', false);
+                                                        }
+                                                    }),
                                             ]),
 
                                         Grid::make(2)
@@ -404,17 +419,17 @@ class ArticuloResource extends Resource
                                             ->label('')
                                             ->content(function ($record) {
                                                 if (!$record) {
-                                                    return '<div class="text-sm text-gray-500">Los proveedores se mostrarán después de guardar el artículo.</div>';
+                                                    return new HtmlString('<div class="text-sm text-gray-500">Los proveedores se mostrarán después de guardar el artículo.</div>');
                                                 }
 
                                                 try {
                                                     $proveedores = $record->proveedores()->with('proveedor')->get();
 
                                                     if ($proveedores->isEmpty()) {
-                                                        return '<div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                                    <p class="text-sm text-yellow-700">No hay proveedores asignados a este artículo.</p>
-                                    <p class="text-xs text-yellow-500 mt-1">Gestiona los proveedores en la pestaña "Proveedores" en la sección de relaciones.</p>
-                                </div>';
+                                                        return new HtmlString('<div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                            <p class="text-sm text-yellow-700">No hay proveedores asignados a este artículo.</p>
+                            <p class="text-xs text-yellow-500 mt-1">Gestiona los proveedores en la pestaña "Proveedores" en la sección de relaciones.</p>
+                        </div>');
                                                     }
 
                                                     $html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">';
@@ -423,7 +438,6 @@ class ArticuloResource extends Resource
                                                         $proveedor = $item->proveedor;
                                                         $esPrincipal = $item->es_principal ? '⭐ ' : '';
                                                         $color = $item->es_principal ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200 bg-white';
-                                                        $icono = $item->es_principal ? '★' : '▸';
 
                                                         $html .= '<div class="p-3 rounded-lg border ' . $color . '">';
                                                         $html .= '<div class="flex justify-between items-start">';
@@ -455,9 +469,9 @@ class ArticuloResource extends Resource
 
                                                     $html .= '</div>';
 
-                                                    return $html;
+                                                    return new HtmlString($html);
                                                 } catch (\Exception $e) {
-                                                    return '<div class="text-sm text-gray-500">Error al cargar proveedores.</div>';
+                                                    return new HtmlString('<div class="text-sm text-gray-500">Error al cargar proveedores.</div>');
                                                 }
                                             })
                                             ->columnSpanFull(),
@@ -515,77 +529,6 @@ class ArticuloResource extends Resource
                                 <strong>"Precios"</strong> en la sección de relaciones.
                             </p>
                         </div>'
-                                            ))
-                                            ->columnSpanFull(),
-                                    ]),
-                            ]),
-
-                        // ========== TAB 5: RELACIONES Y EXTRA ==========
-                        Tabs\Tab::make('Relaciones')
-                            ->icon('heroicon-o-link')
-                            ->schema([
-                                Section::make('Unidades de Medida Alternas')
-                                    ->icon('heroicon-o-scale')
-                                    ->schema([
-                                        Placeholder::make('unidades_info')
-                                            ->label('')
-                                            ->content(new HtmlString(
-                                                '<div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                    <p class="text-sm text-gray-600">
-                                                        📏 Gestiona unidades alternas (ej: caja, pallet, docena) en la pestaña 
-                                                        <strong>"Unidades"</strong> en la sección de relaciones.
-                                                    </p>
-                                                </div>'
-                                            ))
-                                            ->columnSpanFull(),
-                                    ]),
-
-                                Section::make('Imágenes y Atributos')
-                                    ->icon('heroicon-o-photo')
-                                    ->schema([
-                                        Grid::make(2)
-                                            ->schema([
-                                                Placeholder::make('imagenes_info')
-                                                    ->label('')
-                                                    ->content(new HtmlString(
-                                                        '<div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                            <p class="text-sm text-gray-600">
-                                                                🖼️ Gestiona imágenes adicionales en la pestaña <strong>"Imágenes"</strong>.
-                                                            </p>
-                                                        </div>'
-                                                    )),
-
-                                                Placeholder::make('atributos_info')
-                                                    ->label('')
-                                                    ->content(new HtmlString(
-                                                        '<div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                            <p class="text-sm text-gray-600">
-                                                                🏷️ Gestiona atributos (talla, color, etc.) en la pestaña <strong>"Atributos"</strong>.
-                                                            </p>
-                                                        </div>'
-                                                    )),
-                                            ]),
-                                    ]),
-                            ]),
-
-                        // ========== TAB 6: CÓDIGOS DE BARRAS ==========
-                        Tabs\Tab::make('Códigos de Barras')
-                            ->icon('heroicon-o-qr-code')
-                            ->schema([
-                                Section::make('Gestión de Códigos de Barras')
-                                    ->schema([
-                                        Placeholder::make('codigos_barras_info')
-                                            ->label('')
-                                            ->content(new HtmlString(
-                                                '<div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                    <p class="text-sm text-gray-600">
-                                                        📱 Gestiona múltiples códigos de barras por artículo en la pestaña 
-                                                        <strong>"Códigos de Barras"</strong> en la sección de relaciones.
-                                                    </p>
-                                                    <p class="text-xs text-gray-500 mt-2">
-                                                        Puedes tener diferentes códigos por unidad de medida, proveedor, etc.
-                                                    </p>
-                                                </div>'
                                             ))
                                             ->columnSpanFull(),
                                     ]),
@@ -789,47 +732,50 @@ class ArticuloResource extends Resource
 
     public static function getRelations(): array
     {
-        // Array de relation managers disponibles
         $relations = [];
 
+        // Existencias - siempre visible
         if (Schema::hasTable('alm_existencias')) {
             $relations[] = ExistenciasRelationManager::class;
         }
 
+        // Precios
         if (Schema::hasTable('alm_precios_articulos') && Schema::hasColumn('alm_precios_articulos', 'lista_precio_id')) {
             $relations[] = PreciosRelationManager::class;
         }
 
-        if (Schema::hasTable('alm_codigos_barras')) {
-            $relations[] = CodigosBarrasRelationManager::class;
-        }
-
+        // Unidades
         if (Schema::hasTable('alm_unidades_articulos') || Schema::hasTable('alm_articulo_unidades')) {
             $relations[] = UnidadesRelationManager::class;
         }
 
+        // Imágenes
         if (Schema::hasTable('alm_articulo_imagenes')) {
             $relations[] = ImagenesRelationManager::class;
         }
 
+        // Atributos
         if (Schema::hasTable('alm_articulo_atributos')) {
             $relations[] = AtributosRelationManager::class;
         }
 
+        // Proveedores
         if (Schema::hasTable('cmp_articulos_proveedores')) {
             $relations[] = ProveedoresRelationManager::class;
         }
 
-        if (Schema::hasTable('alm_series')) {
-            $relations[] = SeriesRelationManager::class;
-        }
-
+        // Lotes - Siempre agregar, pero el RelationManager se ocultará si no maneja lotes
         if (Schema::hasTable('alm_lotes')) {
             $relations[] = LotesRelationManager::class;
         }
 
-        if (Schema::hasTable('alm_articulos_atributos')) {
-            $relations[] = AtributosRelationManager::class;
+        // Series - Siempre agregar, pero el RelationManager se ocultará si no maneja series
+        if (Schema::hasTable('alm_series')) {
+            $relations[] = SeriesRelationManager::class;
+        }
+        // Códigos de barras
+        if (Schema::hasTable('alm_codigos_barras')) {
+            $relations[] = CodigosBarrasRelationManager::class;
         }
 
         return $relations;

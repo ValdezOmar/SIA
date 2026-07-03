@@ -27,6 +27,22 @@ class LotesRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Lotes';
 
+    /**
+     * Determina si el relation manager debe mostrarse
+     */
+    public static function canViewForRecord($record, $pageClass): bool
+    {
+        // Solo mostrar si el artículo maneja lotes
+        return $record && $record->maneja_lotes;
+    }
+
+    public function isReadOnly(): bool
+    {
+        // Si no maneja lotes, es de solo lectura (esto oculta el contenido)
+        $record = $this->getOwnerRecord();
+        return !$record || !$record->maneja_lotes;
+    }
+
     public function form(Form $form): Form
     {
         return $form
@@ -82,9 +98,10 @@ class LotesRelationManager extends RelationManager
                                             ->schema([
                                                 Select::make('almacen_id')
                                                     ->label('Almacén')
-                                                    ->options(fn () => Almacen::where('activo', true)
-                                                        ->pluck('nombre', 'id')
-                                                        ->toArray()
+                                                    ->options(
+                                                        fn() => Almacen::where('activo', true)
+                                                            ->pluck('nombre', 'id')
+                                                            ->toArray()
                                                     )
                                                     ->required()
                                                     ->searchable()
@@ -122,9 +139,9 @@ class LotesRelationManager extends RelationManager
                                 if (!$articulo) {
                                     return 'No hay artículo asociado.';
                                 }
-                                
+
                                 return "📦 Artículo: {$articulo->codigo} - {$articulo->descripcion}\n" .
-                                       "📋 Unidad: " . ($articulo->unidadMedida->nombre ?? 'N/A');
+                                    "📋 Unidad: " . ($articulo->unidadMedida->nombre ?? 'N/A');
                             })
                             ->columnSpanFull(),
                     ]),
@@ -156,7 +173,7 @@ class LotesRelationManager extends RelationManager
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable()
-                    ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success')
+                    ->color(fn($state) => $state && $state < now() ? 'danger' : 'success')
                     ->placeholder('-'),
 
                 TextColumn::make('dias_restantes')
@@ -165,7 +182,7 @@ class LotesRelationManager extends RelationManager
                         if (!$record->fecha_vencimiento) {
                             return '-';
                         }
-                        
+
                         $dias = now()->diffInDays($record->fecha_vencimiento, false);
                         if ($dias < 0) {
                             return '<span class="text-red-600 font-bold">Vencido</span>';
@@ -185,7 +202,7 @@ class LotesRelationManager extends RelationManager
                     })
                     ->numeric(2)
                     ->sortable()
-                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'success')
+                    ->color(fn($state) => $state <= 0 ? 'danger' : 'success')
                     ->toggleable(),
 
                 TextColumn::make('stocks_count')
@@ -218,13 +235,13 @@ class LotesRelationManager extends RelationManager
                     ->query(function ($query, array $data) {
                         return $query->when(
                             $data['vencimiento_hasta'],
-                            fn ($query, $fecha) => $query->where('fecha_vencimiento', '<=', $fecha)
+                            fn($query, $fecha) => $query->where('fecha_vencimiento', '<=', $fecha)
                         );
                     }),
 
                 Tables\Filters\Filter::make('lotes_vencidos')
                     ->label('Lotes Vencidos')
-                    ->query(fn ($query) => $query->where('fecha_vencimiento', '<', now())->whereNotNull('fecha_vencimiento')),
+                    ->query(fn($query) => $query->where('fecha_vencimiento', '<', now())->whereNotNull('fecha_vencimiento')),
 
                 Tables\Filters\Filter::make('lotes_proximos_vencer')
                     ->label('Próximos a Vencer (30 días)')
@@ -236,16 +253,17 @@ class LotesRelationManager extends RelationManager
 
                 Tables\Filters\SelectFilter::make('almacen_id')
                     ->label('Almacén con Stock')
-                    ->options(fn () => Almacen::where('activo', true)
-                        ->pluck('nombre', 'id')
-                        ->toArray()
+                    ->options(
+                        fn() => Almacen::where('activo', true)
+                            ->pluck('nombre', 'id')
+                            ->toArray()
                     )
                     ->searchable()
                     ->preload()
                     ->query(function ($query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn ($query, $almacenId) => $query->whereHas('stocks', function ($q) use ($almacenId) {
+                            fn($query, $almacenId) => $query->whereHas('stocks', function ($q) use ($almacenId) {
                                 $q->where('almacen_id', $almacenId)
                                     ->where('cantidad', '>', 0);
                             })
@@ -296,8 +314,8 @@ class LotesRelationManager extends RelationManager
                                 ->send();
                         }),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
