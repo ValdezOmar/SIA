@@ -296,7 +296,7 @@ class ArticuloResource extends Resource
                                 Section::make('Documentación y Multimedia')
                                     ->icon('heroicon-o-photo')
                                     ->schema([
-                                        Grid::make(2)
+                                        Grid::make(3)
                                             ->schema([
                                                 FileUpload::make('foto_catalogo')
                                                     ->label('Foto de Catálogo')
@@ -309,20 +309,55 @@ class ArticuloResource extends Resource
 
                                                 FileUpload::make('documentacion_tecnica')
                                                     ->label('Documentación Técnica')
-                                                    ->multiple() // Permite subir múltiples archivos
+                                                    ->multiple()
                                                     ->directory('articulos/documentacion')
                                                     ->visibility('public')
-                                                    ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
-                                                    ->maxSize(10240) // 10MB por archivo
-                                                    ->maxFiles(5) // Límite máximo de archivos (opcional)
-                                                    ->helperText('PDF, Word u otros documentos (máx. 10MB por archivo, hasta 5 archivos)')
-                                                    ->downloadable() // Permite descargar los archivos
-                                                    ->openable() // Permite abrir los archivos en una nueva pestaña
-                                                    ->previewable(true) // Permite previsualizar los archivos
-                                                    ->reorderable() // Permite reordenar los archivos
-                                                    ->appendFiles() // Permite agregar archivos adicionales sin eliminar los existentes
-                                                    ->panelLayout('grid') // Muestra los archivos en formato grid
-                                                    ->uploadingMessage('Subiendo documentación...'),
+                                                    ->acceptedFileTypes([
+                                                        'application/pdf',
+                                                        'application/msword',
+                                                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                                                        'application/vnd.ms-excel',
+                                                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                                        'image/jpeg',
+                                                        'image/png',
+                                                        'image/gif'
+                                                    ])
+                                                    ->maxSize(10240) // 10MB
+                                                    ->maxFiles(5)
+                                                    ->downloadable()
+                                                    ->openable()
+                                                    ->previewable(true)
+                                                    ->reorderable()
+                                                    ->appendFiles()
+                                                    ->panelLayout('grid')
+                                                    ->uploadingMessage('Subiendo documentación técnica...')
+                                                    ->helperText('PDF, Word, Excel, Imágenes (máx. 10MB por archivo, hasta 5 archivos)')                                                    
+                                                    ->storeFileNamesIn('documentacion_tecnica'), // Guarda los nombres de los archivos
+
+                                                // En el formulario, después del FileUpload, puedes mostrar los documentos existentes
+                                                Section::make('Documentos Subidos')
+                                                    ->schema([
+                                                        Placeholder::make('documentos_existentes')
+                                                            ->label('')
+                                                            ->content(function ($record) {
+                                                                if (!$record || empty($record->documentacion_tecnica)) {
+                                                                    return new HtmlString('<div class="text-sm text-gray-500">No hay documentos subidos.</div>');
+                                                                }
+
+                                                                $html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-2">';
+                                                                foreach ($record->documentacion_tecnica as $doc) {
+                                                                    $nombre = is_array($doc) ? ($doc['name'] ?? basename($doc)) : basename($doc);
+                                                                    $ruta = is_array($doc) ? ($doc['path'] ?? $doc) : $doc;
+                                                                    $html .= '<div class="flex items-center gap-2 p-2 bg-gray-50 rounded border">';
+                                                                    $html .= '<span class="text-sm">📄 ' . $nombre . '</span>';
+                                                                    $html .= '<a href="' . asset('storage/' . $ruta) . '" target="_blank" class="text-blue-500 hover:text-blue-700 text-sm">Ver</a>';
+                                                                    $html .= '</div>';
+                                                                }
+                                                                $html .= '</div>';
+                                                                return new HtmlString($html);
+                                                            })                                                            
+                                                    ])
+                                                    ->visible(fn($record) => $record && !empty($record->documentacion_tecnica)),
                                             ]),
                                     ]),
                             ]),
@@ -570,7 +605,7 @@ class ArticuloResource extends Resource
                     ->sortable()
                     ->toggleable()
                     ->limit(30)
-                    ->default('-'),                
+                    ->default('-'),
 
                 TextColumn::make('grupoArticulo.nombre')
                     ->label('Grupo')
@@ -628,6 +663,13 @@ class ArticuloResource extends Resource
                     ->falseColor('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                TextColumn::make('descripcion')
+                    ->label('Descripción')
+                    ->searchable()
+                    ->limit(30)
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->tooltip(fn($record) => $record->descripcion ?? ''),
+
                 IconColumn::make('activo')
                     ->label('Activo')
                     ->boolean()
@@ -635,14 +677,7 @@ class ArticuloResource extends Resource
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('danger')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                
-                TextColumn::make('descripcion')
-                    ->label('Descripción')
-                    ->searchable()
-                    ->limit(30)
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->tooltip(fn($record) => $record->descripcion ?? ''),
+                    ->toggleable(),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
