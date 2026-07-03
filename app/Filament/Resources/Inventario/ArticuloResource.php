@@ -598,16 +598,17 @@ class ArticuloResource extends Resource
                     ->label('Empresa')
                     ->toggleable()
                     ->searchable()
-                    ->default('-'),
+                    ->default('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('inventariable')
-                    ->label('Stock')
+                    ->label('inventariable')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('gray')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('maneja_lotes')
                     ->label('Lotes')
