@@ -792,7 +792,7 @@ class ArticuloResource extends Resource
         }
 
         // Unidades
-        if (Schema::hasTable('alm_unidades_articulos') || Schema::hasTable('alm_articulo_unidades')) {
+        if (Schema::hasTable('alm_articulo_unidades')) {
             $relations[] = UnidadesRelationManager::class;
         }
 

@@ -72,6 +72,7 @@ class ExistenciasRelationManager extends RelationManager
                             ->schema([
                                 TextInput::make('cantidad_comprometida')
                                     ->label('Cantidad Comprometida')
+                                    ->disabled()
                                     ->numeric()
                                     ->minValue(0)
                                     ->step(0.01)
@@ -82,6 +83,7 @@ class ExistenciasRelationManager extends RelationManager
                                 TextInput::make('cantidad_pedida')
                                     ->label('Cantidad Pedida')
                                     ->numeric()
+                                    ->disabled()
                                     ->minValue(0)
                                     ->step(0.01)
                                     ->default(0)

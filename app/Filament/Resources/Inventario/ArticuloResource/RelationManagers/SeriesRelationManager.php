@@ -125,12 +125,14 @@ class SeriesRelationManager extends RelationManager
                                 DatePicker::make('fecha_garantia')
                                     ->label('Fecha de Garantía')
                                     ->native(false)
+                                    ->disabled()
                                     ->helperText('Fecha de vencimiento de la garantía')
                                     ->columnSpan(1),
 
                                 DatePicker::make('fecha_venta')
                                     ->label('Fecha de Venta')
                                     ->native(false)
+                                    ->disabled()
                                     ->helperText('Fecha en que fue vendida la serie')
                                     ->columnSpan(1),
                             ]),
@@ -140,12 +142,14 @@ class SeriesRelationManager extends RelationManager
                                 DatePicker::make('fecha_instalacion')
                                     ->label('Fecha de Instalación')
                                     ->native(false)
+                                    ->disabled()
                                     ->helperText('Fecha de instalación (si aplica)')
                                     ->columnSpan(1),
 
                                 TextInput::make('estado_actual')
                                     ->label('Estado Actual')
                                     ->maxLength(255)
+                                    ->disabled()
                                     ->placeholder('Ej: Instalado, En uso, Almacenado')
                                     ->helperText('Descripción detallada del estado actual')
                                     ->columnSpan(1),
@@ -185,19 +189,22 @@ class SeriesRelationManager extends RelationManager
                     ->label('Código QR')
                     ->searchable()
                     ->toggleable()
-                    ->placeholder('-'),
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('imei')
                     ->label('IMEI')
                     ->searchable()
                     ->toggleable()
-                    ->placeholder('-'),
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('mac_address')
                     ->label('MAC Address')
                     ->searchable()
                     ->toggleable()
-                    ->placeholder('-'),
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('almacen.nombre')
                     ->label('Almacén')
@@ -236,7 +243,8 @@ class SeriesRelationManager extends RelationManager
                     ->sortable()
                     ->toggleable()
                     ->color(fn($state) => $state && $state < now() ? 'danger' : 'success')
-                    ->placeholder('-'),
+                    ->placeholder('-')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
