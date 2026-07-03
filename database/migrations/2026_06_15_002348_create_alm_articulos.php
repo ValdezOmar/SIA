@@ -67,13 +67,7 @@ return new class extends Migration
                 'promedio',
                 'fifo',
                 'estandar'
-            ])->default('promedio');
-
-            $table->decimal('costo_referencial', 18, 6) //Costo referencial para el articulo, puede ser el mismo que el precio base o un costo sugerido
-                ->default(0);
-
-            $table->decimal('precio_base', 18, 6) //Precio base para calcular precios de venta, puede ser el mismo que el costo referencial o un precio sugerido
-                ->default(0);
+            ])->default('promedio');           
 
             $table->decimal('comision', 18, 6)
                 ->default(0);
@@ -82,8 +76,7 @@ return new class extends Migration
             $table->text('foto_catalogo')
                 ->nullable();
             
-            $table->text('documentacion_tecnica')
-                ->nullable();
+            $table->json('documentacion_tecnica')->nullable();
 
             $table->boolean('activo')
                 ->default(true);

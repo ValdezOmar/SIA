@@ -26,8 +26,6 @@ class Articulo extends Model
         'maneja_series',
         'requiere_serie_en_salida',
         'metodo_costo',
-        'costo_referencial',
-        'precio_base',
         'comision',
         'foto_catalogo',
         'documentacion_tecnica',
@@ -36,8 +34,6 @@ class Articulo extends Model
     ];
 
     protected $attributes = [
-        'costo_referencial' => 0,
-        'precio_base' => 0,
         'comision' => 0,
         'inventariable' => true,
         'comprable' => true,
@@ -57,9 +53,8 @@ class Articulo extends Model
         'maneja_series' => 'boolean',
         'requiere_serie_en_salida' => 'boolean',
         'activo' => 'boolean',
-        'costo_referencial' => 'decimal:6',
-        'precio_base' => 'decimal:6',
         'comision' => 'decimal:6',
+        'documentacion_tecnica' => 'array',
     ];
 
     /**
@@ -166,41 +161,7 @@ class Articulo extends Model
         return $prefijo . '-' . $correlativo;
     }
 
-    // Relación con proveedores a través de la tabla pivote
-    public function proveedores()
-    {
-        return $this->hasMany(ArticuloProveedor::class, 'articulo_id');
-    }
-
-    // Relación directa con proveedores (opcional)
-    public function proveedoresDirectos()
-    {
-        return $this->belongsToMany(
-            \App\Models\Compras\Proveedor::class,
-            'cmp_articulos_proveedores',
-            'articulo_id',
-            'proveedor_id'
-        )->withPivot('codigo_proveedor', 'costo_compra', 'es_principal');
-    }
-
-    // Obtener proveedor principal
-    public function proveedorPrincipal()
-    {
-        return $this->hasOne(ArticuloProveedor::class, 'articulo_id')
-            ->where('es_principal', true);
-    }
-
-    // Relación directa con los atributos (opcional)
-    public function atributosDirectos()
-    {
-        return $this->belongsToMany(
-            Atributo::class,
-            'alm_articulos_atributos',
-            'articulo_id',
-            'atributo_id'
-        )->withPivot('valor');
-    }
-    // Mutadores para manejar la lógica de lotes y series
+    // Mutadores para manejar la lógica de lotes
     public function setManejaLotesAttribute($value)
     {
         $this->attributes['maneja_lotes'] = $value;
@@ -211,6 +172,7 @@ class Articulo extends Model
         }
     }
 
+    // Mutador para manejar la lógica de series
     public function setManejaSeriesAttribute($value)
     {
         $this->attributes['maneja_series'] = $value;
@@ -219,7 +181,63 @@ class Articulo extends Model
             $this->attributes['maneja_lotes'] = false;
         }
     }
-    // Relaciones con otros modelos
+
+    // Si necesitas convertir el array a JSON al guardar
+    public function setDocumentacionTecnicaAttribute($value)
+    {
+        if (is_array($value)) {
+            $this->attributes['documentacion_tecnica'] = json_encode($value);
+        } else {
+            $this->attributes['documentacion_tecnica'] = $value;
+        }
+    }
+
+    // Accesor para obtener los archivos como array
+    public function getDocumentacionTecnicaAttribute($value)
+    {
+        if (is_null($value)) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        return json_decode($value, true) ?? [];
+    }
+
+    // Relaciones
+    public function proveedores()
+    {
+        return $this->hasMany(ArticuloProveedor::class, 'articulo_id');
+    }
+
+    public function proveedoresDirectos()
+    {
+        return $this->belongsToMany(
+            \App\Models\Compras\Proveedor::class,
+            'cmp_articulos_proveedores',
+            'articulo_id',
+            'proveedor_id'
+        )->withPivot('codigo_proveedor', 'costo_compra', 'es_principal');
+    }
+
+    public function proveedorPrincipal()
+    {
+        return $this->hasOne(ArticuloProveedor::class, 'articulo_id')
+            ->where('es_principal', true);
+    }
+
+    public function atributosDirectos()
+    {
+        return $this->belongsToMany(
+            Atributo::class,
+            'alm_articulos_atributos',
+            'articulo_id',
+            'atributo_id'
+        )->withPivot('valor');
+    }
+
     public function grupoArticulo()
     {
         return $this->belongsTo(GrupoArticulo::class);
@@ -317,13 +335,8 @@ class Articulo extends Model
         return $this->nombre_comercial ?? $this->descripcion ?? $this->codigo;
     }
 
-    public function getCostoReferencialFormateadoAttribute()
+    public function getComisionFormateadaAttribute()
     {
-        return '$ ' . number_format($this->costo_referencial, 2);
-    }
-
-    public function getPrecioBaseFormateadoAttribute()
-    {
-        return '$ ' . number_format($this->precio_base, 2);
+        return number_format($this->comision, 2) . '%';
     }
 }

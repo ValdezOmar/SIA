@@ -36,6 +36,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
@@ -227,16 +228,30 @@ class ArticuloResource extends Resource
                                                     ->label('Empresa')
                                                     ->options(fn() => self::getSafeOptions(
                                                         'conf_empresas',
-                                                        'nombre_comercial',  // Cambiar 'nombre' por 'nombre_comercial'
+                                                        'nombre_comercial',
                                                         'id',
                                                         [],
-                                                        ['deleted_at' => null]  // Filtrar empresas no eliminadas (SoftDeletes)
+                                                        ['deleted_at' => null]
                                                     ))
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder(self::hasData('conf_empresas') ? 'Seleccione una empresa' : 'No hay empresas disponibles')
                                                     ->helperText('Empresa a la que pertenece el artículo')
-                                                    ->disabled(!self::hasData('conf_empresas')),
+                                                    ->disabled(!self::hasData('conf_empresas'))
+                                                    ->default(function () {
+                                                        // Obtener empresas activas
+                                                        $empresas = DB::table('conf_empresas')
+                                                            ->whereNull('deleted_at')
+                                                            ->select('id')
+                                                            ->get();
+
+                                                        // Si solo hay una empresa, retornar su ID
+                                                        if ($empresas->count() === 1) {
+                                                            return $empresas->first()->id;
+                                                        }
+
+                                                        return null;
+                                                    }),
                                             ]),
 
                                         Grid::make(2)
@@ -294,11 +309,20 @@ class ArticuloResource extends Resource
 
                                                 FileUpload::make('documentacion_tecnica')
                                                     ->label('Documentación Técnica')
+                                                    ->multiple() // Permite subir múltiples archivos
                                                     ->directory('articulos/documentacion')
                                                     ->visibility('public')
                                                     ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
-                                                    ->maxSize(10240)
-                                                    ->helperText('PDF, Word u otros documentos (máx. 10MB)'),
+                                                    ->maxSize(10240) // 10MB por archivo
+                                                    ->maxFiles(5) // Límite máximo de archivos (opcional)
+                                                    ->helperText('PDF, Word u otros documentos (máx. 10MB por archivo, hasta 5 archivos)')
+                                                    ->downloadable() // Permite descargar los archivos
+                                                    ->openable() // Permite abrir los archivos en una nueva pestaña
+                                                    ->previewable(true) // Permite previsualizar los archivos
+                                                    ->reorderable() // Permite reordenar los archivos
+                                                    ->appendFiles() // Permite agregar archivos adicionales sin eliminar los existentes
+                                                    ->panelLayout('grid') // Muestra los archivos en formato grid
+                                                    ->uploadingMessage('Subiendo documentación...'),
                                             ]),
                                     ]),
                             ]),
@@ -310,7 +334,7 @@ class ArticuloResource extends Resource
                                 Section::make('Configuración de Inventario')
                                     ->icon('heroicon-o-cog-6-tooth')
                                     ->schema([
-                                        Grid::make(3)
+                                        Grid::make(4)
                                             ->schema([
                                                 Toggle::make('inventariable')
                                                     ->label('¿Es inventariable?')
@@ -342,15 +366,14 @@ class ArticuloResource extends Resource
                                                             $set('maneja_lotes', false);
                                                         }
                                                     }),
-                                            ]),
-
-                                        Grid::make(2)
-                                            ->schema([
                                                 Toggle::make('requiere_serie_en_salida')
                                                     ->label('Requerir Serie en Salida')
                                                     ->helperText('Obligatorio registrar serie al vender')
                                                     ->visible(fn(Forms\Get $get) => $get('maneja_series')),
+                                            ]),
 
+                                        Grid::make(1)
+                                            ->schema([
                                                 Select::make('metodo_costo')
                                                     ->label('Método de Costeo')
                                                     ->options([
@@ -397,17 +420,6 @@ class ArticuloResource extends Resource
                                                     ->default(true)
                                                     ->helperText('Permite comprar este artículo')
                                                     ->live(),
-
-                                                TextInput::make('costo_referencial')
-                                                    ->label('Costo Referencial')
-                                                    ->numeric()
-                                                    ->prefix('$')
-                                                    ->placeholder('0.00')
-                                                    ->default(0)
-                                                    ->step(0.000001)
-                                                    ->dehydrateStateUsing(fn($state) => $state ?? 0)
-                                                    ->helperText('Costo sugerido para compras')
-                                                    ->visible(fn(Forms\Get $get) => $get('comprable')),
                                             ]),
                                     ]),
 
@@ -493,17 +505,6 @@ class ArticuloResource extends Resource
                                                     ->helperText('Permite vender este artículo')
                                                     ->live(),
 
-                                                TextInput::make('precio_base')
-                                                    ->label('Precio Base')
-                                                    ->numeric()
-                                                    ->prefix('$')
-                                                    ->placeholder('0.00')
-                                                    ->default(0)
-                                                    ->step(0.000001)
-                                                    ->dehydrateStateUsing(fn($state) => $state ?? 0)
-                                                    ->helperText('Precio base para cálculos de venta')
-                                                    ->visible(fn(Forms\Get $get) => $get('vendible')),
-
                                                 TextInput::make('comision')
                                                     ->label('Comisión')
                                                     ->numeric()
@@ -543,6 +544,18 @@ class ArticuloResource extends Resource
     {
         return $table
             ->columns([
+                ImageColumn::make('foto_catalogo')
+                    ->label('Foto')
+                    ->square()
+                    ->size(40)
+                    ->defaultImageUrl(function ($record) {
+                        return 'https://ui-avatars.com/api/?name=' . urlencode($record->nombre_comercial ?? $record->codigo) . '&color=7F9CF5&background=EBF4FF';
+                    })
+                    ->tooltip(function ($record) {
+                        return $record->nombre_comercial ?? $record->codigo;
+                    })
+                    ->toggleable(),
+
                 TextColumn::make('codigo')
                     ->label('Código')
                     ->searchable()
@@ -557,14 +570,7 @@ class ArticuloResource extends Resource
                     ->sortable()
                     ->toggleable()
                     ->limit(30)
-                    ->default('-'),
-
-                TextColumn::make('descripcion')
-                    ->label('Descripción')
-                    ->searchable()
-                    ->limit(30)
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->tooltip(fn($record) => $record->descripcion ?? ''),
+                    ->default('-'),                
 
                 TextColumn::make('grupoArticulo.nombre')
                     ->label('Grupo')
@@ -588,7 +594,7 @@ class ArticuloResource extends Resource
                     ->searchable()
                     ->default('-'),
 
-                TextColumn::make('empresa.nombre_comercial')  // Cambiar 'nombre' por 'nombre_comercial'
+                TextColumn::make('empresa.nombre_comercial')
                     ->label('Empresa')
                     ->toggleable()
                     ->searchable()
@@ -610,7 +616,7 @@ class ArticuloResource extends Resource
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('warning')
                     ->falseColor('gray')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('maneja_series')
                     ->label('Series')
@@ -619,18 +625,6 @@ class ArticuloResource extends Resource
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('warning')
                     ->falseColor('gray')
-                    ->toggleable(),
-
-                TextColumn::make('costo_referencial')
-                    ->label('Costo Ref.')
-                    ->money('USD')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('precio_base')
-                    ->label('Precio Base')
-                    ->money('USD')
-                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 IconColumn::make('activo')
@@ -640,7 +634,14 @@ class ArticuloResource extends Resource
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('danger')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
+                
+                TextColumn::make('descripcion')
+                    ->label('Descripción')
+                    ->searchable()
+                    ->limit(30)
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->tooltip(fn($record) => $record->descripcion ?? ''),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
