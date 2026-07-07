@@ -2,6 +2,7 @@
 
 namespace App\Models\Inventario;
 
+use App\Models\Sistema\Empresa;
 use Illuminate\Database\Eloquent\Model;
 
 class ListaPrecio extends Model

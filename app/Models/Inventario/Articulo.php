@@ -4,6 +4,9 @@ namespace App\Models\Inventario;
 
 use App\Models\Compras\ArticuloProveedor;
 use App\Models\Sistema\Empresa;
+use App\Models\Ventas\CotizacionDetalle;
+use App\Models\Ventas\FacturaDetalle;
+use App\Models\Ventas\PedidoDetalle;
 use Illuminate\Database\Eloquent\Model;
 
 class Articulo extends Model
@@ -236,6 +239,31 @@ class Articulo extends Model
             'articulo_id',
             'atributo_id'
         )->withPivot('valor');
+    }    
+
+    // Método para obtener el precio de una lista específica
+    public function getPrecioByLista($listaPrecioId)
+    {
+        $precio = $this->precios()
+            ->where('lista_precio_id', $listaPrecioId)
+            ->first();
+
+        return $precio?->precio ?? 0;
+    }
+
+    // Método para obtener todas las listas de precios disponibles con sus precios
+    public function getPreciosConListas()
+    {
+        return $this->precios()
+            ->with('listaPrecio')
+            ->get()
+            ->mapWithKeys(fn($item) => [
+                $item->lista_precio_id => [
+                    'nombre' => $item->listaPrecio?->nombre ?? 'Sin lista',
+                    'precio' => $item->precio,
+                    'moneda' => $item->listaPrecio?->moneda ?? 'BOB',
+                ]
+            ]);
     }
 
     public function grupoArticulo()
@@ -306,6 +334,23 @@ class Articulo extends Model
     public function empresa()
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    // Relaciones con ventas
+
+    public function cotizacionesDetalle()
+    {
+        return $this->hasMany(CotizacionDetalle::class);
+    }
+
+    public function pedidosDetalle()
+    {
+        return $this->hasMany(PedidoDetalle::class);
+    }
+
+    public function facturasDetalle()
+    {
+        return $this->hasMany(FacturaDetalle::class);
     }
 
     // Scopes útiles
