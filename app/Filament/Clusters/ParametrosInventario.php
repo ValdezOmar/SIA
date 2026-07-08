@@ -11,7 +11,7 @@ class ParametrosInventario extends Cluster implements HasShieldPermissions
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     protected static ?string $navigationLabel = 'Parámetros de Inventario';
     protected static ?string $navigationGroup = 'Inventario';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 5;
     
     //Evitar que Shield genere permisos para este cluster
     protected static function getPermissionPrefix(): string

@@ -68,6 +68,9 @@ class DashboardPanelProvider extends PanelProvider
             // MENU DE GRUPOS DE LA APLICACION
             ->navigationGroups([
                 'Recursos Humanos',
+                'Compras',
+                'Inventario',
+                'Ventas',
                 'Comercial',
                 'Almacenes',
                 'Configuración',
