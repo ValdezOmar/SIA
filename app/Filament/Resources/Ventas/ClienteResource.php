@@ -565,56 +565,13 @@ class ClienteResource extends Resource
                     Tables\Actions\ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
-
-                    // Tables\Actions\Action::make('duplicate')
-                    //     ->label('Duplicar')
-                    //     ->icon('heroicon-o-document-duplicate')
-                    //     ->color('info')
-                    //     ->action(function ($record) {
-                    //         $newRecord = $record->replicate();
-                    //         $newRecord->codigo = Cliente::generarCodigo();
-                    //         $newRecord->created_at = now();
-                    //         $newRecord->updated_at = now();
-                    //         $newRecord->save();
-
-                    //         Notification::make()
-                    //             ->title('Cliente duplicado exitosamente')
-                    //             ->success()
-                    //             ->send();
-                    //     }),
-
-                    // Tables\Actions\Action::make('toggle_active')
-                    //     ->label('Activar/Desactivar')
-                    //     ->icon('heroicon-o-power')
-                    //     ->color(fn($record) => $record->activo ? 'warning' : 'success')
-                    //     ->action(function ($record) {
-                    //         $record->update(['activo' => !$record->activo]);
-                    //         Notification::make()
-                    //             ->title($record->activo ? 'Cliente activado' : 'Cliente desactivado')
-                    //             ->success()
-                    //             ->send();
-                    //     }),
-
-                    // Tables\Actions\Action::make('toggle_blocked')
-                    //     ->label('Bloquear/Desbloquear')
-                    //     ->icon('heroicon-o-lock-closed')
-                    //     ->color(fn($record) => $record->bloqueado ? 'success' : 'danger')
-                    //     ->action(function ($record) {
-                    //         $record->update(['bloqueado' => !$record->bloqueado]);
-                    //         Notification::make()
-                    //             ->title($record->bloqueado ? 'Cliente bloqueado' : 'Cliente desbloqueado')
-                    //             ->success()
-                    //             ->send();
-                    //     }),
-
-                    //Tables\Actions\DeleteAction::make(),
+                   
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                Tables\Actions\BulkActionGroup::make([                    
 
                     Tables\Actions\BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')

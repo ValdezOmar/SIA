@@ -23,13 +23,14 @@ class Cotizacion extends Model
         'fecha_validez' => 'date',
         'fecha_entrega_estimada' => 'date',
         'tasa_cambio' => 'decimal:6',
-        'subtotal' => 'decimal:6',
-        'descuento' => 'decimal:6',
-        'descuento_porcentaje' => 'decimal:6',
-        'impuesto' => 'decimal:6',
-        'total' => 'decimal:6',
-        'tasa_impuesto' => 'decimal:6',
+        'subtotal' => 'decimal:2',
+        'descuento' => 'decimal:2',
+        'descuento_porcentaje' => 'decimal:2',
+        'impuesto' => 'decimal:2',
+        'total' => 'decimal:2',
+        'tasa_impuesto' => 'decimal:2',
     ];
+
     // ========== BOOT ==========
     protected static function boot()
     {
@@ -41,13 +42,21 @@ class Cotizacion extends Model
                 $model->creado_por = Auth::id();
             }
 
+            // Generar código si no tiene
+            if (empty($model->codigo)) {
+                $model->codigo = self::generarCodigo();
+            }
+        });
+
+        // ✅ USAR SAVED en lugar de CREATING/UPDATING para calcular totales
+        static::saved(function ($model) {
             // Calcular totales desde los detalles
             $model->calcularTotalesDesdeDetalles();
         });
 
-        static::updating(function ($model) {
-            // Calcular totales desde los detalles al actualizar
-            $model->calcularTotalesDesdeDetalles();
+        // ✅ También calcular al crear detalles
+        static::created(function ($model) {
+            // Ya se ejecutó el saved
         });
     }
 
@@ -61,7 +70,7 @@ class Cotizacion extends Model
         $impuesto = 0;
         $total = 0;
 
-        // ✅ Recargar detalles frescos desde la BD
+        // Recargar detalles frescos desde la BD
         $this->load('detalles');
 
         foreach ($this->detalles as $detalle) {
@@ -76,11 +85,9 @@ class Cotizacion extends Model
         $this->impuesto = $impuesto;
         $this->total = $total;
 
-        // ✅ Guardar los totales en la base de datos
+        // Guardar los totales en la base de datos (sin ejecutar eventos)
         $this->saveQuietly();
     }
-
-
 
     // ========== RELACIONES ==========
 
@@ -241,24 +248,29 @@ class Cotizacion extends Model
 
         return $pedido;
     }
-    
-    //Generar código único para la cotización
+
+    // Generar código único para la cotización
     public static function generarCodigo()
     {
-        $gestion = date('y');
+        $gestion = date('y'); // 26 para 2026
         $prefijo = 'COT-' . $gestion;
 
+        // Buscar el último código con el prefijo de la gestión actual
         $ultimo = self::withTrashed()
             ->where('codigo', 'LIKE', $prefijo . '%')
             ->orderBy('id', 'desc')
             ->first();
 
         if ($ultimo) {
-            $correlativo = intval(substr($ultimo->codigo, -3)) + 1;
+            // Extraer el correlativo (últimos 4 dígitos)
+            // Ejemplo: COT-260005 -> extraer '0005'
+            $correlativo = intval(substr($ultimo->codigo, -4)) + 1;
         } else {
+            // Si no hay códigos para esta gestión, empezar desde 1
             $correlativo = 1;
         }
 
-        return $prefijo . str_pad($correlativo, 3, '0', STR_PAD_LEFT);
+        // Formatear el correlativo con 4 dígitos
+        return $prefijo . str_pad($correlativo, 4, '0', STR_PAD_LEFT);
     }
 }
