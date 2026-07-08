@@ -163,6 +163,29 @@ class Articulo extends Model
 
         return $prefijo . '-' . $correlativo;
     }
+    // En app/Models/Inventario/Articulo.php
+
+    /**
+     * Calcular el stock total del artículo en todos los almacenes
+     */
+    public function getStockTotalAttribute()
+    {
+        return $this->existencias()->sum('cantidad_disponible');
+    }
+
+    /**
+     * Calcular el stock por almacén
+     */
+    public function getStockPorAlmacenAttribute()
+    {
+        return $this->existencias()
+            ->with('almacen')
+            ->get()
+            ->mapWithKeys(function ($existencia) {
+                return [$existencia->almacen->nombre => $existencia->cantidad_disponible];
+            })
+            ->toArray();
+    }
 
     // Mutadores para manejar la lógica de lotes
     public function setManejaLotesAttribute($value)
@@ -239,7 +262,7 @@ class Articulo extends Model
             'articulo_id',
             'atributo_id'
         )->withPivot('valor');
-    }    
+    }
 
     // Método para obtener el precio de una lista específica
     public function getPrecioByLista($listaPrecioId)
