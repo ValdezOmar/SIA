@@ -52,6 +52,7 @@ class Almacen extends Model
         return $this->hasMany(CapaCosto::class);
     }
 
+
     // ========== SCOPES ==========
 
     public function scopeActivo($query)
@@ -85,4 +86,6 @@ class Almacen extends Model
             ->where('articulo_id', $articuloId)
             ->first();
     }
+
+
 }

@@ -4,6 +4,9 @@ namespace App\Filament\Resources\Inventario;
 
 use App\Filament\Resources\Inventario\AlmacenResource\Pages;
 use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\ListStockAlmacens;
+use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\EditStockAlmacens;
+use App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers\ArticulosStockRelationManager;
+use App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers\StockAlmacenRelationManager;
 use App\Models\Inventario\Almacen;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
@@ -31,7 +34,7 @@ class StockAlmacenResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventario';
 
-    protected static ?string $navigationLabel = 'Almacenes';
+    protected static ?string $navigationLabel = 'Stock Almacenes';
 
     protected static ?string $modelLabel = 'Almacén';
 
@@ -410,14 +413,36 @@ class StockAlmacenResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // RelationManagers\UbicacionesRelationManager::class,
+            
+            //StockAlmacenResource\RelationManagers\UbicacionesRelationManager::class,
+            //StockAlmacenResource\RelationManagers\ExistenciasRelationManager::class,      
+           
+            // stockAlmacenResource\RelationManagers\TransferenciasRelationManager::class,
+            // stockAlmacenResource\RelationManagers\PedidosRelationManager::class,
+            
+            // StockAlmacenResource\RelationManagers\InventarioFisicoRelationManager::class,
+            
+           
+            // StockAlmacenResource\RelationManagers\KardexRelationManager::class,
+            // StockAlmacenResource\RelationManagers\MovimientosInventarioRelationManager::class,
+
+            // StockAlmacenResource\RelationManagers\TransferenciasInternasRelationManager::class,
+            // StockAlmacenResource\RelationManagers\TransferenciasExternasRelationManager::class,
+            
+            // StockAlmacenResource\RelationManagers\AjustesInventarioRelationManager::class,
+            
+            // StockAlmacenResource\RelationManagers\ReportesRelationManager::class,
+            // StockAlmacenResource\RelationManagers\AlertasStockRelationManager::class,  
+            
+            ArticulosStockRelationManager::class,
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ListStockAlmacens::route('/'),           
+            'index' => ListStockAlmacens::route('/'),   
+            'edit' => EditStockAlmacens::route('/{record}/edit'),        
         ];
     }
 }
