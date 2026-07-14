@@ -56,7 +56,7 @@ class Articulo extends Model
         'maneja_series' => 'boolean',
         'requiere_serie_en_salida' => 'boolean',
         'activo' => 'boolean',
-        'comision' => 'decimal:6',
+        'comision' => 'decimal:2',
         'documentacion_tecnica' => 'array',
     ];
 

@@ -556,14 +556,6 @@ class ArticuloResource extends Resource
                     ->color('primary')
                     ->toggleable(),
 
-                TextColumn::make('codigo_alterno')
-                    ->label('Modelo')
-                    ->searchable()
-                    ->sortable()
-                    ->copyable()
-                    ->copyMessage('✅ Modelo copiado')
-                    ->toggleable(isToggledHiddenByDefault: false),
-
                 TextColumn::make('nombre_comercial')
                     ->label('Nombre')
                     ->searchable()
@@ -572,6 +564,14 @@ class ArticuloResource extends Resource
                     ->default('-')
                     ->weight('medium')
                     ->toggleable(),
+
+                TextColumn::make('codigo_alterno')
+                    ->label('Modelo')
+                    ->searchable()
+                    ->sortable()
+                    ->copyable()
+                    ->copyMessage('✅ Modelo copiado')
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('grupoArticulo.nombre')
                     ->label('Grupo')
@@ -648,7 +648,7 @@ class ArticuloResource extends Resource
                         return $tooltip;
                     })
                     ->toggleable(),
-                    
+
 
                 IconColumn::make('activo')
                     ->label('Estado')

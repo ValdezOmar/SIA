@@ -21,12 +21,12 @@ class Pedido extends Model
         'fecha_pedido' => 'date',
         'fecha_entrega_estimada' => 'date',
         'fecha_entrega_real' => 'date',
-        'tasa_cambio' => 'decimal:6',
-        'subtotal' => 'decimal:6',
-        'descuento' => 'decimal:6',
-        'impuesto' => 'decimal:6',
-        'total' => 'decimal:6',
-        'costo_envio' => 'decimal:6',
+        'tasa_cambio' => 'decimal:2',
+        'subtotal' => 'decimal:2',
+        'descuento' => 'decimal:2',
+        'impuesto' => 'decimal:2',
+        'total' => 'decimal:2',
+        'costo_envio' => 'decimal:2',
     ];
 
     // ========== RELACIONES ==========

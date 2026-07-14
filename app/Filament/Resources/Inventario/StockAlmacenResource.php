@@ -2,11 +2,9 @@
 
 namespace App\Filament\Resources\Inventario;
 
-use App\Filament\Resources\Inventario\AlmacenResource\Pages;
 use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\ListStockAlmacens;
 use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\EditStockAlmacens;
 use App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers\ArticulosStockRelationManager;
-use App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers\StockAlmacenRelationManager;
 use App\Models\Inventario\Almacen;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
@@ -16,6 +14,7 @@ use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -24,7 +23,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class StockAlmacenResource extends Resource
 {
@@ -42,35 +41,21 @@ class StockAlmacenResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    /**
-     * Verificar si la tabla de ubicaciones tiene la columna almacen_id
-     */
     private static function ubicacionesTieneAlmacenId(): bool
     {
-        if (!Schema::hasTable('alm_ubicaciones')) {
-            return false;
-        }
-        
+        if (!Schema::hasTable('alm_ubicaciones')) return false;
         try {
-            $columns = Schema::getColumnListing('alm_ubicaciones');
-            return in_array('almacen_id', $columns);
+            return in_array('almacen_id', Schema::getColumnListing('alm_ubicaciones'));
         } catch (\Exception $e) {
             return false;
         }
     }
 
-    /**
-     * Verificar si la tabla de existencias tiene la columna almacen_id
-     */
     private static function existenciasTieneAlmacenId(): bool
     {
-        if (!Schema::hasTable('alm_existencias')) {
-            return false;
-        }
-        
+        if (!Schema::hasTable('alm_existencias')) return false;
         try {
-            $columns = Schema::getColumnListing('alm_existencias');
-            return in_array('almacen_id', $columns);
+            return in_array('almacen_id', Schema::getColumnListing('alm_existencias'));
         } catch (\Exception $e) {
             return false;
         }
@@ -80,132 +65,148 @@ class StockAlmacenResource extends Resource
     {
         return $form
             ->schema([
-                Tabs::make('Gestión de Almacén')
+                Tabs::make('')
                     ->tabs([
-                        
-                        // ========== TAB 1: INFORMACIÓN GENERAL ==========
-                        Tabs\Tab::make('Información General')
+                        Tabs\Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
-                                Section::make('Datos Básicos')
-                                    ->icon('heroicon-o-identification')
+                                Section::make('Datos del Almacén')
+                                    ->icon('heroicon-o-building-storefront')
                                     ->description('Información principal del almacén')
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('codigo')
                                                     ->label('Código')
-                                                    ->required()
-                                                    ->maxLength(20)
-                                                    ->unique(ignoreRecord: true)
-                                                    ->placeholder('Ej: ALM-001')
-                                                    ->helperText('Código único para identificar el almacén')
+                                                    ->disabled()
+                                                    ->placeholder('Sin código registrado')
+                                                    ->helperText('Código único del almacén')
+                                                    ->prefixIcon('heroicon-o-hashtag')
+                                                    ->formatStateUsing(fn($state) => $state ?? 'Sin datos registrados')
                                                     ->columnSpan(1),
 
                                                 TextInput::make('nombre')
-                                                    ->label('Nombre del Almacén')
-                                                    ->required()
-                                                    ->maxLength(255)
-                                                    ->placeholder('Ej: Almacén Central')
-                                                    ->helperText('Nombre descriptivo del almacén')
+                                                    ->label('Nombre')
+                                                    ->disabled()
+                                                    ->placeholder('Sin nombre registrado')
+                                                    ->helperText('Nombre del almacén')
+                                                    ->prefixIcon('heroicon-o-building-office')
+                                                    ->formatStateUsing(fn($state) => $state ?? 'Sin datos registrados')
                                                     ->columnSpan(1),
                                             ]),
 
                                         Grid::make(2)
                                             ->schema([
-                                                Select::make('sucursal_id')
+                                                TextInput::make('sucursal.nombre')
                                                     ->label('Sucursal')
-                                                    ->relationship('sucursal', 'nombre')
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->placeholder('Seleccione una sucursal')
-                                                    ->helperText('Sucursal a la que pertenece este almacén')
-                                                    ->columnSpan(1)
-                                                    ->visible(fn () => Schema::hasTable('conf_sucursales')),
+                                                    ->disabled()
+                                                    ->placeholder('Sin sucursal asignada')
+                                                    ->helperText('Sucursal a la que pertenece')
+                                                    ->prefixIcon('heroicon-o-map-pin')
+                                                    ->formatStateUsing(fn($state) => $state ?? 'Sin datos registrados')
+                                                    ->visible(fn() => Schema::hasTable('conf_sucursales'))
+                                                    ->columnSpan(1),
 
                                                 Textarea::make('direccion')
                                                     ->label('Dirección')
+                                                    ->disabled()
+                                                    ->placeholder('Sin dirección registrada')
                                                     ->rows(3)
-                                                    ->placeholder('Ej: Av. Principal #123, Zona Industrial')
                                                     ->helperText('Ubicación física del almacén')
+                                                    ->formatStateUsing(fn($state) => $state ?? 'Sin datos registrados')
                                                     ->columnSpan(1),
                                             ]),
-                                    ]),
 
-                                Section::make('Estado')
-                                    ->icon('heroicon-o-check-circle')
-                                    ->schema([
-                                        Grid::make(2)
+                                        Grid::make(1)
                                             ->schema([
                                                 Toggle::make('activo')
-                                                    ->label('Almacén Activo')
+                                                    ->label('Estado')
+                                                    ->disabled()
                                                     ->default(true)
-                                                    ->helperText('Desactive para inhabilitar temporalmente este almacén')
+                                                    ->helperText('Estado del almacén')
+                                                    ->formatStateUsing(fn($state) => $state ? '🟢 Activo' : '🔴 Inactivo')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
                             ]),
 
-                        // ========== TAB 2: UBICACIONES ==========
                         Tabs\Tab::make('Ubicaciones')
                             ->icon('heroicon-o-map-pin')
                             ->schema([
-                                Section::make('Gestión de Ubicaciones')
+                                Section::make('Ubicaciones del Almacén')
                                     ->icon('heroicon-o-map-pin')
                                     ->description('Organización espacial del almacén')
                                     ->schema([
-                                        Forms\Components\Placeholder::make('ubicaciones_info')
+                                        Placeholder::make('ubicaciones_info')
                                             ->label('')
                                             ->content(function ($record) {
                                                 if (!$record) {
-                                                    return '<div class="text-sm text-gray-500">Las ubicaciones se gestionan después de guardar el almacén.</div>';
+                                                    return new HtmlString(
+                                                        '<div class="text-sm text-gray-500 dark:text-gray-400">Guardar el almacén para gestionar ubicaciones.</div>'
+                                                    );
                                                 }
 
                                                 try {
                                                     $totalUbicaciones = $record->ubicaciones()->count();
                                                     $ubicacionesActivas = $record->ubicaciones()->where('activo', true)->count();
 
-                                                    return new \Illuminate\Support\HtmlString(
-                                                        '<div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                                            <div class="grid grid-cols-2 gap-4">
-                                                                <div>
-                                                                    <p class="text-sm text-gray-600">Total de Ubicaciones</p>
-                                                                    <p class="text-2xl font-bold text-gray-900">' . $totalUbicaciones . '</p>
+                                                    if ($totalUbicaciones === 0) {
+                                                        return new HtmlString(
+                                                            '<div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800">
+                                                                <div class="flex items-center gap-2">
+                                                                    <span class="text-2xl">📍</span>
+                                                                    <div>
+                                                                        <p class="text-sm text-yellow-700 dark:text-yellow-400">No hay ubicaciones registradas</p>
+                                                                        <p class="text-xs text-yellow-600 dark:text-yellow-500 mt-1">Gestiona las ubicaciones en la pestaña "Ubicaciones" en relaciones.</p>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <p class="text-sm text-gray-600">Ubicaciones Activas</p>
-                                                                    <p class="text-2xl font-bold text-green-600">' . $ubicacionesActivas . '</p>
+                                                            </div>'
+                                                        );
+                                                    }
+
+                                                    return new HtmlString(
+                                                        '<div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                                                            <div class="grid grid-cols-2 gap-4">
+                                                                <div class="text-center">
+                                                                    <p class="text-sm text-gray-600 dark:text-gray-400">Total Ubicaciones</p>
+                                                                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">' . $totalUbicaciones . '</p>
+                                                                </div>
+                                                                <div class="text-center">
+                                                                    <p class="text-sm text-gray-600 dark:text-gray-400">Ubicaciones Activas</p>
+                                                                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">' . $ubicacionesActivas . '</p>
                                                                 </div>
                                                             </div>
-                                                            <p class="text-xs text-gray-500 mt-2">Gestiona las ubicaciones en la pestaña "Ubicaciones" en la sección de relaciones.</p>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">Gestiona las ubicaciones en la sección de relaciones.</p>
                                                         </div>'
                                                     );
                                                 } catch (\Exception $e) {
-                                                    return '<div class="text-sm text-gray-500">No hay ubicaciones disponibles.</div>';
+                                                    return new HtmlString('<div class="text-sm text-gray-500">Error al cargar ubicaciones.</div>');
                                                 }
                                             })
                                             ->columnSpanFull(),
                                     ]),
                             ]),
 
-                        // ========== TAB 3: ESTADÍSTICAS ==========
                         Tabs\Tab::make('Estadísticas')
                             ->icon('heroicon-o-chart-bar')
                             ->schema([
                                 Section::make('Resumen del Almacén')
                                     ->icon('heroicon-o-chart-bar')
                                     ->schema([
-                                        Forms\Components\Placeholder::make('estadisticas')
+                                        Placeholder::make('estadisticas')
                                             ->label('')
                                             ->content(function ($record) {
                                                 if (!$record) {
-                                                    return 'Las estadísticas se mostrarán después de guardar el almacén.';
+                                                    return new HtmlString(
+                                                        '<div class="text-sm text-gray-500 dark:text-gray-400">Guardar el almacén para ver estadísticas.</div>'
+                                                    );
                                                 }
 
                                                 try {
                                                     $totalArticulos = 0;
                                                     $totalMovimientos = 0;
                                                     $totalExistencias = 0;
+                                                    $totalUbicaciones = $record->ubicaciones()->count();
 
                                                     if (self::existenciasTieneAlmacenId()) {
                                                         $totalExistencias = $record->existencias()->sum('cantidad_disponible');
@@ -216,27 +217,44 @@ class StockAlmacenResource extends Resource
                                                         $totalMovimientos = $record->movimientos()->count();
                                                     }
 
-                                                    return new \Illuminate\Support\HtmlString(
-                                                        '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                                                                <div class="text-sm text-blue-600 font-medium">Artículos en Stock</div>
-                                                                <div class="text-2xl font-bold text-blue-900">' . number_format($totalArticulos) . '</div>
-                                                                <div class="text-xs text-blue-500 mt-1">Productos disponibles en este almacén</div>
+                                                    $noData = $totalArticulos === 0 && $totalExistencias === 0 && $totalMovimientos === 0 && $totalUbicaciones === 0;
+
+                                                    if ($noData) {
+                                                        return new HtmlString(
+                                                            '<div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 text-center">
+                                                                <span class="text-4xl block mb-2">📊</span>
+                                                                <p class="text-sm text-gray-500 dark:text-gray-400">Sin datos estadísticos disponibles</p>
+                                                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Agrega productos y movimientos para ver estadísticas.</p>
+                                                            </div>'
+                                                        );
+                                                    }
+
+                                                    return new HtmlString(
+                                                        '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 text-center">
+                                                                <p class="text-sm text-blue-600 dark:text-blue-400 font-medium">Artículos</p>
+                                                                <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">' . number_format($totalArticulos) . '</p>
+                                                                <p class="text-xs text-blue-500 dark:text-blue-400 mt-1">Productos en stock</p>
                                                             </div>
-                                                            <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-                                                                <div class="text-sm text-green-600 font-medium">Existencias Totales</div>
-                                                                <div class="text-2xl font-bold text-green-900">' . number_format($totalExistencias, 0) . '</div>
-                                                                <div class="text-xs text-green-500 mt-1">Unidades disponibles en inventario</div>
+                                                            <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-200 dark:border-green-800 text-center">
+                                                                <p class="text-sm text-green-600 dark:text-green-400 font-medium">Existencias</p>
+                                                                <p class="text-2xl font-bold text-green-900 dark:text-green-100">' . number_format($totalExistencias, 0) . '</p>
+                                                                <p class="text-xs text-green-500 dark:text-green-400 mt-1">Unidades disponibles</p>
                                                             </div>
-                                                            <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                                                                <div class="text-sm text-purple-600 font-medium">Movimientos</div>
-                                                                <div class="text-2xl font-bold text-purple-900">' . number_format($totalMovimientos) . '</div>
-                                                                <div class="text-xs text-purple-500 mt-1">Total de movimientos registrados</div>
+                                                            <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800 text-center">
+                                                                <p class="text-sm text-purple-600 dark:text-purple-400 font-medium">Movimientos</p>
+                                                                <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">' . number_format($totalMovimientos) . '</p>
+                                                                <p class="text-xs text-purple-500 dark:text-purple-400 mt-1">Transacciones registradas</p>
+                                                            </div>
+                                                            <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-200 dark:border-orange-800 text-center">
+                                                                <p class="text-sm text-orange-600 dark:text-orange-400 font-medium">Ubicaciones</p>
+                                                                <p class="text-2xl font-bold text-orange-900 dark:text-orange-100">' . number_format($totalUbicaciones) . '</p>
+                                                                <p class="text-xs text-orange-500 dark:text-orange-400 mt-1">Espacios físicos</p>
                                                             </div>
                                                         </div>'
                                                     );
                                                 } catch (\Exception $e) {
-                                                    return '<div class="text-sm text-gray-500">No hay estadísticas disponibles.</div>';
+                                                    return new HtmlString('<div class="text-sm text-gray-500">Error al cargar estadísticas.</div>');
                                                 }
                                             })
                                             ->columnSpanFull(),
@@ -250,7 +268,6 @@ class StockAlmacenResource extends Resource
 
     public static function table(Table $table): Table
     {
-        // Verificar si las tablas existen antes de definir las columnas
         $ubicacionesExiste = self::ubicacionesTieneAlmacenId();
         $existenciasExiste = self::existenciasTieneAlmacenId();
 
@@ -261,13 +278,16 @@ class StockAlmacenResource extends Resource
                 ->sortable()
                 ->copyable()
                 ->copyMessage('Código copiado')
-                ->toggleable(),
+                ->toggleable()
+                ->weight('bold')
+                ->placeholder('-'),
 
             TextColumn::make('nombre')
                 ->label('Nombre')
                 ->searchable()
                 ->sortable()
-                ->toggleable(),
+                ->toggleable()
+                ->placeholder('-'),
 
             TextColumn::make('sucursal.nombre')
                 ->label('Sucursal')
@@ -277,7 +297,7 @@ class StockAlmacenResource extends Resource
                 ->color('info')
                 ->toggleable()
                 ->placeholder('-')
-                ->visible(fn () => Schema::hasTable('conf_sucursales')),
+                ->visible(fn() => Schema::hasTable('conf_sucursales')),
 
             TextColumn::make('direccion')
                 ->label('Dirección')
@@ -287,27 +307,24 @@ class StockAlmacenResource extends Resource
                 ->placeholder('-'),
         ];
 
-        // ✅ Agregar columna de Ubicaciones solo si la tabla existe y tiene la columna correcta
         if ($ubicacionesExiste) {
             $columns[] = TextColumn::make('ubicaciones_count')
-                ->label('Ubicaciones')
+                ->label('📍 Ubicaciones')
                 ->counts('ubicaciones')
                 ->badge()
                 ->color('warning')
                 ->toggleable();
         }
 
-        // ✅ Agregar columna de Existencias solo si la tabla existe y tiene la columna correcta
         if ($existenciasExiste) {
             $columns[] = TextColumn::make('existencias_count')
-                ->label('Stock')
+                ->label('📦 Stock')
                 ->counts('existencias')
                 ->badge()
                 ->color('success')
                 ->toggleable();
         }
 
-        // Columnas fijas al final
         $columns[] = IconColumn::make('activo')
             ->label('Estado')
             ->boolean()
@@ -344,17 +361,18 @@ class StockAlmacenResource extends Resource
                     ->relationship('sucursal', 'nombre')
                     ->searchable()
                     ->preload()
-                    ->visible(fn () => Schema::hasTable('conf_sucursales')),
+                    ->visible(fn() => Schema::hasTable('conf_sucursales')),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make()
                         ->slideOver()
-                        ->modalWidth('5xl'),
+                        ->modalWidth('7xl')
+                        ->label('Ver Detalles'),
 
                     Tables\Actions\ViewAction::make()
                         ->slideOver()
-                        ->modalWidth('5xl'),
+                        ->modalWidth('7xl'),
 
                     Tables\Actions\Action::make('duplicate')
                         ->label('Duplicar')
@@ -372,23 +390,9 @@ class StockAlmacenResource extends Resource
                                 ->success()
                                 ->send();
                         }),
-
-                    Tables\Actions\Action::make('toggle_active')
-                        ->label('Activar/Desactivar')
-                        ->icon('heroicon-o-power')
-                        ->color(fn ($record) => $record->activo ? 'warning' : 'success')
-                        ->action(function ($record) {
-                            $record->update(['activo' => !$record->activo]);
-                            \Filament\Notifications\Notification::make()
-                                ->title($record->activo ? 'Almacén activado' : 'Almacén desactivado')
-                                ->success()
-                                ->send();
-                        }),
-
-                    Tables\Actions\DeleteAction::make(),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -396,15 +400,14 @@ class StockAlmacenResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn ($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn($records) => $records->each->update(['activo' => !$records->first()->activo]))
                         ->requiresConfirmation()
-                        ->modalHeading('Cambiar estado de almacenes')
-                        ->modalSubheading('¿Deseas cambiar el estado de los almacenes seleccionados?'),
+                        ->modalHeading('Cambiar estado de almacenes'),
                 ]),
             ])
             ->defaultSort('nombre')
-            ->searchPlaceholder('Buscar almacén...')
-            ->emptyStateHeading('No hay almacenes registrados')
+            ->searchPlaceholder('🔍 Buscar almacén...')
+            ->emptyStateHeading('📦 No hay almacenes registrados')
             ->emptyStateDescription('Crea tu primer almacén para comenzar a gestionar tu inventario.')
             ->emptyStateIcon('heroicon-o-building-storefront')
             ->poll('60s');
@@ -413,27 +416,6 @@ class StockAlmacenResource extends Resource
     public static function getRelations(): array
     {
         return [
-            
-            //StockAlmacenResource\RelationManagers\UbicacionesRelationManager::class,
-            //StockAlmacenResource\RelationManagers\ExistenciasRelationManager::class,      
-           
-            // stockAlmacenResource\RelationManagers\TransferenciasRelationManager::class,
-            // stockAlmacenResource\RelationManagers\PedidosRelationManager::class,
-            
-            // StockAlmacenResource\RelationManagers\InventarioFisicoRelationManager::class,
-            
-           
-            // StockAlmacenResource\RelationManagers\KardexRelationManager::class,
-            // StockAlmacenResource\RelationManagers\MovimientosInventarioRelationManager::class,
-
-            // StockAlmacenResource\RelationManagers\TransferenciasInternasRelationManager::class,
-            // StockAlmacenResource\RelationManagers\TransferenciasExternasRelationManager::class,
-            
-            // StockAlmacenResource\RelationManagers\AjustesInventarioRelationManager::class,
-            
-            // StockAlmacenResource\RelationManagers\ReportesRelationManager::class,
-            // StockAlmacenResource\RelationManagers\AlertasStockRelationManager::class,  
-            
             ArticulosStockRelationManager::class,
         ];
     }
@@ -441,8 +423,8 @@ class StockAlmacenResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListStockAlmacens::route('/'),   
-            'edit' => EditStockAlmacens::route('/{record}/edit'),        
+            'index' => ListStockAlmacens::route('/'),
+            'edit' => EditStockAlmacens::route('/{record}/edit'),
         ];
     }
 }

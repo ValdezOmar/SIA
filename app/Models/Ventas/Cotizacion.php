@@ -22,7 +22,7 @@ class Cotizacion extends Model
         'fecha_emision' => 'date',
         'fecha_validez' => 'date',
         'fecha_entrega_estimada' => 'date',
-        'tasa_cambio' => 'decimal:6',
+        'tasa_cambio' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'descuento' => 'decimal:2',
         'descuento_porcentaje' => 'decimal:2',

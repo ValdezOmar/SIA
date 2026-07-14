@@ -11,14 +11,12 @@ class Existencia extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'cantidad_disponible' => 'decimal:6',
-        'cantidad_comprometida' => 'decimal:6',
-        'cantidad_pedida' => 'decimal:6',
-        'cantidad_minima' => 'decimal:6',
-        'cantidad_maxima' => 'decimal:6',
+        'cantidad_disponible' => 'decimal:2',
+        'cantidad_comprometida' => 'decimal:2',
+        'cantidad_pedida' => 'decimal:2',
+        'cantidad_minima' => 'decimal:2',
+        'cantidad_maxima' => 'decimal:2',
     ];
-
-    // ========== RELACIONES ==========
 
     public function articulo()
     {
@@ -30,27 +28,12 @@ class Existencia extends Model
         return $this->belongsTo(Almacen::class, 'almacen_id');
     }
 
-    // ✅ NUEVA: Relación con ubicaciones a través de la tabla pivote
     public function ubicaciones()
     {
         return $this->hasMany(ExistenciaUbicacion::class, 'existencia_id');
     }
 
-    // ========== SCOPES ==========
-
-    public function scopeDisponible($query)
-    {
-        return $query->where('cantidad_disponible', '>', 0);
-    }
-
-    public function scopeBajoMinimo($query)
-    {
-        return $query->whereRaw('cantidad_disponible <= cantidad_minima');
-    }
-
-    // ========== ACCESORS ==========
-
-    public function getStockTotalAttribute()
+    public function getStockDisponibleAttribute()
     {
         return $this->cantidad_disponible - $this->cantidad_comprometida;
     }
@@ -58,5 +41,19 @@ class Existencia extends Model
     public function getEstaBajoMinimoAttribute()
     {
         return $this->cantidad_disponible <= $this->cantidad_minima;
+    }
+
+    public function getEstadoStockAttribute()
+    {
+        if ($this->cantidad_disponible <= 0) {
+            return 'Sin Stock';
+        }
+        if ($this->cantidad_disponible <= $this->cantidad_minima) {
+            return 'Bajo Mínimo';
+        }
+        if ($this->cantidad_maxima > 0 && $this->cantidad_disponible >= $this->cantidad_maxima) {
+            return 'Excedido';
+        }
+        return 'Normal';
     }
 }

@@ -18,8 +18,8 @@ class Cliente extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'descuento_general' => 'decimal:6',
-        'descuento_especial' => 'decimal:6',
+        'descuento_general' => 'decimal:2',
+        'descuento_especial' => 'decimal:2',
         'activo' => 'boolean',
         'bloqueado' => 'boolean',
         'created_at' => 'datetime',

@@ -11,7 +11,7 @@ class ExistenciaUbicacion extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'cantidad' => 'decimal:6',
+        'cantidad' => 'decimal:2',
     ];
 
     // ========== RELACIONES ==========

@@ -12,7 +12,7 @@ class PrecioArticulo extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'precio' => 'decimal:6',
+        'precio' => 'decimal:2',
     ];
 
     // Relaciones

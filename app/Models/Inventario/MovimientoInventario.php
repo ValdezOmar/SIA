@@ -12,9 +12,9 @@ class MovimientoInventario extends Model
 
     protected $casts = [
         'fecha' => 'datetime',
-        'cantidad' => 'decimal:6',
-        'costo_unitario' => 'decimal:6',
-        'costo_total' => 'decimal:6',
+        'cantidad' => 'decimal:2',
+        'costo_unitario' => 'decimal:2',
+        'costo_total' => 'decimal:2',
     ];
 
     // ========== RELACIONES ==========

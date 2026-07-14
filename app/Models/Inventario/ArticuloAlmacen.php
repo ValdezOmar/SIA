@@ -11,12 +11,12 @@ class ArticuloAlmacen extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'stock_actual' => 'decimal:6',
-        'stock_comprometido' => 'decimal:6',
-        'stock_pedido' => 'decimal:6',
-        'stock_minimo' => 'decimal:6',
-        'stock_maximo' => 'decimal:6',
-        'costo_promedio' => 'decimal:6',
+        'stock_actual' => 'decimal:',
+        'stock_comprometido' => 'decimal:2',
+        'stock_pedido' => 'decimal:2',
+        'stock_minimo' => 'decimal:2',
+        'stock_maximo' => 'decimal:2',
+        'costo_promedio' => 'decimal:2',
     ];
 
     // ========== RELACIONES ==========

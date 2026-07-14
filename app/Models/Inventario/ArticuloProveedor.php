@@ -12,7 +12,7 @@ class ArticuloProveedor extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'costo_compra' => 'decimal:6',
+        'costo_compra' => 'decimal:2',
         'es_principal' => 'boolean',
     ];
 
