@@ -111,7 +111,7 @@ class StockAlmacenResource extends Resource
                                                     ->label('Dirección')
                                                     ->disabled()
                                                     ->placeholder('Sin dirección registrada')
-                                                    ->rows(3)
+                                                    ->rows(2)
                                                     ->helperText('Ubicación física del almacén')
                                                     ->formatStateUsing(fn($state) => $state ?? 'Sin datos registrados')
                                                     ->columnSpan(1),
