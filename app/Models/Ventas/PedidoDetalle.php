@@ -26,6 +26,40 @@ class PedidoDetalle extends Model
         'tasa_impuesto' => 'decimal:2',
     ];
 
+    // ========== BOOT ==========
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            // Asignar número de línea
+            if (!$model->linea) {
+                $ultimo = static::where('pedido_id', $model->pedido_id)
+                    ->orderBy('linea', 'desc')
+                    ->first();
+                $model->linea = $ultimo ? $ultimo->linea + 1 : 1;
+            }
+
+            // Asegurar cálculos automáticos
+            if ($model->precio_original == 0 && $model->precio_unitario > 0) {
+                $model->precio_original = $model->precio_unitario;
+            }
+
+            if ($model->subtotal == 0 && $model->cantidad > 0 && $model->precio_unitario > 0) {
+                $model->subtotal = ($model->precio_unitario * $model->cantidad) - ($model->descuento ?? 0);
+            }
+
+            if ($model->impuesto == 0 && $model->subtotal > 0) {
+                $model->impuesto = $model->subtotal * (($model->tasa_impuesto ?? 13) / 100);
+            }
+
+            if ($model->total == 0 && $model->subtotal > 0) {
+                $model->total = $model->subtotal + ($model->impuesto ?? 0);
+            }
+        });
+    }
+
     // ========== RELACIONES ==========
 
     public function pedido()
@@ -53,5 +87,21 @@ class PedidoDetalle extends Model
     public function getTotalCalculadoAttribute()
     {
         return $this->subtotal + $this->impuesto_calculado;
+    }
+
+    public function getDescuentoCalculadoAttribute()
+    {
+        if ($this->precio_original > 0) {
+            return $this->precio_original - $this->precio_unitario;
+        }
+        return 0;
+    }
+
+    public function getDescuentoPorcentajeCalculadoAttribute()
+    {
+        if ($this->precio_original > 0 && $this->precio_original > $this->precio_unitario) {
+            return (($this->precio_original - $this->precio_unitario) / $this->precio_original) * 100;
+        }
+        return 0;
     }
 }

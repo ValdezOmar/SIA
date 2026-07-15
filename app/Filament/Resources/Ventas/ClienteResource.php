@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Ventas;
 
 use App\Filament\Resources\Ventas\ClienteResource\Pages;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\CotizacionesRelationManager;
+use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\PedidosRelationManager;
 use App\Models\Ventas\Cliente;
 use App\Models\Inventario\ListaPrecio;
 use Filament\Forms;
@@ -600,6 +601,7 @@ class ClienteResource extends Resource
     {
         return [
             CotizacionesRelationManager::class,
+            PedidosRelationManager::class,
         ];
     }
 
