@@ -43,6 +43,7 @@ return new class extends Migration
             $table->json('lotes')->nullable();
             
             $table->timestamps();
+            $table->softDeletes();
             
             // Índices
             $table->index('factura_id');

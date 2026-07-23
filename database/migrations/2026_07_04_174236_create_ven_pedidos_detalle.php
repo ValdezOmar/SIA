@@ -29,6 +29,10 @@ return new class extends Migration
             $table->decimal('cantidad', 18, 6);
 
             // Precios
+            $table->foreignId('lista_precio')
+                ->nullable()                
+                ->constrained('alm_listas_precios')
+                ->nullOnDelete();
             $table->decimal('precio_unitario', 18, 6)->default(0);
             $table->decimal('precio_original', 18, 6)->default(0);
             $table->decimal('descuento', 18, 6)->default(0);
@@ -36,9 +40,12 @@ return new class extends Migration
             $table->decimal('subtotal', 18, 6);
 
             // Impuestos
+            $table->boolean('aplicar_iva')
+                ->default(false);
+                
             $table->string('tipo_impuesto', 20)
                 ->default('IVA');
-
+ 
             $table->decimal('tasa_impuesto', 18, 6)
                 ->default(13);
 

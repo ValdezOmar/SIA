@@ -26,6 +26,7 @@ class Cliente extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
     /**
      * Boot del modelo
      */
@@ -34,19 +35,15 @@ class Cliente extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            // Asignar creador automáticamente
             if (Auth::check()) {
                 $model->creado_por = Auth::id();
             }
-
-            // Generar código si no tiene
             if (empty($model->codigo)) {
                 $model->codigo = self::generarCodigo();
             }
         });
 
         static::updating(function ($model) {
-            // Asignar actualizador automáticamente
             if (Auth::check()) {
                 $model->actualizado_por = Auth::id();
             }
@@ -78,6 +75,24 @@ class Cliente extends Model
     public function pedidos()
     {
         return $this->hasMany(Pedido::class);
+    }
+
+    // ✅ Agregar relación con facturas
+    public function facturas()
+    {
+        return $this->hasMany(Factura::class);
+    }
+
+    // ✅ Agregar relación con pagos
+    public function pagos()
+    {
+        return $this->hasMany(Pago::class);
+    }
+
+    // ✅ Agregar relación con notas de crédito
+    public function notasCredito()
+    {
+        return $this->hasMany(NotaCredito::class);
     }
 
     // ========== SCOPES ==========
@@ -193,27 +208,20 @@ class Cliente extends Model
 
     public static function generarCodigo()
     {
-        $gestion = date('y'); // Obtiene los últimos 2 dígitos del año actual (ej: 26 para 2026)
+        $gestion = date('y');
         $prefijo = 'CLI-' . $gestion;
 
-        // Buscar el último código con el prefijo de la gestión actual
         $ultimo = self::withTrashed()
             ->where('codigo', 'LIKE', $prefijo . '%')
             ->orderBy('id', 'desc')
             ->first();
 
         if ($ultimo) {
-            // Extraer el número correlativo del último código
-            // Ejemplo: CLI-26005 -> extraer '005'
             $correlativo = intval(substr($ultimo->codigo, -3)) + 1;
         } else {
-            // Si no hay códigos para esta gestión, empezar desde 1
             $correlativo = 1;
         }
 
-        // Formatear el correlativo con 3 dígitos
-        $correlativoFormateado = str_pad($correlativo, 3, '0', STR_PAD_LEFT);
-
-        return $prefijo . $correlativoFormateado;
+        return $prefijo . str_pad($correlativo, 3, '0', STR_PAD_LEFT);
     }
 }

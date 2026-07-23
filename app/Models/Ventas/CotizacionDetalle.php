@@ -6,11 +6,11 @@ use App\Models\Inventario\Articulo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class CotizacionDetalle extends Model
+class PedidoDetalle extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'ven_cotizaciones_detalle';
+    protected $table = 'ven_pedidos_detalle';
 
     protected $guarded = [];
 
@@ -25,7 +25,6 @@ class CotizacionDetalle extends Model
         'total' => 'decimal:2',
         'tasa_impuesto' => 'decimal:2',
         'linea' => 'integer',
-        'aplicar_iva' => 'boolean',
     ];
 
     // ========== BOOT ==========
@@ -37,35 +36,44 @@ class CotizacionDetalle extends Model
         static::creating(function ($model) {
             // Asignar número de línea
             if (!$model->linea) {
-                $ultimo = static::where('cotizacion_id', $model->cotizacion_id)
+                $ultimo = static::where('pedido_id', $model->pedido_id)
                     ->orderBy('linea', 'desc')
                     ->first();
                 $model->linea = $ultimo ? $ultimo->linea + 1 : 1;
             }
 
-            // ✅ Asegurar que precio_original tenga el precio de la lista
+            // Asegurar cálculos automáticos
             if ($model->precio_original == 0 && $model->precio_unitario > 0) {
                 $model->precio_original = $model->precio_unitario;
             }
 
-            // ✅ Asegurar que subtotal esté calculado
             if ($model->subtotal == 0 && $model->cantidad > 0 && $model->precio_unitario > 0) {
                 $model->subtotal = ($model->precio_unitario * $model->cantidad) - ($model->descuento ?? 0);
             }
 
-            // ✅ Asegurar que impuesto esté calculado
-            if ($model->impuesto == 0 && $model->subtotal > 0 && $model->aplicar_iva) {
-                $model->impuesto = $model->subtotal * (13 / 100);
+            if ($model->impuesto == 0 && $model->subtotal > 0) {
+                $model->impuesto = $model->subtotal * (($model->tasa_impuesto ?? 13) / 100);
             }
 
-            // ✅ Asegurar que total esté calculado
             if ($model->total == 0 && $model->subtotal > 0) {
                 $model->total = $model->subtotal + ($model->impuesto ?? 0);
             }
         });
     }
 
-    // ========== ACCESSORS ==========
+    // ========== RELACIONES ==========
+
+    public function pedido()
+    {
+        return $this->belongsTo(Pedido::class, 'pedido_id');
+    }
+
+    public function articulo()
+    {
+        return $this->belongsTo(Articulo::class, 'articulo_id');
+    }
+
+    // ========== ACCESORS ==========
 
     public function getSubtotalCalculadoAttribute()
     {
@@ -82,15 +90,19 @@ class CotizacionDetalle extends Model
         return $this->subtotal + $this->impuesto_calculado;
     }
 
-    // ========== RELACIONES ==========
-
-    public function cotizacion()
+    public function getDescuentoCalculadoAttribute()
     {
-        return $this->belongsTo(Cotizacion::class);
+        if ($this->precio_original > 0) {
+            return $this->precio_original - $this->precio_unitario;
+        }
+        return 0;
     }
 
-    public function articulo()
+    public function getDescuentoPorcentajeCalculadoAttribute()
     {
-        return $this->belongsTo(Articulo::class);
+        if ($this->precio_original > 0 && $this->precio_original > $this->precio_unitario) {
+            return (($this->precio_original - $this->precio_unitario) / $this->precio_original) * 100;
+        }
+        return 0;
     }
 }
