@@ -260,7 +260,18 @@ class ArticuloResource extends Resource
                                                     ->imagePreviewHeight('200')
                                                     ->loadingIndicatorPosition('left')
                                                     ->panelLayout('grid')
-                                                    ->columnSpan(1),
+                                                    ->columnSpan(1)
+                                                    ->getUploadedFileNameForStorageUsing(function ($file, $livewire) {
+                                                        $codigo = $livewire->data['codigo'] ?? $livewire->record?->codigo ?? 'sin-codigo';
+                                                        $modelo = $livewire->data['codigo_alterno'] ?? $livewire->record?->codigo_alterno ?? 'sin-modelo';
+                                                        $extension = $file->getClientOriginalExtension();
+
+                                                        // Limpiar caracteres especiales
+                                                        $codigo = preg_replace('/[^a-zA-Z0-9-]/', '', $codigo);
+                                                        $modelo = preg_replace('/[^a-zA-Z0-9-]/', '', $modelo);
+
+                                                        return $codigo . '-' . $modelo . '-foto.' . $extension;
+                                                    }),
 
                                                 FileUpload::make('documentacion_tecnica')
                                                     ->label('Documentación Técnica')
@@ -288,7 +299,19 @@ class ArticuloResource extends Resource
                                                     ->uploadingMessage('Subiendo documentación...')
                                                     ->helperText('PDF, Word, Excel, Imágenes (máx. 15MB)')
                                                     ->storeFileNamesIn('documentacion_tecnica')
-                                                    ->columnSpan(1),
+                                                    ->columnSpan(1)
+                                                    ->getUploadedFileNameForStorageUsing(function ($file, $livewire) {
+                                                        $codigo = $livewire->data['codigo'] ?? $livewire->record?->codigo ?? 'sin-codigo';
+                                                        $modelo = $livewire->data['codigo_alterno'] ?? $livewire->record?->codigo_alterno ?? 'sin-modelo';
+                                                        $extension = $file->getClientOriginalExtension();
+                                                        $timestamp = time();
+
+                                                        // Limpiar caracteres especiales
+                                                        $codigo = preg_replace('/[^a-zA-Z0-9-]/', '', $codigo);
+                                                        $modelo = preg_replace('/[^a-zA-Z0-9-]/', '', $modelo);
+
+                                                        return $codigo . '-' . $modelo . '-doc-' . $timestamp . '.' . $extension;
+                                                    }),
                                             ]),
                                     ]),
 
