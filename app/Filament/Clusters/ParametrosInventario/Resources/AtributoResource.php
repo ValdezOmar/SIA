@@ -51,6 +51,7 @@ class AtributoResource extends Resource
                                     ->unique(ignoreRecord: true)
                                     ->placeholder('Ej: ATRIB-001')
                                     ->helperText('Código único del atributo')
+                                    ->disabledOn('edit')
                                     ->columnSpan(1),
 
                                 TextInput::make('nombre')
@@ -148,7 +149,7 @@ class AtributoResource extends Resource
                     ->query(function ($query, array $data) {
                         return $query->when(
                             $data['nombre'],
-                            fn ($query, $nombre) => $query->where('nombre', 'like', "%{$nombre}%")
+                            fn($query, $nombre) => $query->where('nombre', 'like', "%{$nombre}%")
                         );
                     }),
             ])
@@ -177,8 +178,8 @@ class AtributoResource extends Resource
 
                     Tables\Actions\DeleteAction::make(),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -186,7 +187,7 @@ class AtributoResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn ($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn($records) => $records->each->update(['activo' => !$records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de atributos'),
                 ]),

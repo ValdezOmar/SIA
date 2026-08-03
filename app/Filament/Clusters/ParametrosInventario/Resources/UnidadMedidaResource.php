@@ -62,6 +62,7 @@ class UnidadMedidaResource extends Resource
                                                     ->placeholder('Ej: UND')
                                                     ->helperText('Código único de la unidad')
                                                     ->columnSpan(1)
+                                                    ->disabledOn('edit')
                                                     ->visible(fn () => Schema::hasColumn('alm_unidades_medida', 'codigo')),
 
                                                 TextInput::make('nombre')

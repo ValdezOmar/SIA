@@ -43,7 +43,7 @@ class HistorialLaboralRelationManager extends RelationManager
                         ->label('Empresa')
                         ->prefixIcon('heroicon-o-building-office-2')
                         ->required()
-                        ->relationship('empresa', 'razon_social')
+                        ->relationship('empresa', 'nombre_comercial')
                         ->searchable()
                         ->preload()
                         ->live()

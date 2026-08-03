@@ -30,7 +30,7 @@ class SucursalResource extends Resource implements HasShieldPermissions
                     ->schema([
                         Forms\Components\Select::make('empresa_id')
                             ->label('Empresa')
-                            ->relationship('empresa', 'razon_social')
+                            ->relationship('empresa', 'nombre_comercial')
                             ->required()
                             ->searchable()
                             ->preload()

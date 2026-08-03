@@ -142,9 +142,9 @@ class ArticuloResource extends Resource
                                                     ->columnSpan(1),
 
                                                 TextInput::make('codigo_alterno')
-                                                    ->label('Código Alterno')
+                                                    ->label('Modelo del Equipo')
                                                     ->maxLength(50)
-                                                    ->placeholder('Ej: REF-001')
+                                                    ->placeholder('Ej: LBE-5AC-GEN2')
                                                     ->helperText('Código del proveedor')
                                                     ->prefixIcon('heroicon-o-tag')
                                                     ->columnSpan(1),

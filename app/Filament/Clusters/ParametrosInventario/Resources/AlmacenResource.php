@@ -97,6 +97,7 @@ class AlmacenResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('Ej: ALM-001')
                                                     ->helperText('Código único para identificar el almacén')
+                                                    ->disabledOn('edit')
                                                     ->columnSpan(1),
 
                                                 TextInput::make('nombre')

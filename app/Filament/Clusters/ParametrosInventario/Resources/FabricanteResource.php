@@ -62,6 +62,7 @@ class FabricanteResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('Ej: FAB-001')
                                                     ->helperText('Código único del fabricante')
+                                                    ->disabledOn('edit')
                                                     ->columnSpan(1),
 
                                                 TextInput::make('nombre')

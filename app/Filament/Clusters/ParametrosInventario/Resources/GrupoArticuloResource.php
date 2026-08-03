@@ -62,6 +62,7 @@ class GrupoArticuloResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('Ej: GRP-001')
                                                     ->helperText('Código único del grupo')
+                                                    ->disabledOn('edit')
                                                     ->columnSpan(1),
 
                                                 TextInput::make('nombre')

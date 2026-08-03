@@ -46,6 +46,7 @@ class ListaPrecioResource extends Resource
                             ->maxLength(50)
                             ->unique(ignoreRecord: true)
                             ->placeholder('Ej: LST-001')
+                            ->disabledOn('edit')
                             ->helperText('Código único de la lista'),
 
                         TextInput::make('nombre')
