@@ -60,75 +60,60 @@ class Articulo extends Model
         'documentacion_tecnica' => 'array',
     ];
 
-    /**
-     * Boot del modelo
-     */
+    // ========== BOOT ==========
+
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($articulo) {
-            // Si no se proporcionó un código manualmente, generarlo automáticamente
             if (empty($articulo->codigo)) {
                 $articulo->codigo = self::generarCodigo($articulo);
             }
         });
     }
 
-    /**
-     * Generar código automático para el artículo
-     * Formato: [CÓDIGO_GRUPO]-[CÓDIGO_FABRICANTE]-[CORRELATIVO]
-     */
+    // ========== GENERAR CÓDIGO ==========
+
     public static function generarCodigo($articulo): string
     {
-        // Obtener código del grupo (2 primeras letras mayúsculas)
         $codigoGrupo = 'XX';
         if ($articulo->grupo_articulo_id) {
             $grupo = GrupoArticulo::find($articulo->grupo_articulo_id);
             if ($grupo && $grupo->codigo) {
                 $codigoGrupo = strtoupper(substr($grupo->codigo, 0, 2));
             } else {
-                // Si el grupo no tiene código, usar las primeras 2 letras del nombre
                 $codigoGrupo = strtoupper(substr($grupo->nombre ?? 'XX', 0, 2));
             }
         }
 
-        // Obtener código del fabricante (2 primeras letras mayúsculas)
         $codigoFabricante = 'XX';
         if ($articulo->fabricante_id) {
             $fabricante = Fabricante::find($articulo->fabricante_id);
             if ($fabricante && $fabricante->codigo) {
                 $codigoFabricante = strtoupper(substr($fabricante->codigo, 0, 2));
             } else {
-                // Si el fabricante no tiene código, usar las primeras 2 letras del nombre
                 $codigoFabricante = strtoupper(substr($fabricante->nombre ?? 'XX', 0, 2));
             }
         }
 
-        // Generar el prefijo
         $prefijo = $codigoGrupo . '-' . $codigoFabricante;
 
-        // Buscar el último correlativo para este prefijo
         $ultimo = self::where('codigo', 'LIKE', $prefijo . '-%')
             ->orderBy('codigo', 'desc')
             ->first();
 
         if ($ultimo) {
-            // Extraer el número del último código
             $partes = explode('-', $ultimo->codigo);
             $numero = intval(end($partes));
             $correlativo = str_pad($numero + 1, 3, '0', STR_PAD_LEFT);
         } else {
-            // Si no existe, empezar desde 001
             $correlativo = '001';
         }
 
         return $prefijo . '-' . $correlativo;
     }
 
-    /**
-     * Previsualizar el código que se generará
-     */
     public static function previsualizarCodigo($grupoId, $fabricanteId): string
     {
         $codigoGrupo = 'XX';
@@ -163,19 +148,14 @@ class Articulo extends Model
 
         return $prefijo . '-' . $correlativo;
     }
-    // En app/Models/Inventario/Articulo.php
 
-    /**
-     * Calcular el stock total del artículo en todos los almacenes
-     */
+    // ========== STOCK ==========
+
     public function getStockTotalAttribute()
     {
         return $this->existencias()->sum('cantidad_disponible');
     }
 
-    /**
-     * Calcular el stock por almacén
-     */
     public function getStockPorAlmacenAttribute()
     {
         return $this->existencias()
@@ -187,28 +167,25 @@ class Articulo extends Model
             ->toArray();
     }
 
-    // Mutadores para manejar la lógica de lotes
+    // ========== MUTATORS ==========
+
     public function setManejaLotesAttribute($value)
     {
         $this->attributes['maneja_lotes'] = $value;
-        // Si se activa lotes, desactivar series
         if ($value) {
             $this->attributes['maneja_series'] = false;
             $this->attributes['requiere_serie_en_salida'] = false;
         }
     }
 
-    // Mutador para manejar la lógica de series
     public function setManejaSeriesAttribute($value)
     {
         $this->attributes['maneja_series'] = $value;
-        // Si se activa series, desactivar lotes
         if ($value) {
             $this->attributes['maneja_lotes'] = false;
         }
     }
 
-    // Si necesitas convertir el array a JSON al guardar
     public function setDocumentacionTecnicaAttribute($value)
     {
         if (is_array($value)) {
@@ -218,21 +195,32 @@ class Articulo extends Model
         }
     }
 
-    // Accesor para obtener los archivos como array
     public function getDocumentacionTecnicaAttribute($value)
     {
         if (is_null($value)) {
             return [];
         }
-
         if (is_array($value)) {
             return $value;
         }
-
         return json_decode($value, true) ?? [];
     }
 
-    // Relaciones
+    // ========== RELACIONES ==========
+
+    // ✅ Relación con kardex (historial de movimientos)
+    public function kardex()
+    {
+        return $this->hasMany(Kardex::class);
+    }
+
+    // ✅ Relación con capas de costo (FIFO)
+    public function capasCostos()
+    {
+        return $this->hasMany(CapaCosto::class);
+    }
+
+    // Relaciones existentes
     public function proveedores()
     {
         return $this->hasMany(ArticuloProveedor::class, 'articulo_id');
@@ -264,17 +252,14 @@ class Articulo extends Model
         )->withPivot('valor');
     }
 
-    // Método para obtener el precio de una lista específica
     public function getPrecioByLista($listaPrecioId)
     {
         $precio = $this->precios()
             ->where('lista_precio_id', $listaPrecioId)
             ->first();
-
         return $precio?->precio ?? 0;
     }
 
-    // Método para obtener todas las listas de precios disponibles con sus precios
     public function getPreciosConListas()
     {
         return $this->precios()
@@ -359,8 +344,6 @@ class Articulo extends Model
         return $this->belongsTo(Empresa::class);
     }
 
-    // Relaciones con ventas
-
     public function cotizacionesDetalle()
     {
         return $this->hasMany(CotizacionDetalle::class);
@@ -376,7 +359,8 @@ class Articulo extends Model
         return $this->hasMany(FacturaDetalle::class);
     }
 
-    // Scopes útiles
+    // ========== SCOPES ==========
+
     public function scopeActivo($query)
     {
         return $query->where('activo', true);
@@ -397,7 +381,8 @@ class Articulo extends Model
         return $query->where('vendible', true);
     }
 
-    // Accesores
+    // ========== ACCESORS ==========
+
     public function getNombreCompletoAttribute()
     {
         return $this->nombre_comercial ?? $this->descripcion ?? $this->codigo;

@@ -2,13 +2,16 @@
 
 namespace App\Filament\Resources\Inventario;
 
+use App\Filament\Resources\Inventario\AlmacenResource\RelationManagers\KardexPorAlmacenRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\Pages\CreateArticulo;
 use App\Filament\Resources\Inventario\ArticuloResource\Pages\EditArticulo;
 use App\Filament\Resources\Inventario\ArticuloResource\Pages\ListArticulos;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\AtributosRelationManager;
+use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\CapasCostosRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\CodigosBarrasRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ExistenciasRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ImagenesRelationManager;
+use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\KardexRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\LotesRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\PreciosRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ProveedoresRelationManager;
@@ -804,6 +807,22 @@ class ArticuloResource extends Resource
 
         if (Schema::hasTable('alm_codigos_barras')) {
             $relations[] = CodigosBarrasRelationManager::class;
+        }
+
+        if (Schema::hasTable('alm_codigos_barras')) {
+            $relations[] = KardexRelationManager::class;
+        }
+
+        if (Schema::hasTable('alm_codigos_barras')) {
+            $relations[] = KardexPorAlmacenRelationManager::class;
+        }
+
+        if (Schema::hasTable('alm_codigos_barras')) {
+            $relations[] = CapasCostosRelationManager::class;
+        }
+
+        if (Schema::hasTable('alm_codigos_barras')) {
+            $relations[] = ExistenciasRelationManager::class;
         }
 
         return $relations;

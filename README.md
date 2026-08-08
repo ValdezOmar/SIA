@@ -137,3 +137,88 @@ sudo supervisorctl status
 
 ##Personalizar el Theme
 vendor\nuxtifyts\dash-stack-theme\resources\css\theme.css
+
+##Modulo reservas
+stateDiagram-v2
+    [*] --> Borrador: Crear Cotización
+    Borrador --> Enviada: Enviar
+    Enviada --> Aprobada: Cliente Aprueba
+    Enviada --> Rechazada: Cliente Rechaza
+    Aprobada --> Convertida: Crear Pedido
+    Convertida --> [*]
+    
+    state Pedido {
+        [*] --> Reservado
+        Reservado --> Pendiente: Verificar Stock
+        Pendiente --> Parcial: Entrega Parcial
+        Pendiente --> Despachado: Entrega Total
+        Parcial --> Despachado: Última Entrega
+        Despachado --> Entregado: Confirmar Entrega
+        Reservado --> Cancelado
+        Pendiente --> Cancelado
+    }
+
+##Kardex inventario
+┌─────────────────────────────────────────────────────────────────┐
+│                      KARDEX DE INVENTARIO                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ENTRADAS                    SALIDAS                           │
+│  ┌─────────────────┐       ┌─────────────────┐                 │
+│  │ • Compras        │       │ • Ventas         │                 │
+│  │ • Transferencias │       │ • Transferencias │                 │
+│  │ • Producción     │       │ • Producción     │                 │
+│  │ • Ajustes (+)    │       │ • Ajustes (-)    │                 │
+│  │ • Devoluciones   │       │ • Devoluciones   │                 │
+│  │ • Inv. Inicial   │       │ • Mermas         │                 │
+│  └─────────────────┘       └─────────────────┘                 │
+│           │                           │                         │
+│           ▼                           ▼                         │
+│  ┌─────────────────────────────────────────────────┐           │
+│  │              ACTUALIZA EXISTENCIAS              │           │
+│  │  • Aumenta/Disminuye stock                      │           │
+│  │  • Actualiza costo promedio                    │           │
+│  │  • Actualiza costo acumulado                   │           │
+│  └─────────────────────────────────────────────────┘           │
+│           │                                                     │
+│           ▼                                                     │
+│  ┌─────────────────────────────────────────────────┐           │
+│  │              CREA CAPAS FIFO                    │           │
+│  │  • Para compras (entradas)                     │           │
+│  │  • Consume capas (salidas)                     │           │
+│  │  • Registra costo de ventas                    │           │
+│  └─────────────────────────────────────────────────┘           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+##modulo compras
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         MÓDULO DE COMPRAS                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Solicitud de Compra    Cotización       Orden de Compra                   │
+│  (Requerimiento)    →   (Presupuesto) →  (Pedido a Proveedor)              │
+│        │                   │                  │                            │
+│        ▼                   ▼                  ▼                            │
+│  ┌─────────────────────────────────────────────────────────────┐          │
+│  │                    RECEPCIÓN / INGRESO                      │          │
+│  │  • Verifica cantidades y calidad                           │          │
+│  │  • Genera entrada de inventario                            │          │
+│  │  • Actualiza kardex                                       │          │
+│  └─────────────────────────────────────────────────────────────┘          │
+│        │                                                                   │
+│        ▼                                                                   │
+│  ┌─────────────────────────────────────────────────────────────┐          │
+│  │                    FACTURA DE COMPRA                       │          │
+│  │  • Registra costo de compra                                │          │
+│  │  • Genera cuenta por pagar                                │          │
+│  └─────────────────────────────────────────────────────────────┘          │
+│        │                                                                   │
+│        ▼                                                                   │
+│  ┌─────────────────────────────────────────────────────────────┐          │
+│  │                    PAGO A PROVEEDOR                        │          │
+│  │  • Registra pago parcial o total                          │          │
+│  │  • Actualiza saldo                                       │          │
+│  └─────────────────────────────────────────────────────────────┘          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
