@@ -26,8 +26,8 @@ class Factura extends Model
         'saldo' => 'decimal:2',
         'monto_pagado' => 'decimal:2',
         'monto_restante' => 'decimal:2',
-        'tasa_cambio' => 'decimal:6',
-        'tasa_impuesto' => 'decimal:6',
+        'tasa_cambio' => 'decimal:2',
+        'tasa_impuesto' => 'decimal:2',
     ];
 
     protected static function boot()

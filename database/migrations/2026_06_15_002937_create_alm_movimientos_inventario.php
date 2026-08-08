@@ -6,63 +6,81 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('alm_movimientos_inventario', function (Blueprint $table) {
-            $table->id();
+        Schema::table('alm_movimientos_inventario', function (Blueprint $table) {
+            // ✅ Agregar relación con kardex
+            $table->foreignId('kardex_id')
+                ->nullable()
+                ->after('id')
+                ->constrained('alm_kardex')
+                ->nullOnDelete()
+                ->comment('ID del registro en kardex');
 
-            $table->foreignId('articulo_id')
-                ->constrained('alm_articulos');
+            // ✅ Agregar relación con capas FIFO
+            $table->foreignId('capa_costo_id')
+                ->nullable()
+                ->after('costo_total')
+                ->constrained('alm_capas_costos')
+                ->nullOnDelete()
+                ->comment('Capa de costo FIFO utilizada (para salidas)');
 
-            $table->foreignId('almacen_id')
-                ->constrained('alm_almacenes');
+            // ✅ Agregar tipo de documento más detallado
+            $table->enum('tipo_documento', [
+                'compra',
+                'venta',
+                'transferencia',
+                'ajuste',
+                'produccion',
+                'devolucion_compra',
+                'devolucion_venta',
+                'inventario_inicial',
+                'inventario_fisico',
+                'merma'
+            ])->nullable()->after('documento_tipo');
 
-            $table->enum('tipo', [
-                'entrada_compra',
-                'salida_venta',
-                'ajuste_positivo',
-                'ajuste_negativo',
-                'transferencia_entrada',
-                'transferencia_salida',
-                'produccion_entrada',
-                'produccion_salida'
-            ]);
+            // ✅ Agregar referencia al pedido/cotización
+            $table->string('referencia', 100)
+                ->nullable()
+                ->after('documento_id')
+                ->comment('Referencia adicional del documento');
 
-            $table->decimal('cantidad', 18, 6);
+            // ✅ Agregar campos de auditoría
+            $table->foreignId('creado_por')
+                ->nullable()
+                ->after('observacion')
+                ->constrained('users')
+                ->nullOnDelete();
 
-            $table->decimal('costo_unitario', 18, 6)
-                ->default(0);
+            $table->foreignId('autorizado_por')
+                ->nullable()
+                ->after('creado_por')
+                ->constrained('users')
+                ->nullOnDelete();
 
-            $table->decimal('costo_total', 18, 6)
-                ->default(0);
-
-            $table->string('documento_tipo');
-
-            $table->unsignedBigInteger('documento_id');
-
-            $table->timestamp('fecha');
-
-            $table->text('observacion')
-                ->nullable();
-
-            $table->timestamps();
-
-            $table->index([
-                'articulo_id',
-                'almacen_id',
-                'fecha'
-            ]);
+            $table->enum('estado', ['pendiente', 'confirmado', 'cancelado'])
+                ->default('confirmado')
+                ->after('observacion');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('alm_movimientos_inventario');
+        Schema::table('alm_movimientos_inventario', function (Blueprint $table) {
+            $table->dropForeign(['kardex_id']);
+            $table->dropForeign(['capa_costo_id']);
+            $table->dropForeign(['creado_por']);
+            $table->dropForeign(['autorizado_por']);
+            
+            $table->dropColumn([
+                'kardex_id',
+                'capa_costo_id',
+                'tipo_documento',
+                'referencia',
+                'creado_por',
+                'autorizado_por',
+                'estado'
+            ]);
+        });
     }
 };

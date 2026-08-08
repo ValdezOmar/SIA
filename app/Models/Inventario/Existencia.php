@@ -16,7 +16,14 @@ class Existencia extends Model
         'cantidad_pedida' => 'decimal:2',
         'cantidad_minima' => 'decimal:2',
         'cantidad_maxima' => 'decimal:2',
+        'costo_promedio' => 'decimal:2',
+        'costo_acumulado' => 'decimal:2',
+        'ultimo_costo' => 'decimal:2',
+        'ultima_entrada' => 'datetime',
+        'ultima_salida' => 'datetime',
     ];
+
+    // ========== RELACIONES ==========
 
     public function articulo()
     {
@@ -25,15 +32,24 @@ class Existencia extends Model
 
     public function almacen()
     {
-        return $this->belongsTo(Almacen::class, 'almacen_id');
+        return $this->belongsTo(Almacen::class);
     }
 
-    public function ubicaciones()
+    // ========== SCOPES ==========
+
+    public function scopeDisponible($query)
     {
-        return $this->hasMany(ExistenciaUbicacion::class, 'existencia_id');
+        return $query->where('cantidad_disponible', '>', 0);
     }
 
-    public function getStockDisponibleAttribute()
+    public function scopeBajoMinimo($query)
+    {
+        return $query->whereRaw('cantidad_disponible <= cantidad_minima');
+    }
+
+    // ========== ACCESORS ==========
+
+    public function getStockTotalAttribute()
     {
         return $this->cantidad_disponible - $this->cantidad_comprometida;
     }
@@ -41,19 +57,5 @@ class Existencia extends Model
     public function getEstaBajoMinimoAttribute()
     {
         return $this->cantidad_disponible <= $this->cantidad_minima;
-    }
-
-    public function getEstadoStockAttribute()
-    {
-        if ($this->cantidad_disponible <= 0) {
-            return 'Sin Stock';
-        }
-        if ($this->cantidad_disponible <= $this->cantidad_minima) {
-            return 'Bajo Mínimo';
-        }
-        if ($this->cantidad_maxima > 0 && $this->cantidad_disponible >= $this->cantidad_maxima) {
-            return 'Excedido';
-        }
-        return 'Normal';
     }
 }

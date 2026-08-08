@@ -19,7 +19,7 @@ class Pago extends Model
         'fecha_pago' => 'date',
         'fecha_cheque' => 'date',
         'monto' => 'decimal:2',
-        'tasa_cambio' => 'decimal:6',
+        'tasa_cambio' => 'decimal:2',
     ];
 
     protected static function boot()

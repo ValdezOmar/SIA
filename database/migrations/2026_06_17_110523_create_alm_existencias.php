@@ -39,7 +39,28 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Cantidad máxima de stock');
 
+            $table->decimal('costo_promedio', 18, 6)
+                ->default(0)
+                ->after('cantidad_maxima')
+                ->comment('Costo promedio del inventario');
+
+            $table->decimal('costo_acumulado', 18, 6)
+                ->default(0)
+                ->after('costo_promedio')
+                ->comment('Costo acumulado total del inventario');
+
+            $table->decimal('ultimo_costo', 18, 6)
+                ->default(0)
+                ->after('costo_acumulado')
+                ->comment('Último costo registrado');
+
+            $table->timestamp('ultima_entrada')
+                ->nullable()
+                ->after('ultimo_costo')
+                ->comment('Fecha de la última entrada');
+
             $table->timestamps();
+            $table->softDeletes();
 
             $table->unique(['articulo_id', 'almacen_id']);
             $table->index(['articulo_id', 'almacen_id']);

@@ -6,14 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class CapaCosto extends Model
 {
-    //
     protected $table = 'alm_capas_costos';
 
     protected $guarded = [];
 
     protected $casts = [
-        'fecha' => 'datetime'
+        'cantidad_original' => 'decimal:2',
+        'cantidad_disponible' => 'decimal:2',
+        'costo_unitario' => 'decimal:2',
+        'fecha' => 'datetime',
+        'activo' => 'boolean',
     ];
+
+    // ========== RELACIONES ==========
 
     public function articulo()
     {
@@ -25,8 +30,27 @@ class CapaCosto extends Model
         return $this->belongsTo(Almacen::class);
     }
 
-    public function movimiento()
+    public function kardex()
     {
-        return $this->belongsTo(MovimientoInventario::class);
+        return $this->belongsTo(Kardex::class);
+    }
+
+    // ========== SCOPES ==========
+
+    public function scopeDisponible($query)
+    {
+        return $query->where('cantidad_disponible', '>', 0)->where('activo', true);
+    }
+
+    public function scopeActivo($query)
+    {
+        return $query->where('activo', true);
+    }
+
+    // ========== ACCESORS ==========
+
+    public function getCostoTotalAttribute()
+    {
+        return $this->cantidad_disponible * $this->costo_unitario;
     }
 }
