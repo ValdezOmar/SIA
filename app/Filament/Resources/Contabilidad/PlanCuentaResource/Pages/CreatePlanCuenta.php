@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Filament\Resources\Contabilidad\PlanCuentaResource\Pages;
+
+use App\Filament\Resources\Contabilidad\PlanCuentaResource;
+use Filament\Actions;
+use Filament\Resources\Pages\CreateRecord;
+
+class CreatePlanCuenta extends CreateRecord
+{
+    protected static string $resource = PlanCuentaResource::class;
+}

@@ -14,7 +14,7 @@ class Area extends Model
         return $this->hasMany(Cargo::class);
     }
 
-   public function empresas()
+    public function empresas()
     {
         return $this->belongsToMany(
             Empresa::class,
@@ -22,5 +22,10 @@ class Area extends Model
             'area_id',            // FK de este modelo
             'empresa_id'         // FK del otro modelo
         );
+    }
+    // Relación con centros de costo
+    public function centrosCostos()
+    {
+        return $this->hasMany(\App\Models\Contabilidad\CentroCosto::class);
     }
 }
