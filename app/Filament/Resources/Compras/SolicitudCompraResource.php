@@ -46,6 +46,8 @@ class SolicitudCompraResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    // ========== HELPER METHODS ==========
+
     private static function getSimboloMoneda($moneda = 'BOB'): string
     {
         return match ($moneda) {
@@ -59,6 +61,17 @@ class SolicitudCompraResource extends Resource
     private static function formatearMonto($monto, $moneda = 'BOB'): string
     {
         return self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2);
+    }
+
+    // ✅ Agregar este método
+    private static function formatearMontoHtml($monto, $moneda = 'BOB', $clase = ''): HtmlString
+    {
+        $simbolo = self::getSimboloMoneda($moneda);
+        return new HtmlString(
+            '<span class="' . $clase . '">' .
+                $simbolo . ' ' . number_format($monto ?? 0, 2) .
+                '</span>'
+        );
     }
 
     private static function recalcularTotales(callable $set, callable $get): void
@@ -76,7 +89,7 @@ class SolicitudCompraResource extends Resource
             }
         }
 
-        $impuesto = $subtotal * 0.13; // 13% IVA
+        $impuesto = $subtotal * 0.13;
         $total = $subtotal + $impuesto;
 
         $set('subtotal', $subtotal);
@@ -90,7 +103,7 @@ class SolicitudCompraResource extends Resource
             ->schema([
                 Tabs::make('Gestión de Solicitud')
                     ->tabs([
-                        Tabs\Tab::make('📋 General')
+                        Tabs\Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Solicitud')
@@ -163,19 +176,17 @@ class SolicitudCompraResource extends Resource
                                                     ->prefixIcon('heroicon-o-user')
                                                     ->columnSpan(1),
 
-                                                // Select::make('departamento_id')
-                                                //     ->label('Departamento')
-                                                //     ->options(
-                                                //         fn() => Departamento::where('activo', true)
-                                                //             ->pluck('nombre', 'id')
-                                                //             ->toArray()
-                                                //     )
-                                                //     ->searchable()
-                                                //     ->preload()
-                                                //     ->placeholder('Seleccione un departamento')
-                                                //     ->helperText('Departamento solicitante')
-                                                //     ->prefixIcon('heroicon-o-building-office')
-                                                //     ->columnSpan(1),
+                                                Select::make('area_id')
+                                                    ->label('Área')
+                                                    ->options(
+                                                        fn() => \App\Models\Sistema\Area::pluck('nombre', 'id')->toArray()
+                                                    )
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->placeholder('Seleccione un área')
+                                                    ->helperText('Área solicitante')
+                                                    ->prefixIcon('heroicon-o-building-office')
+                                                    ->columnSpan(1),
 
                                                 Select::make('prioridad')
                                                     ->label('Prioridad')
@@ -216,7 +227,7 @@ class SolicitudCompraResource extends Resource
                                             ]),
                                     ]),
 
-                                Section::make('💰 Totales')
+                                Section::make('Totales')
                                     ->icon('heroicon-o-calculator')
                                     ->schema([
                                         Grid::make(3)
@@ -246,7 +257,7 @@ class SolicitudCompraResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('📦 Productos')
+                        Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
                                 if (!$record) return 0;
@@ -363,7 +374,7 @@ class SolicitudCompraResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('📊 Auditoría')
+                        Tabs\Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -412,8 +423,7 @@ class SolicitudCompraResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-                TextColumn::make('departamento.nombre')
-                    ->label('Departamento')
+                TextColumn::make('area.nombre')
                     ->searchable()
                     ->sortable()
                     ->toggleable()
@@ -427,7 +437,7 @@ class SolicitudCompraResource extends Resource
 
                 BadgeColumn::make('prioridad')
                     ->label('Prioridad')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'baja' => '🟢 Baja',
                         'normal' => '🟡 Normal',
                         'alta' => '🟠 Alta',
@@ -444,7 +454,7 @@ class SolicitudCompraResource extends Resource
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'borrador' => '📝 Borrador',
                         'pendiente' => '⏳ Pendiente',
                         'aprobada' => '✅ Aprobada',
@@ -574,12 +584,6 @@ class SolicitudCompraResource extends Resource
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn($records) => $records->every(fn($record) => in_array($record->estado, ['borrador', 'rechazada']))),
-                ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar solicitud...')

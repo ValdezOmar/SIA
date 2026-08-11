@@ -40,14 +40,15 @@ class SolicitudCompraDetalle extends Model
 
     // ========== RELACIONES ==========
 
+    // ✅ Cambiar 'solicitud_compra_id' por 'solicitud_id'
     public function solicitud()
     {
-        return $this->belongsTo(SolicitudCompra::class);
+        return $this->belongsTo(SolicitudCompra::class, 'solicitud_id');
     }
 
     public function articulo()
     {
-        return $this->belongsTo(Articulo::class);
+        return $this->belongsTo(Articulo::class, 'articulo_id');
     }
 
     // ========== ACCESORS ==========

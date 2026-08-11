@@ -674,12 +674,7 @@ class OrdenCompraResource extends Resource
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn($records) => $records->every(fn($record) => in_array($record->estado, ['borrador', 'cancelada']))),
-                ]),
-            ])
+            
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar orden de compra...')
             ->emptyStateHeading('No hay órdenes de compra')

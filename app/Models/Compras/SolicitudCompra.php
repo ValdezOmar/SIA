@@ -3,7 +3,7 @@
 namespace App\Models\Compras;
 
 use App\Models\Inventario\Articulo;
-use App\Models\Sistema\Departamento;
+use App\Models\Sistema\Area;  // ✅ Cambiar a Area
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;
@@ -49,14 +49,14 @@ class SolicitudCompra extends Model
         return $this->belongsTo(User::class, 'aprobado_por');
     }
 
-    public function departamento()
+    public function area()
     {
-        return $this->belongsTo(Departamento::class);
+        return $this->belongsTo(Area::class);
     }
 
     public function detalles()
     {
-        return $this->hasMany(SolicitudCompraDetalle::class)->orderBy('linea');
+         return $this->hasMany(SolicitudCompraDetalle::class, 'solicitud_id')->orderBy('linea');
     }
 
     public function empresa()
@@ -90,7 +90,7 @@ class SolicitudCompra extends Model
 
     public function getEstadoLabelAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'borrador' => 'Borrador',
             'pendiente' => 'Pendiente',
             'aprobada' => 'Aprobada',
@@ -103,7 +103,7 @@ class SolicitudCompra extends Model
 
     public function getPrioridadLabelAttribute()
     {
-        return match($this->prioridad) {
+        return match ($this->prioridad) {
             'baja' => 'Baja',
             'normal' => 'Normal',
             'alta' => 'Alta',
@@ -146,7 +146,6 @@ class SolicitudCompra extends Model
 
     public function crearOrdenCompra()
     {
-        // Crear orden de compra
         $orden = OrdenCompra::create([
             'codigo' => OrdenCompra::generarCodigo(),
             'proveedor_id' => $this->proveedor_seleccionado ?? null,
@@ -158,7 +157,6 @@ class SolicitudCompra extends Model
             'empresa_id' => $this->empresa_id,
         ]);
 
-        // Copiar detalles
         foreach ($this->detalles as $detalle) {
             $orden->detalles()->create([
                 'linea' => $detalle->linea,
