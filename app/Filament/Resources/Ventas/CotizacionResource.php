@@ -669,7 +669,7 @@ class CotizacionResource extends Resource
                                                             ->label('Descuento')
                                                             ->numeric()
                                                             ->minValue(0)
-                                                            ->step(0.01)
+                                                            ->step(1)
                                                             ->default(0)
                                                             ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')

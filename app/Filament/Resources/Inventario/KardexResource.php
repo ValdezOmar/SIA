@@ -180,7 +180,7 @@ class KardexResource extends Resource
                                                     ->numeric()
                                                     ->required()
                                                     ->minValue(0.01)
-                                                    ->step(0.01)
+                                                    ->step(1)
                                                     ->placeholder('0.00')
                                                     ->helperText('Cantidad del movimiento')
                                                     ->prefixIcon('heroicon-o-numbered-list')

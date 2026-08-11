@@ -65,7 +65,7 @@ class OrdenCompra extends Model
 
     public function detalles()
     {
-        return $this->hasMany(OrdenCompraDetalle::class)->orderBy('linea');
+        return $this->hasMany(OrdenCompraDetalle::class, 'orden_id')->orderBy('linea');
     }
 
     public function recepciones()
@@ -109,7 +109,7 @@ class OrdenCompra extends Model
 
     public function getEstadoLabelAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'borrador' => 'Borrador',
             'enviada' => 'Enviada',
             'confirmada' => 'Confirmada',

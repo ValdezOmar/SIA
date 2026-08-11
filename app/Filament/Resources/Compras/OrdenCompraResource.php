@@ -76,7 +76,7 @@ class OrdenCompraResource extends Resource
             ->schema([
                 Tabs::make('Gestión de Orden')
                     ->tabs([
-                        Tabs\Tab::make('📋 General')
+                        Tabs\Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Orden')
@@ -233,7 +233,7 @@ class OrdenCompraResource extends Resource
                                             ]),
                                     ]),
 
-                                Section::make('📦 Totales')
+                                Section::make('Totales')
                                     ->icon('heroicon-o-calculator')
                                     ->schema([
                                         Grid::make(4)
@@ -276,7 +276,7 @@ class OrdenCompraResource extends Resource
                                             ]),
                                     ]),
 
-                                Section::make('📝 Información Adicional')
+                                Section::make('Información Adicional')
                                     ->icon('heroicon-o-clipboard-document')
                                     ->schema([
                                         Grid::make(2)
@@ -305,7 +305,7 @@ class OrdenCompraResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('📦 Productos')
+                        Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
                                 if (!$record) return 0;
@@ -357,7 +357,7 @@ class OrdenCompraResource extends Resource
                                                             ->numeric()
                                                             ->required()
                                                             ->minValue(0.01)
-                                                            ->step(0.01)
+                                                            ->step(1)
                                                             ->default(1)
                                                             ->placeholder('0.00')
                                                             ->prefixIcon('heroicon-o-numbered-list')
@@ -372,7 +372,7 @@ class OrdenCompraResource extends Resource
                                                             ->numeric()
                                                             ->required()
                                                             ->minValue(0)
-                                                            ->step(0.01)
+                                                            ->step(1)
                                                             ->default(0)
                                                             ->placeholder('0.00')
                                                             ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
@@ -387,7 +387,7 @@ class OrdenCompraResource extends Resource
                                                             ->label('Descuento')
                                                             ->numeric()
                                                             ->minValue(0)
-                                                            ->step(0.01)
+                                                            ->step(1)
                                                             ->default(0)
                                                             ->placeholder('0.00')
                                                             ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))

@@ -64,7 +64,7 @@ class ExistenciasRelationManager extends RelationManager
                                     ->numeric()
                                     ->required()
                                     ->minValue(0)
-                                    ->step(0.01)
+                                    ->step(1)
                                     ->default(0)
                                     ->placeholder('0.00')
                                     ->prefixIcon('heroicon-o-cube'),
@@ -73,7 +73,7 @@ class ExistenciasRelationManager extends RelationManager
                                     ->label('Stock Comprometido')
                                     ->numeric()
                                     ->minValue(0)
-                                    ->step(0.01)
+                                    ->step(1)
                                     ->default(0)
                                     ->placeholder('0.00')
                                     ->prefixIcon('heroicon-o-clock'),
@@ -85,7 +85,7 @@ class ExistenciasRelationManager extends RelationManager
                                     ->label('Stock Mínimo')
                                     ->numeric()
                                     ->minValue(0)
-                                    ->step(0.01)
+                                    ->step(1)
                                     ->default(0)
                                     ->placeholder('0.00')
                                     ->prefixIcon('heroicon-o-arrow-down'),
@@ -94,7 +94,7 @@ class ExistenciasRelationManager extends RelationManager
                                     ->label('Stock Máximo')
                                     ->numeric()
                                     ->minValue(0)
-                                    ->step(0.01)
+                                    ->step(1)
                                     ->default(0)
                                     ->placeholder('0.00')
                                     ->prefixIcon('heroicon-o-arrow-up'),
@@ -296,7 +296,7 @@ class ExistenciasRelationManager extends RelationManager
                                 ->numeric()
                                 ->required()
                                 ->minValue(0)
-                                ->step(0.01),
+                                ->step(1),
                             TextInput::make('motivo')
                                 ->label('Motivo del Ajuste')
                                 ->maxLength(255)

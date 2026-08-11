@@ -97,7 +97,7 @@ class ArticulosStockRelationManager extends RelationManager
                             ->disabled()
                             ->numeric()
                             ->minValue(0)
-                            ->step(0.01)
+                            ->step(1)
                             ->default(0)
                             ->placeholder('0.00'),
                     ]),

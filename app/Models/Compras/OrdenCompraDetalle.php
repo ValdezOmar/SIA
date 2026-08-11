@@ -44,19 +44,20 @@ class OrdenCompraDetalle extends Model
 
     // ========== RELACIONES ==========
 
+    // ✅ Usar 'orden_id' en lugar de 'orden_compra_id'
     public function orden()
     {
-        return $this->belongsTo(OrdenCompra::class);
+        return $this->belongsTo(OrdenCompra::class, 'orden_id');
     }
 
     public function articulo()
     {
-        return $this->belongsTo(Articulo::class);
+        return $this->belongsTo(Articulo::class, 'articulo_id');
     }
 
     public function recepciones()
     {
-        return $this->hasMany(RecepcionDetalle::class);
+        return $this->hasMany(RecepcionDetalle::class, 'orden_detalle_id');
     }
 
     // ========== ACCESORS ==========
