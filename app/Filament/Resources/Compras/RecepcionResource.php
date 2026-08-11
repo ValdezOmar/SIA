@@ -23,7 +23,6 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
@@ -55,7 +54,7 @@ class RecepcionResource extends Resource
             ->schema([
                 Tabs::make('Gestión de Recepción')
                     ->tabs([
-                        Tabs\Tab::make('📋 General')
+                        Tabs\Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Recepción')
@@ -132,6 +131,40 @@ class RecepcionResource extends Resource
                                                     ->helperText('Orden de compra asociada')
                                                     ->prefixIcon('heroicon-o-shopping-cart')
                                                     ->reactive()
+                                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                        if ($state) {
+                                                            $orden = OrdenCompra::with('detalles.articulo')->find($state);
+                                                            if ($orden) {
+                                                                $set('proveedor_id', $orden->proveedor_id);
+
+                                                                $detalles = [];
+                                                                foreach ($orden->detalles as $detalle) {
+                                                                    $recibido = \App\Models\Compras\RecepcionDetalle::where('orden_detalle_id', $detalle->id)->sum('cantidad_aceptada');
+                                                                    $pendiente = $detalle->cantidad - $recibido;
+
+                                                                    if ($pendiente > 0) {
+                                                                        $detalles[] = [
+                                                                            'orden_detalle_id' => $detalle->id,
+                                                                            'articulo_id' => $detalle->articulo_id,
+                                                                            'codigo_articulo' => $detalle->codigo_articulo,
+                                                                            'descripcion_articulo' => $detalle->descripcion_articulo,
+                                                                            'unidad_medida' => $detalle->unidad_medida,
+                                                                            'cantidad' => $pendiente,
+                                                                            'cantidad_aceptada' => 0,
+                                                                            'cantidad_rechazada' => 0,
+                                                                            'costo_unitario' => $detalle->precio_unitario,
+                                                                            'costo_total' => 0,
+                                                                            'observaciones' => $detalle->observaciones,
+                                                                        ];
+                                                                    }
+                                                                }
+                                                                $set('detalles', $detalles);
+                                                            }
+                                                        } else {
+                                                            $set('detalles', []);
+                                                            $set('proveedor_id', null);
+                                                        }
+                                                    })
                                                     ->columnSpan(2),
 
                                                 Select::make('proveedor_id')
@@ -170,7 +203,7 @@ class RecepcionResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('📦 Productos')
+                        Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
                                 if (!$record) return 0;
@@ -182,9 +215,7 @@ class RecepcionResource extends Resource
                                     ->description('Artículos recibidos')
                                     ->schema([
                                         Repeater::make('detalles')
-                                            ->relationship('detalles')
                                             ->label('')
-                                            ->live()
                                             ->schema([
                                                 Grid::make(12)
                                                     ->schema([
@@ -354,12 +385,6 @@ class RecepcionResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-                DatePicker::make('fecha_recepcion')
-                    ->label('Fecha')
-                    ->date('d/m/Y')
-                    ->sortable()
-                    ->toggleable(),
-
                 BadgeColumn::make('estado')
                     ->label('Estado')
                     ->formatStateUsing(fn($state) => match($state) {
@@ -445,12 +470,6 @@ class RecepcionResource extends Resource
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn($records) => $records->every(fn($record) => $record->estado === 'pendiente')),
-                ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar recepción...')
