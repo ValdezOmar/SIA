@@ -262,13 +262,7 @@ class PagoProveedorResource extends Resource
                     ->label('Proveedor')
                     ->searchable()
                     ->sortable()
-                    ->toggleable(),
-
-                DatePicker::make('fecha_pago')
-                    ->label('Fecha')
-                    ->date('d/m/Y')
-                    ->sortable()
-                    ->toggleable(),
+                    ->toggleable(),                
 
                 BadgeColumn::make('tipo_pago')
                     ->label('Tipo')
