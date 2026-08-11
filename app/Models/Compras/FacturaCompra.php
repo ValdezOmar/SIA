@@ -71,7 +71,7 @@ class FacturaCompra extends Model
 
     public function detalles()
     {
-        return $this->hasMany(FacturaCompraDetalle::class)->orderBy('linea');
+        return $this->hasMany(FacturaCompraDetalle::class, 'factura_id')->orderBy('linea');
     }
 
     public function pagos()

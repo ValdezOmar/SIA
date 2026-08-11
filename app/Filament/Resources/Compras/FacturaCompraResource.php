@@ -76,7 +76,7 @@ class FacturaCompraResource extends Resource
             ->schema([
                 Tabs::make('Gestión de Factura')
                     ->tabs([
-                        Tabs\Tab::make('📋 General')
+                        Tabs\Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Factura')
@@ -221,7 +221,7 @@ class FacturaCompraResource extends Resource
                                             ]),
                                     ]),
 
-                                Section::make('💰 Totales')
+                                Section::make('Totales')
                                     ->icon('heroicon-o-calculator')
                                     ->schema([
                                         Grid::make(6)
@@ -295,7 +295,7 @@ class FacturaCompraResource extends Resource
                                     ->columnSpanFull(),
                             ]),
 
-                        Tabs\Tab::make('📦 Productos')
+                        Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
                                 if (!$record) return 0;
@@ -440,7 +440,7 @@ class FacturaCompraResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('💰 Pagos')
+                        Tabs\Tab::make('Pagos')
                             ->icon('heroicon-o-credit-card')
                             ->schema([
                                 Section::make('Información de Pagos')
@@ -565,24 +565,9 @@ class FacturaCompraResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->toggleable()
-                    ->placeholder('-'),
+                    ->placeholder('-'),             
 
-                DatePicker::make('fecha_emision')
-                    ->label('Fecha')
-                    ->date('d/m/Y')
-                    ->sortable()
-                    ->toggleable(),
-
-                DatePicker::make('fecha_vencimiento')
-                    ->label('Vencimiento')
-                    ->date('d/m/Y')
-                    ->sortable()
-                    ->toggleable(),
-                    // ->color(fn($state, $record) => {
-                    //     if ($record?->estado === 'pagada') return 'success';
-                    //     if ($state && $state < now()) return 'danger';
-                    //     return 'warning';
-                    // }),
+                
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
@@ -726,12 +711,7 @@ class FacturaCompraResource extends Resource
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn($records) => $records->every(fn($record) => $record->estado === 'borrador')),
-                ]),
-            ])
+            
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar factura de compra...')
             ->emptyStateHeading('No hay facturas de compra')
