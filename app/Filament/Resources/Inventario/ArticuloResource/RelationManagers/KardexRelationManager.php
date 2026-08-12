@@ -148,7 +148,7 @@ class KardexRelationManager extends RelationManager
                                     ->numeric()
                                     ->required()
                                     ->minValue(0.01)
-                                    ->step(1)
+                                    ->step(1.00)
                                     ->placeholder('0.00')
                                     ->helperText('Cantidad del movimiento')
                                     ->prefixIcon('heroicon-o-numbered-list')

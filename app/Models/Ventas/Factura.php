@@ -41,6 +41,11 @@ class Factura extends Model
             if (empty($model->numero)) {
                 $model->numero = self::generarNumero();
             }
+            // Establecer valores por defecto para todos los campos numéricos
+            $model->subtotal = $model->subtotal ?? 0;
+            $model->descuento = $model->descuento ?? 0;
+            $model->impuesto = $model->impuesto ?? 0;
+            $model->total = $model->total ?? 0; // ← Agregar esta línea
             $model->saldo = $model->total ?? 0;
             $model->monto_pagado = 0;
             $model->monto_restante = $model->total ?? 0;

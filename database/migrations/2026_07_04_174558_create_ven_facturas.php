@@ -24,8 +24,8 @@ return new class extends Migration
             $table->foreignId('pedido_id')->nullable()->constrained('ven_pedidos')->nullOnDelete();
             
             // Fechas
-            $table->date('fecha_emision');
-            $table->date('fecha_vencimiento')->nullable();
+            $table->datetime('fecha_emision');
+            $table->datetime('fecha_vencimiento')->nullable();
             $table->date('fecha_pago')->nullable();
             
             // Cliente
@@ -33,18 +33,19 @@ return new class extends Migration
             
             // Estado
             $table->enum('estado', [
+                'abierto',
+                'cerrado',
                 'borrador',
-                'emitida',
-                'pagada',
+                'emitida',                
                 'parcial',
                 'vencida',
                 'anulada'
             ])->default('borrador');
             
             // Condiciones
-            $table->string('condicion_pago', 50)->default('contado');
+            $table->string('condicion_pago', 50);
             
-            $table->string('moneda', 3)->default('BOB');
+            $table->string('moneda', 3);
             $table->decimal('tasa_cambio', 18, 6)->default(1);
             
             // Totales

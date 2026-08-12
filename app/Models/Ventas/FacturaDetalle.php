@@ -15,14 +15,41 @@ class FacturaDetalle extends Model
 
     protected $guarded = [];
 
+    protected $fillable = [
+        'factura_id',
+        'articulo_id',
+        'lista_precio',
+        'codigo_articulo',
+        'descripcion_articulo',
+        'unidad_medida',
+        'cantidad',
+        'precio_unitario',
+        'precio_original',
+        'descuento',
+        'descuento_porcentaje',
+        'subtotal',
+        'impuesto',
+        'total',
+        'tipo_impuesto',
+        'tasa_impuesto',
+        'aplicar_iva',
+        'observaciones',
+        'series',
+        'lotes',
+        'creado_por',
+    ];
+
     protected $casts = [
         'cantidad' => 'decimal:2',
         'precio_unitario' => 'decimal:2',
+        'precio_original' => 'decimal:2',
         'descuento' => 'decimal:2',
         'descuento_porcentaje' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'impuesto' => 'decimal:2',
         'total' => 'decimal:2',
+        'tasa_impuesto' => 'decimal:2',
+        'aplicar_iva' => 'boolean',
         'series' => 'array',
         'lotes' => 'array',
     ];

@@ -66,7 +66,7 @@ class ProveedoresRelationManager extends RelationManager
                                     ->label('Costo de Compra')
                                     ->numeric()
                                     ->prefix('$')
-                                    ->step(1)
+                                    ->step(1.00)
                                     ->minValue(0)
                                     ->default(0)
                                     ->placeholder('0.00')

@@ -106,7 +106,7 @@ class PagosRelationManager extends RelationManager
                                     ->numeric()
                                     ->required()
                                     ->minValue(0.01)
-                                    ->step(1)
+                                    ->step(1.00)
                                     ->placeholder('0.00')
                                     ->prefix(fn($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                     ->helperText('Monto del pago')

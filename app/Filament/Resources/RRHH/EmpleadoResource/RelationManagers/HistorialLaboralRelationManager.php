@@ -172,7 +172,7 @@ class HistorialLaboralRelationManager extends RelationManager
                         ->required()
                         ->numeric()
                         ->prefix('Bs')
-                        ->step(1)
+                        ->step(1.00)
                         ->placeholder('Ej: 3500.50'),
 
                     TextInput::make('seguro_medico')

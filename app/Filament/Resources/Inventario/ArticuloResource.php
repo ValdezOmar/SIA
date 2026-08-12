@@ -521,7 +521,7 @@ class ArticuloResource extends Resource
                                                     ->suffix('%')
                                                     ->placeholder('0.00')
                                                     ->default(0)
-                                                    ->step(1)
+                                                    ->step(1.00)
                                                     ->dehydrateStateUsing(fn($state) => $state ?? 0)
                                                     ->helperText('Porcentaje para vendedores')
                                                     ->prefixIcon('heroicon-o-percent-badge')

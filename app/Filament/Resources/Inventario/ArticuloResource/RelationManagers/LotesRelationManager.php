@@ -115,7 +115,7 @@ class LotesRelationManager extends RelationManager
                                                     ->numeric()
                                                     ->required()
                                                     ->minValue(0)
-                                                    ->step(1)
+                                                    ->step(1.00)
                                                     ->default(0)
                                                     ->placeholder('0.00')
                                                     ->helperText('Cantidad en este almacén')
