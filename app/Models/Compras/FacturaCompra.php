@@ -76,7 +76,7 @@ class FacturaCompra extends Model
 
     public function pagos()
     {
-        return $this->hasMany(PagoProveedor::class);
+        return $this->hasMany(PagoProveedor::class, 'factura_id');
     }
 
     public function creador()
