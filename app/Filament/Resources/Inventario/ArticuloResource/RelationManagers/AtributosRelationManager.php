@@ -72,9 +72,9 @@ class AtributosRelationManager extends RelationManager
                                     return 'Atributo no encontrado.';
                                 }
 
-                                return "📋 {$atributo->nombre}\n" .
-                                       "🏷️ Código: {$atributo->codigo}\n" .
-                                       ($atributo->descripcion ? "📝 {$atributo->descripcion}" : '');
+                                return "{$atributo->nombre}\n" .
+                                       "Código: {$atributo->codigo}\n" .
+                                       ($atributo->descripcion ? $atributo->descripcion : '');
                             })
                             ->columnSpanFull(),
                     ]),

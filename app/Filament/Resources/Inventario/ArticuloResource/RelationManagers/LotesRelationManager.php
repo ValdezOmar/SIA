@@ -140,8 +140,8 @@ class LotesRelationManager extends RelationManager
                                     return 'No hay artículo asociado.';
                                 }
 
-                                return "📦 Artículo: {$articulo->codigo} - {$articulo->descripcion}\n" .
-                                    "📋 Unidad: " . ($articulo->unidadMedida->nombre ?? 'N/A');
+                                return "Artículo: {$articulo->codigo} - {$articulo->descripcion}\n" .
+                                    "Unidad: " . ($articulo->unidadMedida->nombre ?? 'N/A');
                             })
                             ->columnSpanFull(),
                     ]),

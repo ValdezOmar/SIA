@@ -24,7 +24,7 @@ class ExistenciasRelationManager extends RelationManager
 {
     protected static string $relationship = 'existencias';
 
-    protected static ?string $title = '📊 Existencias por Almacén';
+    protected static ?string $title = 'Existencias por Almacén';
 
     protected static ?string $modelLabel = 'Existencia';
 

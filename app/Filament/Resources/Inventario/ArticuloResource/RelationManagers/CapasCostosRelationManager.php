@@ -15,13 +15,21 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\HtmlString;
 
 class CapasCostosRelationManager extends RelationManager
 {
     protected static string $relationship = 'capasCostos';
 
-    protected static ?string $title = '📦 Capas de Costo (FIFO)';
+    public static function canViewForRecord($record, $pageClass): bool
+    {
+        return $record
+            && Schema::hasTable('alm_capas_costos')
+            && Schema::hasColumn('alm_capas_costos', 'articulo_id');
+    }
+
+    protected static ?string $title = 'Capas de Costo (FIFO)';
 
     protected static ?string $modelLabel = 'Capa';
 
@@ -130,7 +138,7 @@ class CapasCostosRelationManager extends RelationManager
 
                 BadgeColumn::make('activo')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => $state ? '✅ Activa' : '❌ Inactiva')
+                    ->formatStateUsing(fn($state) => $state ? 'Activa' : 'Inactiva')
                     ->colors([
                         'success' => true,
                         'danger' => false,

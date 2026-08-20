@@ -28,7 +28,7 @@ class KardexRelationManager extends RelationManager
 {
     protected static string $relationship = 'kardex';
 
-    protected static ?string $title = '📊 Kardex';
+    protected static ?string $title = 'Kardex';
 
     protected static ?string $modelLabel = 'Movimiento';
 
@@ -84,21 +84,21 @@ class KardexRelationManager extends RelationManager
                                 Select::make('tipo_movimiento')
                                     ->label('Tipo de Movimiento')
                                     ->options([
-                                        'compra' => '🛒 Compra',
-                                        'venta' => '💰 Venta',
-                                        'transferencia_entrada' => '📥 Transferencia Entrada',
-                                        'transferencia_salida' => '📤 Transferencia Salida',
-                                        'ajuste_incremento' => '➕ Ajuste (+)',
-                                        'ajuste_decremento' => '➖ Ajuste (-)',
-                                        'devolucion_compra' => '🔄 Devolución Compra',
-                                        'devolucion_venta' => '🔄 Devolución Venta',
-                                        'produccion_entrada' => '🏭 Producción Entrada',
-                                        'produccion_salida' => '🏭 Producción Salida',
-                                        'inventario_inicial' => '📋 Inventario Inicial',
-                                        'ajuste_fisico' => '📊 Ajuste Físico',
-                                        'merma' => '⚠️ Merma',
-                                        'despacho' => '🚚 Despacho',
-                                        'consignacion' => '📦 Consignación',
+                                        'compra' => 'Compra',
+                                        'venta' => 'Venta',
+                                        'transferencia_entrada' => 'Transferencia Entrada',
+                                        'transferencia_salida' => 'Transferencia Salida',
+                                        'ajuste_incremento' => 'Ajuste (+)',
+                                        'ajuste_decremento' => 'Ajuste (-)',
+                                        'devolucion_compra' => 'Devolución Compra',
+                                        'devolucion_venta' => 'Devolución Venta',
+                                        'produccion_entrada' => 'Producción Entrada',
+                                        'produccion_salida' => 'Producción Salida',
+                                        'inventario_inicial' => 'Inventario Inicial',
+                                        'ajuste_fisico' => 'Ajuste Físico',
+                                        'merma' => 'Merma',
+                                        'despacho' => 'Despacho',
+                                        'consignacion' => 'Consignación',
                                     ])
                                     ->required()
                                     ->searchable()
@@ -134,8 +134,8 @@ class KardexRelationManager extends RelationManager
                                 Select::make('direccion')
                                     ->label('Dirección')
                                     ->options([
-                                        'entrada' => '📥 Entrada',
-                                        'salida' => '📤 Salida',
+                                        'entrada' => 'Entrada',
+                                        'salida' => 'Salida',
                                     ])
                                     ->required()
                                     ->searchable()
@@ -202,10 +202,10 @@ class KardexRelationManager extends RelationManager
                                 Select::make('estado')
                                     ->label('Estado')
                                     ->options([
-                                        'pendiente' => '⏳ Pendiente',
-                                        'confirmado' => '✅ Confirmado',
-                                        'cancelado' => '❌ Cancelado',
-                                        'anulado' => '🚫 Anulado',
+                                        'pendiente' => 'Pendiente',
+                                        'confirmado' => 'Confirmado',
+                                        'cancelado' => 'Cancelado',
+                                        'anulado' => 'Anulado',
                                     ])
                                     ->default('confirmado')
                                     ->required()
@@ -228,7 +228,7 @@ class KardexRelationManager extends RelationManager
                             ->columnSpanFull(),
 
                         // Información de saldos
-                        Section::make('📊 Saldos')
+                        Section::make('Saldos')
                             ->icon('heroicon-o-chart-bar')
                             ->schema([
                                 Grid::make(3)
@@ -311,21 +311,21 @@ class KardexRelationManager extends RelationManager
                 BadgeColumn::make('tipo_movimiento')
                     ->label('Tipo')
                     ->formatStateUsing(fn($state) => match($state) {
-                        'compra' => '🛒 Compra',
-                        'venta' => '💰 Venta',
-                        'transferencia_entrada' => '📥 Transf. Ent.',
-                        'transferencia_salida' => '📤 Transf. Sal.',
-                        'ajuste_incremento' => '➕ Ajuste (+)',
-                        'ajuste_decremento' => '➖ Ajuste (-)',
-                        'devolucion_compra' => '🔄 Dev. Compra',
-                        'devolucion_venta' => '🔄 Dev. Venta',
-                        'produccion_entrada' => '🏭 Prod. Ent.',
-                        'produccion_salida' => '🏭 Prod. Sal.',
-                        'inventario_inicial' => '📋 Inv. Inicial',
-                        'ajuste_fisico' => '📊 Ajuste Fís.',
-                        'merma' => '⚠️ Merma',
-                        'despacho' => '🚚 Despacho',
-                        'consignacion' => '📦 Consignación',
+                        'compra' => 'Compra',
+                        'venta' => 'Venta',
+                        'transferencia_entrada' => 'Transf. Ent.',
+                        'transferencia_salida' => 'Transf. Sal.',
+                        'ajuste_incremento' => 'Ajuste (+)',
+                        'ajuste_decremento' => 'Ajuste (-)',
+                        'devolucion_compra' => 'Dev. Compra',
+                        'devolucion_venta' => 'Dev. Venta',
+                        'produccion_entrada' => 'Prod. Ent.',
+                        'produccion_salida' => 'Prod. Sal.',
+                        'inventario_inicial' => 'Inv. Inicial',
+                        'ajuste_fisico' => 'Ajuste Fís.',
+                        'merma' => 'Merma',
+                        'despacho' => 'Despacho',
+                        'consignacion' => 'Consignación',
                         default => $state,
                     })
                     ->colors([
@@ -347,7 +347,7 @@ class KardexRelationManager extends RelationManager
 
                 BadgeColumn::make('direccion')
                     ->label('Dir.')
-                    ->formatStateUsing(fn($state) => $state === 'entrada' ? '📥' : '📤')
+                    ->formatStateUsing(fn($state) => $state === 'entrada' ? 'Entrada' : 'Salida')
                     ->colors([
                         'success' => 'entrada',
                         'danger' => 'salida',
@@ -408,10 +408,10 @@ class KardexRelationManager extends RelationManager
                 BadgeColumn::make('estado')
                     ->label('Estado')
                     ->formatStateUsing(fn($state) => match($state) {
-                        'pendiente' => '⏳ Pendiente',
-                        'confirmado' => '✅ Confirmado',
-                        'cancelado' => '❌ Cancelado',
-                        'anulado' => '🚫 Anulado',
+                        'pendiente' => 'Pendiente',
+                        'confirmado' => 'Confirmado',
+                        'cancelado' => 'Cancelado',
+                        'anulado' => 'Anulado',
                         default => $state,
                     })
                     ->colors([

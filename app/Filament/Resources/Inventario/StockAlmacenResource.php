@@ -124,7 +124,7 @@ class StockAlmacenResource extends Resource
                                                     ->disabled()
                                                     ->default(true)
                                                     ->helperText('Estado del almacén')
-                                                    ->formatStateUsing(fn($state) => $state ? '🟢 Activo' : '🔴 Inactivo')
+                                                    ->formatStateUsing(fn($state) => $state ? 'Activo' : 'Inactivo')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -154,7 +154,6 @@ class StockAlmacenResource extends Resource
                                                         return new HtmlString(
                                                             '<div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800">
                                                                 <div class="flex items-center gap-2">
-                                                                    <span class="text-2xl">📍</span>
                                                                     <div>
                                                                         <p class="text-sm text-yellow-700 dark:text-yellow-400">No hay ubicaciones registradas</p>
                                                                         <p class="text-xs text-yellow-600 dark:text-yellow-500 mt-1">Gestiona las ubicaciones en la pestaña "Ubicaciones" en relaciones.</p>
@@ -222,7 +221,6 @@ class StockAlmacenResource extends Resource
                                                     if ($noData) {
                                                         return new HtmlString(
                                                             '<div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 text-center">
-                                                                <span class="text-4xl block mb-2">📊</span>
                                                                 <p class="text-sm text-gray-500 dark:text-gray-400">Sin datos estadísticos disponibles</p>
                                                                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Agrega productos y movimientos para ver estadísticas.</p>
                                                             </div>'
@@ -309,7 +307,7 @@ class StockAlmacenResource extends Resource
 
         if ($ubicacionesExiste) {
             $columns[] = TextColumn::make('ubicaciones_count')
-                ->label('📍 Ubicaciones')
+                ->label('Ubicaciones')
                 ->counts('ubicaciones')
                 ->badge()
                 ->color('warning')
@@ -318,7 +316,7 @@ class StockAlmacenResource extends Resource
 
         if ($existenciasExiste) {
             $columns[] = TextColumn::make('existencias_count')
-                ->label('📦 Stock')
+                ->label('Stock')
                 ->counts('existencias')
                 ->badge()
                 ->color('success')
@@ -406,8 +404,8 @@ class StockAlmacenResource extends Resource
                 ]),
             ])
             ->defaultSort('nombre')
-            ->searchPlaceholder('🔍 Buscar almacén...')
-            ->emptyStateHeading('📦 No hay almacenes registrados')
+            ->searchPlaceholder('Buscar almacén...')
+            ->emptyStateHeading('No hay almacenes registrados')
             ->emptyStateDescription('Crea tu primer almacén para comenzar a gestionar tu inventario.')
             ->emptyStateIcon('heroicon-o-building-storefront')
             ->poll('60s');

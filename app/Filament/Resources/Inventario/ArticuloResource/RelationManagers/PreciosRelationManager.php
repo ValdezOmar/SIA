@@ -138,12 +138,12 @@ class PreciosRelationManager extends RelationManager
                                                 ->exists();
                                         }
 
-                                        $html = "📋 {$lista->nombre}\n" .
-                                            "🏷️ Código: {$lista->codigo}\n" .
-                                            "💵 Moneda: " . ($lista->moneda ?? 'BOB');
+                                        $html = "{$lista->nombre}\n" .
+                                            "Código: {$lista->codigo}\n" .
+                                            "Moneda: " . ($lista->moneda ?? 'BOB');
 
                                         if ($tienePrecio) {
-                                            $html .= "\n\n⚠️ Este artículo ya tiene un precio en esta lista";
+                                            $html .= "\n\nEste artículo ya tiene un precio en esta lista";
                                         }
 
                                         return $html;
@@ -176,7 +176,7 @@ class PreciosRelationManager extends RelationManager
                     ->label('Moneda')
                     ->badge()
                     ->color(fn($state) => $state === 'BOB' ? 'success' : 'warning')
-                    ->formatStateUsing(fn($state) => $state === 'BOB' ? '🇧🇴 BOB' : '🇺🇸 USD')
+                    ->formatStateUsing(fn($state) => $state === 'BOB' ? 'BOB' : 'USD')
                     ->toggleable(),
 
                 TextColumn::make('precio')
@@ -269,10 +269,10 @@ class PreciosRelationManager extends RelationManager
                             throw new \Exception("El artículo ya tiene un precio en la lista \"{$listaNombre}\".");
                         }
                     })
-                    ->failureNotificationTitle('⛔ No se puede asignar el precio')
+                    ->failureNotificationTitle('No se puede asignar el precio')
                     ->failureNotification(function (\Exception $e) {
                         return \Filament\Notifications\Notification::make()
-                            ->title('⛔ No se puede asignar el precio')
+                            ->title('No se puede asignar el precio')
                             ->body($e->getMessage())
                             ->danger()
                             ->persistent()
@@ -287,7 +287,7 @@ class PreciosRelationManager extends RelationManager
                     })
                     ->after(function ($record) {
                         \Filament\Notifications\Notification::make()
-                            ->title('✅ Precio agregado exitosamente')
+                            ->title('Precio agregado exitosamente')
                             ->body("El precio de {$record->precio} ha sido asignado a {$record->listaPrecio->nombre}")
                             ->success()
                             ->send();
@@ -337,7 +337,7 @@ class PreciosRelationManager extends RelationManager
 
                             if ($exists) {
                                 \Filament\Notifications\Notification::make()
-                                    ->title('⚠️ Error')
+                                    ->title('Error')
                                     ->body('Este artículo ya tiene un precio en la lista seleccionada')
                                     ->danger()
                                     ->send();
@@ -352,7 +352,7 @@ class PreciosRelationManager extends RelationManager
 
                             $lista = ListaPrecio::find($data['lista_precio_id']);
                             \Filament\Notifications\Notification::make()
-                                ->title('✅ Precio duplicado exitosamente')
+                                ->title('Precio duplicado exitosamente')
                                 ->body("El precio ha sido duplicado a la lista {$lista->nombre}")
                                 ->success()
                                 ->send();

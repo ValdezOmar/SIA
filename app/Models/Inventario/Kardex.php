@@ -31,6 +31,31 @@ class Kardex extends Model
         'datos_adicionales' => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (self $kardex) {
+            if (empty($kardex->documento_tipo)) {
+                $kardex->documento_tipo = 'manual';
+            }
+
+            if (empty($kardex->documento_id) && !isset($kardex->documento_id)) {
+                $kardex->documento_id = 0;
+            }
+
+            if (empty($kardex->usuario_id)) {
+                $kardex->usuario_id = auth()->id();
+            }
+
+            if (empty($kardex->creado_por)) {
+                $kardex->creado_por = auth()->id();
+            }
+
+            if (empty($kardex->empresa_id)) {
+                $kardex->empresa_id = auth()->user()?->empresa_id;
+            }
+        });
+    }
+
     // ========== RELACIONES ==========
 
     public function articulo()

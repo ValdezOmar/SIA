@@ -10,8 +10,8 @@ class CreateArticulo extends CreateRecord
 {
     protected static string $resource = ArticuloResource::class;
     
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('index');
-    }
+    // protected function getRedirectUrl(): string
+    // {
+    //     return $this->getResource()::getUrl('index');
+    // }
 }

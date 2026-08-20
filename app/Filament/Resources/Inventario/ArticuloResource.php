@@ -52,7 +52,7 @@ class ArticuloResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventario';
 
-    protected static ?string $navigationLabel = 'Artículos';
+    protected static ?string $navigationLabel = 'Datos de Artículos';
 
     protected static ?string $modelLabel = 'Artículo';
 
@@ -340,7 +340,7 @@ class ArticuloResource extends Resource
                                         Grid::make(2)
                                             ->schema([
                                                 Toggle::make('inventariable')
-                                                    ->label('📊 ¿Es inventariable?')
+                                                    ->label('¿Es inventariable?')
                                                     ->default(true)
                                                     ->helperText('Controla el stock en inventario')
                                                     ->live()
@@ -386,9 +386,9 @@ class ArticuloResource extends Resource
                                                 Select::make('metodo_costo')
                                                     ->label('Método de Costeo')
                                                     ->options([
-                                                        'promedio' => '📊 Costo Promedio',
-                                                        'fifo' => '📈 FIFO',
-                                                        'estandar' => '📉 Costo Estándar',
+                                                        'promedio' => 'Costo Promedio',
+                                                        'fifo' => 'FIFO',
+                                                        'estandar' => 'Costo Estándar',
                                                     ])
                                                     ->default('promedio')
                                                     ->helperText('Método para calcular el costo')
@@ -405,7 +405,6 @@ class ArticuloResource extends Resource
                                             ->content(new HtmlString(
                                                 '<div class="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-xl border border-primary-200 dark:border-primary-800">
                                                     <div class="flex items-center gap-2">
-                                                        <span class="text-2xl">📊</span>
                                                         <div>
                                                             <p class="text-sm font-medium text-primary-700 dark:text-primary-300">
                                                                 Gestión de existencias, lotes y series
@@ -483,7 +482,7 @@ class ArticuloResource extends Resource
                                                         }
                                                         $html .= '</div>';
                                                         if ($esPrincipal) {
-                                                            $html .= '<span class="text-xs bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full font-medium">⭐ Principal</span>';
+                                                            $html .= '<span class="text-xs bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full font-medium">Principal</span>';
                                                         }
                                                         $html .= '</div>';
                                                         $html .= '</div>';
@@ -538,7 +537,6 @@ class ArticuloResource extends Resource
                                             ->content(new HtmlString(
                                                 '<div class="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-xl border border-primary-200 dark:border-primary-800">
                                                     <div class="flex items-center gap-2">
-                                                        <span class="text-2xl">🏷️</span>
                                                         <div>
                                                             <p class="text-sm font-medium text-primary-700 dark:text-primary-300">
                                                                 Listas de precios, descuentos y precios especiales
@@ -577,7 +575,7 @@ class ArticuloResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->copyable()
-                    ->copyMessage('✅ Código copiado')
+                    ->copyMessage('Código copiado')
                     ->weight('bold')
                     ->color('primary')
                     ->toggleable(),
@@ -596,7 +594,7 @@ class ArticuloResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->copyable()
-                    ->copyMessage('✅ Modelo copiado')
+                    ->copyMessage('Modelo copiado')
                     ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('grupoArticulo.nombre')
@@ -776,13 +774,12 @@ class ArticuloResource extends Resource
     public static function getRelations(): array
     {
         $relations = [];
+        if (Schema::hasTable('alm_precios_articulos') && Schema::hasColumn('alm_precios_articulos', 'lista_precio_id')) {
+            $relations[] = PreciosRelationManager::class;
+        }
 
         if (Schema::hasTable('alm_existencias')) {
             $relations[] = ExistenciasRelationManager::class;
-        }
-
-        if (Schema::hasTable('alm_precios_articulos') && Schema::hasColumn('alm_precios_articulos', 'lista_precio_id')) {
-            $relations[] = PreciosRelationManager::class;
         }
 
         if (Schema::hasTable('alm_articulo_unidades')) {
@@ -809,21 +806,19 @@ class ArticuloResource extends Resource
             $relations[] = CodigosBarrasRelationManager::class;
         }
 
-        if (Schema::hasTable('alm_codigos_barras')) {
-            $relations[] = KardexRelationManager::class;
-        }
+        // if (Schema::hasTable('alm_codigos_barras')) {
+        //     $relations[] = KardexRelationManager::class;
+        // }
 
-        if (Schema::hasTable('alm_codigos_barras')) {
+        if (Schema::hasTable('alm_kardex') && Schema::hasColumn('alm_kardex', 'articulo_id')) {
             $relations[] = KardexPorAlmacenRelationManager::class;
         }
 
-        if (Schema::hasTable('alm_codigos_barras')) {
+        if (Schema::hasTable('alm_capas_costos') && Schema::hasColumn('alm_capas_costos', 'articulo_id')) {
             $relations[] = CapasCostosRelationManager::class;
         }
 
-        if (Schema::hasTable('alm_codigos_barras')) {
-            $relations[] = ExistenciasRelationManager::class;
-        }
+        
 
         return $relations;
     }
@@ -848,13 +843,13 @@ class ArticuloResource extends Resource
             $newRecord->save();
 
             \Filament\Notifications\Notification::make()
-                ->title('✅ Artículo duplicado exitosamente')
+                ->title('Artículo duplicado exitosamente')
                 ->body('El artículo "' . ($newRecord->nombre_comercial ?? $newRecord->descripcion ?? $newRecord->codigo) . '" ha sido creado.')
                 ->success()
                 ->send();
         } catch (\Exception $e) {
             \Filament\Notifications\Notification::make()
-                ->title('❌ Error al duplicar')
+                ->title('Error al duplicar')
                 ->body('Ocurrió un error: ' . $e->getMessage())
                 ->danger()
                 ->send();

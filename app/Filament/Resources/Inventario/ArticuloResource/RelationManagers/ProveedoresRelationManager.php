@@ -121,8 +121,7 @@ class ProveedoresRelationManager extends RelationManager
                                 }
                                 
                                 if ($proveedor->calificacion) {
-                                    $estrellas = str_repeat('⭐', $proveedor->calificacion);
-                                    $html .= '<div><span class="font-medium">Calificación:</span> ' . $estrellas . ' (' . $proveedor->calificacion . '/5)</div>';
+                                    $html .= '<div><span class="font-medium">Calificación:</span> ' . $proveedor->calificacion . '/5</div>';
                                 }
                                 
                                 if ($proveedor->tiempo_entrega) {
@@ -202,7 +201,7 @@ class ProveedoresRelationManager extends RelationManager
 
                 TextColumn::make('proveedor.calificacion')
                     ->label('Calificación')
-                    ->formatStateUsing(fn ($state) => $state ? str_repeat('⭐', $state) : '-')
+                    ->formatStateUsing(fn ($state) => $state ? (string) $state . '/5' : '-')
                     ->toggleable()
                     ->visible(fn () => Schema::hasColumn('cmp_proveedores', 'calificacion')),
 

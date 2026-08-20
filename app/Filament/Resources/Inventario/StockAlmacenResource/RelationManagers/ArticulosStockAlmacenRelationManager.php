@@ -193,7 +193,7 @@ class ArticulosStockRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->copyable()
-                    ->copyMessage('✅ Modelo copiado')
+                    ->copyMessage('Modelo copiado')
                     ->toggleable(isToggledHiddenByDefault: false),
 
 

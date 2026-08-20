@@ -23,7 +23,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
 {
     protected static string $relationship = 'kardex';
 
-    protected static ?string $title = '📊 Movimientos Kardex';
+    protected static ?string $title = 'Movimientos Kardex';
 
     protected static ?string $modelLabel = 'Movimiento';
 
@@ -55,12 +55,12 @@ class KardexPorAlmacenRelationManager extends RelationManager
                                 Select::make('tipo_movimiento')
                                     ->label('Tipo de Movimiento')
                                     ->options([
-                                        'compra' => '🛒 Compra',
-                                        'venta' => '💰 Venta',
-                                        'transferencia_entrada' => '📥 Transferencia Entrada',
-                                        'transferencia_salida' => '📤 Transferencia Salida',
-                                        'ajuste_incremento' => '➕ Ajuste (+)',
-                                        'ajuste_decremento' => '➖ Ajuste (-)',
+                                        'compra' => 'Compra',
+                                        'venta' => 'Venta',
+                                        'transferencia_entrada' => 'Transferencia Entrada',
+                                        'transferencia_salida' => 'Transferencia Salida',
+                                        'ajuste_incremento' => 'Ajuste (+)',
+                                        'ajuste_decremento' => 'Ajuste (-)',
                                     ])
                                     ->searchable()
                                     ->preload()
@@ -99,12 +99,12 @@ class KardexPorAlmacenRelationManager extends RelationManager
                 BadgeColumn::make('tipo_movimiento')
                     ->label('Tipo')
                     ->formatStateUsing(fn($state) => match($state) {
-                        'compra' => '🛒 Compra',
-                        'venta' => '💰 Venta',
-                        'transferencia_entrada' => '📥 Transf. Ent.',
-                        'transferencia_salida' => '📤 Transf. Sal.',
-                        'ajuste_incremento' => '➕ Ajuste (+)',
-                        'ajuste_decremento' => '➖ Ajuste (-)',
+                        'compra' => 'Compra',
+                        'venta' => 'Venta',
+                        'transferencia_entrada' => 'Transf. Ent.',
+                        'transferencia_salida' => 'Transf. Sal.',
+                        'ajuste_incremento' => 'Ajuste (+)',
+                        'ajuste_decremento' => 'Ajuste (-)',
                         default => $state,
                     })
                     ->colors([
@@ -118,7 +118,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
 
                 BadgeColumn::make('direccion')
                     ->label('Dir.')
-                    ->formatStateUsing(fn($state) => $state === 'entrada' ? '📥' : '📤')
+                    ->formatStateUsing(fn($state) => $state === 'entrada' ? 'Entrada' : 'Salida')
                     ->colors([
                         'success' => 'entrada',
                         'danger' => 'salida',
@@ -163,10 +163,10 @@ class KardexPorAlmacenRelationManager extends RelationManager
                 BadgeColumn::make('estado')
                     ->label('Estado')
                     ->formatStateUsing(fn($state) => match($state) {
-                        'pendiente' => '⏳ Pendiente',
-                        'confirmado' => '✅ Confirmado',
-                        'cancelado' => '❌ Cancelado',
-                        'anulado' => '🚫 Anulado',
+                        'pendiente' => 'Pendiente',
+                        'confirmado' => 'Confirmado',
+                        'cancelado' => 'Cancelado',
+                        'anulado' => 'Anulado',
                         default => $state,
                     })
                     ->colors([

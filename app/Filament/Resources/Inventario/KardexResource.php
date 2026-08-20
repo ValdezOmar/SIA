@@ -64,7 +64,7 @@ class KardexResource extends Resource
             ->schema([
                 Tabs::make('Gestión Kardex')
                     ->tabs([
-                        Tabs\Tab::make('📋 Información General')
+                        Tabs\Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Movimiento')
@@ -128,21 +128,21 @@ class KardexResource extends Resource
                                                 Select::make('tipo_movimiento')
                                                     ->label('Tipo de Movimiento')
                                                     ->options([
-                                                        'compra' => '🛒 Compra',
-                                                        'venta' => '💰 Venta',
-                                                        'transferencia_entrada' => '📥 Transferencia Entrada',
-                                                        'transferencia_salida' => '📤 Transferencia Salida',
-                                                        'ajuste_incremento' => '➕ Ajuste (+)',
-                                                        'ajuste_decremento' => '➖ Ajuste (-)',
-                                                        'devolucion_compra' => '🔄 Devolución Compra',
-                                                        'devolucion_venta' => '🔄 Devolución Venta',
-                                                        'produccion_entrada' => '🏭 Producción Entrada',
-                                                        'produccion_salida' => '🏭 Producción Salida',
-                                                        'inventario_inicial' => '📋 Inventario Inicial',
-                                                        'ajuste_fisico' => '📊 Ajuste Físico',
-                                                        'merma' => '⚠️ Merma',
-                                                        'despacho' => '🚚 Despacho',
-                                                        'consignacion' => '📦 Consignación',
+                                                        'compra' => 'Compra',
+                                                        'venta' => 'Venta',
+                                                        'transferencia_entrada' => 'Transferencia Entrada',
+                                                        'transferencia_salida' => 'Transferencia Salida',
+                                                        'ajuste_incremento' => 'Ajuste (+)',
+                                                        'ajuste_decremento' => 'Ajuste (-)',
+                                                        'devolucion_compra' => 'Devolución Compra',
+                                                        'devolucion_venta' => 'Devolución Venta',
+                                                        'produccion_entrada' => 'Producción Entrada',
+                                                        'produccion_salida' => 'Producción Salida',
+                                                        'inventario_inicial' => 'Inventario Inicial',
+                                                        'ajuste_fisico' => 'Ajuste Físico',
+                                                        'merma' => 'Merma',
+                                                        'despacho' => 'Despacho',
+                                                        'consignacion' => 'Consignación',
                                                     ])
                                                     ->required()
                                                     ->searchable()
@@ -166,8 +166,8 @@ class KardexResource extends Resource
                                                 Select::make('direccion')
                                                     ->label('Dirección')
                                                     ->options([
-                                                        'entrada' => '📥 Entrada',
-                                                        'salida' => '📤 Salida',
+                                                        'entrada' => 'Entrada',
+                                                        'salida' => 'Salida',
                                                     ])
                                                     ->required()
                                                     ->searchable()
@@ -230,7 +230,7 @@ class KardexResource extends Resource
                                             ]),
                                     ]),
 
-                                Section::make('📊 Saldos y Costos')
+                                Section::make('Saldos y Costos')
                                     ->icon('heroicon-o-chart-bar')
                                     ->description('Saldos y costos antes y después del movimiento')
                                     ->schema([
@@ -303,7 +303,7 @@ class KardexResource extends Resource
                                             ]),
                                     ]),
 
-                                Section::make('📝 Información Adicional')
+                                Section::make('Información Adicional')
                                     ->icon('heroicon-o-clipboard-document')
                                     ->schema([
                                         Grid::make(2)
@@ -311,10 +311,10 @@ class KardexResource extends Resource
                                                 Select::make('estado')
                                                     ->label('Estado')
                                                     ->options([
-                                                        'pendiente' => '⏳ Pendiente',
-                                                        'confirmado' => '✅ Confirmado',
-                                                        'cancelado' => '❌ Cancelado',
-                                                        'anulado' => '🚫 Anulado',
+                                                        'pendiente' => 'Pendiente',
+                                                        'confirmado' => 'Confirmado',
+                                                        'cancelado' => 'Cancelado',
+                                                        'anulado' => 'Anulado',
                                                     ])
                                                     ->default('confirmado')
                                                     ->required()
@@ -338,7 +338,7 @@ class KardexResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('📊 Auditoría')
+                        Tabs\Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -408,21 +408,21 @@ class KardexResource extends Resource
                 BadgeColumn::make('tipo_movimiento')
                     ->label('Tipo')
                     ->formatStateUsing(fn($state) => match($state) {
-                        'compra' => '🛒 Compra',
-                        'venta' => '💰 Venta',
-                        'transferencia_entrada' => '📥 Transf. Ent.',
-                        'transferencia_salida' => '📤 Transf. Sal.',
-                        'ajuste_incremento' => '➕ Ajuste (+)',
-                        'ajuste_decremento' => '➖ Ajuste (-)',
-                        'devolucion_compra' => '🔄 Dev. Compra',
-                        'devolucion_venta' => '🔄 Dev. Venta',
-                        'produccion_entrada' => '🏭 Prod. Ent.',
-                        'produccion_salida' => '🏭 Prod. Sal.',
-                        'inventario_inicial' => '📋 Inv. Inicial',
-                        'ajuste_fisico' => '📊 Ajuste Fís.',
-                        'merma' => '⚠️ Merma',
-                        'despacho' => '🚚 Despacho',
-                        'consignacion' => '📦 Consignación',
+                        'compra' => 'Compra',
+                        'venta' => 'Venta',
+                        'transferencia_entrada' => 'Transf. Ent.',
+                        'transferencia_salida' => 'Transf. Sal.',
+                        'ajuste_incremento' => 'Ajuste (+)',
+                        'ajuste_decremento' => 'Ajuste (-)',
+                        'devolucion_compra' => 'Dev. Compra',
+                        'devolucion_venta' => 'Dev. Venta',
+                        'produccion_entrada' => 'Prod. Ent.',
+                        'produccion_salida' => 'Prod. Sal.',
+                        'inventario_inicial' => 'Inv. Inicial',
+                        'ajuste_fisico' => 'Ajuste Fís.',
+                        'merma' => 'Merma',
+                        'despacho' => 'Despacho',
+                        'consignacion' => 'Consignación',
                         default => $state,
                     })
                     ->colors([
@@ -444,7 +444,7 @@ class KardexResource extends Resource
 
                 BadgeColumn::make('direccion')
                     ->label('Dir.')
-                    ->formatStateUsing(fn($state) => $state === 'entrada' ? '📥' : '📤')
+                    ->formatStateUsing(fn($state) => $state === 'entrada' ? 'Entrada' : 'Salida')
                     ->colors([
                         'success' => 'entrada',
                         'danger' => 'salida',
@@ -505,10 +505,10 @@ class KardexResource extends Resource
                 BadgeColumn::make('estado')
                     ->label('Estado')
                     ->formatStateUsing(fn($state) => match($state) {
-                        'pendiente' => '⏳ Pendiente',
-                        'confirmado' => '✅ Confirmado',
-                        'cancelado' => '❌ Cancelado',
-                        'anulado' => '🚫 Anulado',
+                        'pendiente' => 'Pendiente',
+                        'confirmado' => 'Confirmado',
+                        'cancelado' => 'Cancelado',
+                        'anulado' => 'Anulado',
                         default => $state,
                     })
                     ->colors([
