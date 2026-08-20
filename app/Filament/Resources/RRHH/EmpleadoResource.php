@@ -211,11 +211,11 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                                 $usuario = Auth::user()?->name ?? 'Sistema';
                                                 $fecha = now()->format('d/m/Y H:i');
 
-                                                // 🔹 Inactivar todos los contratos del empleado
+                                                // Inactivar todos los contratos del empleado
                                                 HistorialLaboral::where('empleado_id', $empleado->id)
                                                     ->update(['activo' => false]);
 
-                                                // 🔹 Actualizar el último contrato con información detallada
+                                                // Actualizar el último contrato con información detallada
                                                 $ultimo = HistorialLaboral::where('empleado_id', $empleado->id)
                                                     ->latest('id')
                                                     ->first();
@@ -239,7 +239,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                                     ]);
                                                 }
 
-                                                // 🔹 Marcar empleado como inactivo
+                                                // Marcar empleado como inactivo
                                                 $empleado->update([
                                                     'activo' => false,
                                                     'fecha_desvinculacion' => now(),

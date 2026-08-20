@@ -768,7 +768,7 @@ class FacturaResource extends Resource
                                                                 $subtotalBase = round($cantidad * $precio, 2);
                                                                 $descuento = round(floatval($state), 2);
                                                                 $subtotal = round($subtotalBase - $descuento, 2);
-                                                                // ✅ Redondear a 2 decimales el porcentaje
+                                                                // Redondear a 2 decimales el porcentaje
                                                                 $descuentoPorcentaje = $subtotalBase > 0 ? round(($descuento / $subtotalBase) * 100, 2) : 0;
 
                                                                 $set('subtotal', $subtotal);

@@ -2,7 +2,10 @@
 
 namespace App\Models\Contabilidad;
 
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class AsientoDetalle extends Model
 {
@@ -17,9 +20,28 @@ class AsientoDetalle extends Model
         'datos_adicionales' => 'array',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->linea) && !empty($model->asiento_id)) {
+                $ultimo = self::where('asiento_id', $model->asiento_id)
+                    ->orderByDesc('linea')
+                    ->value('linea');
+
+                $model->linea = ($ultimo ?? 0) + 1;
+            }
+
+            if (Auth::check()) {
+                $model->empresa_id = $model->empresa_id ?? Auth::user()?->empresa_id;
+                $model->sucursal_id = $model->sucursal_id ?? Auth::user()?->sucursal_id;
+            }
+        });
+    }
+
     // ========== RELACIONES ==========
 
-    // ✅ Cambiar el nombre de la relación para que coincida con la migración
     public function asiento()
     {
         return $this->belongsTo(AsientoContable::class, 'asiento_id');
@@ -38,6 +60,16 @@ class AsientoDetalle extends Model
     public function proyecto()
     {
         return $this->belongsTo(Proyecto::class, 'proyecto_id');
+    }
+
+    public function empresa()
+    {
+        return $this->belongsTo(Empresa::class);
+    }
+
+    public function sucursal()
+    {
+        return $this->belongsTo(Sucursal::class);
     }
 
     // ========== ACCESORS ==========

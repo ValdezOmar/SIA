@@ -10,7 +10,7 @@ class NotaCredito extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'ven_notas_credito';  // ✅ Nombre correcto
+    protected $table = 'ven_notas_credito';  // Nombre correcto
 
     protected $guarded = [];
 

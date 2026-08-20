@@ -3,10 +3,12 @@
 namespace App\Models\Contabilidad;
 
 use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use App\Models\User;
 use App\Models\Ventas\Cliente;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class Proyecto extends Model
 {
@@ -23,6 +25,18 @@ class Proyecto extends Model
         'gastado' => 'decimal:6',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (Auth::check()) {
+                $model->empresa_id = $model->empresa_id ?? Auth::user()?->empresa_id;
+                $model->sucursal_id = $model->sucursal_id ?? Auth::user()?->sucursal_id;
+            }
+        });
+    }
+
     // ========== RELACIONES ==========
 
     public function responsable()
@@ -38,6 +52,11 @@ class Proyecto extends Model
     public function empresa()
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function sucursal()
+    {
+        return $this->belongsTo(Sucursal::class);
     }
 
     public function detallesAsiento()
@@ -66,7 +85,7 @@ class Proyecto extends Model
 
     public function getEstadoLabelAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'planeacion' => 'Planeación',
             'activo' => 'Activo',
             'pausado' => 'Pausado',

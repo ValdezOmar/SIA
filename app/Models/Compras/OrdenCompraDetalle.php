@@ -44,7 +44,7 @@ class OrdenCompraDetalle extends Model
 
     // ========== RELACIONES ==========
 
-    // ✅ Usar 'orden_id' en lugar de 'orden_compra_id'
+    // Usar 'orden_id' en lugar de 'orden_compra_id'
     public function orden()
     {
         return $this->belongsTo(OrdenCompra::class, 'orden_id');

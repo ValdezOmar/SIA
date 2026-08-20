@@ -50,7 +50,7 @@ class Pedido extends Model
             }
         });
 
-        // ✅ USAR SAVED para calcular totales
+        // USAR SAVED para calcular totales
         static::saved(function ($model) {
             $model->calcularTotalesDesdeDetalles();
         });

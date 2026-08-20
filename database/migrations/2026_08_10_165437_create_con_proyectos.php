@@ -10,24 +10,25 @@ return new class extends Migration
     {
         Schema::create('con_proyectos', function (Blueprint $table) {
             $table->id();
-            
+
             $table->string('codigo', 20)->unique();
             $table->string('nombre', 255);
             $table->text('descripcion')->nullable();
-            
+
             $table->date('fecha_inicio')->nullable();
             $table->date('fecha_fin')->nullable();
-            
+
             $table->enum('estado', ['planeacion', 'activo', 'pausado', 'finalizado', 'cancelado'])->default('planeacion');
-            
+
             $table->foreignId('responsable_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('cliente_id')->nullable()->constrained('ven_clientes')->nullOnDelete();
-            
+
             $table->decimal('presupuesto', 18, 6)->default(0);
             $table->decimal('gastado', 18, 6)->default(0);
-            
+
             $table->foreignId('empresa_id')->nullable()->constrained('conf_empresas')->nullOnDelete();
-            
+            $table->foreignId('sucursal_id')->nullable()->constrained('conf_sucursales')->nullOnDelete();
+
             $table->timestamps();
             $table->softDeletes();
 

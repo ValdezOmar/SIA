@@ -208,13 +208,13 @@ class Articulo extends Model
 
     // ========== RELACIONES ==========
 
-    // ✅ Relación con kardex (historial de movimientos)
+    // Relación con kardex (historial de movimientos)
     public function kardex()
     {
         return $this->hasMany(Kardex::class);
     }
 
-    // ✅ Relación con capas de costo (FIFO)
+    // Relación con capas de costo (FIFO)
     public function capasCostos()
     {
         return $this->hasMany(CapaCosto::class);

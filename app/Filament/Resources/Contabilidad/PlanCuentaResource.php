@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Contabilidad;
 
 use App\Filament\Resources\Contabilidad\PlanCuentaResource\Pages;
 use App\Models\Contabilidad\PlanCuenta;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -13,6 +15,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -40,19 +43,107 @@ class PlanCuentaResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    /**
+     * Aplicar filtros de empresa y sucursal a la consulta
+     */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Si el usuario tiene empresa asignada, filtrar por ella
+        if (Auth::user()?->empresa_id) {
+            $query->where('empresa_id', Auth::user()->empresa_id);
+        }
+
+        // Si el usuario tiene sucursal asignada, filtrar por ella
+        if (Auth::user()?->sucursal_id) {
+            $query->where('sucursal_id', Auth::user()->sucursal_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
+        $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
+        $defaultEmpresaId = Auth::user()?->empresa_id ?: Empresa::query()->value('id');
+        $defaultSucursalId = Auth::user()?->sucursal_id ?: Sucursal::query()
+            ->when($defaultEmpresaId, fn($query) => $query->where('empresa_id', $defaultEmpresaId))
+            ->value('id');
+
         return $form
             ->schema([
+                Hidden::make('empresa_id')
+                    ->default(fn() => Auth::user()?->empresa_id ?: $defaultEmpresaId)
+                    ->dehydrated(),
+
+                Hidden::make('sucursal_id')
+                    ->default(fn() => Auth::user()?->sucursal_id ?: $defaultSucursalId)
+                    ->dehydrated(),
+
                 Tabs::make('Gestión de Cuenta')
                     ->tabs([
-                        Tabs\Tab::make('📋 General')
+                        Tabs\Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Cuenta')
                                     ->icon('heroicon-o-identification')
                                     ->description('Información principal de la cuenta contable')
                                     ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                Select::make('empresa_id')
+                                                    ->label('Empresa')
+                                                    ->options(function () {
+                                                        return Empresa::query()
+                                                            ->orderByRaw('COALESCE(nombre_comercial, razon_social)')
+                                                            ->get()
+                                                            ->mapWithKeys(fn($empresa) => [
+                                                                $empresa->id => $empresa->nombre_comercial ?: $empresa->razon_social,
+                                                            ])
+                                                            ->toArray();
+                                                    })
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->default(fn() => $defaultEmpresaId)
+                                                    ->live()
+                                                    ->afterStateUpdated(function ($state, callable $set) {
+                                                        $set('sucursal_id', null);
+
+                                                        $primeraSucursal = Sucursal::query()
+                                                            ->where('empresa_id', $state)
+                                                            ->orderBy('nombre')
+                                                            ->value('id');
+
+                                                        if ($primeraSucursal) {
+                                                            $set('sucursal_id', $primeraSucursal);
+                                                        }
+                                                    })
+                                                    ->disabled(!$isAdmin)
+                                                    ->dehydrated()
+                                                    ->visible($isAdmin)
+                                                    ->required(),
+
+                                                Select::make('sucursal_id')
+                                                    ->label('Sucursal')
+                                                    ->options(function (callable $get) use ($defaultEmpresaId) {
+                                                        $empresaId = $get('empresa_id') ?? $defaultEmpresaId;
+
+                                                        return Sucursal::query()
+                                                            ->where('empresa_id', $empresaId)
+                                                            ->orderBy('nombre')
+                                                            ->pluck('nombre', 'id')
+                                                            ->toArray();
+                                                    })
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->default(fn() => $defaultSucursalId)
+                                                    ->disabled(!$isAdmin)
+                                                    ->dehydrated()
+                                                    ->visible($isAdmin)
+                                                    ->required(),
+                                            ]),
+
                                         Grid::make(3)
                                             ->schema([
                                                 TextInput::make('codigo')
@@ -97,6 +188,9 @@ class PlanCuentaResource extends Resource
                                                     ->options(
                                                         fn() => PlanCuenta::whereNull('cuenta_padre_id')
                                                             ->orWhere('id', request()->route('record'))
+                                                            ->when(Auth::user()?->empresa_id, fn($q) => 
+                                                                $q->where('empresa_id', Auth::user()->empresa_id)
+                                                            )
                                                             ->orderBy('codigo')
                                                             ->get()
                                                             ->mapWithKeys(fn($item) => [
@@ -239,7 +333,7 @@ class PlanCuentaResource extends Resource
                                     ->columnSpanFull(),
                             ]),
 
-                        Tabs\Tab::make('📊 Saldos')
+                        Tabs\Tab::make('Saldos')
                             ->icon('heroicon-o-chart-bar')
                             ->schema([
                                 Section::make('Resumen de Saldos')
@@ -296,17 +390,25 @@ class PlanCuentaResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('📝 Auditoría')
+                        Tabs\Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
                                     ->icon('heroicon-o-clock')
                                     ->schema([
-                                        Grid::make(2)
+                                        Grid::make(3)
                                             ->schema([
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
                                                     ->content(fn($record) => $record?->creador?->name ?? 'N/A'),
+
+                                                Placeholder::make('empresa')
+                                                    ->label('Empresa')
+                                                    ->content(fn($record) => $record?->empresa?->nombre_comercial ?: $record?->empresa?->razon_social ?? 'N/A'),
+
+                                                Placeholder::make('sucursal')
+                                                    ->label('Sucursal')
+                                                    ->content(fn($record) => $record?->sucursal?->nombre ?? 'N/A'),
 
                                                 Placeholder::make('created_at')
                                                     ->label('Fecha creación')
@@ -322,6 +424,8 @@ class PlanCuentaResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
+
         return $table
             ->columns([
                 TextColumn::make('codigo')
@@ -349,6 +453,23 @@ class PlanCuentaResource extends Resource
                     ->toggleable()
                     ->placeholder('-')
                     ->color('gray'),
+
+                TextColumn::make('empresa.nombre_comercial')
+                    ->label('Empresa')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->formatStateUsing(fn($state, $record) => $record->empresa?->nombre_comercial ?: $record->empresa?->razon_social ?? 'N/A')
+                    ->visible($isAdmin)
+                    ->placeholder('-'),
+
+                TextColumn::make('sucursal.nombre')
+                    ->label('Sucursal')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->visible($isAdmin)
+                    ->placeholder('-'),
 
                 TextColumn::make('nivel')
                     ->label('Nivel')
@@ -404,6 +525,24 @@ class PlanCuentaResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                // Filtro por empresa
+                SelectFilter::make('empresa_id')
+                    ->label('Empresa')
+                    ->relationship('empresa', 'nombre_comercial')
+                    ->searchable()
+                    ->preload()
+                    ->default(fn() => Auth::user()?->empresa_id)
+                    ->visible($isAdmin),
+
+                // Filtro por sucursal
+                SelectFilter::make('sucursal_id')
+                    ->label('Sucursal')
+                    ->relationship('sucursal', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->default(fn() => Auth::user()?->sucursal_id)
+                    ->visible($isAdmin),
+
                 SelectFilter::make('tipo_cuenta')
                     ->label('Tipo de Cuenta')
                     ->options([

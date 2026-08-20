@@ -2,6 +2,7 @@
 
 namespace App\Models\Compras;
 
+use App\Models\Inventario\Articulo;
 use App\Models\Sistema\Empresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -43,6 +44,16 @@ class Proveedor extends Model
     public function pagos()
     {
         return $this->hasMany(PagoProveedor::class);
+    }
+
+    public function articulos()
+    {
+        return $this->belongsToMany(
+            Articulo::class,
+            'cmp_articulos_proveedores',
+            'proveedor_id',
+            'articulo_id'
+        );
     }
 
     public function empresa()

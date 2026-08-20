@@ -3,7 +3,7 @@
 namespace App\Models\Compras;
 
 use App\Models\Inventario\Articulo;
-use App\Models\Sistema\Area;  // ✅ Cambiar a Area
+use App\Models\Sistema\Area;  // Cambiar a Area
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;

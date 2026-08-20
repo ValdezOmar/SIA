@@ -3,9 +3,11 @@
 namespace App\Models\Contabilidad;
 
 use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class PlanCuenta extends Model
 {
@@ -24,6 +26,19 @@ class PlanCuenta extends Model
         'requiere_centro_costo' => 'boolean',
         'requiere_proyecto' => 'boolean',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (Auth::check()) {
+                $model->creado_por = Auth::id();
+                $model->empresa_id = $model->empresa_id ?? Auth::user()?->empresa_id;
+                $model->sucursal_id = $model->sucursal_id ?? Auth::user()?->sucursal_id;
+            }
+        });
+    }
 
     // ========== RELACIONES ==========
 
@@ -47,14 +62,19 @@ class PlanCuenta extends Model
         return $this->belongsTo(Empresa::class);
     }
 
+    public function sucursal()
+    {
+        return $this->belongsTo(Sucursal::class);
+    }
+
     public function detallesAsiento()
     {
-        return $this->hasMany(AsientoDetalle::class);
+        return $this->hasMany(AsientoDetalle::class, 'cuenta_id');
     }
 
     public function saldos()
     {
-        return $this->hasMany(SaldoCuenta::class);
+        return $this->hasMany(SaldoCuenta::class, 'cuenta_id');
     }
 
     // ========== SCOPES ==========
@@ -83,7 +103,7 @@ class PlanCuenta extends Model
 
     public function getTipoCuentaLabelAttribute()
     {
-        return match($this->tipo_cuenta) {
+        return match ($this->tipo_cuenta) {
             'activo' => 'Activo',
             'pasivo' => 'Pasivo',
             'patrimonio' => 'Patrimonio',
@@ -135,7 +155,7 @@ class PlanCuenta extends Model
             ];
         }
 
-        $saldoFinal = $this->naturaleza === 'deudora' 
+        $saldoFinal = $this->naturaleza === 'deudora'
             ? $saldo->saldo_final_debe - $saldo->saldo_final_haber
             : $saldo->saldo_final_haber - $saldo->saldo_final_debe;
 

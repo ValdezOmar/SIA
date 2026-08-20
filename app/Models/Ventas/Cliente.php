@@ -77,19 +77,19 @@ class Cliente extends Model
         return $this->hasMany(Pedido::class);
     }
 
-    // ✅ Agregar relación con facturas
+    // Agregar relación con facturas
     public function facturas()
     {
         return $this->hasMany(Factura::class);
     }
 
-    // ✅ Agregar relación con pagos
+    // Agregar relación con pagos
     public function pagos()
     {
         return $this->hasMany(Pago::class);
     }
 
-    // ✅ Agregar relación con notas de crédito
+    // Agregar relación con notas de crédito
     public function notasCredito()
     {
         return $this->hasMany(NotaCredito::class);

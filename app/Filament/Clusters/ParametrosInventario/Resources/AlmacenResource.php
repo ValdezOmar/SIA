@@ -285,7 +285,7 @@ class AlmacenResource extends Resource
                 ->placeholder('-'),
         ];
 
-        // ✅ Agregar columna de Ubicaciones solo si la tabla existe y tiene la columna correcta
+        // Agregar columna de Ubicaciones solo si la tabla existe y tiene la columna correcta
         if ($ubicacionesExiste) {
             $columns[] = TextColumn::make('ubicaciones_count')
                 ->label('Ubicaciones')
@@ -295,7 +295,7 @@ class AlmacenResource extends Resource
                 ->toggleable();
         }
 
-        // ✅ Agregar columna de Existencias solo si la tabla existe y tiene la columna correcta
+        // Agregar columna de Existencias solo si la tabla existe y tiene la columna correcta
         if ($existenciasExiste) {
             $columns[] = TextColumn::make('existencias_count')
                 ->label('Stock')

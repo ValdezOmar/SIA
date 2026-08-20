@@ -603,7 +603,7 @@ class CotizacionResource extends Resource
                                                             ->step(1.00)
                                                             ->default(1)
                                                             //->prefixIcon('heroicon-o-numbered-list')
-                                                            ->formatStateUsing(fn($state) => (int) $state) // ✅ Siempre entero
+                                                            ->formatStateUsing(fn($state) => (int) $state) // Siempre entero
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $state = intval($state);
@@ -651,7 +651,7 @@ class CotizacionResource extends Resource
                                                             ->suffix('%')
                                                             ->prefixIcon('heroicon-o-percent-badge')
                                                             ->live()
-                                                            ->formatStateUsing(fn($state) => $state !== null ? (int) $state : 0) // ✅ Convertir a entero
+                                                            ->formatStateUsing(fn($state) => $state !== null ? (int) $state : 0) // Convertir a entero
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -674,7 +674,7 @@ class CotizacionResource extends Resource
                                                             ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')
                                                             ->live()
-                                                            ->formatStateUsing(fn($state) => number_format($state ?? 0, 2, '.', '')) // ✅ Formatear a 2 decimales
+                                                            ->formatStateUsing(fn($state) => number_format($state ?? 0, 2, '.', '')) // Formatear a 2 decimales
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);

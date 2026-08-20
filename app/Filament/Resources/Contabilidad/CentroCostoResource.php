@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Contabilidad;
 
 use App\Filament\Resources\Contabilidad\CentroCostoResource\Pages;
 use App\Models\Contabilidad\CentroCosto;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -11,6 +13,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -37,14 +40,104 @@ class CentroCostoResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    /**
+     * Aplicar filtros de empresa y sucursal a la consulta
+     */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Si el usuario tiene empresa asignada, filtrar por ella
+        if (Auth::user()?->empresa_id) {
+            $query->where('empresa_id', Auth::user()->empresa_id);
+        }
+
+        // Si el usuario tiene sucursal asignada, filtrar por ella
+        if (Auth::user()?->sucursal_id) {
+            $query->where('sucursal_id', Auth::user()->sucursal_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
+        $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
+        $defaultEmpresaId = Auth::user()?->empresa_id ?: Empresa::query()->value('id');
+        $defaultSucursalId = Auth::user()?->sucursal_id ?: Sucursal::query()
+            ->when($defaultEmpresaId, fn($query) => $query->where('empresa_id', $defaultEmpresaId))
+            ->value('id');
+
         return $form
             ->schema([
                 Section::make('Datos del Centro de Costo')
                     ->icon('heroicon-o-rectangle-stack')
                     ->description('Información del centro de costo')
                     ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                Select::make('empresa_id')
+                                    ->label('Empresa')
+                                    ->options(function () {
+                                        return Empresa::query()
+                                            ->orderByRaw('COALESCE(nombre_comercial, razon_social)')
+                                            ->get()
+                                            ->mapWithKeys(fn($empresa) => [
+                                                $empresa->id => $empresa->nombre_comercial ?: $empresa->razon_social,
+                                            ])
+                                            ->toArray();
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->default(fn() => $defaultEmpresaId)
+                                    ->live()
+                                    ->afterStateUpdated(function ($state, callable $set) {
+                                        $set('sucursal_id', null);
+
+                                        $primeraSucursal = Sucursal::query()
+                                            ->where('empresa_id', $state)
+                                            ->orderBy('nombre')
+                                            ->value('id');
+
+                                        if ($primeraSucursal) {
+                                            $set('sucursal_id', $primeraSucursal);
+                                        }
+                                    })
+                                    ->disabled(!$isAdmin)
+                                    ->dehydrated()
+                                    ->visible($isAdmin)
+                                    ->required(),
+
+                                Select::make('sucursal_id')
+                                    ->label('Sucursal')
+                                    ->options(function (callable $get) use ($defaultEmpresaId) {
+                                        $empresaId = $get('empresa_id') ?? $defaultEmpresaId;
+
+                                        return Sucursal::query()
+                                            ->where('empresa_id', $empresaId)
+                                            ->orderBy('nombre')
+                                            ->pluck('nombre', 'id')
+                                            ->toArray();
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->default(fn() => $defaultSucursalId)
+                                    ->disabled(!$isAdmin)
+                                    ->dehydrated()
+                                    ->visible($isAdmin)
+                                    ->required(),
+
+                                Hidden::make('empresa_id')
+                                    ->default(fn() => Auth::user()?->empresa_id ?: $defaultEmpresaId)
+                                    ->visible(!$isAdmin)
+                                    ->dehydrated(),
+
+                                Hidden::make('sucursal_id')
+                                    ->default(fn() => Auth::user()?->sucursal_id ?: $defaultSucursalId)
+                                    ->visible(!$isAdmin)
+                                    ->dehydrated(),
+                            ]),
+
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('codigo')
@@ -81,6 +174,7 @@ class CentroCostoResource extends Resource
                                     ->relationship('responsable', 'name')
                                     ->searchable()
                                     ->preload()
+                                    ->default(fn() => Auth::id())
                                     ->placeholder('Seleccione un responsable')
                                     ->helperText('Responsable del centro de costo')
                                     ->prefixIcon('heroicon-o-user'),
@@ -91,9 +185,9 @@ class CentroCostoResource extends Resource
                                 Select::make('tipo')
                                     ->label('Tipo')
                                     ->options([
-                                        'costo' => '💰 Costo',
-                                        'ingreso' => '📈 Ingreso',
-                                        'mixto' => '🔄 Mixto',
+                                        'costo' => 'Costo',
+                                        'ingreso' => 'Ingreso',
+                                        'mixto' => 'Mixto',
                                     ])
                                     ->default('costo')
                                     ->required()
@@ -119,6 +213,8 @@ class CentroCostoResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
+
         return $table
             ->columns([
                 TextColumn::make('codigo')
@@ -152,12 +248,29 @@ class CentroCostoResource extends Resource
                     ->toggleable()
                     ->placeholder('-'),
 
+                TextColumn::make('empresa.nombre_comercial')
+                    ->label('Empresa')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->formatStateUsing(fn($state, $record) => $record->empresa?->nombre_comercial ?: $record->empresa?->razon_social ?? 'N/A')
+                    ->visible($isAdmin)
+                    ->placeholder('-'),
+
+                TextColumn::make('sucursal.nombre')
+                    ->label('Sucursal')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->visible($isAdmin)
+                    ->placeholder('-'),
+
                 TextColumn::make('tipo')
                     ->label('Tipo')
                     ->formatStateUsing(fn($state) => match ($state) {
-                        'costo' => '💰 Costo',
-                        'ingreso' => '📈 Ingreso',
-                        'mixto' => '🔄 Mixto',
+                        'costo' => 'Costo',
+                        'ingreso' => 'Ingreso',
+                        'mixto' => 'Mixto',
                         default => $state,
                     })
                     ->badge()
@@ -185,6 +298,24 @@ class CentroCostoResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                // Filtro por empresa
+                SelectFilter::make('empresa_id')
+                    ->label('Empresa')
+                    ->relationship('empresa', 'nombre_comercial')
+                    ->searchable()
+                    ->preload()
+                    ->default(fn() => Auth::user()?->empresa_id)
+                    ->visible($isAdmin),
+
+                // Filtro por sucursal
+                SelectFilter::make('sucursal_id')
+                    ->label('Sucursal')
+                    ->relationship('sucursal', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->default(fn() => Auth::user()?->sucursal_id)
+                    ->visible($isAdmin),
+
                 SelectFilter::make('tipo')
                     ->label('Tipo')
                     ->options([

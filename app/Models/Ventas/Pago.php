@@ -11,7 +11,7 @@ class Pago extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'ven_pagos';  // ✅ Nombre correcto
+    protected $table = 'ven_pagos';  // Nombre correcto
 
     protected $guarded = [];
 

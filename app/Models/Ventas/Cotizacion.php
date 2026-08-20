@@ -48,13 +48,13 @@ class Cotizacion extends Model
             }
         });
 
-        // ✅ USAR SAVED en lugar de CREATING/UPDATING para calcular totales
+        // USAR SAVED en lugar de CREATING/UPDATING para calcular totales
         static::saved(function ($model) {
             // Calcular totales desde los detalles
             $model->calcularTotalesDesdeDetalles();
         });
 
-        // ✅ También calcular al crear detalles
+        // También calcular al crear detalles
         static::created(function ($model) {
             // Ya se ejecutó el saved
         });

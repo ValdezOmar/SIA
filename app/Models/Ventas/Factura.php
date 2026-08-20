@@ -11,7 +11,7 @@ class Factura extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'ven_facturas';  // ✅ Nombre correcto
+    protected $table = 'ven_facturas';  // Nombre correcto
 
     protected $guarded = [];
 

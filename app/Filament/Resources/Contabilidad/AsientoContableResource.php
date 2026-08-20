@@ -7,6 +7,8 @@ use App\Models\Contabilidad\AsientoContable;
 use App\Models\Contabilidad\PlanCuenta;
 use App\Models\Contabilidad\CentroCosto;
 use App\Models\Contabilidad\Proyecto;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -17,6 +19,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -50,25 +53,116 @@ class AsientoContableResource extends Resource
         return 'Bs ' . number_format($monto ?? 0, 2);
     }
 
+    /**
+     * Aplicar filtros de empresa y sucursal a la consulta
+     */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Si el usuario tiene empresa asignada, filtrar por ella
+        if (Auth::user()?->empresa_id) {
+            $query->where('empresa_id', Auth::user()->empresa_id);
+        }
+
+        // Si el usuario tiene sucursal asignada, filtrar por ella
+        if (Auth::user()?->sucursal_id) {
+            $query->where('sucursal_id', Auth::user()->sucursal_id);
+        }
+
+        return $query;
+    }
+
     public static function form(Form $form): Form
     {
+        $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
+        $defaultEmpresaId = Auth::user()?->empresa_id ?: Empresa::query()->value('id');
+        $defaultSucursalId = Auth::user()?->sucursal_id ?: Sucursal::query()
+            ->when($defaultEmpresaId, fn($query) => $query->where('empresa_id', $defaultEmpresaId))
+            ->value('id');
+
         return $form
             ->schema([
                 Tabs::make('Gestión de Asiento')
                     ->tabs([
-                        Tabs\Tab::make('📋 General')
+                        Tabs\Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Asiento')
                                     ->icon('heroicon-o-document-text')
                                     ->description('Información principal del asiento contable')
                                     ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                Select::make('empresa_id')
+                                                    ->label('Empresa')
+                                                    ->options(function () {
+                                                        return Empresa::query()
+                                                            ->orderByRaw('COALESCE(nombre_comercial, razon_social)')
+                                                            ->get()
+                                                            ->mapWithKeys(fn($empresa) => [
+                                                                $empresa->id => $empresa->nombre_comercial ?: $empresa->razon_social,
+                                                            ])
+                                                            ->toArray();
+                                                    })
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->default(fn() => $defaultEmpresaId)
+                                                    ->live()
+                                                    ->afterStateUpdated(function ($state, callable $set) {
+                                                        $set('sucursal_id', null);
+
+                                                        $primeraSucursal = Sucursal::query()
+                                                            ->where('empresa_id', $state)
+                                                            ->orderBy('nombre')
+                                                            ->value('id');
+
+                                                        if ($primeraSucursal) {
+                                                            $set('sucursal_id', $primeraSucursal);
+                                                        }
+                                                    })
+                                                    ->disabled(!$isAdmin)
+                                                    ->dehydrated()
+                                                    ->visible($isAdmin)
+                                                    ->required(),
+
+                                                Select::make('sucursal_id')
+                                                    ->label('Sucursal')
+                                                    ->options(function (callable $get) use ($defaultEmpresaId) {
+                                                        $empresaId = $get('empresa_id') ?? $defaultEmpresaId;
+
+                                                        return Sucursal::query()
+                                                            ->where('empresa_id', $empresaId)
+                                                            ->orderBy('nombre')
+                                                            ->pluck('nombre', 'id')
+                                                            ->toArray();
+                                                    })
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->default(fn() => $defaultSucursalId)
+                                                    ->disabled(!$isAdmin)
+                                                    ->dehydrated()
+                                                    ->visible($isAdmin)
+                                                    ->required(),
+
+                                                Hidden::make('empresa_id')
+                                                    ->default(fn() => Auth::user()?->empresa_id ?: $defaultEmpresaId)
+                                                    ->visible(!$isAdmin)
+                                                    ->dehydrated(),
+
+                                                Hidden::make('sucursal_id')
+                                                    ->default(fn() => Auth::user()?->sucursal_id ?: $defaultSucursalId)
+                                                    ->visible(!$isAdmin)
+                                                    ->dehydrated(),
+                                            ]),
+
                                         Grid::make(4)
                                             ->schema([
                                                 TextInput::make('codigo')
                                                     ->label('Código')
                                                     ->required()
-                                                    ->disabled()
+                                                    ->readOnly()
+                                                    ->dehydrated()
                                                     ->maxLength(50)
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('ASI-000001')
@@ -202,7 +296,7 @@ class AsientoContableResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('📊 Partidas')
+                        Tabs\Tab::make('Partidas')
                             ->icon('heroicon-o-document-chart-bar')
                             ->badge(function ($record) {
                                 if (!$record) return 0;
@@ -225,6 +319,9 @@ class AsientoContableResource extends Resource
                                                             ->options(
                                                                 fn() => PlanCuenta::where('activo', true)
                                                                     ->where('permite_movimiento', true)
+                                                                    ->when(Auth::user()?->empresa_id, fn($q) => 
+                                                                        $q->where('empresa_id', Auth::user()->empresa_id)
+                                                                    )
                                                                     ->orderBy('codigo')
                                                                     ->get()
                                                                     ->mapWithKeys(fn($item) => [
@@ -275,6 +372,9 @@ class AsientoContableResource extends Resource
                                                             ->label('Centro Costo')
                                                             ->options(
                                                                 fn() => CentroCosto::where('activo', true)
+                                                                    ->when(Auth::user()?->empresa_id, fn($q) => 
+                                                                        $q->where('empresa_id', Auth::user()->empresa_id)
+                                                                    )
                                                                     ->pluck('nombre', 'id')
                                                                     ->toArray()
                                                             )
@@ -288,6 +388,9 @@ class AsientoContableResource extends Resource
                                                             ->label('Proyecto')
                                                             ->options(
                                                                 fn() => Proyecto::whereIn('estado', ['activo', 'planeacion'])
+                                                                    ->when(Auth::user()?->empresa_id, fn($q) => 
+                                                                        $q->where('empresa_id', Auth::user()->empresa_id)
+                                                                    )
                                                                     ->pluck('nombre', 'id')
                                                                     ->toArray()
                                                             )
@@ -319,12 +422,15 @@ class AsientoContableResource extends Resource
                                             ->reorderable()
                                             ->columnSpanFull()
                                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                                // Agregar empresa y sucursal al detalle
+                                                $data['empresa_id'] = $data['empresa_id'] ?? Auth::user()?->empresa_id;
+                                                $data['sucursal_id'] = $data['sucursal_id'] ?? Auth::user()?->sucursal_id;
                                                 return $data;
                                             }),
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('📝 Auditoría')
+                        Tabs\Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -335,6 +441,14 @@ class AsientoContableResource extends Resource
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
                                                     ->content(fn($record) => $record?->creador?->name ?? 'N/A'),
+
+                                                Placeholder::make('empresa')
+                                                    ->label('Empresa')
+                                                    ->content(fn($record) => $record?->empresa?->nombre_comercial ?: $record?->empresa?->razon_social ?? 'N/A'),
+
+                                                Placeholder::make('sucursal')
+                                                    ->label('Sucursal')
+                                                    ->content(fn($record) => $record?->sucursal?->nombre ?? 'N/A'),
 
                                                 Placeholder::make('autorizado_por')
                                                     ->label('Autorizado por')
@@ -354,6 +468,8 @@ class AsientoContableResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
+
         return $table
             ->columns([
                 TextColumn::make('codigo')
@@ -372,7 +488,24 @@ class AsientoContableResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->toggleable()
-                    ->placeholder('-'),                
+                    ->placeholder('-'),
+
+                TextColumn::make('empresa.nombre_comercial')
+                    ->label('Empresa')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->formatStateUsing(fn($state, $record) => $record->empresa?->nombre_comercial ?: $record->empresa?->razon_social ?? 'N/A')
+                    ->visible($isAdmin)
+                    ->placeholder('-'),
+
+                TextColumn::make('sucursal.nombre')
+                    ->label('Sucursal')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable()
+                    ->visible($isAdmin)
+                    ->placeholder('-'),
 
                 BadgeColumn::make('tipo')
                     ->label('Tipo')
@@ -450,6 +583,24 @@ class AsientoContableResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                // Filtro por empresa
+                SelectFilter::make('empresa_id')
+                    ->label('Empresa')
+                    ->relationship('empresa', 'nombre_comercial')
+                    ->searchable()
+                    ->preload()
+                    ->default(fn() => Auth::user()?->empresa_id)
+                    ->visible($isAdmin),
+
+                // Filtro por sucursal
+                SelectFilter::make('sucursal_id')
+                    ->label('Sucursal')
+                    ->relationship('sucursal', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->default(fn() => Auth::user()?->sucursal_id)
+                    ->visible($isAdmin),
+
                 SelectFilter::make('tipo')
                     ->label('Tipo')
                     ->options([
@@ -554,12 +705,6 @@ class AsientoContableResource extends Resource
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            // ->bulkActions([
-            //     Tables\Actions\BulkActionGroup::make([
-            //         Tables\Actions\DeleteBulkAction::make()
-            //             ->visible(fn($records) => $records->every(fn($record) => $record->estado === 'borrador')),
-            //     ]),
-            // ])
             ->defaultSort('fecha_asiento', 'desc')
             ->searchPlaceholder('Buscar asiento...')
             ->emptyStateHeading('No hay asientos contables registrados')

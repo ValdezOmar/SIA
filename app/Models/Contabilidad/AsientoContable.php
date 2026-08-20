@@ -3,9 +3,11 @@
 namespace App\Models\Contabilidad;
 
 use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class AsientoContable extends Model
 {
@@ -22,6 +24,23 @@ class AsientoContable extends Model
         'total_debe' => 'decimal:6',
         'total_haber' => 'decimal:6',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->codigo)) {
+                $model->codigo = self::generarCodigo();
+            }
+
+            if (Auth::check()) {
+                $model->creado_por = Auth::id();
+                $model->empresa_id = $model->empresa_id ?? Auth::user()?->empresa_id;
+                $model->sucursal_id = $model->sucursal_id ?? Auth::user()?->sucursal_id;
+            }
+        });
+    }
 
     // ========== RELACIONES ==========
 
@@ -45,7 +64,27 @@ class AsientoContable extends Model
         return $this->belongsTo(Empresa::class);
     }
 
+    public function sucursal()
+    {
+        return $this->belongsTo(Sucursal::class);
+    }
+
+    public function periodo()
+    {
+        return $this->belongsTo(PeriodoContable::class);
+    }
+
     // ========== SCOPES ==========
+
+    public function scopeByEmpresa($query, $empresaId)
+    {
+        return $query->where('empresa_id', $empresaId);
+    }
+
+    public function scopeBySucursal($query, $sucursalId)
+    {
+        return $query->where('sucursal_id', $sucursalId);
+    }
 
     public function scopeByPeriodo($query, $anio, $mes)
     {
@@ -137,7 +176,7 @@ class AsientoContable extends Model
         }
 
         $this->estado = 'confirmado';
-        $this->autorizado_por = $usuarioId ?? auth()->id();
+        $this->autorizado_por = $usuarioId ?? Auth::id();
         $this->fecha_autorizacion = now();
         $this->save();
 

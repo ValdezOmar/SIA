@@ -10,6 +10,11 @@ class EditAsientoContable extends EditRecord
 {
     protected static string $resource = AsientoContableResource::class;
 
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
+
     protected function getHeaderActions(): array
     {
         return [

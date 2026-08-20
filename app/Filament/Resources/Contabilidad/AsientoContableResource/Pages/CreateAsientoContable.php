@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateAsientoContable extends CreateRecord
 {
     protected static string $resource = AsientoContableResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
 }

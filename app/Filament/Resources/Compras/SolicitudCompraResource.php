@@ -63,7 +63,7 @@ class SolicitudCompraResource extends Resource
         return self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2);
     }
 
-    // ✅ Agregar este método
+    // Agregar este método
     private static function formatearMontoHtml($monto, $moneda = 'BOB', $clase = ''): HtmlString
     {
         $simbolo = self::getSimboloMoneda($moneda);

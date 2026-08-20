@@ -43,22 +43,22 @@ class CotizacionDetalle extends Model
                 $model->linea = $ultimo ? $ultimo->linea + 1 : 1;
             }
 
-            // ✅ Asegurar que precio_original tenga el precio de la lista
+            // Asegurar que precio_original tenga el precio de la lista
             if ($model->precio_original == 0 && $model->precio_unitario > 0) {
                 $model->precio_original = $model->precio_unitario;
             }
 
-            // ✅ Asegurar que subtotal esté calculado
+            // Asegurar que subtotal esté calculado
             if ($model->subtotal == 0 && $model->cantidad > 0 && $model->precio_unitario > 0) {
                 $model->subtotal = ($model->precio_unitario * $model->cantidad) - ($model->descuento ?? 0);
             }
 
-            // ✅ Asegurar que impuesto esté calculado
+            // Asegurar que impuesto esté calculado
             if ($model->impuesto == 0 && $model->subtotal > 0 && $model->aplicar_iva) {
                 $model->impuesto = $model->subtotal * (13 / 100);
             }
 
-            // ✅ Asegurar que total esté calculado
+            // Asegurar que total esté calculado
             if ($model->total == 0 && $model->subtotal > 0) {
                 $model->total = $model->subtotal + ($model->impuesto ?? 0);
             }

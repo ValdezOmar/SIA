@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('alm_movimientos_inventario', function (Blueprint $table) {
-            // ✅ Agregar relación con kardex
+            // Agregar relación con kardex
             $table->foreignId('kardex_id')
                 ->nullable()
                 ->after('id')
@@ -17,7 +17,7 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->comment('ID del registro en kardex');
 
-            // ✅ Agregar relación con capas FIFO
+            // Agregar relación con capas FIFO
             $table->foreignId('capa_costo_id')
                 ->nullable()
                 ->after('costo_total')
@@ -25,7 +25,7 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->comment('Capa de costo FIFO utilizada (para salidas)');
 
-            // ✅ Agregar tipo de documento más detallado
+            // Agregar tipo de documento más detallado
             $table->enum('tipo_documento', [
                 'compra',
                 'venta',
@@ -39,13 +39,13 @@ return new class extends Migration
                 'merma'
             ])->nullable()->after('documento_tipo');
 
-            // ✅ Agregar referencia al pedido/cotización
+            // Agregar referencia al pedido/cotización
             $table->string('referencia', 100)
                 ->nullable()
                 ->after('documento_id')
                 ->comment('Referencia adicional del documento');
 
-            // ✅ Agregar campos de auditoría
+            // Agregar campos de auditoría
             $table->foreignId('creado_por')
                 ->nullable()
                 ->after('observacion')
