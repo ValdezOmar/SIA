@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateOrdenCompra extends CreateRecord
 {
     protected static string $resource = OrdenCompraResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
 }

@@ -28,9 +28,23 @@ class Recepcion extends Model
     {
         parent::boot();
 
+        static::saving(function ($model) {
+            if (isset($model->attributes['detalles'])) {
+                unset($model->attributes['detalles']);
+            }
+
+            if (isset($model->detalles)) {
+                unset($model->detalles);
+            }
+        });
+
         static::creating(function ($model) {
             if (empty($model->codigo)) {
                 $model->codigo = self::generarCodigo();
+            }
+
+            if (auth()->check()) {
+                $model->creado_por = $model->creado_por ?? auth()->id();
             }
         });
 

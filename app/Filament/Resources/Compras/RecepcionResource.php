@@ -66,7 +66,8 @@ class RecepcionResource extends Resource
                                                 TextInput::make('codigo')
                                                     ->label('Código')
                                                     ->required()
-                                                    ->disabled()
+                                                    ->readOnly()
+                                                    ->dehydrated()
                                                     ->maxLength(50)
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('REC-000001')
@@ -215,6 +216,7 @@ class RecepcionResource extends Resource
                                     ->description('Artículos recibidos')
                                     ->schema([
                                         Repeater::make('detalles')
+                                            ->relationship('detalles')
                                             ->label('')
                                             ->schema([
                                                 Grid::make(12)
@@ -262,6 +264,17 @@ class RecepcionResource extends Resource
                                                                 }
                                                             }),
 
+                                                        TextInput::make('cantidad')
+                                                            ->label('Cantidad')
+                                                            ->numeric()
+                                                            ->required()
+                                                            ->minValue(0.01)
+                                                            ->step(1.00)
+                                                            ->default(1)
+                                                            ->placeholder('0.00')
+                                                            ->prefixIcon('heroicon-o-numbered-list')
+                                                            ->columnSpan(2),
+
                                                         TextInput::make('cantidad_aceptada')
                                                             ->label('Cantidad Aceptada')
                                                             ->numeric()
@@ -270,7 +283,7 @@ class RecepcionResource extends Resource
                                                             ->step(1.00)
                                                             ->default(0)
                                                             ->placeholder('0.00')
-                                                            ->prefixIcon('heroicon-o-numbered-list')
+                                                            ->prefixIcon('heroicon-o-check-circle')
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($state);
@@ -343,10 +356,17 @@ class RecepcionResource extends Resource
                                                     $articulo = Articulo::find($data['articulo_id']);
                                                 }
 
+                                                $cantidad = floatval($data['cantidad'] ?? 0);
+                                                $cantidadAceptada = floatval($data['cantidad_aceptada'] ?? $cantidad);
+                                                $costoUnitario = floatval($data['costo_unitario'] ?? 0);
+
+                                                $data['cantidad'] = $cantidad > 0 ? $cantidad : ($cantidadAceptada > 0 ? $cantidadAceptada : 0);
+                                                $data['cantidad_aceptada'] = $cantidadAceptada;
+                                                $data['cantidad_rechazada'] = floatval($data['cantidad_rechazada'] ?? 0);
                                                 $data['codigo_articulo'] = $articulo ? $articulo->codigo : 'SIN_CODIGO';
                                                 $data['descripcion_articulo'] = $articulo ? ($articulo->descripcion ?? $articulo->nombre_comercial ?? 'Sin descripción') : '';
                                                 $data['unidad_medida'] = $articulo ? ($articulo->unidadMedida?->abreviatura ?? 'UND') : 'UND';
-                                                $data['costo_total'] = floatval($data['cantidad_aceptada'] ?? 0) * floatval($data['costo_unitario'] ?? 0);
+                                                $data['costo_total'] = $cantidadAceptada * $costoUnitario;
 
                                                 return $data;
                                             }),

@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePagoProveedor extends CreateRecord
 {
     protected static string $resource = PagoProveedorResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
 }

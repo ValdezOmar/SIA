@@ -10,6 +10,11 @@ class EditProveedor extends EditRecord
 {
     protected static string $resource = ProveedorResource::class;
 
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
+
     protected function getHeaderActions(): array
     {
         return [
