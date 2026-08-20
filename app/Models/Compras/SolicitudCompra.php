@@ -26,7 +26,20 @@ class SolicitudCompra extends Model
         'impuesto' => 'decimal:6',
         'total' => 'decimal:6',
     ];
+    protected static function boot()
+    {
+        parent::boot();
 
+        static::creating(function ($model) {
+            if (empty($model->codigo)) {
+                $model->codigo = self::generarCodigo();
+            }
+
+            if (auth()->check()) {
+                $model->creado_por = $model->creado_por ?? auth()->id();
+            }
+        });
+    }
     // ========== RELACIONES ==========
 
     public function sucursal()
