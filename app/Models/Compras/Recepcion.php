@@ -9,6 +9,7 @@ use App\Models\Sistema\Empresa;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class Recepcion extends Model
 {
@@ -43,8 +44,8 @@ class Recepcion extends Model
                 $model->codigo = self::generarCodigo();
             }
 
-            if (auth()->check()) {
-                $model->creado_por = $model->creado_por ?? auth()->id();
+            if (Auth::check()) {
+                $model->creado_por = $model->creado_por ?? Auth::id();
             }
         });
 

@@ -264,6 +264,11 @@ class RecepcionResource extends Resource
                                                                 }
                                                             }),
 
+                                                        TextInput::make('articulo_id')
+                                                            ->label('Artículo ID')
+                                                            ->hidden()
+                                                            ->dehydrated(),
+
                                                         TextInput::make('cantidad')
                                                             ->label('Cantidad')
                                                             ->numeric()
@@ -352,8 +357,17 @@ class RecepcionResource extends Resource
                                             ->columnSpanFull()
                                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
                                                 $articulo = null;
+
                                                 if (isset($data['articulo_id']) && $data['articulo_id']) {
                                                     $articulo = Articulo::find($data['articulo_id']);
+                                                }
+
+                                                if (!$articulo && isset($data['orden_detalle_id']) && $data['orden_detalle_id']) {
+                                                    $ordenDetalle = \App\Models\Compras\OrdenCompraDetalle::with('articulo')->find($data['orden_detalle_id']);
+                                                    if ($ordenDetalle) {
+                                                        $data['articulo_id'] = $ordenDetalle->articulo_id;
+                                                        $articulo = $ordenDetalle->articulo;
+                                                    }
                                                 }
 
                                                 $cantidad = floatval($data['cantidad'] ?? 0);
@@ -363,9 +377,9 @@ class RecepcionResource extends Resource
                                                 $data['cantidad'] = $cantidad > 0 ? $cantidad : ($cantidadAceptada > 0 ? $cantidadAceptada : 0);
                                                 $data['cantidad_aceptada'] = $cantidadAceptada;
                                                 $data['cantidad_rechazada'] = floatval($data['cantidad_rechazada'] ?? 0);
-                                                $data['codigo_articulo'] = $articulo ? $articulo->codigo : 'SIN_CODIGO';
-                                                $data['descripcion_articulo'] = $articulo ? ($articulo->descripcion ?? $articulo->nombre_comercial ?? 'Sin descripción') : '';
-                                                $data['unidad_medida'] = $articulo ? ($articulo->unidadMedida?->abreviatura ?? 'UND') : 'UND';
+                                                $data['codigo_articulo'] = $articulo ? $articulo->codigo : ($data['codigo_articulo'] ?? 'SIN_CODIGO');
+                                                $data['descripcion_articulo'] = $articulo ? ($articulo->descripcion ?? $articulo->nombre_comercial ?? 'Sin descripción') : ($data['descripcion_articulo'] ?? '');
+                                                $data['unidad_medida'] = $articulo ? ($articulo->unidadMedida?->abreviatura ?? 'UND') : ($data['unidad_medida'] ?? 'UND');
                                                 $data['costo_total'] = $cantidadAceptada * $costoUnitario;
 
                                                 return $data;
