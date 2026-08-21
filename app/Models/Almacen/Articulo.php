@@ -2,7 +2,6 @@
 
 namespace App\Models\Almacen;
 
-use App\Models\Comercial\Catalogo;
 use Illuminate\Database\Eloquent\Model;
 
 class Articulo extends Model
@@ -24,9 +23,4 @@ class Articulo extends Model
         'empresa',
         'sn_qr'
     ];
-    //Relacion con catalogo
-    public function catalogo()
-    {
-        return $this->belongsTo(Catalogo::class, 'codigo', 'codigo');
-    }
 }
