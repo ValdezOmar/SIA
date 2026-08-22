@@ -42,7 +42,7 @@ class ProveedorResource extends Resource
             ->schema([
                 Tabs::make('Gestión de Proveedor')
                     ->tabs([
-                        
+
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
                         Tabs\Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
@@ -247,14 +247,14 @@ class ProveedorResource extends Resource
                                         Forms\Components\Placeholder::make('estadisticas')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return 'Las estadísticas se mostrarán después de guardar el proveedor.';
                                                 }
 
                                                 // Contar artículos asociados
                                                 $totalArticulos = 0;
                                                 $articulosPrincipales = 0;
-                                                
+
                                                 try {
                                                     $totalArticulos = $record->articulos()->count();
                                                     $articulosPrincipales = $record->articulos()->where('es_principal', true)->count();
@@ -387,7 +387,7 @@ class ProveedorResource extends Resource
                         ->color('info')
                         ->action(function ($record) {
                             $newRecord = $record->replicate();
-                            $newRecord->codigo = $record->codigo . '-COPY-' . time();
+                            $newRecord->codigo = $record->codigo.'-COPY-'.time();
                             $newRecord->created_at = now();
                             $newRecord->updated_at = now();
                             $newRecord->save();
@@ -403,7 +403,7 @@ class ProveedorResource extends Resource
                         ->icon('heroicon-o-power')
                         ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
-                            $record->update(['activo' => !$record->activo]);
+                            $record->update(['activo' => ! $record->activo]);
                             \Filament\Notifications\Notification::make()
                                 ->title($record->activo ? 'Proveedor activado' : 'Proveedor desactivado')
                                 ->success()
@@ -412,8 +412,8 @@ class ProveedorResource extends Resource
 
                     Tables\Actions\DeleteAction::make(),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -421,7 +421,7 @@ class ProveedorResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn ($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de proveedores')
                         ->modalSubheading('¿Deseas cambiar el estado de los proveedores seleccionados?'),

@@ -4,30 +4,27 @@ namespace App\Filament\Resources\Compras;
 
 use App\Filament\Resources\Compras\FacturaCompraResource\Pages;
 use App\Models\Compras\FacturaCompra;
-use App\Models\Compras\Proveedor;
 use App\Models\Compras\OrdenCompra;
+use App\Models\Compras\Proveedor;
 use App\Models\Compras\Recepcion;
 use App\Models\Inventario\Articulo;
-use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
 class FacturaCompraResource extends Resource
@@ -58,14 +55,14 @@ class FacturaCompraResource extends Resource
 
     private static function formatearMonto($monto, $moneda = 'BOB'): string
     {
-        return self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2);
+        return self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2);
     }
 
     private static function formatearMontoHtml($monto, $moneda = 'BOB', $clase = ''): HtmlString
     {
         return new HtmlString(
-            '<span class="' . $clase . '">' .
-                self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2) .
+            '<span class="'.$clase.'">'.
+                self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2).
                 '</span>'
         );
     }
@@ -93,7 +90,7 @@ class FacturaCompraResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('FAC-000001')
                                                     ->helperText('Código único de la factura')
-                                                    ->default(fn() => FacturaCompra::generarCodigo())
+                                                    ->default(fn () => FacturaCompra::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -120,11 +117,11 @@ class FacturaCompraResource extends Resource
                                                     ->disabled()
                                                     ->dehydrated()
                                                     ->options([
-                                                        'borrador' => '📝 Borrador',
-                                                        'registrada' => '📤 Registrada',
-                                                        'pagada' => '✅ Pagada',
-                                                        'parcial' => '💰 Parcial',
-                                                        'anulada' => '❌ Anulada',
+                                                        'borrador' => 'Borrador',
+                                                        'registrada' => 'Registrada',
+                                                        'pagada' => 'Pagada',
+                                                        'parcial' => 'Parcial',
+                                                        'anulada' => 'Anulada',
                                                     ])
                                                     ->default('borrador')
                                                     ->required()
@@ -139,7 +136,7 @@ class FacturaCompraResource extends Resource
                                                 Select::make('proveedor_id')
                                                     ->label('Proveedor')
                                                     ->options(
-                                                        fn() => Proveedor::where('activo', true)
+                                                        fn () => Proveedor::where('activo', true)
                                                             ->orderBy('nombre')
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
@@ -156,7 +153,7 @@ class FacturaCompraResource extends Resource
                                                 Select::make('orden_compra_id')
                                                     ->label('Orden de Compra')
                                                     ->options(
-                                                        fn() => OrdenCompra::whereIn('estado', ['confirmada', 'parcial', 'recibida', 'completada'])
+                                                        fn () => OrdenCompra::whereIn('estado', ['confirmada', 'parcial', 'recibida', 'completada'])
                                                             ->orderBy('codigo')
                                                             ->pluck('codigo', 'id')
                                                             ->toArray()
@@ -171,7 +168,7 @@ class FacturaCompraResource extends Resource
                                                 Select::make('recepcion_id')
                                                     ->label('Recepción')
                                                     ->options(
-                                                        fn($get) => Recepcion::where('orden_compra_id', $get('orden_compra_id'))
+                                                        fn ($get) => Recepcion::where('orden_compra_id', $get('orden_compra_id'))
                                                             ->whereIn('estado', ['parcial', 'completada'])
                                                             ->orderBy('codigo')
                                                             ->pluck('codigo', 'id')
@@ -182,7 +179,7 @@ class FacturaCompraResource extends Resource
                                                     ->placeholder('Seleccione una recepción')
                                                     ->helperText('Recepción asociada')
                                                     ->prefixIcon('heroicon-o-inbox')
-                                                    ->visible(fn($get) => $get('orden_compra_id'))
+                                                    ->visible(fn ($get) => $get('orden_compra_id'))
                                                     ->columnSpan(1),
                                             ]),
 
@@ -231,6 +228,7 @@ class FacturaCompraResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['subtotal'], $moneda);
                                                     }),
 
@@ -239,6 +237,7 @@ class FacturaCompraResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['descuento'], $moneda);
                                                     }),
 
@@ -247,6 +246,7 @@ class FacturaCompraResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['impuesto'], $moneda);
                                                     }),
 
@@ -255,6 +255,7 @@ class FacturaCompraResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMontoHtml(
                                                             $totales['total'],
                                                             $moneda,
@@ -267,6 +268,7 @@ class FacturaCompraResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $pagado = $record?->monto_pagado ?? 0;
+
                                                         return self::formatearMonto($pagado, $moneda);
                                                     }),
 
@@ -278,10 +280,11 @@ class FacturaCompraResource extends Resource
                                                         $pagado = floatval($record?->monto_pagado ?? 0);
                                                         $saldo = $total - $pagado;
                                                         $color = $saldo <= 0 ? 'text-success-600' : 'text-danger-600';
+
                                                         return self::formatearMontoHtml(
                                                             $saldo,
                                                             $moneda,
-                                                            'font-bold text-lg ' . $color
+                                                            'font-bold text-lg '.$color
                                                         );
                                                     }),
                                             ]),
@@ -298,7 +301,10 @@ class FacturaCompraResource extends Resource
                         Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
-                                if (!$record) return 0;
+                                if (! $record) {
+                                    return 0;
+                                }
+
                                 return $record->detalles()->count();
                             })
                             ->schema([
@@ -316,11 +322,11 @@ class FacturaCompraResource extends Resource
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
                                                             ->options(
-                                                                fn() => Articulo::where('activo', true)
+                                                                fn () => Articulo::where('activo', true)
                                                                     ->orderBy('codigo')
                                                                     ->get()
-                                                                    ->mapWithKeys(fn($item) => [
-                                                                        $item->id => $item->codigo . ' - ' . ($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción')
+                                                                    ->mapWithKeys(fn ($item) => [
+                                                                        $item->id => $item->codigo.' - '.($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción'),
                                                                     ])
                                                                     ->toArray()
                                                             )
@@ -365,7 +371,7 @@ class FacturaCompraResource extends Resource
                                                             ->step(0.01)
                                                             ->default(0)
                                                             ->placeholder('0.00')
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
@@ -380,7 +386,7 @@ class FacturaCompraResource extends Resource
                                                             ->step(0.01)
                                                             ->default(0)
                                                             ->placeholder('0.00')
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
@@ -396,6 +402,7 @@ class FacturaCompraResource extends Resource
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
                                                                 $descuento = floatval($get('descuento') ?? 0);
                                                                 $subtotal = ($cantidad * $precio) - $descuento;
+
                                                                 return self::formatearMonto($subtotal, $moneda);
                                                             })
                                                             ->extraAttributes(['class' => 'font-bold'])
@@ -412,7 +419,7 @@ class FacturaCompraResource extends Resource
                                             ->defaultItems(1)
                                             ->collapsible()
                                             ->cloneable()
-                                            ->addActionLabel('➕ Agregar Producto')
+                                            ->addActionLabel('Agregar producto')
                                             ->reorderable()
                                             ->columnSpanFull()
                                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
@@ -449,7 +456,7 @@ class FacturaCompraResource extends Resource
                                         Placeholder::make('pagos_info')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return 'Guardar la factura para gestionar pagos.';
                                                 }
 
@@ -464,13 +471,13 @@ class FacturaCompraResource extends Resource
                                                 }
 
                                                 $html = '<div class="space-y-2">';
-                                                $html .= '<p class="text-sm font-medium">Total pagos: ' . $totalPagos . ' - Monto: ' . self::formatearMonto($totalMonto, $record->moneda ?? 'BOB') . '</p>';
+                                                $html .= '<p class="text-sm font-medium">Total pagos: '.$totalPagos.' - Monto: '.self::formatearMonto($totalMonto, $record->moneda ?? 'BOB').'</p>';
                                                 $html .= '<div class="grid grid-cols-1 gap-2">';
                                                 foreach ($pagos as $pago) {
                                                     $html .= '<div class="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">';
-                                                    $html .= '<span class="text-sm">' . $pago->codigo . ' - ' . $pago->fecha_pago->format('d/m/Y') . '</span>';
-                                                    $html .= '<span class="font-bold text-success-600">' . self::formatearMonto($pago->monto, $pago->moneda ?? 'BOB') . '</span>';
-                                                    $html .= '<span class="text-xs badge badge-' . ($pago->estado === 'confirmado' ? 'success' : 'warning') . '">' . ucfirst($pago->estado) . '</span>';
+                                                    $html .= '<span class="text-sm">'.$pago->codigo.' - '.$pago->fecha_pago->format('d/m/Y').'</span>';
+                                                    $html .= '<span class="font-bold text-success-600">'.self::formatearMonto($pago->monto, $pago->moneda ?? 'BOB').'</span>';
+                                                    $html .= '<span class="text-xs badge badge-'.($pago->estado === 'confirmado' ? 'success' : 'warning').'">'.ucfirst($pago->estado).'</span>';
                                                     $html .= '</div>';
                                                 }
                                                 $html .= '</div></div>';
@@ -510,6 +517,7 @@ class FacturaCompraResource extends Resource
                 $impuesto += floatval($detalle->impuesto ?? 0);
                 $total += floatval($detalle->total ?? 0);
             }
+
             return compact('subtotal', 'descuento', 'impuesto', 'total');
         }
 
@@ -565,18 +573,16 @@ class FacturaCompraResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->toggleable()
-                    ->placeholder('-'),             
-
-                
+                    ->placeholder('-'),
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'borrador' => '📝 Borrador',
-                        'registrada' => '📤 Registrada',
-                        'pagada' => '✅ Pagada',
-                        'parcial' => '💰 Parcial',
-                        'anulada' => '❌ Anulada',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'borrador' => 'Borrador',
+                        'registrada' => 'Registrada',
+                        'pagada' => 'Pagada',
+                        'parcial' => 'Parcial',
+                        'anulada' => 'Anulada',
                         default => $state,
                     })
                     ->colors([
@@ -592,6 +598,7 @@ class FacturaCompraResource extends Resource
                     ->label('Total')
                     ->formatStateUsing(function ($state, $record) {
                         $moneda = $record->moneda ?? 'BOB';
+
                         return self::formatearMonto($state, $moneda);
                     })
                     ->sortable()
@@ -602,14 +609,15 @@ class FacturaCompraResource extends Resource
                     ->formatStateUsing(function ($state, $record) {
                         $moneda = $record->moneda ?? 'BOB';
                         $saldo = ($record->total ?? 0) - ($record->monto_pagado ?? 0);
+
                         return self::formatearMonto($saldo, $moneda);
                     })
                     ->sortable()
                     ->toggleable(),
-                    // ->color(fn($record) => {
-                    //     $saldo = ($record->total ?? 0) - ($record->monto_pagado ?? 0);
-                    //     return $saldo <= 0 ? 'success' : 'danger';
-                    // }),
+                // ->color(fn($record) => {
+                //     $saldo = ($record->total ?? 0) - ($record->monto_pagado ?? 0);
+                //     return $saldo <= 0 ? 'success' : 'danger';
+                // }),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
@@ -656,8 +664,8 @@ class FacturaCompraResource extends Resource
                                 ->numeric()
                                 ->required()
                                 ->minValue(0.01)
-                                ->maxValue(fn($record) => ($record->total ?? 0) - ($record->monto_pagado ?? 0))
-                                ->prefix(fn($get, $record) => self::getSimboloMoneda($record->moneda ?? 'BOB')),
+                                ->maxValue(fn ($record) => ($record->total ?? 0) - ($record->monto_pagado ?? 0))
+                                ->prefix(fn ($get, $record) => self::getSimboloMoneda($record->moneda ?? 'BOB')),
 
                             DatePicker::make('fecha_pago')
                                 ->label('Fecha Pago')
@@ -669,12 +677,12 @@ class FacturaCompraResource extends Resource
                             Select::make('tipo_pago')
                                 ->label('Tipo de Pago')
                                 ->options([
-                                    'efectivo' => '💵 Efectivo',
-                                    'transferencia' => '🏦 Transferencia',
-                                    'cheque' => '📄 Cheque',
-                                    'deposito' => '🏛️ Depósito',
-                                    'nota_credito' => '📝 Nota de Crédito',
-                                    'otros' => '📌 Otros',
+                                    'efectivo' => 'Efectivo',
+                                    'transferencia' => 'Transferencia',
+                                    'cheque' => 'Cheque',
+                                    'deposito' => 'Depósito',
+                                    'nota_credito' => 'Nota de crédito',
+                                    'otros' => 'Otros',
                                 ])
                                 ->required()
                                 ->searchable(),
@@ -683,11 +691,11 @@ class FacturaCompraResource extends Resource
                             $pago = $record->registrarPago($data);
                             Notification::make()
                                 ->title('Pago registrado exitosamente')
-                                ->body('Se ha registrado el pago de ' . $data['monto'] . ' ' . $record->moneda)
+                                ->body('Se ha registrado el pago de '.$data['monto'].' '.$record->moneda)
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => !in_array($record->estado, ['pagada', 'anulada'])),
+                        ->visible(fn ($record) => ! in_array($record->estado, ['pagada', 'anulada'])),
 
                     Tables\Actions\Action::make('anular')
                         ->label('Anular')
@@ -703,15 +711,15 @@ class FacturaCompraResource extends Resource
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => !in_array($record->estado, ['pagada', 'anulada'])),
+                        ->visible(fn ($record) => ! in_array($record->estado, ['pagada', 'anulada'])),
 
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn($record) => $record->estado === 'borrador'),
+                        ->visible(fn ($record) => $record->estado === 'borrador'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            
+
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar factura de compra...')
             ->emptyStateHeading('No hay facturas de compra')

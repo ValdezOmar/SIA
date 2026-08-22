@@ -10,6 +10,11 @@ class ListOrdenCompras extends ListRecords
 {
     protected static string $resource = OrdenCompraResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Paso 2: cree la orden desde una solicitud aprobada, envíela al proveedor y confírmela antes de recibir mercadería.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [

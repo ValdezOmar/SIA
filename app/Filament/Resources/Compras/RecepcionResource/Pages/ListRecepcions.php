@@ -10,6 +10,11 @@ class ListRecepcions extends ListRecords
 {
     protected static string $resource = RecepcionResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Paso 3: registre lo recibido, indique cantidades aceptadas y el almacén; después use “Procesar ingreso”.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [

@@ -3,28 +3,27 @@
 namespace App\Filament\Resources\Compras\OrdenCompraResource\RelationManagers;
 
 use App\Models\Compras\Recepcion;
-use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 
 class RecepcionesRelationManager extends RelationManager
 {
     protected static string $relationship = 'recepciones';
 
-    protected static ?string $title = '📥 Recepciones';
+    protected static ?string $title = 'Recepciones';
 
     protected static ?string $modelLabel = 'Recepción';
 
@@ -45,7 +44,7 @@ class RecepcionesRelationManager extends RelationManager
                                     ->disabled()
                                     ->maxLength(50)
                                     ->unique(ignoreRecord: true)
-                                    ->default(fn() => Recepcion::generarCodigo())
+                                    ->default(fn () => Recepcion::generarCodigo())
                                     ->prefixIcon('heroicon-o-hashtag')
                                     ->columnSpan(1),
 
@@ -63,10 +62,10 @@ class RecepcionesRelationManager extends RelationManager
                                     ->disabled()
                                     ->dehydrated()
                                     ->options([
-                                        'pendiente' => '⏳ Pendiente',
-                                        'parcial' => '📦 Parcial',
-                                        'completada' => '✅ Completada',
-                                        'rechazada' => '❌ Rechazada',
+                                        'pendiente' => 'Pendiente',
+                                        'parcial' => 'Parcial',
+                                        'completada' => 'Completada',
+                                        'rechazada' => 'Rechazada',
                                     ])
                                     ->default('pendiente')
                                     ->required()
@@ -122,11 +121,11 @@ class RecepcionesRelationManager extends RelationManager
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'pendiente' => '⏳ Pendiente',
-                        'parcial' => '📦 Parcial',
-                        'completada' => '✅ Completada',
-                        'rechazada' => '❌ Rechazada',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'pendiente' => 'Pendiente',
+                        'parcial' => 'Parcial',
+                        'completada' => 'Completada',
+                        'rechazada' => 'Rechazada',
                         default => $state,
                     })
                     ->colors([
@@ -171,12 +170,13 @@ class RecepcionesRelationManager extends RelationManager
                         $data['proveedor_id'] = $livewire->getOwnerRecord()->proveedor_id;
                         $data['creado_por'] = Auth::id();
                         $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
+
                         return $data;
                     })
                     ->after(function ($record) {
                         Notification::make()
                             ->title('Recepción creada exitosamente')
-                            ->body('La recepción ' . $record->codigo . ' ha sido creada.')
+                            ->body('La recepción '.$record->codigo.' ha sido creada.')
                             ->success()
                             ->send();
                     }),
@@ -203,7 +203,7 @@ class RecepcionesRelationManager extends RelationManager
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'parcial'),
+                        ->visible(fn ($record) => $record->estado === 'parcial'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

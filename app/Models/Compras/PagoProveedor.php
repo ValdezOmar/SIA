@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class PagoProveedor extends Model
 {
@@ -36,6 +37,43 @@ class PagoProveedor extends Model
             if (empty($model->codigo)) {
                 $model->codigo = self::generarCodigo();
             }
+        });
+
+        static::saving(function ($model) {
+            if (! $model->factura_id) {
+                return;
+            }
+
+            $factura = FacturaCompra::find($model->factura_id);
+
+            if (! $factura) {
+                throw ValidationException::withMessages(['factura_id' => 'La factura seleccionada ya no está disponible.']);
+            }
+
+            $model->proveedor_id ??= $factura->proveedor_id;
+            $model->moneda ??= $factura->moneda;
+            $model->tasa_cambio ??= $factura->tasa_cambio;
+
+            if ($model->estado !== 'confirmado') {
+                return;
+            }
+
+            $otrosPagosConfirmados = $factura->pagos()
+                ->where('estado', 'confirmado')
+                ->when($model->exists, fn ($query) => $query->whereKeyNot($model->getKey()))
+                ->sum('monto');
+
+            if ((float) $model->monto > ((float) $factura->total - (float) $otrosPagosConfirmados)) {
+                throw ValidationException::withMessages(['monto' => 'El monto no puede superar el saldo pendiente de la factura.']);
+            }
+        });
+
+        static::saved(function ($model) {
+            $model->factura?->actualizarSaldo();
+        });
+
+        static::deleted(function ($model) {
+            FacturaCompra::find($model->factura_id)?->actualizarSaldo();
         });
     }
 
@@ -77,7 +115,7 @@ class PagoProveedor extends Model
 
     public function getEstadoLabelAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'pendiente' => 'Pendiente',
             'confirmado' => 'Confirmado',
             'rechazado' => 'Rechazado',
@@ -88,7 +126,7 @@ class PagoProveedor extends Model
 
     public function getTipoPagoLabelAttribute()
     {
-        return match($this->tipo_pago) {
+        return match ($this->tipo_pago) {
             'efectivo' => 'Efectivo',
             'transferencia' => 'Transferencia',
             'cheque' => 'Cheque',
@@ -104,10 +142,10 @@ class PagoProveedor extends Model
     public static function generarCodigo()
     {
         $gestion = date('y');
-        $prefijo = 'PAG-P-' . $gestion;
+        $prefijo = 'PAG-P-'.$gestion;
 
         $ultimo = self::withTrashed()
-            ->where('codigo', 'LIKE', $prefijo . '%')
+            ->where('codigo', 'LIKE', $prefijo.'%')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -117,7 +155,7 @@ class PagoProveedor extends Model
             $correlativo = 1;
         }
 
-        return $prefijo . str_pad($correlativo, 4, '0', STR_PAD_LEFT);
+        return $prefijo.str_pad($correlativo, 4, '0', STR_PAD_LEFT);
     }
 
     public function confirmar()
@@ -135,9 +173,10 @@ class PagoProveedor extends Model
     {
         $this->estado = 'rechazado';
         if ($motivo) {
-            $this->observaciones = ($this->observaciones ? $this->observaciones . "\n" : '') . 'Rechazado: ' . $motivo;
+            $this->observaciones = ($this->observaciones ? $this->observaciones."\n" : '').'Rechazado: '.$motivo;
         }
         $this->save();
+
         return $this;
     }
 }

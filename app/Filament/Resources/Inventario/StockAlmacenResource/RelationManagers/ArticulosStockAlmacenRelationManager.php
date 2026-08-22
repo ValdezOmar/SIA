@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers;
 
-use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Ubicacion;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
@@ -19,8 +18,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-
-class ArticulosStockRelationManager extends RelationManager
+class ArticulosStockAlmacenRelationManager extends RelationManager
 {
     protected static string $relationship = 'existencias';
 
@@ -49,12 +47,13 @@ class ArticulosStockRelationManager extends RelationManager
                                 if ($articulo) {
                                     return new \Illuminate\Support\HtmlString(
                                         '<div class="flex items-center gap-2">
-                                            <span class="text-sm font-medium">' . $articulo->codigo_alterno . '</span>
+                                            <span class="text-sm font-medium">'.$articulo->codigo_alterno.'</span>
                                             <span class="text-sm text-gray-500">-</span>
-                                            <span class="text-sm">' . ($articulo->nombre_comercial ?? $articulo->descripcion ?? 'Sin descripción') . '</span>
+                                            <span class="text-sm">'.($articulo->nombre_comercial ?? $articulo->descripcion ?? 'Sin descripción').'</span>
                                         </div>'
                                     );
                                 }
+
                                 return 'No hay artículo seleccionado';
                             }),
 
@@ -117,15 +116,15 @@ class ArticulosStockRelationManager extends RelationManager
                                             ->options(function ($get, $livewire) {
                                                 $almacenId = $livewire->getOwnerRecord()?->id;
 
-                                                if (!$almacenId) {
+                                                if (! $almacenId) {
                                                     return [];
                                                 }
 
                                                 return Ubicacion::where('almacen_id', $almacenId)
                                                     ->where('activo', true)
                                                     ->get()
-                                                    ->mapWithKeys(fn($item) => [
-                                                        $item->id => $item->codigo . ' - ' . $item->ubicacion_completa
+                                                    ->mapWithKeys(fn ($item) => [
+                                                        $item->id => $item->codigo.' - '.$item->ubicacion_completa,
                                                     ])
                                                     ->toArray();
                                             })
@@ -156,7 +155,7 @@ class ArticulosStockRelationManager extends RelationManager
                             ->addActionLabel('Agregar Ubicación')
                             ->reorderable()
                             ->columnSpanFull()
-                            ->visible(fn($get) => $get('almacen_id') !== null),
+                            ->visible(fn ($get) => $get('almacen_id') !== null),
                     ]),
             ]);
     }
@@ -171,7 +170,7 @@ class ArticulosStockRelationManager extends RelationManager
                     ->square()
                     ->size(40)
                     ->defaultImageUrl(function ($record) {
-                        return 'https://ui-avatars.com/api/?name=' . urlencode($record->nombre_comercial ?? $record->codigo) . '&color=7F9CF5&background=EBF4FF';
+                        return 'https://ui-avatars.com/api/?name='.urlencode($record->nombre_comercial ?? $record->codigo).'&color=7F9CF5&background=EBF4FF';
                     })
                     ->toggleable(),
 
@@ -196,7 +195,6 @@ class ArticulosStockRelationManager extends RelationManager
                     ->copyMessage('Modelo copiado')
                     ->toggleable(isToggledHiddenByDefault: false),
 
-
                 TextColumn::make('articulo.descripcion')
                     ->label('Descripción')
                     ->searchable()
@@ -209,7 +207,7 @@ class ArticulosStockRelationManager extends RelationManager
                     ->label('Stock Actual')
                     ->numeric(2)
                     ->sortable()
-                    ->color(fn($state) => $state <= 0 ? 'danger' : 'success')
+                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'success')
                     ->toggleable(),
 
                 TextColumn::make('cantidad_comprometida')
@@ -224,8 +222,8 @@ class ArticulosStockRelationManager extends RelationManager
                     ->disabled()
                     ->numeric(2)
                     ->sortable()
-                    ->getStateUsing(fn($record) => $record->stock_disponible)
-                    ->color(fn($state) => $state <= 0 ? 'danger' : 'success')
+                    ->getStateUsing(fn ($record) => $record->stock_disponible)
+                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'success')
                     ->toggleable(),
 
                 TextColumn::make('cantidad_minima')
@@ -247,9 +245,16 @@ class ArticulosStockRelationManager extends RelationManager
                 BadgeColumn::make('estado_stock')
                     ->label('Estado')
                     ->getStateUsing(function ($record) {
-                        if ($record->cantidad_disponible <= 0) return 'Sin Stock';
-                        if ($record->cantidad_disponible <= $record->cantidad_minima) return 'Bajo Mínimo';
-                        if ($record->cantidad_maxima > 0 && $record->cantidad_disponible >= $record->cantidad_maxima) return 'Excedido';
+                        if ($record->cantidad_disponible <= 0) {
+                            return 'Sin Stock';
+                        }
+                        if ($record->cantidad_disponible <= $record->cantidad_minima) {
+                            return 'Bajo Mínimo';
+                        }
+                        if ($record->cantidad_maxima > 0 && $record->cantidad_disponible >= $record->cantidad_maxima) {
+                            return 'Excedido';
+                        }
+
                         return 'Normal';
                     })
                     ->colors([
@@ -267,13 +272,13 @@ class ArticulosStockRelationManager extends RelationManager
                     ->trueLabel('Con stock')
                     ->falseLabel('Sin stock')
                     ->queries(
-                        true: fn($query) => $query->where('cantidad_disponible', '>', 0),
-                        false: fn($query) => $query->where('cantidad_disponible', '=', 0),
+                        true: fn ($query) => $query->where('cantidad_disponible', '>', 0),
+                        false: fn ($query) => $query->where('cantidad_disponible', '=', 0),
                     ),
 
                 Tables\Filters\Filter::make('bajo_minimo')
                     ->label('Stock bajo mínimo')
-                    ->query(fn($query) => $query->whereRaw('cantidad_disponible <= cantidad_minima')),
+                    ->query(fn ($query) => $query->whereRaw('cantidad_disponible <= cantidad_minima')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
@@ -282,6 +287,7 @@ class ArticulosStockRelationManager extends RelationManager
                     ->modalWidth('4xl')
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['almacen_id'] = $this->getOwnerRecord()->id;
+
                         return $data;
                     })
                     ->after(function ($record) {
@@ -299,6 +305,7 @@ class ArticulosStockRelationManager extends RelationManager
                         ->modalWidth('4xl')
                         ->mutateFormDataUsing(function (array $data): array {
                             $data['almacen_id'] = $this->getOwnerRecord()->id;
+
                             return $data;
                         }),
                 ])

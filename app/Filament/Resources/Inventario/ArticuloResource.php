@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Inventario;
 
-use App\Filament\Resources\Inventario\AlmacenResource\RelationManagers\KardexPorAlmacenRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\Pages\CreateArticulo;
 use App\Filament\Resources\Inventario\ArticuloResource\Pages\EditArticulo;
 use App\Filament\Resources\Inventario\ArticuloResource\Pages\ListArticulos;
@@ -10,7 +9,7 @@ use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\Atributo
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\CapasCostosRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\CodigosBarrasRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ExistenciasRelationManager;
-use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ImagenesRelationManager;
+use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\KardexPorAlmacenRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\KardexRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\LotesRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\PreciosRelationManager;
@@ -18,21 +17,17 @@ use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\Proveedo
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\SeriesRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\UnidadesRelationManager;
 use App\Models\Inventario\Articulo;
-use App\Models\Inventario\Fabricante;
-use App\Models\Inventario\GrupoArticulo;
-use App\Models\Inventario\UnidadMedida;
-use App\Models\Sistema\Empresa;
 use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -40,9 +35,9 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\HtmlString;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\HtmlString;
 
 class ArticuloResource extends Resource
 {
@@ -64,17 +59,25 @@ class ArticuloResource extends Resource
     private static function getSafeOptions(string $table, string $labelColumn, string $valueColumn = 'id', array $filters = [], array $additionalConditions = []): array
     {
         try {
-            if (!Schema::hasTable($table)) return [];
-            if (!Schema::hasColumn($table, $labelColumn) || !Schema::hasColumn($table, $valueColumn)) return [];
+            if (! Schema::hasTable($table)) {
+                return [];
+            }
+            if (! Schema::hasColumn($table, $labelColumn) || ! Schema::hasColumn($table, $valueColumn)) {
+                return [];
+            }
 
             $query = DB::table($table);
 
             foreach ($filters as $column => $value) {
-                if (Schema::hasColumn($table, $column)) $query->where($column, $value);
+                if (Schema::hasColumn($table, $column)) {
+                    $query->where($column, $value);
+                }
             }
 
             foreach ($additionalConditions as $column => $value) {
-                if (Schema::hasColumn($table, $column)) $query->where($column, $value);
+                if (Schema::hasColumn($table, $column)) {
+                    $query->where($column, $value);
+                }
             }
 
             return $query->orderBy($labelColumn)->pluck($labelColumn, $valueColumn)->toArray();
@@ -86,7 +89,10 @@ class ArticuloResource extends Resource
     private static function hasData(string $table): bool
     {
         try {
-            if (!Schema::hasTable($table)) return false;
+            if (! Schema::hasTable($table)) {
+                return false;
+            }
+
             return DB::table($table)->exists();
         } catch (\Exception $e) {
             return false;
@@ -96,7 +102,9 @@ class ArticuloResource extends Resource
     private static function getFabricanteOptions(): array
     {
         try {
-            if (!Schema::hasTable('alm_fabricantes')) return [];
+            if (! Schema::hasTable('alm_fabricantes')) {
+                return [];
+            }
 
             $labelColumn = 'nombre';
             if (Schema::hasColumn('alm_fabricantes', 'nombre_comercial')) {
@@ -140,7 +148,7 @@ class ArticuloResource extends Resource
                                                     ->placeholder('Se genera automáticamente')
                                                     ->helperText('Déjalo vacío para auto-generar')
                                                     ->disabled()
-                                                    ->dehydrated(fn($record) => $record === null)
+                                                    ->dehydrated(fn ($record) => $record === null)
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -165,23 +173,23 @@ class ArticuloResource extends Resource
                                             ->schema([
                                                 Select::make('grupo_articulo_id')
                                                     ->label('Grupo')
-                                                    ->options(fn() => self::getSafeOptions('alm_grupos_articulos', 'nombre'))
+                                                    ->options(fn () => self::getSafeOptions('alm_grupos_articulos', 'nombre'))
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder('Seleccionar grupo')
                                                     ->helperText('Clasificación del artículo')
                                                     ->prefixIcon('heroicon-o-folder')
-                                                    ->disabled(!self::hasData('alm_grupos_articulos'))
+                                                    ->disabled(! self::hasData('alm_grupos_articulos'))
                                                     ->columnSpan(1),
 
                                                 Select::make('fabricante_id')
                                                     ->label('Fabricante')
-                                                    ->options(fn() => self::getFabricanteOptions())
+                                                    ->options(fn () => self::getFabricanteOptions())
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder('Seleccionar fabricante')
                                                     ->prefixIcon('heroicon-o-building-office-2')
-                                                    ->disabled(!self::hasData('alm_fabricantes'))
+                                                    ->disabled(! self::hasData('alm_fabricantes'))
                                                     ->columnSpan(1),
                                             ]),
 
@@ -189,29 +197,30 @@ class ArticuloResource extends Resource
                                             ->schema([
                                                 Select::make('unidad_medida_id')
                                                     ->label('Unidad de Medida')
-                                                    ->options(fn() => self::getSafeOptions('alm_unidades_medida', 'nombre'))
+                                                    ->options(fn () => self::getSafeOptions('alm_unidades_medida', 'nombre'))
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder('Seleccionar unidad')
                                                     ->helperText('Unidad base del artículo')
                                                     ->prefixIcon('heroicon-o-scale')
-                                                    ->disabled(!self::hasData('alm_unidades_medida'))
+                                                    ->disabled(! self::hasData('alm_unidades_medida'))
                                                     ->columnSpan(1),
 
                                                 Select::make('empresa_id')
                                                     ->label('Empresa')
-                                                    ->options(fn() => self::getSafeOptions('conf_empresas', 'nombre_comercial', 'id', [], ['deleted_at' => null]))
+                                                    ->options(fn () => self::getSafeOptions('conf_empresas', 'nombre_comercial', 'id', [], ['deleted_at' => null]))
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder('Seleccionar empresa')
                                                     ->helperText('Empresa propietaria')
                                                     ->prefixIcon('heroicon-o-building-storefront')
-                                                    ->disabled(!self::hasData('conf_empresas'))
+                                                    ->disabled(! self::hasData('conf_empresas'))
                                                     ->default(function () {
                                                         $empresas = DB::table('conf_empresas')
                                                             ->whereNull('deleted_at')
                                                             ->select('id')
                                                             ->get();
+
                                                         return $empresas->count() === 1 ? $empresas->first()->id : null;
                                                     })
                                                     ->columnSpan(1),
@@ -229,7 +238,7 @@ class ArticuloResource extends Resource
                                                     ->rows(6)
                                                     ->maxLength(255)
                                                     ->helperText('Máximo 255 caracteres')
-                                                    //->prefixIcon('heroicon-o-document')
+                                                    // ->prefixIcon('heroicon-o-document')
                                                     ->columnSpan(1),
 
                                                 RichEditor::make('caracteristicas')
@@ -273,7 +282,7 @@ class ArticuloResource extends Resource
                                                         $codigo = preg_replace('/[^a-zA-Z0-9-]/', '', $codigo);
                                                         $modelo = preg_replace('/[^a-zA-Z0-9-]/', '', $modelo);
 
-                                                        return $codigo . '-' . $modelo . '-foto.' . $extension;
+                                                        return $codigo.'-'.$modelo.'-foto.'.$extension;
                                                     }),
 
                                                 FileUpload::make('documentacion_tecnica')
@@ -289,7 +298,7 @@ class ArticuloResource extends Resource
                                                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                                                         'image/jpeg',
                                                         'image/png',
-                                                        'image/gif'
+                                                        'image/gif',
                                                     ])
                                                     ->maxSize(15360)
                                                     ->maxFiles(5)
@@ -313,7 +322,7 @@ class ArticuloResource extends Resource
                                                         $codigo = preg_replace('/[^a-zA-Z0-9-]/', '', $codigo);
                                                         $modelo = preg_replace('/[^a-zA-Z0-9-]/', '', $modelo);
 
-                                                        return $codigo . '-' . $modelo . '-doc-' . $timestamp . '.' . $extension;
+                                                        return $codigo.'-'.$modelo.'-doc-'.$timestamp.'.'.$extension;
                                                     }),
                                             ]),
                                     ]),
@@ -352,7 +361,7 @@ class ArticuloResource extends Resource
                                                 Toggle::make('maneja_lotes')
                                                     ->label('Maneja Lotes')
                                                     ->helperText('Control por número de lote')
-                                                    ->visible(fn(Forms\Get $get) => $get('inventariable'))
+                                                    ->visible(fn (Forms\Get $get) => $get('inventariable'))
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, Forms\Set $set) {
                                                         if ($state) {
@@ -365,7 +374,7 @@ class ArticuloResource extends Resource
                                                 Toggle::make('maneja_series')
                                                     ->label('Maneja Series')
                                                     ->helperText('Control por número de serie')
-                                                    ->visible(fn(Forms\Get $get) => $get('inventariable'))
+                                                    ->visible(fn (Forms\Get $get) => $get('inventariable'))
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, Forms\Set $set) {
                                                         if ($state) {
@@ -377,7 +386,7 @@ class ArticuloResource extends Resource
                                                 Toggle::make('requiere_serie_en_salida')
                                                     ->label('Requerir Serie en Salida')
                                                     ->helperText('Obligatorio registrar serie al vender')
-                                                    ->visible(fn(Forms\Get $get) => $get('maneja_series'))
+                                                    ->visible(fn (Forms\Get $get) => $get('maneja_series'))
                                                     ->columnSpan(1),
                                             ]),
 
@@ -406,8 +415,8 @@ class ArticuloResource extends Resource
                                                     ->step(0.000001)
                                                     ->prefix('Bs')
                                                     ->helperText('Se usa solo con Costo Estándar. Define el valor contable unitario de referencia.')
-                                                    ->visible(fn(Forms\Get $get) => $get('metodo_costo') === 'estandar')
-                                                    ->required(fn(Forms\Get $get) => $get('metodo_costo') === 'estandar')
+                                                    ->visible(fn (Forms\Get $get) => $get('metodo_costo') === 'estandar')
+                                                    ->required(fn (Forms\Get $get) => $get('metodo_costo') === 'estandar')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -460,7 +469,7 @@ class ArticuloResource extends Resource
                                         Placeholder::make('proveedores_resumen')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return new HtmlString(
                                                         '<div class="text-sm text-gray-500 dark:text-gray-400">Los proveedores se mostrarán después de guardar el artículo.</div>'
                                                     );
@@ -484,16 +493,16 @@ class ArticuloResource extends Resource
                                                         $esPrincipal = $item->es_principal;
                                                         $bg = $esPrincipal ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-400 dark:border-yellow-700' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700';
 
-                                                        $html .= '<div class="p-4 rounded-xl border ' . $bg . '">';
+                                                        $html .= '<div class="p-4 rounded-xl border '.$bg.'">';
                                                         $html .= '<div class="flex items-start justify-between">';
                                                         $html .= '<div class="flex-1">';
-                                                        $html .= '<p class="font-medium text-gray-900 dark:text-gray-100">' . ($proveedor->nombre ?? 'Proveedor') . '</p>';
-                                                        $html .= '<p class="text-xs text-gray-500 dark:text-gray-400">Código: ' . ($proveedor->codigo ?? 'N/A') . '</p>';
+                                                        $html .= '<p class="font-medium text-gray-900 dark:text-gray-100">'.($proveedor->nombre ?? 'Proveedor').'</p>';
+                                                        $html .= '<p class="text-xs text-gray-500 dark:text-gray-400">Código: '.($proveedor->codigo ?? 'N/A').'</p>';
                                                         if ($item->codigo_proveedor) {
-                                                            $html .= '<p class="text-xs text-gray-500 dark:text-gray-400">Código Prov.: ' . $item->codigo_proveedor . '</p>';
+                                                            $html .= '<p class="text-xs text-gray-500 dark:text-gray-400">Código Prov.: '.$item->codigo_proveedor.'</p>';
                                                         }
                                                         if ($item->costo_compra > 0) {
-                                                            $html .= '<p class="text-xs text-green-600 dark:text-green-400 font-medium">Costo: $ ' . number_format($item->costo_compra, 2) . '</p>';
+                                                            $html .= '<p class="text-xs text-green-600 dark:text-green-400 font-medium">Costo: $ '.number_format($item->costo_compra, 2).'</p>';
                                                         }
                                                         $html .= '</div>';
                                                         if ($esPrincipal) {
@@ -536,10 +545,10 @@ class ArticuloResource extends Resource
                                                     ->placeholder('0.00')
                                                     ->default(0)
                                                     ->step(1.00)
-                                                    ->dehydrateStateUsing(fn($state) => $state ?? 0)
+                                                    ->dehydrateStateUsing(fn ($state) => $state ?? 0)
                                                     ->helperText('Porcentaje para vendedores')
                                                     ->prefixIcon('heroicon-o-percent-badge')
-                                                    ->visible(fn(Forms\Get $get) => $get('vendible'))
+                                                    ->visible(fn (Forms\Get $get) => $get('vendible'))
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -581,7 +590,7 @@ class ArticuloResource extends Resource
                     ->square()
                     ->size(40)
                     ->defaultImageUrl(function ($record) {
-                        return 'https://ui-avatars.com/api/?name=' . urlencode($record->nombre_comercial ?? $record->codigo) . '&color=7F9CF5&background=EBF4FF';
+                        return 'https://ui-avatars.com/api/?name='.urlencode($record->nombre_comercial ?? $record->codigo).'&color=7F9CF5&background=EBF4FF';
                     })
                     ->toggleable(),
 
@@ -639,7 +648,7 @@ class ArticuloResource extends Resource
                     ->label('Descripción')
                     ->limit(25)
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->tooltip(fn($record) => $record->descripcion ?? ''),
+                    ->tooltip(fn ($record) => $record->descripcion ?? ''),
 
                 IconColumn::make('inventariable')
                     ->label('Stock')
@@ -670,7 +679,7 @@ class ArticuloResource extends Resource
 
                 TextColumn::make('metodo_costo')
                     ->label('Costeo')
-                    ->formatStateUsing(fn($state) => match ($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'promedio' => 'CPP',
                         'fifo' => 'PEPS / FIFO',
                         'lifo' => 'UEPS / LIFO',
@@ -679,7 +688,7 @@ class ArticuloResource extends Resource
                         default => $state ?? 'Específica',
                     })
                     ->badge()
-                    ->color(fn($state) => match ($state) {
+                    ->color(fn ($state) => match ($state) {
                         'especifica' => 'success',
                         'estandar' => 'warning',
                         default => 'info',
@@ -689,10 +698,10 @@ class ArticuloResource extends Resource
 
                 TextColumn::make('stock_total')
                     ->label('Stock')
-                    ->getStateUsing(fn($record) => $record->stock_total ?? 0)
+                    ->getStateUsing(fn ($record) => $record->stock_total ?? 0)
                     ->numeric(0)
                     ->sortable()
-                    ->color(fn($state) => $state <= 0 ? 'danger' : ($state <= 10 ? 'warning' : 'success'))
+                    ->color(fn ($state) => $state <= 0 ? 'danger' : ($state <= 10 ? 'warning' : 'success'))
                     ->badge()
                     ->tooltip(function ($record) {
                         $stockPorAlmacen = $record->stock_por_almacen ?? [];
@@ -703,10 +712,10 @@ class ArticuloResource extends Resource
                         foreach ($stockPorAlmacen as $almacen => $cantidad) {
                             $tooltip .= "• {$almacen}: {$cantidad} unidades\n";
                         }
+
                         return $tooltip;
                     })
                     ->toggleable(),
-
 
                 IconColumn::make('activo')
                     ->label('Estado')
@@ -732,19 +741,19 @@ class ArticuloResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('grupo_articulo_id')
                     ->label('Grupo')
-                    ->options(fn() => self::getSafeOptions('alm_grupos_articulos', 'nombre'))
+                    ->options(fn () => self::getSafeOptions('alm_grupos_articulos', 'nombre'))
                     ->searchable()
                     ->preload(),
 
                 Tables\Filters\SelectFilter::make('fabricante_id')
                     ->label('Fabricante')
-                    ->options(fn() => self::getFabricanteOptions())
+                    ->options(fn () => self::getFabricanteOptions())
                     ->searchable()
                     ->preload(),
 
                 Tables\Filters\SelectFilter::make('empresa_id')
                     ->label('Empresa')
-                    ->options(fn() => self::getSafeOptions('conf_empresas', 'nombre_comercial', 'id', [], ['deleted_at' => null]))
+                    ->options(fn () => self::getSafeOptions('conf_empresas', 'nombre_comercial', 'id', [], ['deleted_at' => null]))
                     ->searchable()
                     ->preload(),
 
@@ -792,13 +801,13 @@ class ArticuloResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-check-circle')
-                        ->action(fn($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado'),
                 ]),
             ])
             ->defaultSort('codigo', 'asc')
-            //->searchPlaceholder('Buscar artículo por código, nombre, modelo...')
+            // ->searchPlaceholder('Buscar artículo por código, nombre, modelo...')
             ->emptyStateHeading('No hay artículos registrados')
             ->emptyStateDescription('Crea tu primer artículo para comenzar a gestionar tu inventario.')
             ->emptyStateIcon('heroicon-o-cube')
@@ -852,8 +861,6 @@ class ArticuloResource extends Resource
             $relations[] = CapasCostosRelationManager::class;
         }
 
-        
-
         return $relations;
     }
 
@@ -870,7 +877,7 @@ class ArticuloResource extends Resource
     {
         try {
             $newRecord = $record->replicate();
-            $newRecord->codigo = $record->codigo . '-COPY-' . time();
+            $newRecord->codigo = $record->codigo.'-COPY-'.time();
             $newRecord->comision = $record->comision ?? 0;
             $newRecord->created_at = now();
             $newRecord->updated_at = now();
@@ -878,13 +885,13 @@ class ArticuloResource extends Resource
 
             \Filament\Notifications\Notification::make()
                 ->title('Artículo duplicado exitosamente')
-                ->body('El artículo "' . ($newRecord->nombre_comercial ?? $newRecord->descripcion ?? $newRecord->codigo) . '" ha sido creado.')
+                ->body('El artículo "'.($newRecord->nombre_comercial ?? $newRecord->descripcion ?? $newRecord->codigo).'" ha sido creado.')
                 ->success()
                 ->send();
         } catch (\Exception $e) {
             \Filament\Notifications\Notification::make()
                 ->title('Error al duplicar')
-                ->body('Ocurrió un error: ' . $e->getMessage())
+                ->body('Ocurrió un error: '.$e->getMessage())
                 ->danger()
                 ->send();
         }

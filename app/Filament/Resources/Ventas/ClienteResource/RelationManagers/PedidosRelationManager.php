@@ -4,30 +4,25 @@ namespace App\Filament\Resources\Ventas\ClienteResource\RelationManagers;
 
 use App\Models\Inventario\Articulo;
 use App\Models\Ventas\Pedido;
-use App\Models\Ventas\Cliente;
-use App\Models\User;
-use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\HtmlString;
 
 class PedidosRelationManager extends RelationManager
@@ -109,12 +104,13 @@ class PedidosRelationManager extends RelationManager
                     $impuesto += floatval($detalle->impuesto ?? 0);
                     $total += floatval($detalle->total ?? 0);
                 }
+
                 return compact('subtotal', 'descuento', 'impuesto', 'total');
             }
         }
 
         $detalles = $get('detalles') ?? [];
-        if (is_array($detalles) && !empty($detalles)) {
+        if (is_array($detalles) && ! empty($detalles)) {
             foreach ($detalles as $detalle) {
                 if (is_array($detalle)) {
                     $subtotal += floatval($detalle['subtotal'] ?? 0);
@@ -135,11 +131,14 @@ class PedidosRelationManager extends RelationManager
 
     private static function formatearNumero($valor, $decimales = 2): string
     {
-        if ($valor === null || $valor === '') return '0';
+        if ($valor === null || $valor === '') {
+            return '0';
+        }
         $valor = floatval($valor);
         if ($valor == 0 || $valor == intval($valor)) {
             return (string) intval($valor);
         }
+
         return number_format($valor, $decimales, '.', '');
     }
 
@@ -156,15 +155,17 @@ class PedidosRelationManager extends RelationManager
     private static function formatearMonto($monto, $moneda): string
     {
         $simbolo = self::getSimboloMoneda($moneda);
-        return $simbolo . ' ' . number_format($monto ?? 0, 2);
+
+        return $simbolo.' '.number_format($monto ?? 0, 2);
     }
 
     private static function formatearMontoHtml($monto, $moneda, $clase = ''): HtmlString
     {
         $simbolo = self::getSimboloMoneda($moneda);
+
         return new HtmlString(
-            '<span class="' . $clase . '">' .
-                $simbolo . ' ' . number_format($monto ?? 0, 2) .
+            '<span class="'.$clase.'">'.
+                $simbolo.' '.number_format($monto ?? 0, 2).
                 '</span>'
         );
     }
@@ -193,7 +194,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('PED-000001')
                                                     ->helperText('Código único del pedido')
-                                                    ->default(fn() => Pedido::generarCodigo())
+                                                    ->default(fn () => Pedido::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -242,6 +243,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->label('Cliente')
                                                     ->content(function ($livewire) {
                                                         $cliente = $livewire->getOwnerRecord();
+
                                                         return $cliente ? $cliente->nombre : 'N/A';
                                                     })
                                                     ->columnSpan(2),
@@ -298,8 +300,8 @@ class PedidosRelationManager extends RelationManager
                                                     ->step(1.00)
                                                     ->helperText('Tasa de cambio aplicada')
                                                     ->prefixIcon('heroicon-o-arrow-path')
-                                                    ->formatStateUsing(fn($state) => self::formatearNumero($state, 6))
-                                                    ->visible(fn($get) => $get('moneda') !== 'BOB')
+                                                    ->formatStateUsing(fn ($state) => self::formatearNumero($state, 6))
+                                                    ->visible(fn ($get) => $get('moneda') !== 'BOB')
                                                     ->columnSpan(1),
 
                                                 TextInput::make('condicion_pago')
@@ -351,7 +353,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->minValue(0)
                                                     ->step(1.00)
                                                     ->default(0)
-                                                    ->prefix(fn($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
+                                                    ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                                     ->helperText('Costo del envío')
                                                     ->prefixIcon('heroicon-o-calculator')
                                                     ->live()
@@ -366,7 +368,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->disabled()
                                                     ->placeholder('0')
                                                     ->prefixIcon('heroicon-o-shopping-bag')
-                                                    ->formatStateUsing(fn($record) => $record?->detalles()->count() ?? 0)
+                                                    ->formatStateUsing(fn ($record) => $record?->detalles()->count() ?? 0)
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -381,6 +383,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['subtotal'], $moneda);
                                                     }),
 
@@ -389,6 +392,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['descuento'], $moneda);
                                                     }),
 
@@ -397,6 +401,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['impuesto'], $moneda);
                                                     }),
 
@@ -405,6 +410,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $costoEnvio = floatval($get('costo_envio') ?? $record?->costo_envio ?? 0);
+
                                                         return self::formatearMonto($costoEnvio, $moneda);
                                                     }),
 
@@ -415,6 +421,7 @@ class PedidosRelationManager extends RelationManager
                                                         $totales = self::calcularTotales($get, $record);
                                                         $costoEnvio = floatval($get('costo_envio') ?? $record?->costo_envio ?? 0);
                                                         $total = $totales['total'] + $costoEnvio;
+
                                                         return self::formatearMontoHtml(
                                                             $total,
                                                             $moneda,
@@ -430,7 +437,10 @@ class PedidosRelationManager extends RelationManager
                         Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
-                                if (!$record) return 0;
+                                if (! $record) {
+                                    return 0;
+                                }
+
                                 return $record->detalles()->count();
                             })
                             ->schema([
@@ -448,12 +458,12 @@ class PedidosRelationManager extends RelationManager
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
                                                             ->options(
-                                                                fn() => Articulo::where('activo', true)
+                                                                fn () => Articulo::where('activo', true)
                                                                     ->where('vendible', true)
                                                                     ->orderBy('codigo')
                                                                     ->get()
-                                                                    ->mapWithKeys(fn($item) => [
-                                                                        $item->id => $item->codigo . ' - ' . ($item->descripcion ?? $item->nombre_comercial ?? 'Sin descripción')
+                                                                    ->mapWithKeys(fn ($item) => [
+                                                                        $item->id => $item->codigo.' - '.($item->descripcion ?? $item->nombre_comercial ?? 'Sin descripción'),
                                                                     ])
                                                                     ->toArray()
                                                             )
@@ -486,13 +496,20 @@ class PedidosRelationManager extends RelationManager
                                                             ->label('Lista Precios')
                                                             ->options(function ($get) {
                                                                 $articuloId = $get('articulo_id');
-                                                                if (!$articuloId) return [];
+                                                                if (! $articuloId) {
+                                                                    return [];
+                                                                }
                                                                 $articulo = Articulo::find($articuloId);
-                                                                if (!$articulo) return [];
+                                                                if (! $articulo) {
+                                                                    return [];
+                                                                }
                                                                 $precios = $articulo->getPreciosConListas();
-                                                                if ($precios->isEmpty()) return [];
-                                                                return $precios->mapWithKeys(fn($item, $key) => [
-                                                                    $key => $item['nombre'] . ' - ' . number_format($item['precio'], 2) . ' ' . $item['moneda']
+                                                                if ($precios->isEmpty()) {
+                                                                    return [];
+                                                                }
+
+                                                                return $precios->mapWithKeys(fn ($item, $key) => [
+                                                                    $key => $item['nombre'].' - '.number_format($item['precio'], 2).' '.$item['moneda'],
                                                                 ])->toArray();
                                                             })
                                                             ->searchable()
@@ -521,7 +538,7 @@ class PedidosRelationManager extends RelationManager
                                                             ->maxValue(999999)
                                                             ->step(1.00)
                                                             ->default(1)
-                                                            ->formatStateUsing(fn($state) => (int) $state)
+                                                            ->formatStateUsing(fn ($state) => (int) $state)
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $state = intval($state);
@@ -538,9 +555,9 @@ class PedidosRelationManager extends RelationManager
                                                             ->maxValue(999999.99)
                                                             ->step(1.00)
                                                             ->default(0)
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
-                                                            ->formatStateUsing(fn($state) => self::formatearNumero($state, 2))
+                                                            ->formatStateUsing(fn ($state) => self::formatearNumero($state, 2))
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 self::recalcularLinea($set, $get);
@@ -551,6 +568,7 @@ class PedidosRelationManager extends RelationManager
                                                             ->label('Subtotal')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
+
                                                                 return self::formatearMonto($get('subtotal') ?? 0, $moneda);
                                                             })
                                                             ->extraAttributes(['class' => 'font-bold'])
@@ -569,7 +587,7 @@ class PedidosRelationManager extends RelationManager
                                                             ->suffix('%')
                                                             ->prefixIcon('heroicon-o-percent-badge')
                                                             ->live()
-                                                            ->formatStateUsing(fn($state) => $state !== null ? (int) $state : 0)
+                                                            ->formatStateUsing(fn ($state) => $state !== null ? (int) $state : 0)
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -589,10 +607,10 @@ class PedidosRelationManager extends RelationManager
                                                             ->minValue(0)
                                                             ->step(1.00)
                                                             ->default(0)
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')
                                                             ->live()
-                                                            ->formatStateUsing(fn($state) => number_format($state ?? 0, 2, '.', ''))
+                                                            ->formatStateUsing(fn ($state) => number_format($state ?? 0, 2, '.', ''))
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -620,6 +638,7 @@ class PedidosRelationManager extends RelationManager
                                                             ->label('Impuesto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
+
                                                                 return self::formatearMonto($get('impuesto') ?? 0, $moneda);
                                                             })
                                                             ->columnSpan(4),
@@ -629,9 +648,10 @@ class PedidosRelationManager extends RelationManager
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
                                                                 $total = floatval($get('total') ?? 0);
+
                                                                 return new HtmlString(
-                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">' .
-                                                                        self::formatearMonto($total, $moneda) .
+                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">'.
+                                                                        self::formatearMonto($total, $moneda).
                                                                         '</span>'
                                                                 );
                                                             })
@@ -663,7 +683,7 @@ class PedidosRelationManager extends RelationManager
                                                 $descuento = floatval($data['descuento'] ?? 0);
                                                 $subtotal = ($precioUnitario * $cantidad) - $descuento;
 
-                                                $aplicarIVA = isset($data['aplicar_iva']) ? (bool)$data['aplicar_iva'] : false;
+                                                $aplicarIVA = isset($data['aplicar_iva']) ? (bool) $data['aplicar_iva'] : false;
                                                 if ($aplicarIVA) {
                                                     $impuesto = $subtotal * (13 / 100);
                                                     $total = $subtotal + $impuesto;
@@ -694,7 +714,8 @@ class PedidosRelationManager extends RelationManager
                                                 $data['impuesto'] = floatval($data['impuesto'] ?? 0);
                                                 $data['total'] = floatval($data['total'] ?? 0);
                                                 $data['precio_original'] = floatval($data['precio_original'] ?? 0);
-                                                $data['aplicar_iva'] = isset($data['aplicar_iva']) ? (bool)$data['aplicar_iva'] : false;
+                                                $data['aplicar_iva'] = isset($data['aplicar_iva']) ? (bool) $data['aplicar_iva'] : false;
+
                                                 return $data;
                                             }),
                                     ]),
@@ -732,17 +753,17 @@ class PedidosRelationManager extends RelationManager
                                             ->schema([
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
-                                                    ->content(fn($record) => $record?->creador?->name ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->creador?->name ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('created_at')
                                                     ->label('Fecha creación')
-                                                    ->content(fn($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('aprobado_por')
                                                     ->label('Aprobado por')
-                                                    ->content(fn($record) => $record?->aprobador?->name ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->aprobador?->name ?? 'N/A')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -780,12 +801,12 @@ class PedidosRelationManager extends RelationManager
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable()
-                    ->color(fn($state) => $state && $state < now() ? 'danger' : 'success')
+                    ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'reservado' => '📌 Reservado',
                         'pendiente' => '⏳ Pendiente',
                         'parcial' => '📦 Parcial',
@@ -806,7 +827,7 @@ class PedidosRelationManager extends RelationManager
 
                 BadgeColumn::make('prioridad')
                     ->label('Prioridad')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'baja' => '🟢 Baja',
                         'normal' => '🟡 Normal',
                         'alta' => '🟠 Alta',
@@ -823,7 +844,7 @@ class PedidosRelationManager extends RelationManager
 
                 TextColumn::make('total')
                     ->label('Total')
-                    ->money(fn($record) => $record->moneda ?? 'BOB')
+                    ->money(fn ($record) => $record->moneda ?? 'BOB')
                     ->sortable()
                     ->toggleable(),
 
@@ -881,7 +902,7 @@ class PedidosRelationManager extends RelationManager
 
                         Notification::make()
                             ->title('Pedido creado exitosamente')
-                            ->body('El pedido ' . $pedido->codigo . ' ha sido creado.')
+                            ->body('El pedido '.$pedido->codigo.' ha sido creado.')
                             ->success()
                             ->send();
 
@@ -915,7 +936,7 @@ class PedidosRelationManager extends RelationManager
                             $record->update(['estado' => $data['estado']]);
                             Notification::make()
                                 ->title('Estado actualizado')
-                                ->body('El pedido ahora está en estado: ' . ucfirst($data['estado']))
+                                ->body('El pedido ahora está en estado: '.ucfirst($data['estado']))
                                 ->success()
                                 ->send();
                         }),

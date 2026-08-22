@@ -10,6 +10,11 @@ class ListProveedors extends ListRecords
 {
     protected static string $resource = ProveedorResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Empiece aquí: registre proveedores activos antes de crear órdenes de compra.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [

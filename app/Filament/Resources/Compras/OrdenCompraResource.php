@@ -3,31 +3,28 @@
 namespace App\Filament\Resources\Compras;
 
 use App\Filament\Resources\Compras\OrdenCompraResource\Pages;
+use App\Models\Compras\CotizacionProveedor;
 use App\Models\Compras\OrdenCompra;
 use App\Models\Compras\Proveedor;
 use App\Models\Compras\SolicitudCompra;
-use App\Models\Compras\CotizacionProveedor;
 use App\Models\Inventario\Articulo;
-use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
 class OrdenCompraResource extends Resource
@@ -58,14 +55,14 @@ class OrdenCompraResource extends Resource
 
     private static function formatearMonto($monto, $moneda = 'BOB'): string
     {
-        return self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2);
+        return self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2);
     }
 
     private static function formatearMontoHtml($monto, $moneda = 'BOB', $clase = ''): HtmlString
     {
         return new HtmlString(
-            '<span class="' . $clase . '">' .
-                self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2) .
+            '<span class="'.$clase.'">'.
+                self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2).
                 '</span>'
         );
     }
@@ -93,7 +90,7 @@ class OrdenCompraResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('OC-000001')
                                                     ->helperText('Código único de la orden')
-                                                    ->default(fn() => OrdenCompra::generarCodigo())
+                                                    ->default(fn () => OrdenCompra::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -121,13 +118,13 @@ class OrdenCompraResource extends Resource
                                                     ->disabled()
                                                     ->dehydrated()
                                                     ->options([
-                                                        'borrador' => '📝 Borrador',
-                                                        'enviada' => '📤 Enviada',
-                                                        'confirmada' => '✅ Confirmada',
-                                                        'parcial' => '📦 Parcial',
-                                                        'recibida' => '📥 Recibida',
-                                                        'completada' => '🎯 Completada',
-                                                        'cancelada' => '❌ Cancelada',
+                                                        'borrador' => 'Borrador',
+                                                        'enviada' => 'Enviada',
+                                                        'confirmada' => 'Confirmada',
+                                                        'parcial' => 'Parcial',
+                                                        'recibida' => 'Recibida',
+                                                        'completada' => 'Completada',
+                                                        'cancelada' => 'Cancelada',
                                                     ])
                                                     ->default('borrador')
                                                     ->required()
@@ -142,11 +139,11 @@ class OrdenCompraResource extends Resource
                                                 Select::make('proveedor_id')
                                                     ->label('Proveedor')
                                                     ->options(
-                                                        fn() => Proveedor::where('activo', true)
+                                                        fn () => Proveedor::where('activo', true)
                                                             ->orderBy('nombre')
                                                             ->get()
-                                                            ->mapWithKeys(fn($item) => [
-                                                                $item->id => $item->codigo . ' - ' . $item->nombre
+                                                            ->mapWithKeys(fn ($item) => [
+                                                                $item->id => $item->codigo.' - '.$item->nombre,
                                                             ])
                                                             ->toArray()
                                                     )
@@ -162,11 +159,11 @@ class OrdenCompraResource extends Resource
                                                 Select::make('solicitud_id')
                                                     ->label('Solicitud Origen')
                                                     ->options(
-                                                        fn() => SolicitudCompra::where('estado', 'aprobada')
+                                                        fn () => SolicitudCompra::where('estado', 'aprobada')
                                                             ->orderBy('codigo')
                                                             ->get()
-                                                            ->mapWithKeys(fn($item) => [
-                                                                $item->id => $item->codigo . ' - ' . ($item->solicitante?->name ?? 'Sin solicitante')
+                                                            ->mapWithKeys(fn ($item) => [
+                                                                $item->id => $item->codigo.' - '.($item->solicitante?->name ?? 'Sin solicitante'),
                                                             ])
                                                             ->toArray()
                                                     )
@@ -181,12 +178,12 @@ class OrdenCompraResource extends Resource
                                                 Select::make('cotizacion_proveedor_id')
                                                     ->label('Cotización')
                                                     ->options(
-                                                        fn($get) => CotizacionProveedor::where('proveedor_id', $get('proveedor_id'))
+                                                        fn ($get) => CotizacionProveedor::where('proveedor_id', $get('proveedor_id'))
                                                             ->where('estado', 'aceptada')
                                                             ->orderBy('codigo')
                                                             ->get()
-                                                            ->mapWithKeys(fn($item) => [
-                                                                $item->id => $item->codigo . ' - ' . self::formatearMonto($item->total, $item->moneda ?? 'BOB')
+                                                            ->mapWithKeys(fn ($item) => [
+                                                                $item->id => $item->codigo.' - '.self::formatearMonto($item->total, $item->moneda ?? 'BOB'),
                                                             ])
                                                             ->toArray()
                                                     )
@@ -195,7 +192,7 @@ class OrdenCompraResource extends Resource
                                                     ->placeholder('Seleccione una cotización')
                                                     ->helperText('Cotización de proveedor asociada')
                                                     ->prefixIcon('heroicon-o-document-text')
-                                                    ->visible(fn($get) => $get('proveedor_id'))
+                                                    ->visible(fn ($get) => $get('proveedor_id'))
                                                     ->columnSpan(1),
                                             ]),
 
@@ -243,6 +240,7 @@ class OrdenCompraResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['subtotal'], $moneda);
                                                     }),
 
@@ -251,6 +249,7 @@ class OrdenCompraResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['descuento'], $moneda);
                                                     }),
 
@@ -259,6 +258,7 @@ class OrdenCompraResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['impuesto'], $moneda);
                                                     }),
 
@@ -267,6 +267,7 @@ class OrdenCompraResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMontoHtml(
                                                             $totales['total'],
                                                             $moneda,
@@ -308,7 +309,10 @@ class OrdenCompraResource extends Resource
                         Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
-                                if (!$record) return 0;
+                                if (! $record) {
+                                    return 0;
+                                }
+
                                 return $record->detalles()->count();
                             })
                             ->schema([
@@ -326,11 +330,11 @@ class OrdenCompraResource extends Resource
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
                                                             ->options(
-                                                                fn() => Articulo::where('activo', true)
+                                                                fn () => Articulo::where('activo', true)
                                                                     ->orderBy('codigo')
                                                                     ->get()
-                                                                    ->mapWithKeys(fn($item) => [
-                                                                        $item->id => $item->codigo . ' - ' . ($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción')
+                                                                    ->mapWithKeys(fn ($item) => [
+                                                                        $item->id => $item->codigo.' - '.($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción'),
                                                                     ])
                                                                     ->toArray()
                                                             )
@@ -375,7 +379,7 @@ class OrdenCompraResource extends Resource
                                                             ->step(1.00)
                                                             ->default(0)
                                                             ->placeholder('0.00')
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
@@ -390,7 +394,7 @@ class OrdenCompraResource extends Resource
                                                             ->step(1.00)
                                                             ->default(0)
                                                             ->placeholder('0.00')
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
@@ -406,6 +410,7 @@ class OrdenCompraResource extends Resource
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
                                                                 $descuento = floatval($get('descuento') ?? 0);
                                                                 $subtotal = ($cantidad * $precio) - $descuento;
+
                                                                 return self::formatearMonto($subtotal, $moneda);
                                                             })
                                                             ->extraAttributes(['class' => 'font-bold'])
@@ -422,7 +427,7 @@ class OrdenCompraResource extends Resource
                                             ->defaultItems(1)
                                             ->collapsible()
                                             ->cloneable()
-                                            ->addActionLabel('➕ Agregar Producto')
+                                            ->addActionLabel('Agregar producto')
                                             ->reorderable()
                                             ->columnSpanFull()
                                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
@@ -479,6 +484,7 @@ class OrdenCompraResource extends Resource
                 $impuesto += floatval($detalle->impuesto ?? 0);
                 $total += floatval($detalle->total ?? 0);
             }
+
             return compact('subtotal', 'descuento', 'impuesto', 'total');
         }
 
@@ -540,18 +546,18 @@ class OrdenCompraResource extends Resource
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable()
-                    ->color(fn($state) => $state && $state < now() ? 'danger' : 'success'),
+                    ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success'),
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'borrador' => '📝 Borrador',
-                        'enviada' => '📤 Enviada',
-                        'confirmada' => '✅ Confirmada',
-                        'parcial' => '📦 Parcial',
-                        'recibida' => '📥 Recibida',
-                        'completada' => '🎯 Completada',
-                        'cancelada' => '❌ Cancelada',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'borrador' => 'Borrador',
+                        'enviada' => 'Enviada',
+                        'confirmada' => 'Confirmada',
+                        'parcial' => 'Parcial',
+                        'recibida' => 'Recibida',
+                        'completada' => 'Completada',
+                        'cancelada' => 'Cancelada',
                         default => $state,
                     })
                     ->colors([
@@ -569,6 +575,7 @@ class OrdenCompraResource extends Resource
                     ->label('Total')
                     ->formatStateUsing(function ($state, $record) {
                         $moneda = $record->moneda ?? 'BOB';
+
                         return self::formatearMonto($state, $moneda);
                     })
                     ->sortable()
@@ -576,7 +583,7 @@ class OrdenCompraResource extends Resource
 
                 TextColumn::make('total_items')
                     ->label('Items')
-                    ->getStateUsing(fn($record) => $record->detalles()->count())
+                    ->getStateUsing(fn ($record) => $record->detalles()->count())
                     ->badge()
                     ->color('info')
                     ->toggleable()
@@ -627,11 +634,11 @@ class OrdenCompraResource extends Resource
                             $record->enviar();
                             Notification::make()
                                 ->title('Orden enviada')
-                                ->body('La orden ' . $record->codigo . ' ha sido enviada al proveedor.')
+                                ->body('La orden '.$record->codigo.' ha sido enviada al proveedor.')
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'borrador'),
+                        ->visible(fn ($record) => $record->estado === 'borrador'),
 
                     Tables\Actions\Action::make('confirmar')
                         ->label('Confirmar')
@@ -641,11 +648,11 @@ class OrdenCompraResource extends Resource
                             $record->confirmar();
                             Notification::make()
                                 ->title('Orden confirmada')
-                                ->body('La orden ' . $record->codigo . ' ha sido confirmada.')
+                                ->body('La orden '.$record->codigo.' ha sido confirmada.')
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'enviada'),
+                        ->visible(fn ($record) => $record->estado === 'enviada'),
 
                     Tables\Actions\Action::make('cancelar')
                         ->label('Cancelar')
@@ -662,19 +669,19 @@ class OrdenCompraResource extends Resource
                             $record->cancelar($data['motivo'] ?? null);
                             Notification::make()
                                 ->title('Orden cancelada')
-                                ->body('La orden ' . $record->codigo . ' ha sido cancelada.')
+                                ->body('La orden '.$record->codigo.' ha sido cancelada.')
                                 ->warning()
                                 ->send();
                         })
-                        ->visible(fn($record) => !in_array($record->estado, ['recibida', 'completada', 'cancelada'])),
+                        ->visible(fn ($record) => ! in_array($record->estado, ['recibida', 'completada', 'cancelada'])),
 
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn($record) => in_array($record->estado, ['borrador', 'cancelada'])),
+                        ->visible(fn ($record) => in_array($record->estado, ['borrador', 'cancelada'])),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            
+
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar orden de compra...')
             ->emptyStateHeading('No hay órdenes de compra')

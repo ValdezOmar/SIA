@@ -1,22 +1,18 @@
 <?php
 
-namespace App\Filament\Resources\Inventario\AlmacenResource\RelationManagers;
+namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
-use App\Models\Inventario\Kardex;
-use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
-use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class KardexPorAlmacenRelationManager extends RelationManager
@@ -40,11 +36,11 @@ class KardexPorAlmacenRelationManager extends RelationManager
                                 Select::make('articulo_id')
                                     ->label('Artículo')
                                     ->options(
-                                        fn() => \App\Models\Inventario\Articulo::where('activo', true)
+                                        fn () => \App\Models\Inventario\Articulo::where('activo', true)
                                             ->orderBy('codigo')
                                             ->get()
-                                            ->mapWithKeys(fn($item) => [
-                                                $item->id => $item->codigo . ' - ' . ($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción')
+                                            ->mapWithKeys(fn ($item) => [
+                                                $item->id => $item->codigo.' - '.($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción'),
                                             ])
                                             ->toArray()
                                     )
@@ -98,7 +94,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
 
                 BadgeColumn::make('tipo_movimiento')
                     ->label('Tipo')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'compra' => 'Compra',
                         'venta' => 'Venta',
                         'transferencia_entrada' => 'Transf. Ent.',
@@ -118,7 +114,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
 
                 BadgeColumn::make('direccion')
                     ->label('Dir.')
-                    ->formatStateUsing(fn($state) => $state === 'entrada' ? 'Entrada' : 'Salida')
+                    ->formatStateUsing(fn ($state) => $state === 'entrada' ? 'Entrada' : 'Salida')
                     ->colors([
                         'success' => 'entrada',
                         'danger' => 'salida',
@@ -129,7 +125,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
                     ->label('Cantidad')
                     ->numeric(2)
                     ->sortable()
-                    ->color(fn($record) => $record->direccion === 'entrada' ? 'success' : 'danger')
+                    ->color(fn ($record) => $record->direccion === 'entrada' ? 'success' : 'danger')
                     ->weight('bold'),
 
                 TextColumn::make('costo_unitario')
@@ -162,7 +158,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'pendiente' => 'Pendiente',
                         'confirmado' => 'Confirmado',
                         'cancelado' => 'Cancelado',
@@ -202,8 +198,8 @@ class KardexPorAlmacenRelationManager extends RelationManager
                     ])
                     ->query(function ($query, array $data) {
                         return $query
-                            ->when($data['fecha_desde'], fn($q, $fecha) => $q->whereDate('fecha_movimiento', '>=', $fecha))
-                            ->when($data['fecha_hasta'], fn($q, $fecha) => $q->whereDate('fecha_movimiento', '<=', $fecha));
+                            ->when($data['fecha_desde'], fn ($q, $fecha) => $q->whereDate('fecha_movimiento', '>=', $fecha))
+                            ->when($data['fecha_hasta'], fn ($q, $fecha) => $q->whereDate('fecha_movimiento', '<=', $fecha));
                     }),
             ])
             ->actions([

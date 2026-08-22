@@ -3,28 +3,23 @@
 namespace App\Filament\Resources\Compras;
 
 use App\Filament\Resources\Compras\PagoProveedorResource\Pages;
+use App\Models\Compras\FacturaCompra;
 use App\Models\Compras\PagoProveedor;
 use App\Models\Compras\Proveedor;
-use App\Models\Compras\FacturaCompra;
-use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\HtmlString;
 
 class PagoProveedorResource extends Resource
 {
@@ -54,7 +49,7 @@ class PagoProveedorResource extends Resource
 
     private static function formatearMonto($monto, $moneda = 'BOB'): string
     {
-        return self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2);
+        return self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2);
     }
 
     public static function form(Form $form): Form
@@ -75,18 +70,18 @@ class PagoProveedorResource extends Resource
                                     ->unique(ignoreRecord: true)
                                     ->placeholder('PAG-000001')
                                     ->helperText('Código único del pago')
-                                    ->default(fn() => PagoProveedor::generarCodigo())
+                                    ->default(fn () => PagoProveedor::generarCodigo())
                                     ->prefixIcon('heroicon-o-hashtag')
                                     ->columnSpan(1),
 
                                 Select::make('factura_id')
                                     ->label('Factura')
                                     ->options(
-                                        fn() => FacturaCompra::whereIn('estado', ['registrada', 'parcial'])
+                                        fn () => FacturaCompra::whereIn('estado', ['registrada', 'parcial'])
                                             ->orderBy('codigo')
                                             ->get()
-                                            ->mapWithKeys(fn($item) => [
-                                                $item->id => $item->codigo . ' - ' . $item->proveedor->nombre . ' (Saldo: ' . self::formatearMonto($item->saldo, $item->moneda ?? 'BOB') . ')'
+                                            ->mapWithKeys(fn ($item) => [
+                                                $item->id => $item->codigo.' - '.$item->proveedor->nombre.' (Saldo: '.self::formatearMonto($item->saldo, $item->moneda ?? 'BOB').')',
                                             ])
                                             ->toArray()
                                     )
@@ -97,12 +92,19 @@ class PagoProveedorResource extends Resource
                                     ->helperText('Factura a la que se aplica el pago')
                                     ->prefixIcon('heroicon-o-document-text')
                                     ->reactive()
+                                    ->afterStateUpdated(function ($state, callable $set): void {
+                                        $factura = FacturaCompra::find($state);
+
+                                        $set('proveedor_id', $factura?->proveedor_id);
+                                        $set('moneda', $factura?->moneda ?? 'BOB');
+                                        $set('tasa_cambio', $factura?->tasa_cambio ?? 1);
+                                    })
                                     ->columnSpan(2),
 
                                 Select::make('proveedor_id')
                                     ->label('Proveedor')
                                     ->options(
-                                        fn() => Proveedor::where('activo', true)
+                                        fn () => Proveedor::where('activo', true)
                                             ->orderBy('nombre')
                                             ->pluck('nombre', 'id')
                                             ->toArray()
@@ -135,10 +137,11 @@ class PagoProveedorResource extends Resource
                                     ->numeric()
                                     ->required()
                                     ->minValue(0.01)
+                                    ->maxValue(fn ($get): float => (float) (FacturaCompra::find($get('factura_id'))?->saldo ?? PHP_FLOAT_MAX))
                                     ->step(1.00)
                                     ->placeholder('0.00')
-                                    ->prefix(fn($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
-                                    ->helperText('Monto del pago')
+                                    ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
+                                    ->helperText('No puede ser mayor al saldo pendiente de la factura.')
                                     ->columnSpan(1),
 
                                 Select::make('moneda')
@@ -159,12 +162,12 @@ class PagoProveedorResource extends Resource
                                 Select::make('tipo_pago')
                                     ->label('Tipo de Pago')
                                     ->options([
-                                        'efectivo' => '💵 Efectivo',
-                                        'transferencia' => '🏦 Transferencia',
-                                        'cheque' => '📄 Cheque',
-                                        'deposito' => '🏛️ Depósito',
-                                        'nota_credito' => '📝 Nota de Crédito',
-                                        'otros' => '📌 Otros',
+                                        'efectivo' => 'Efectivo',
+                                        'transferencia' => 'Transferencia',
+                                        'cheque' => 'Cheque',
+                                        'deposito' => 'Depósito',
+                                        'nota_credito' => 'Nota de crédito',
+                                        'otros' => 'Otros',
                                     ])
                                     ->required()
                                     ->searchable()
@@ -189,7 +192,7 @@ class PagoProveedorResource extends Resource
                                     ->placeholder('Nombre del banco')
                                     ->helperText('Banco utilizado')
                                     ->prefixIcon('heroicon-o-building-office')
-                                    ->visible(fn($get) => in_array($get('tipo_pago'), ['transferencia', 'cheque', 'deposito']))
+                                    ->visible(fn ($get) => in_array($get('tipo_pago'), ['transferencia', 'cheque', 'deposito']))
                                     ->columnSpan(1),
 
                                 TextInput::make('numero_cheque')
@@ -198,7 +201,7 @@ class PagoProveedorResource extends Resource
                                     ->placeholder('CHQ-001')
                                     ->helperText('Número del cheque')
                                     ->prefixIcon('heroicon-o-document-text')
-                                    ->visible(fn($get) => $get('tipo_pago') === 'cheque')
+                                    ->visible(fn ($get) => $get('tipo_pago') === 'cheque')
                                     ->columnSpan(1),
                             ]),
 
@@ -208,7 +211,7 @@ class PagoProveedorResource extends Resource
                             ->native(false)
                             ->helperText('Fecha del cheque')
                             ->prefixIcon('heroicon-o-calendar')
-                            ->visible(fn($get) => $get('tipo_pago') === 'cheque')
+                            ->visible(fn ($get) => $get('tipo_pago') === 'cheque')
                             ->columnSpan(1),
 
                         Select::make('estado')
@@ -216,10 +219,10 @@ class PagoProveedorResource extends Resource
                             ->disabled()
                             ->dehydrated()
                             ->options([
-                                'pendiente' => '⏳ Pendiente',
-                                'confirmado' => '✅ Confirmado',
-                                'rechazado' => '❌ Rechazado',
-                                'anulado' => '🚫 Anulado',
+                                'pendiente' => 'Pendiente',
+                                'confirmado' => 'Confirmado',
+                                'rechazado' => 'Rechazado',
+                                'anulado' => 'Anulado',
                             ])
                             ->default('confirmado')
                             ->required()
@@ -262,17 +265,17 @@ class PagoProveedorResource extends Resource
                     ->label('Proveedor')
                     ->searchable()
                     ->sortable()
-                    ->toggleable(),                
+                    ->toggleable(),
 
                 BadgeColumn::make('tipo_pago')
                     ->label('Tipo')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'efectivo' => '💵 Efectivo',
-                        'transferencia' => '🏦 Transferencia',
-                        'cheque' => '📄 Cheque',
-                        'deposito' => '🏛️ Depósito',
-                        'nota_credito' => '📝 Nota Crédito',
-                        'otros' => '📌 Otros',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'efectivo' => 'Efectivo',
+                        'transferencia' => 'Transferencia',
+                        'cheque' => 'Cheque',
+                        'deposito' => 'Depósito',
+                        'nota_credito' => 'Nota de crédito',
+                        'otros' => 'Otros',
                         default => $state,
                     })
                     ->colors([
@@ -287,7 +290,7 @@ class PagoProveedorResource extends Resource
 
                 TextColumn::make('monto')
                     ->label('Monto')
-                    ->formatStateUsing(fn($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
+                    ->formatStateUsing(fn ($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
                     ->sortable()
                     ->toggleable()
                     ->weight('bold')
@@ -295,11 +298,11 @@ class PagoProveedorResource extends Resource
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'pendiente' => '⏳ Pendiente',
-                        'confirmado' => '✅ Confirmado',
-                        'rechazado' => '❌ Rechazado',
-                        'anulado' => '🚫 Anulado',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'pendiente' => 'Pendiente',
+                        'confirmado' => 'Confirmado',
+                        'rechazado' => 'Rechazado',
+                        'anulado' => 'Anulado',
                         default => $state,
                     })
                     ->colors([
@@ -371,7 +374,7 @@ class PagoProveedorResource extends Resource
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'pendiente'),
+                        ->visible(fn ($record) => $record->estado === 'pendiente'),
 
                     Tables\Actions\Action::make('rechazar')
                         ->label('Rechazar')
@@ -385,10 +388,10 @@ class PagoProveedorResource extends Resource
                                 ->warning()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'pendiente'),
+                        ->visible(fn ($record) => $record->estado === 'pendiente'),
 
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn($record) => in_array($record->estado, ['pendiente', 'rechazado'])),
+                        ->visible(fn ($record) => in_array($record->estado, ['pendiente', 'rechazado'])),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

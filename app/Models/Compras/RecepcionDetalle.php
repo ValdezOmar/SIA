@@ -32,7 +32,7 @@ class RecepcionDetalle extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            if (!$model->linea) {
+            if (! $model->linea) {
                 $ultimo = static::where('recepcion_id', $model->recepcion_id)
                     ->orderBy('linea', 'desc')
                     ->first();
@@ -67,7 +67,10 @@ class RecepcionDetalle extends Model
 
     public function getTasaAceptacionAttribute()
     {
-        if ($this->cantidad == 0) return 0;
+        if ($this->cantidad == 0) {
+            return 0;
+        }
+
         return ($this->cantidad_aceptada / $this->cantidad) * 100;
     }
 
@@ -80,22 +83,23 @@ class RecepcionDetalle extends Model
         } elseif ($this->cantidad_aceptada > 0) {
             return 'aceptado';
         }
+
         return 'pendiente';
     }
 
     public function getEstadoLabelAttribute()
     {
-        return match($this->estado) {
-            'aceptado' => '✅ Aceptado',
-            'parcial' => '⚠️ Parcial',
-            'rechazado' => '❌ Rechazado',
-            default => '⏳ Pendiente',
+        return match ($this->estado) {
+            'aceptado' => 'Aceptado',
+            'parcial' => 'Parcial',
+            'rechazado' => 'Rechazado',
+            default => 'Pendiente',
         };
     }
 
     public function getEstadoColorAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'aceptado' => 'success',
             'parcial' => 'warning',
             'rechazado' => 'danger',
@@ -131,6 +135,7 @@ class RecepcionDetalle extends Model
     {
         $this->costo_total = $this->cantidad_aceptada * $this->costo_unitario;
         $this->save();
+
         return $this;
     }
 }

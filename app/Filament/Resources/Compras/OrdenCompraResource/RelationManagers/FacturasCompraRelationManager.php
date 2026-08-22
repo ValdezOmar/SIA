@@ -3,29 +3,27 @@
 namespace App\Filament\Resources\Compras\OrdenCompraResource\RelationManagers;
 
 use App\Models\Compras\FacturaCompra;
-use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\HtmlString;
 
 class FacturasCompraRelationManager extends RelationManager
 {
     protected static string $relationship = 'facturas';
 
-    protected static ?string $title = '🧾 Facturas de Compra';
+    protected static ?string $title = 'Facturas de compra';
 
     protected static ?string $modelLabel = 'Factura';
 
@@ -43,7 +41,7 @@ class FacturasCompraRelationManager extends RelationManager
 
     private static function formatearMonto($monto, $moneda = 'BOB'): string
     {
-        return self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2);
+        return self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2);
     }
 
     public function form(Form $form): Form
@@ -61,7 +59,7 @@ class FacturasCompraRelationManager extends RelationManager
                                     ->disabled()
                                     ->maxLength(50)
                                     ->unique(ignoreRecord: true)
-                                    ->default(fn() => FacturaCompra::generarCodigo())
+                                    ->default(fn () => FacturaCompra::generarCodigo())
                                     ->prefixIcon('heroicon-o-hashtag')
                                     ->columnSpan(1),
 
@@ -86,11 +84,11 @@ class FacturasCompraRelationManager extends RelationManager
                                     ->disabled()
                                     ->dehydrated()
                                     ->options([
-                                        'borrador' => '📝 Borrador',
-                                        'registrada' => '📤 Registrada',
-                                        'pagada' => '✅ Pagada',
-                                        'parcial' => '💰 Parcial',
-                                        'anulada' => '❌ Anulada',
+                                        'borrador' => 'Borrador',
+                                        'registrada' => 'Registrada',
+                                        'pagada' => 'Pagada',
+                                        'parcial' => 'Parcial',
+                                        'anulada' => 'Anulada',
                                     ])
                                     ->default('borrador')
                                     ->required()
@@ -139,7 +137,7 @@ class FacturasCompraRelationManager extends RelationManager
                                     ->minValue(0)
                                     ->step(1)
                                     ->default(0)
-                                    ->prefix(fn($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
+                                    ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                     ->reactive()
                                     ->afterStateUpdated(function ($state, callable $set) {
                                         $subtotal = floatval($state);
@@ -158,7 +156,7 @@ class FacturasCompraRelationManager extends RelationManager
                                     ->minValue(0)
                                     ->step(1)
                                     ->default(0)
-                                    ->prefix(fn($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
+                                    ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                     ->disabled()
                                     ->columnSpan(1),
 
@@ -169,7 +167,7 @@ class FacturasCompraRelationManager extends RelationManager
                                     ->minValue(0)
                                     ->step(1)
                                     ->default(0)
-                                    ->prefix(fn($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
+                                    ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                     ->disabled()
                                     ->columnSpan(1),
                             ]),
@@ -210,12 +208,12 @@ class FacturasCompraRelationManager extends RelationManager
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'borrador' => '📝 Borrador',
-                        'registrada' => '📤 Registrada',
-                        'pagada' => '✅ Pagada',
-                        'parcial' => '💰 Parcial',
-                        'anulada' => '❌ Anulada',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'borrador' => 'Borrador',
+                        'registrada' => 'Registrada',
+                        'pagada' => 'Pagada',
+                        'parcial' => 'Parcial',
+                        'anulada' => 'Anulada',
                         default => $state,
                     })
                     ->colors([
@@ -229,20 +227,20 @@ class FacturasCompraRelationManager extends RelationManager
 
                 TextColumn::make('total')
                     ->label('Total')
-                    ->formatStateUsing(fn($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
+                    ->formatStateUsing(fn ($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
                     ->sortable()
                     ->toggleable()
                     ->weight('bold'),
 
                 TextColumn::make('saldo')
                     ->label('Saldo')
-                    ->formatStateUsing(fn($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
+                    ->formatStateUsing(fn ($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
                     ->sortable()
                     ->toggleable(),
-                    // ->color(fn($record) => {
-                    //     $saldo = ($record->total ?? 0) - ($record->monto_pagado ?? 0);
-                    //     return $saldo <= 0 ? 'success' : 'danger';
-                    // }),
+                // ->color(fn($record) => {
+                //     $saldo = ($record->total ?? 0) - ($record->monto_pagado ?? 0);
+                //     return $saldo <= 0 ? 'success' : 'danger';
+                // }),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
@@ -276,12 +274,13 @@ class FacturasCompraRelationManager extends RelationManager
                         $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
                         $data['monto_pagado'] = 0;
                         $data['saldo'] = $data['total'] ?? 0;
+
                         return $data;
                     })
                     ->after(function ($record) {
                         Notification::make()
                             ->title('Factura creada exitosamente')
-                            ->body('La factura ' . $record->codigo . ' ha sido creada.')
+                            ->body('La factura '.$record->codigo.' ha sido creada.')
                             ->success()
                             ->send();
                     }),

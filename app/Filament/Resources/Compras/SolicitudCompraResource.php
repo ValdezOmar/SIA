@@ -4,29 +4,24 @@ namespace App\Filament\Resources\Compras;
 
 use App\Filament\Resources\Compras\SolicitudCompraResource\Pages;
 use App\Models\Compras\SolicitudCompra;
-use App\Models\Compras\SolicitudCompraDetalle;
 use App\Models\Inventario\Articulo;
-use App\Models\Sistema\Departamento;
-use App\Models\User;
-use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
@@ -60,16 +55,17 @@ class SolicitudCompraResource extends Resource
 
     private static function formatearMonto($monto, $moneda = 'BOB'): string
     {
-        return self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2);
+        return self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2);
     }
 
     // Agregar este método
     private static function formatearMontoHtml($monto, $moneda = 'BOB', $clase = ''): HtmlString
     {
         $simbolo = self::getSimboloMoneda($moneda);
+
         return new HtmlString(
-            '<span class="' . $clase . '">' .
-                $simbolo . ' ' . number_format($monto ?? 0, 2) .
+            '<span class="'.$clase.'">'.
+                $simbolo.' '.number_format($monto ?? 0, 2).
                 '</span>'
         );
     }
@@ -121,7 +117,7 @@ class SolicitudCompraResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('SOL-000001')
                                                     ->helperText('Código único de la solicitud')
-                                                    ->default(fn() => SolicitudCompra::generarCodigo())
+                                                    ->default(fn () => SolicitudCompra::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -149,12 +145,12 @@ class SolicitudCompraResource extends Resource
                                                     ->disabled()
                                                     ->dehydrated()
                                                     ->options([
-                                                        'borrador' => '📝 Borrador',
-                                                        'pendiente' => '⏳ Pendiente',
-                                                        'aprobada' => '✅ Aprobada',
-                                                        'rechazada' => '❌ Rechazada',
-                                                        'en_cotizacion' => '📊 En Cotización',
-                                                        'convertida' => '🔄 Convertida',
+                                                        'borrador' => 'Borrador',
+                                                        'pendiente' => 'Pendiente',
+                                                        'aprobada' => 'Aprobada',
+                                                        'rechazada' => 'Rechazada',
+                                                        'en_cotizacion' => 'En cotización',
+                                                        'convertida' => 'Convertida',
                                                     ])
                                                     ->default('borrador')
                                                     ->required()
@@ -180,7 +176,7 @@ class SolicitudCompraResource extends Resource
                                                 Select::make('area_id')
                                                     ->label('Área')
                                                     ->options(
-                                                        fn() => \App\Models\Sistema\Area::pluck('nombre', 'id')->toArray()
+                                                        fn () => \App\Models\Sistema\Area::pluck('nombre', 'id')->toArray()
                                                     )
                                                     ->searchable()
                                                     ->preload()
@@ -192,10 +188,10 @@ class SolicitudCompraResource extends Resource
                                                 Select::make('prioridad')
                                                     ->label('Prioridad')
                                                     ->options([
-                                                        'baja' => '🟢 Baja',
-                                                        'normal' => '🟡 Normal',
-                                                        'alta' => '🟠 Alta',
-                                                        'urgente' => '🔴 Urgente',
+                                                        'baja' => 'Baja',
+                                                        'normal' => 'Normal',
+                                                        'alta' => 'Alta',
+                                                        'urgente' => 'Urgente',
                                                     ])
                                                     ->default('normal')
                                                     ->required()
@@ -206,7 +202,7 @@ class SolicitudCompraResource extends Resource
 
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
-                                                    ->content(fn($record) => $record?->creador?->name ?? Auth::user()?->name ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->creador?->name ?? Auth::user()?->name ?? 'N/A')
                                                     ->columnSpan(1),
                                             ]),
 
@@ -261,7 +257,10 @@ class SolicitudCompraResource extends Resource
                         Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
-                                if (!$record) return 0;
+                                if (! $record) {
+                                    return 0;
+                                }
+
                                 return $record->detalles()->count();
                             })
                             ->schema([
@@ -279,11 +278,11 @@ class SolicitudCompraResource extends Resource
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
                                                             ->options(
-                                                                fn() => Articulo::where('activo', true)
+                                                                fn () => Articulo::where('activo', true)
                                                                     ->orderBy('codigo')
                                                                     ->get()
-                                                                    ->mapWithKeys(fn($item) => [
-                                                                        $item->id => $item->codigo . ' - ' . ($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción')
+                                                                    ->mapWithKeys(fn ($item) => [
+                                                                        $item->id => $item->codigo.' - '.($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción'),
                                                                     ])
                                                                     ->toArray()
                                                             )
@@ -340,7 +339,8 @@ class SolicitudCompraResource extends Resource
                                                             ->content(function ($get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 0);
                                                                 $precio = floatval($get('precio_estimado') ?? 0);
-                                                                return '$ ' . number_format($cantidad * $precio, 2);
+
+                                                                return '$ '.number_format($cantidad * $precio, 2);
                                                             })
                                                             ->extraAttributes(['class' => 'font-bold'])
                                                             ->columnSpan(2),
@@ -356,7 +356,7 @@ class SolicitudCompraResource extends Resource
                                             ->defaultItems(1)
                                             ->collapsible()
                                             ->cloneable()
-                                            ->addActionLabel('➕ Agregar Producto')
+                                            ->addActionLabel('Agregar producto')
                                             ->reorderable()
                                             ->columnSpanFull()
                                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
@@ -385,15 +385,15 @@ class SolicitudCompraResource extends Resource
                                             ->schema([
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
-                                                    ->content(fn($record) => $record?->creador?->name ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->creador?->name ?? 'N/A'),
 
                                                 Placeholder::make('aprobado_por')
                                                     ->label('Aprobado por')
-                                                    ->content(fn($record) => $record?->aprobador?->name ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->aprobador?->name ?? 'N/A'),
 
                                                 Placeholder::make('fecha_aprobacion')
                                                     ->label('Fecha aprobación')
-                                                    ->content(fn($record) => $record?->fecha_aprobacion?->format('d/m/Y H:i') ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->fecha_aprobacion?->format('d/m/Y H:i') ?? 'N/A'),
                                             ]),
                                     ]),
                             ]),
@@ -438,11 +438,11 @@ class SolicitudCompraResource extends Resource
 
                 BadgeColumn::make('prioridad')
                     ->label('Prioridad')
-                    ->formatStateUsing(fn($state) => match ($state) {
-                        'baja' => '🟢 Baja',
-                        'normal' => '🟡 Normal',
-                        'alta' => '🟠 Alta',
-                        'urgente' => '🔴 Urgente',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'baja' => 'Baja',
+                        'normal' => 'Normal',
+                        'alta' => 'Alta',
+                        'urgente' => 'Urgente',
                         default => $state,
                     })
                     ->colors([
@@ -455,13 +455,13 @@ class SolicitudCompraResource extends Resource
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match ($state) {
-                        'borrador' => '📝 Borrador',
-                        'pendiente' => '⏳ Pendiente',
-                        'aprobada' => '✅ Aprobada',
-                        'rechazada' => '❌ Rechazada',
-                        'en_cotizacion' => '📊 En Cotización',
-                        'convertida' => '🔄 Convertida',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'borrador' => 'Borrador',
+                        'pendiente' => 'Pendiente',
+                        'aprobada' => 'Aprobada',
+                        'rechazada' => 'Rechazada',
+                        'en_cotizacion' => 'En cotización',
+                        'convertida' => 'Convertida',
                         default => $state,
                     })
                     ->colors([
@@ -535,11 +535,11 @@ class SolicitudCompraResource extends Resource
                             $record->aprobar();
                             Notification::make()
                                 ->title('Solicitud aprobada')
-                                ->body('La solicitud ' . $record->codigo . ' ha sido aprobada.')
+                                ->body('La solicitud '.$record->codigo.' ha sido aprobada.')
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'pendiente'),
+                        ->visible(fn ($record) => $record->estado === 'pendiente'),
 
                     Tables\Actions\Action::make('rechazar')
                         ->label('Rechazar')
@@ -557,11 +557,11 @@ class SolicitudCompraResource extends Resource
                             $record->rechazar($data['motivo']);
                             Notification::make()
                                 ->title('Solicitud rechazada')
-                                ->body('La solicitud ' . $record->codigo . ' ha sido rechazada.')
+                                ->body('La solicitud '.$record->codigo.' ha sido rechazada.')
                                 ->warning()
                                 ->send();
                         })
-                        ->visible(fn($record) => in_array($record->estado, ['pendiente', 'en_cotizacion'])),
+                        ->visible(fn ($record) => in_array($record->estado, ['pendiente', 'en_cotizacion'])),
 
                     Tables\Actions\Action::make('convertir_orden')
                         ->label('Convertir a Orden')
@@ -574,14 +574,14 @@ class SolicitudCompraResource extends Resource
                             $orden = $record->crearOrdenCompra();
                             Notification::make()
                                 ->title('Solicitud convertida')
-                                ->body('Se ha creado la orden de compra ' . $orden->codigo)
+                                ->body('Se ha creado la orden de compra '.$orden->codigo)
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'aprobada'),
+                        ->visible(fn ($record) => $record->estado === 'aprobada'),
 
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn($record) => in_array($record->estado, ['borrador', 'rechazada'])),
+                        ->visible(fn ($record) => in_array($record->estado, ['borrador', 'rechazada'])),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

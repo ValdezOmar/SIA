@@ -5,12 +5,14 @@ namespace App\Models\Compras;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Kardex;
 use App\Models\Inventario\MovimientoInventario;
-use App\Services\Inventario\TrazabilidadInventarioService;
 use App\Models\Sistema\Empresa;
 use App\Models\User;
+use App\Services\Inventario\TrazabilidadInventarioService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class Recepcion extends Model
 {
@@ -22,6 +24,7 @@ class Recepcion extends Model
 
     protected $casts = [
         'fecha_recepcion' => 'date',
+        'inventario_procesado_at' => 'datetime',
     ];
 
     // ========== BOOT ==========
@@ -64,6 +67,11 @@ class Recepcion extends Model
         return $this->belongsTo(Proveedor::class);
     }
 
+    public function almacen()
+    {
+        return $this->belongsTo(Almacen::class);
+    }
+
     public function detalles()
     {
         return $this->hasMany(RecepcionDetalle::class)->orderBy('linea');
@@ -95,7 +103,7 @@ class Recepcion extends Model
 
     public function getEstadoLabelAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'pendiente' => 'Pendiente',
             'parcial' => 'Parcial',
             'completada' => 'Completada',
@@ -119,10 +127,10 @@ class Recepcion extends Model
     public static function generarCodigo()
     {
         $gestion = date('y');
-        $prefijo = 'REC-' . $gestion;
+        $prefijo = 'REC-'.$gestion;
 
         $ultimo = self::withTrashed()
-            ->where('codigo', 'LIKE', $prefijo . '%')
+            ->where('codigo', 'LIKE', $prefijo.'%')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -132,72 +140,89 @@ class Recepcion extends Model
             $correlativo = 1;
         }
 
-        return $prefijo . str_pad($correlativo, 4, '0', STR_PAD_LEFT);
+        return $prefijo.str_pad($correlativo, 4, '0', STR_PAD_LEFT);
     }
 
     public function procesarEntradaInventario()
     {
-        $almacen = Almacen::where('activo', true)->first();
+        return DB::transaction(function () {
+            static::query()->whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            $this->refresh();
 
-        if (!$almacen) {
-            return;
-        }
-
-        foreach ($this->detalles as $detalle) {
-            if ($detalle->cantidad_aceptada <= 0) {
-                continue;
+            if ($this->inventario_procesado_at) {
+                throw new RuntimeException('El inventario de esta recepción ya fue procesado.');
             }
 
-            $articulo = $detalle->articulo;
+            $almacen = $this->almacen;
 
-            // Registrar entrada en kardex
-            $kardex = Kardex::registrarEntrada([
-                'articulo_id' => $articulo->id,
-                'almacen_id' => $almacen->id,
-                'tipo_movimiento' => 'compra',
-                'cantidad' => $detalle->cantidad_aceptada,
-                'costo_unitario' => $detalle->costo_unitario,
-                'documento_tipo' => 'recepcion',
-                'documento_id' => $this->id,
-                'documento_codigo' => $this->codigo,
-                'observaciones' => 'Recepción de compra ' . $this->codigo,
-                'empresa_id' => $this->empresa_id,
-            ]);
-
-            // Actualizar detalle de la orden de compra
-            $ordenDetalle = $detalle->ordenDetalle;
-            if ($ordenDetalle) {
-                $ordenDetalle->cantidad_recibida += $detalle->cantidad_aceptada;
-                $ordenDetalle->save();
+            if (! $almacen?->activo) {
+                throw new RuntimeException('Seleccione un almacén activo antes de procesar el ingreso.');
             }
 
-            // Crear movimiento de inventario
-            $movimiento = MovimientoInventario::create([
-                'articulo_id' => $articulo->id,
-                'almacen_id' => $almacen->id,
-                'tipo' => 'entrada_compra',
-                'cantidad' => $detalle->cantidad_aceptada,
-                'costo_unitario' => $detalle->costo_unitario,
-                'costo_total' => $detalle->costo_total,
-                'documento_tipo' => 'recepcion',
-                'documento_id' => $this->id,
-                'fecha' => now(),
-                'observacion' => 'Recepción de compra ' . $this->codigo,
-                'kardex_id' => $kardex->id,
-                'estado' => 'confirmado',
-            ]);
+            if (! $this->detalles()->where('cantidad_aceptada', '>', 0)->exists()) {
+                throw new RuntimeException('Registre al menos una cantidad aceptada antes de procesar el ingreso.');
+            }
 
-            app(TrazabilidadInventarioService::class)->registrarEntrada($movimiento, $articulo, [
-                'cantidad' => $detalle->cantidad_aceptada,
-                'series' => $detalle->series,
-                'lotes' => $detalle->lotes,
-            ]);
-        }
+            foreach ($this->detalles as $detalle) {
+                if ($detalle->cantidad_aceptada <= 0) {
+                    continue;
+                }
 
-        $this->actualizarEstado();
-        if ($this->ordenCompra) {
-            $this->ordenCompra->actualizarEstado();
-        }
+                $articulo = $detalle->articulo;
+
+                // Registrar entrada en kardex
+                $kardex = Kardex::registrarEntrada([
+                    'articulo_id' => $articulo->id,
+                    'almacen_id' => $almacen->id,
+                    'tipo_movimiento' => 'compra',
+                    'cantidad' => $detalle->cantidad_aceptada,
+                    'costo_unitario' => $detalle->costo_unitario,
+                    'documento_tipo' => 'recepcion',
+                    'documento_id' => $this->id,
+                    'documento_codigo' => $this->codigo,
+                    'observaciones' => 'Recepción de compra '.$this->codigo,
+                    'empresa_id' => $this->empresa_id,
+                ]);
+
+                // Actualizar detalle de la orden de compra
+                $ordenDetalle = $detalle->ordenDetalle;
+                if ($ordenDetalle) {
+                    $ordenDetalle->cantidad_recibida += $detalle->cantidad_aceptada;
+                    $ordenDetalle->save();
+                }
+
+                // Crear movimiento de inventario
+                $movimiento = MovimientoInventario::create([
+                    'articulo_id' => $articulo->id,
+                    'almacen_id' => $almacen->id,
+                    'tipo' => 'entrada_compra',
+                    'cantidad' => $detalle->cantidad_aceptada,
+                    'costo_unitario' => $detalle->costo_unitario,
+                    'costo_total' => $detalle->costo_total,
+                    'documento_tipo' => 'recepcion',
+                    'documento_id' => $this->id,
+                    'fecha' => now(),
+                    'observacion' => 'Recepción de compra '.$this->codigo,
+                    'kardex_id' => $kardex->id,
+                    'estado' => 'confirmado',
+                ]);
+
+                app(TrazabilidadInventarioService::class)->registrarEntrada($movimiento, $articulo, [
+                    'cantidad' => $detalle->cantidad_aceptada,
+                    'series' => $detalle->series,
+                    'lotes' => $detalle->lotes,
+                ]);
+            }
+
+            $this->actualizarEstado();
+            if ($this->ordenCompra) {
+                $this->ordenCompra->actualizarEstado();
+            }
+
+            $this->forceFill(['inventario_procesado_at' => now()])->saveQuietly();
+
+            return $this;
+        });
     }
 
     public function actualizarEstado()
@@ -214,6 +239,7 @@ class Recepcion extends Model
         }
 
         $this->save();
+
         return $this;
     }
 
@@ -221,6 +247,7 @@ class Recepcion extends Model
     {
         $this->estado = 'completada';
         $this->save();
+
         return $this;
     }
 
@@ -228,9 +255,10 @@ class Recepcion extends Model
     {
         $this->estado = 'rechazada';
         if ($motivo) {
-            $this->observaciones = ($this->observaciones ? $this->observaciones . "\n" : '') . 'Rechazada: ' . $motivo;
+            $this->observaciones = ($this->observaciones ? $this->observaciones."\n" : '').'Rechazada: '.$motivo;
         }
         $this->save();
+
         return $this;
     }
 }

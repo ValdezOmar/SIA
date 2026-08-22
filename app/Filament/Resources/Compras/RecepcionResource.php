@@ -3,29 +3,29 @@
 namespace App\Filament\Resources\Compras;
 
 use App\Filament\Resources\Compras\RecepcionResource\Pages;
-use App\Models\Compras\Recepcion;
 use App\Models\Compras\OrdenCompra;
 use App\Models\Compras\Proveedor;
+use App\Models\Compras\Recepcion;
+use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
-use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Model;
 
 class RecepcionResource extends Resource
 {
@@ -43,9 +43,14 @@ class RecepcionResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function canEdit(Model $record): bool
+    {
+        return parent::canEdit($record) && ! $record->inventario_procesado_at;
+    }
+
     private static function formatearMonto($monto): string
     {
-        return 'Bs ' . number_format($monto ?? 0, 2);
+        return 'Bs '.number_format($monto ?? 0, 2);
     }
 
     public static function form(Form $form): Form
@@ -72,7 +77,7 @@ class RecepcionResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('REC-000001')
                                                     ->helperText('Código único de la recepción')
-                                                    ->default(fn() => Recepcion::generarCodigo())
+                                                    ->default(fn () => Recepcion::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -91,10 +96,10 @@ class RecepcionResource extends Resource
                                                     ->disabled()
                                                     ->dehydrated()
                                                     ->options([
-                                                        'pendiente' => '⏳ Pendiente',
-                                                        'parcial' => '📦 Parcial',
-                                                        'completada' => '✅ Completada',
-                                                        'rechazada' => '❌ Rechazada',
+                                                        'pendiente' => 'Pendiente',
+                                                        'parcial' => 'Parcial',
+                                                        'completada' => 'Completada',
+                                                        'rechazada' => 'Rechazada',
                                                     ])
                                                     ->default('pendiente')
                                                     ->required()
@@ -117,11 +122,11 @@ class RecepcionResource extends Resource
                                                 Select::make('orden_compra_id')
                                                     ->label('Orden de Compra')
                                                     ->options(
-                                                        fn() => OrdenCompra::whereIn('estado', ['confirmada', 'parcial', 'recibida'])
+                                                        fn () => OrdenCompra::whereIn('estado', ['confirmada', 'parcial', 'recibida'])
                                                             ->orderBy('codigo')
                                                             ->get()
-                                                            ->mapWithKeys(fn($item) => [
-                                                                $item->id => $item->codigo . ' - ' . ($item->proveedor?->nombre ?? 'Sin proveedor')
+                                                            ->mapWithKeys(fn ($item) => [
+                                                                $item->id => $item->codigo.' - '.($item->proveedor?->nombre ?? 'Sin proveedor'),
                                                             ])
                                                             ->toArray()
                                                     )
@@ -171,7 +176,7 @@ class RecepcionResource extends Resource
                                                 Select::make('proveedor_id')
                                                     ->label('Proveedor')
                                                     ->options(
-                                                        fn() => Proveedor::where('activo', true)
+                                                        fn () => Proveedor::where('activo', true)
                                                             ->orderBy('nombre')
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
@@ -184,6 +189,16 @@ class RecepcionResource extends Resource
                                                     ->prefixIcon('heroicon-o-building-office-2')
                                                     ->disabled()
                                                     ->dehydrated()
+                                                    ->columnSpan(1),
+
+                                                Select::make('almacen_id')
+                                                    ->label('Almacén de ingreso')
+                                                    ->options(fn (): array => Almacen::query()->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all())
+                                                    ->required()
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->helperText('El stock aceptado se ingresará únicamente en este almacén.')
+                                                    ->prefixIcon('heroicon-o-building-storefront')
                                                     ->columnSpan(1),
 
                                                 TextInput::make('transportista')
@@ -207,7 +222,10 @@ class RecepcionResource extends Resource
                         Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
-                                if (!$record) return 0;
+                                if (! $record) {
+                                    return 0;
+                                }
+
                                 return $record->detalles()->count();
                             })
                             ->schema([
@@ -225,18 +243,25 @@ class RecepcionResource extends Resource
                                                             ->label('Producto')
                                                             ->options(function ($get, $livewire) {
                                                                 $ordenId = $get('../../orden_compra_id') ?? $livewire->getOwnerRecord()?->orden_compra_id;
-                                                                if (!$ordenId) return [];
+                                                                if (! $ordenId) {
+                                                                    return [];
+                                                                }
 
                                                                 $orden = OrdenCompra::with('detalles.articulo')->find($ordenId);
-                                                                if (!$orden) return [];
+                                                                if (! $orden) {
+                                                                    return [];
+                                                                }
 
                                                                 return $orden->detalles->mapWithKeys(function ($detalle) {
                                                                     $recibido = \App\Models\Compras\RecepcionDetalle::where('orden_detalle_id', $detalle->id)->sum('cantidad_aceptada');
                                                                     $pendiente = $detalle->cantidad - $recibido;
-                                                                    if ($pendiente <= 0) return [];
+                                                                    if ($pendiente <= 0) {
+                                                                        return [];
+                                                                    }
+
                                                                     return [
-                                                                        $detalle->id => $detalle->articulo->codigo . ' - ' . $detalle->articulo->nombre_comercial .
-                                                                            ' (Pendiente: ' . number_format($pendiente, 2) . ')'
+                                                                        $detalle->id => $detalle->articulo->codigo.' - '.$detalle->articulo->nombre_comercial.
+                                                                            ' (Pendiente: '.number_format($pendiente, 2).')',
                                                                     ];
                                                                 })->toArray();
                                                             })
@@ -284,7 +309,8 @@ class RecepcionResource extends Resource
                                                             ->label('Cantidad Aceptada')
                                                             ->numeric()
                                                             ->required()
-                                                            ->minValue(0.01)
+                                                            ->minValue(0)
+                                                            ->maxValue(fn ($get): float => max(0, (float) ($get('cantidad') ?? 0) - (float) ($get('cantidad_rechazada') ?? 0)))
                                                             ->step(1.00)
                                                             ->default(0)
                                                             ->placeholder('0.00')
@@ -301,6 +327,7 @@ class RecepcionResource extends Resource
                                                             ->label('Cantidad Rechazada')
                                                             ->numeric()
                                                             ->minValue(0)
+                                                            ->maxValue(fn ($get): float => max(0, (float) ($get('cantidad') ?? 0) - (float) ($get('cantidad_aceptada') ?? 0)))
                                                             ->step(1.00)
                                                             ->default(0)
                                                             ->placeholder('0.00')
@@ -328,7 +355,7 @@ class RecepcionResource extends Resource
                                                         Placeholder::make('costo_total')
                                                             ->label('Costo Total')
                                                             ->content(function ($get) {
-                                                                return '$ ' . number_format($get('costo_total') ?? 0, 2);
+                                                                return '$ '.number_format($get('costo_total') ?? 0, 2);
                                                             })
                                                             ->extraAttributes(['class' => 'font-bold'])
                                                             ->columnSpan(2),
@@ -355,7 +382,7 @@ class RecepcionResource extends Resource
                                                     ->rows(2)
                                                     ->placeholder('Motivo del rechazo...')
                                                     ->helperText('Especificar motivo si hay cantidad rechazada')
-                                                    ->visible(fn($get) => floatval($get('cantidad_rechazada') ?? 0) > 0)
+                                                    ->visible(fn ($get) => floatval($get('cantidad_rechazada') ?? 0) > 0)
                                                     ->columnSpanFull(),
 
                                                 TextInput::make('observaciones')
@@ -368,7 +395,7 @@ class RecepcionResource extends Resource
                                             ->defaultItems(0)
                                             ->collapsible()
                                             ->cloneable()
-                                            ->addActionLabel('➕ Agregar Producto')
+                                            ->addActionLabel('Agregar producto')
                                             ->reorderable()
                                             ->columnSpanFull()
                                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
@@ -378,7 +405,7 @@ class RecepcionResource extends Resource
                                                     $articulo = Articulo::find($data['articulo_id']);
                                                 }
 
-                                                if (!$articulo && isset($data['orden_detalle_id']) && $data['orden_detalle_id']) {
+                                                if (! $articulo && isset($data['orden_detalle_id']) && $data['orden_detalle_id']) {
                                                     $ordenDetalle = \App\Models\Compras\OrdenCompraDetalle::with('articulo')->find($data['orden_detalle_id']);
                                                     if ($ordenDetalle) {
                                                         $data['articulo_id'] = $ordenDetalle->articulo_id;
@@ -403,6 +430,7 @@ class RecepcionResource extends Resource
                                                 $data['lotes'] = filled($data['lotes'] ?? null)
                                                     ? array_values(array_map(function ($item) {
                                                         [$numero, $cantidad] = array_map('trim', explode(':', $item, 2));
+
                                                         return ['numero_lote' => $numero, 'cantidad' => (float) $cantidad];
                                                     }, array_filter(preg_split('/[,\n]+/', $data['lotes']))))
                                                     : null;
@@ -446,11 +474,11 @@ class RecepcionResource extends Resource
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'pendiente' => '⏳ Pendiente',
-                        'parcial' => '📦 Parcial',
-                        'completada' => '✅ Completada',
-                        'rechazada' => '❌ Rechazada',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'pendiente' => 'Pendiente',
+                        'parcial' => 'Parcial',
+                        'completada' => 'Completada',
+                        'rechazada' => 'Rechazada',
                         default => $state,
                     })
                     ->colors([
@@ -463,7 +491,7 @@ class RecepcionResource extends Resource
 
                 TextColumn::make('total_items')
                     ->label('Items')
-                    ->getStateUsing(fn($record) => $record->detalles()->count())
+                    ->getStateUsing(fn ($record) => $record->detalles()->count())
                     ->badge()
                     ->color('info')
                     ->toggleable()
@@ -503,29 +531,32 @@ class RecepcionResource extends Resource
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make()
                         ->slideOver()
-                        ->modalWidth('7xl'),
+                        ->modalWidth('7xl')
+                        ->visible(fn ($record) => ! $record->inventario_procesado_at),
 
                     Tables\Actions\ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('completar')
-                        ->label('Completar')
+                    Tables\Actions\Action::make('procesar_ingreso')
+                        ->label('Procesar ingreso')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Confirmar ingreso a inventario')
+                        ->modalDescription('Revise cantidades aceptadas y almacén. Esta acción crea el kardex una sola vez.')
                         ->action(function ($record) {
-                            $record->estado = 'completada';
-                            $record->save();
+                            $record->procesarEntradaInventario();
                             Notification::make()
-                                ->title('Recepción completada')
-                                ->body('La recepción ' . $record->codigo . ' ha sido completada.')
+                                ->title('Ingreso procesado')
+                                ->body('La recepción '.$record->codigo.' ya actualizó el inventario.')
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'parcial'),
+                        ->visible(fn ($record) => ! $record->inventario_procesado_at && in_array($record->estado, ['pendiente', 'parcial'])),
 
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn($record) => $record->estado === 'pendiente'),
+                        ->visible(fn ($record) => $record->estado === 'pendiente'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
