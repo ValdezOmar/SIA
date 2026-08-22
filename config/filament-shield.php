@@ -80,7 +80,8 @@ return [
     ],
 
     'discovery' => [
-        'discover_all_resources' => false,
+        // Incluye automáticamente los resources registrados en los paneles, incluso los agregados a futuro.
+        'discover_all_resources' => true,
         'discover_all_widgets' => true,
         'discover_all_pages' => false,
     ],
