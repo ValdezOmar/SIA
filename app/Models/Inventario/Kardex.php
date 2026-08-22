@@ -6,6 +6,7 @@ use App\Models\Sistema\Empresa;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Kardex extends Model
 {
@@ -186,6 +187,166 @@ class Kardex extends Model
         };
     }
 
+    public static function registrarMovimiento(array $data): self
+    {
+        return DB::transaction(function () use ($data) {
+            $tipo = $data['tipo_movimiento'] ?? null;
+            $direcciones = [
+                'compra' => 'entrada',
+                'venta' => 'salida',
+                'transferencia_entrada' => 'entrada',
+                'transferencia_salida' => 'salida',
+                'ajuste_incremento' => 'entrada',
+                'ajuste_decremento' => 'salida',
+                'devolucion_compra' => 'salida',
+                'devolucion_venta' => 'entrada',
+                'produccion_entrada' => 'entrada',
+                'produccion_salida' => 'salida',
+                'inventario_inicial' => 'entrada',
+                'ajuste_fisico' => $data['direccion'] ?? null,
+                'merma' => 'salida',
+                'despacho' => 'salida',
+                'consignacion' => 'entrada',
+            ];
+
+            if (!array_key_exists($tipo, $direcciones)) {
+                throw new \InvalidArgumentException('Tipo de movimiento no soportado: ' . ($tipo ?? 'vacío'));
+            }
+
+            $direccion = $direcciones[$tipo];
+            if (!$direccion || !in_array($direccion, ['entrada', 'salida'], true)) {
+                throw new \InvalidArgumentException('La dirección es obligatoria para un ajuste físico.');
+            }
+
+            $documentoTipo = $data['documento_tipo'] ?? 'manual';
+            $documentoId = $data['documento_id'] ?? 0;
+            $documentoDetalleId = $data['documento_detalle_id'] ?? null;
+            $existente = null;
+
+            if ($documentoTipo !== 'manual' || $documentoId !== 0 || $documentoDetalleId !== null) {
+                $existente = self::where('documento_tipo', $documentoTipo)
+                    ->where('documento_id', $documentoId)
+                    ->where('documento_detalle_id', $documentoDetalleId)
+                    ->where('tipo_movimiento', $tipo)
+                    ->where('estado', 'confirmado')
+                    ->first();
+            }
+
+            if ($existente) {
+                return $existente;
+            }
+
+            $data['direccion'] = $direccion;
+            $data['estado'] = $data['estado'] ?? 'confirmado';
+            $data['fecha_movimiento'] = $data['fecha_movimiento'] ?? now();
+
+            $kardex = $direccion === 'entrada'
+                ? self::registrarEntrada($data)
+                : self::registrarSalida($data);
+
+            MovimientoInventario::create([
+                'articulo_id' => $kardex->articulo_id,
+                'almacen_id' => $kardex->almacen_id,
+                'tipo' => self::getTipoMovimientoAuxiliar($tipo, $direccion),
+                'cantidad' => $direccion === 'entrada' ? $kardex->cantidad : -$kardex->cantidad,
+                'costo_unitario' => $kardex->costo_unitario,
+                'costo_total' => $kardex->costo_total,
+                'documento_tipo' => $kardex->documento_tipo,
+                'documento_id' => $kardex->documento_id,
+                'documento_codigo' => $kardex->documento_codigo,
+                'fecha' => $kardex->fecha_movimiento,
+                'observacion' => $kardex->observaciones,
+                'estado' => $kardex->estado === 'anulado' ? 'cancelado' : $kardex->estado,
+                'kardex_id' => $kardex->id,
+            ]);
+
+            return $kardex;
+        });
+    }
+
+    private static function getTipoMovimientoAuxiliar(string $tipo, string $direccion): string
+    {
+        return match ($tipo) {
+            'compra' => 'entrada_compra',
+            'venta' => 'salida_venta',
+            'ajuste_incremento', 'ajuste_fisico' => 'ajuste_positivo',
+            'ajuste_decremento' => 'ajuste_negativo',
+            'transferencia_entrada' => 'transferencia_entrada',
+            'transferencia_salida' => 'transferencia_salida',
+            'produccion_entrada' => 'produccion_entrada',
+            'produccion_salida' => 'produccion_salida',
+            'merma' => 'salida_merma',
+            'despacho' => 'salida_despacho',
+            default => $direccion === 'entrada' ? 'entrada_devolucion' : 'salida_devolucion',
+        };
+    }
+
+    public function revertirMovimiento(?string $motivo = null): ?self
+    {
+        return DB::transaction(function () use ($motivo) {
+            $movimiento = self::query()->lockForUpdate()->findOrFail($this->id);
+
+            if ($movimiento->estado !== 'confirmado') {
+                return null;
+            }
+
+            $reversion = self::where('movimiento_relacionado_id', $movimiento->id)
+                ->where('estado', 'confirmado')
+                ->first();
+
+            if (!$reversion) {
+                $tiposReversion = [
+                    'compra' => 'devolucion_compra',
+                    'venta' => 'devolucion_venta',
+                    'transferencia_entrada' => 'transferencia_salida',
+                    'transferencia_salida' => 'transferencia_entrada',
+                    'ajuste_incremento' => 'ajuste_decremento',
+                    'ajuste_decremento' => 'ajuste_incremento',
+                    'devolucion_compra' => 'compra',
+                    'devolucion_venta' => 'venta',
+                    'produccion_entrada' => 'produccion_salida',
+                    'produccion_salida' => 'produccion_entrada',
+                    'inventario_inicial' => 'ajuste_decremento',
+                    'ajuste_fisico' => 'ajuste_fisico',
+                    'merma' => 'ajuste_incremento',
+                    'despacho' => 'ajuste_incremento',
+                    'consignacion' => 'ajuste_decremento',
+                ];
+
+                $tipoReversion = $tiposReversion[$movimiento->tipo_movimiento] ?? null;
+                if (!$tipoReversion) {
+                    throw new \InvalidArgumentException('No existe una reversión definida para: ' . $movimiento->tipo_movimiento);
+                }
+
+                $reversion = self::registrarMovimiento([
+                    'articulo_id' => $movimiento->articulo_id,
+                    'almacen_id' => $movimiento->almacen_id,
+                    'ubicacion_id' => $movimiento->ubicacion_id,
+                    'tipo_movimiento' => $tipoReversion,
+                    'direccion' => $movimiento->direccion === 'entrada' ? 'salida' : 'entrada',
+                    'cantidad' => $movimiento->cantidad,
+                    'costo_unitario' => $movimiento->costo_unitario,
+                    'documento_tipo' => $movimiento->documento_tipo,
+                    'documento_id' => $movimiento->documento_id,
+                    'documento_codigo' => $movimiento->documento_codigo,
+                    'documento_detalle_id' => $movimiento->documento_detalle_id,
+                    'movimiento_relacionado_id' => $movimiento->id,
+                    'observaciones' => 'Reversión de Kardex #' . $movimiento->id . ($motivo ? '. Motivo: ' . $motivo : ''),
+                    'empresa_id' => $movimiento->empresa_id,
+                    'fecha_movimiento' => now(),
+                    'estado' => 'confirmado',
+                ]);
+            }
+
+            $movimiento->update(['estado' => 'anulado']);
+            MovimientoInventario::where('kardex_id', $movimiento->id)
+                ->where('estado', 'confirmado')
+                ->update(['estado' => 'cancelado']);
+
+            return $reversion;
+        });
+    }
+
     // ========== MÉTODOS ==========
 
     /**
@@ -221,6 +382,7 @@ class Kardex extends Model
             'documento_tipo' => $data['documento_tipo'],
             'documento_id' => $data['documento_id'],
             'documento_codigo' => $data['documento_codigo'] ?? null,
+            'movimiento_relacionado_id' => $data['movimiento_relacionado_id'] ?? null,
             'usuario_id' => auth()->id(),
             'fecha_movimiento' => $data['fecha_movimiento'] ?? now(),
             'observaciones' => $data['observaciones'] ?? null,
@@ -248,8 +410,8 @@ class Kardex extends Model
             ]);
         }
 
-        // Si es entrada por compra, crear capa FIFO
-        if (in_array($data['tipo_movimiento'], ['compra', 'devolucion_venta'], true)) {
+        // Toda entrada debe quedar disponible para el consumo FIFO posterior.
+        if (($data['direccion'] ?? 'entrada') === 'entrada') {
             $capa = CapaCosto::create([
                 'articulo_id' => $data['articulo_id'],
                 'almacen_id' => $data['almacen_id'],
@@ -299,6 +461,7 @@ class Kardex extends Model
             'documento_id' => $this->documento_id,
             'documento_codigo' => $this->documento_codigo,
             'documento_detalle_id' => $this->documento_detalle_id,
+            'movimiento_relacionado_id' => $this->id,
             'observaciones' => 'Reversión de salida por anulación de venta ' . $this->documento_codigo . ($motivo ? '. Motivo: ' . $motivo : ''),
             'empresa_id' => $this->empresa_id,
             'fecha_movimiento' => now(),
@@ -396,6 +559,7 @@ class Kardex extends Model
             'documento_tipo' => $data['documento_tipo'],
             'documento_id' => $data['documento_id'],
             'documento_codigo' => $data['documento_codigo'] ?? null,
+            'movimiento_relacionado_id' => $data['movimiento_relacionado_id'] ?? null,
             'usuario_id' => auth()->id(),
             'fecha_movimiento' => $data['fecha_movimiento'] ?? now(),
             'observaciones' => $data['observaciones'] ?? null,

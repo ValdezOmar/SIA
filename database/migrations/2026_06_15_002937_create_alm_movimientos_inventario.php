@@ -8,79 +8,58 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('alm_movimientos_inventario', function (Blueprint $table) {
-            // Agregar relación con kardex
-            $table->foreignId('kardex_id')
-                ->nullable()
-                ->after('id')
-                ->constrained('alm_kardex')
-                ->nullOnDelete()
-                ->comment('ID del registro en kardex');
+        // Tabla auxiliar que refleja cada movimiento del libro Kardex.
+        Schema::create('alm_movimientos_inventario', function (Blueprint $table) {
+            // Identificador del registro operativo.
+            $table->id();
 
-            // Agregar relación con capas FIFO
-            $table->foreignId('capa_costo_id')
-                ->nullable()
-                ->after('costo_total')
-                ->constrained('alm_capas_costos')
-                ->nullOnDelete()
-                ->comment('Capa de costo FIFO utilizada (para salidas)');
+            // Artículo y almacén afectados.
+            $table->unsignedBigInteger('articulo_id')->nullable();
+            $table->unsignedBigInteger('almacen_id')->nullable();
 
-            // Agregar tipo de documento más detallado
-            $table->enum('tipo_documento', [
-                'compra',
-                'venta',
-                'transferencia',
-                'ajuste',
-                'produccion',
-                'devolucion_compra',
-                'devolucion_venta',
-                'inventario_inicial',
-                'inventario_fisico',
-                'merma'
-            ])->nullable()->after('documento_tipo');
+            // Tipo de operación y cantidad; las salidas se guardan negativas.
+            $table->string('tipo', 50)->nullable();
+            $table->decimal('cantidad', 18, 6)->default(0);
+            $table->decimal('costo_unitario', 18, 6)->default(0);
+            $table->decimal('costo_total', 18, 6)->default(0);
 
-            // Agregar referencia al pedido/cotización
-            $table->string('referencia', 100)
-                ->nullable()
-                ->after('documento_id')
-                ->comment('Referencia adicional del documento');
+            // Documento origen para enlazar ventas, compras y ajustes.
+            $table->string('documento_tipo', 50)->nullable();
+            $table->unsignedBigInteger('documento_id')->nullable();
+            $table->string('documento_codigo', 100)->nullable();
+            $table->string('tipo_documento', 50)->nullable();
+            $table->string('referencia', 100)->nullable();
 
-            // Agregar campos de auditoría
-            $table->foreignId('creado_por')
-                ->nullable()
-                ->after('observacion')
-                ->constrained('users')
-                ->nullOnDelete();
+            // Fechas, observaciones y estado de auditoría.
+            $table->timestamp('fecha')->nullable();
+            $table->text('observacion')->nullable();
+            $table->string('estado', 20)->default('confirmado');
 
-            $table->foreignId('autorizado_por')
-                ->nullable()
-                ->after('creado_por')
-                ->constrained('users')
-                ->nullOnDelete();
+            // Vínculos con Kardex, FIFO, usuarios y movimientos compensatorios.
+            $table->unsignedBigInteger('kardex_id')->nullable();
+            $table->unsignedBigInteger('capa_costo_id')->nullable();
+            $table->unsignedBigInteger('capa_fifo_id')->nullable();
+            $table->unsignedBigInteger('movimiento_relacionado_id')->nullable();
+            $table->unsignedBigInteger('creado_por')->nullable();
+            $table->unsignedBigInteger('autorizado_por')->nullable();
 
-            $table->enum('estado', ['pendiente', 'confirmado', 'cancelado'])
-                ->default('confirmado')
-                ->after('observacion');
+            // Auditoría temporal del registro.
+            $table->timestamps();
+
+            // Índices con nombres cortos compatibles con MySQL.
+            $table->index('articulo_id', 'mov_inv_articulo_idx');
+            $table->index('almacen_id', 'mov_inv_almacen_idx');
+            $table->index('kardex_id', 'mov_inv_kardex_idx');
+            $table->index('movimiento_relacionado_id', 'mov_inv_relacionado_idx');
+            $table->index(['documento_tipo', 'documento_id'], 'mov_inv_documento_idx');
+            $table->index(['articulo_id', 'almacen_id', 'fecha'], 'mov_inv_historial_idx');
+            $table->index('estado', 'mov_inv_estado_idx');
         });
     }
 
     public function down(): void
     {
-        Schema::table('alm_movimientos_inventario', function (Blueprint $table) {
-            $table->dropForeign(['kardex_id']);
-            $table->dropForeign(['capa_costo_id']);
-            $table->dropForeign(['creado_por']);
-            $table->dropForeign(['autorizado_por']);
-            
-            $table->dropColumn([
-                'kardex_id',
-                'capa_costo_id',
-                'tipo_documento',
-                'referencia',
-                'creado_por',
-                'autorizado_por',
-                'estado'
-            ]);
-        });
+        // Elimina la tabla al reconstruir completamente el esquema.
+        Schema::dropIfExists('alm_movimientos_inventario');
     }
 };

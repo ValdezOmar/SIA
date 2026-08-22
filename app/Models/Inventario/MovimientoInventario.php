@@ -48,12 +48,26 @@ class MovimientoInventario extends Model
 
     public function scopeEntradas($query)
     {
-        return $query->whereIn('tipo', ['entrada_compra', 'ajuste_positivo', 'transferencia_entrada', 'produccion_entrada']);
+        return $query->whereIn('tipo', [
+            'entrada_compra',
+            'entrada_devolucion',
+            'ajuste_positivo',
+            'transferencia_entrada',
+            'produccion_entrada',
+        ]);
     }
 
     public function scopeSalidas($query)
     {
-        return $query->whereIn('tipo', ['salida_venta', 'ajuste_negativo', 'transferencia_salida', 'produccion_salida']);
+        return $query->whereIn('tipo', [
+            'salida_venta',
+            'salida_devolucion',
+            'ajuste_negativo',
+            'transferencia_salida',
+            'produccion_salida',
+            'salida_merma',
+            'salida_despacho',
+        ]);
     }
 
     // ========== ACCESORS ==========
@@ -69,6 +83,10 @@ class MovimientoInventario extends Model
             'transferencia_salida' => 'Transferencia Salida',
             'produccion_entrada' => 'Producción Entrada',
             'produccion_salida' => 'Producción Salida',
+            'entrada_devolucion' => 'Devolución Entrada',
+            'salida_devolucion' => 'Devolución Salida',
+            'salida_merma' => 'Merma',
+            'salida_despacho' => 'Despacho',
             default => $this->tipo,
         };
     }

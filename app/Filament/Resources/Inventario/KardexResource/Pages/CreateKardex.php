@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Inventario\KardexResource\Pages;
 
 use App\Filament\Resources\Inventario\KardexResource;
+use App\Models\Inventario\Kardex;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -19,5 +20,10 @@ class CreateKardex extends CreateRecord
         $data['empresa_id'] = $data['empresa_id'] ?? auth()->user()?->empresa_id;
 
         return $data;
+    }
+
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    {
+        return Kardex::registrarMovimiento($data);
     }
 }

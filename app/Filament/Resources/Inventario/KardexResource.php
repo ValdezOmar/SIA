@@ -69,9 +69,9 @@ class KardexResource extends Resource
                             ->schema([
                                 Section::make('Datos del Movimiento')
                                     ->icon('heroicon-o-archive-box')
-                                    ->description('Información principal del movimiento de inventario')
+                                    ->description('Define qué ocurrió con el inventario. Los movimientos confirmados actualizan existencias y quedan en el historial.')
                                     ->schema([
-                                        Grid::make(3)
+                                        Grid::make(4)
                                             ->schema([
                                                 Select::make('articulo_id')
                                                     ->label('Artículo')
@@ -89,6 +89,7 @@ class KardexResource extends Resource
                                                     ->preload()
                                                     ->placeholder('Seleccione un artículo')
                                                     ->prefixIcon('heroicon-o-cube')
+                                                    ->helperText('Producto afectado. Verifica código y descripción antes de continuar.')
                                                     ->reactive()
                                                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                                         if ($state) {
@@ -111,7 +112,8 @@ class KardexResource extends Resource
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder('Seleccione un almacén')
-                                                    ->prefixIcon('heroicon-o-building-storefront'),
+                                                    ->prefixIcon('heroicon-o-building-storefront')
+                                                    ->helperText('Ubicación física donde aumentará o disminuirá el stock.'),
 
                                                 DatePicker::make('fecha_movimiento')
                                                     ->label('Fecha Movimiento')
@@ -119,12 +121,9 @@ class KardexResource extends Resource
                                                     ->required()
                                                     ->default(now())
                                                     ->native(false)
-                                                    ->helperText('Fecha y hora del movimiento')
+                                                    ->helperText('Fecha efectiva del movimiento. Se usa para ordenar el Kardex y el costo FIFO.')
                                                     ->prefixIcon('heroicon-o-calendar'),
-                                            ]),
-
-                                        Grid::make(3)
-                                            ->schema([
+                                                    
                                                 Select::make('tipo_movimiento')
                                                     ->label('Tipo de Movimiento')
                                                     ->options([
@@ -149,11 +148,12 @@ class KardexResource extends Resource
                                                     ->preload()
                                                     ->placeholder('Seleccione el tipo de movimiento')
                                                     ->prefixIcon('heroicon-o-tag')
+                                                    ->helperText('El tipo determina automáticamente si entra o sale inventario. Usa ajustes solo para corregir diferencias reales.')
                                                     ->reactive()
                                                     ->afterStateUpdated(function ($state, callable $set) {
-                                                        $direccion = match($state) {
+                                                        $direccion = match ($state) {
                                                             'compra', 'transferencia_entrada', 'ajuste_incremento',
-                                                            'devolucion_venta', 'produccion_entrada', 
+                                                            'devolucion_venta', 'produccion_entrada',
                                                             'inventario_inicial', 'consignacion' => 'entrada',
                                                             'venta', 'transferencia_salida', 'ajuste_decremento',
                                                             'devolucion_compra', 'produccion_salida',
@@ -162,7 +162,36 @@ class KardexResource extends Resource
                                                         };
                                                         $set('direccion', $direccion);
                                                     }),
+                                            ]),
 
+                                        Grid::make(3)
+                                            ->schema([
+
+                                                Placeholder::make('guia_tipo_movimiento')
+                                                    ->label('Guía rápida')
+                                                    ->content(function ($get) {
+                                                        return match ($get('tipo_movimiento')) {
+                                                            'compra' => 'Entrada por recepción de proveedor. Vincula la recepción y usa el costo de compra.',
+                                                            'venta' => 'Salida por venta. Normalmente la genera Factura; no la registres manualmente si ya existe una venta.',
+                                                            'transferencia_entrada', 'transferencia_salida' => 'Usa ambos movimientos y relaciona el documento de transferencia para mantener trazabilidad entre almacenes.',
+                                                            'ajuste_incremento' => 'Entrada para corregir un faltante positivo después de un conteo autorizado.',
+                                                            'ajuste_decremento' => 'Salida para corregir un excedente registrado después de un conteo autorizado.',
+                                                            'ajuste_fisico' => 'Corrección por inventario físico. Selecciona Entrada o Salida según el resultado del conteo.',
+                                                            'devolucion_compra' => 'Salida de mercancía devuelta al proveedor. Vincula la compra o recepción original.',
+                                                            'devolucion_venta' => 'Entrada de mercancía devuelta por un cliente. Vincula la factura original.',
+                                                            'produccion_entrada' => 'Entrada de producto terminado generado por producción.',
+                                                            'produccion_salida' => 'Salida de insumos consumidos por producción.',
+                                                            'inventario_inicial' => 'Carga inicial al migrar existencias. Debe tener respaldo del inventario de apertura.',
+                                                            'merma' => 'Salida por pérdida, daño o vencimiento. Registra el motivo y evidencia.',
+                                                            'despacho' => 'Salida física preparada para entrega. Vincula pedido o documento de despacho.',
+                                                            'consignacion' => 'Entrada de mercancía recibida en consignación. Documenta el acuerdo de propiedad.',
+                                                            default => 'Selecciona un tipo para ver cuándo corresponde usarlo.',
+                                                        };
+                                                    })
+                                                    ->columnSpan(2),
+                                            ]),
+                                        Grid::make(2)
+                                            ->schema([
                                                 Select::make('direccion')
                                                     ->label('Dirección')
                                                     ->options([
@@ -172,7 +201,8 @@ class KardexResource extends Resource
                                                     ->required()
                                                     ->searchable()
                                                     ->prefixIcon('heroicon-o-arrow-path')
-                                                    ->disabled()
+                                                    ->helperText('Entrada suma stock; Salida lo descuenta. En otros tipos se calcula automáticamente.')
+                                                    ->disabled(fn($get) => $get('tipo_movimiento') !== 'ajuste_fisico')
                                                     ->dehydrated(),
 
                                                 TextInput::make('cantidad')
@@ -182,7 +212,7 @@ class KardexResource extends Resource
                                                     ->minValue(0.01)
                                                     ->step(1.00)
                                                     ->placeholder('0.00')
-                                                    ->helperText('Cantidad del movimiento')
+                                                    ->helperText('Cantidad física afectada. Nunca uses valores negativos; la dirección define el efecto.')
                                                     ->prefixIcon('heroicon-o-numbered-list')
                                                     ->reactive()
                                                     ->afterStateUpdated(function ($state, callable $set, $get) {
@@ -191,8 +221,7 @@ class KardexResource extends Resource
                                                         $set('costo_total', $cantidad * $costoUnitario);
                                                     }),
                                             ]),
-
-                                        Grid::make(3)
+                                        Grid::make(2)
                                             ->schema([
                                                 TextInput::make('costo_unitario')
                                                     ->label('Costo Unitario')
@@ -202,7 +231,7 @@ class KardexResource extends Resource
                                                     ->step(0.000001)
                                                     ->placeholder('0.00')
                                                     ->prefix(fn($get) => self::getSimboloMoneda('BOB'))
-                                                    ->helperText('Costo unitario del movimiento')
+                                                    ->helperText('Costo por unidad. En entradas alimenta FIFO; en salidas se usa para valorar la operación.')
                                                     ->reactive()
                                                     ->afterStateUpdated(function ($state, callable $set, $get) {
                                                         $cantidad = floatval($get('cantidad') ?? 0);
@@ -221,18 +250,50 @@ class KardexResource extends Resource
                                                     ->helperText('Costo total del movimiento')
                                                     ->disabled(),
 
+                                            ]),
+
+                                        Section::make('Trazabilidad del origen')
+                                            ->icon('heroicon-o-link')
+                                            ->description('Relaciona este movimiento con la operación que lo originó. Para movimientos manuales deja Tipo en manual e ID en 0.')
+                                            ->schema([
+                                                Grid::make(3)
+                                                    ->schema([
+                                                        TextInput::make('documento_tipo')
+                                                            ->label('Tipo de documento')
+                                                            ->default('manual')
+                                                            ->maxLength(50)
+                                                            ->placeholder('venta, compra, ajuste...')
+                                                            ->helperText('Módulo de origen, por ejemplo venta, recepcion o transferencia.')
+                                                            ->prefixIcon('heroicon-o-link'),
+
+                                                        TextInput::make('documento_id')
+                                                            ->label('ID del documento')
+                                                            ->numeric()
+                                                            ->default(0)
+                                                            ->minValue(0)
+                                                            ->helperText('Identificador interno del documento origen.')
+                                                            ->prefixIcon('heroicon-o-hashtag'),
+
+                                                        TextInput::make('documento_detalle_id')
+                                                            ->label('ID del detalle')
+                                                            ->numeric()
+                                                            ->minValue(0)
+                                                            ->helperText('Úsalo cuando el movimiento corresponde a una línea específica.')
+                                                            ->prefixIcon('heroicon-o-list-bullet'),
+                                                    ]),
+
                                                 TextInput::make('documento_codigo')
-                                                    ->label('Documento Origen')
-                                                    ->maxLength(50)
-                                                    ->placeholder('OC-001, VTA-001, etc.')
-                                                    ->helperText('Código del documento origen')
+                                                    ->label('Código visible del documento')
+                                                    ->maxLength(100)
+                                                    ->placeholder('FAC-26-0001, REC-26-0001...')
+                                                    ->helperText('Código que permite encontrar rápidamente el documento en Ventas, Compras o Inventario.')
                                                     ->prefixIcon('heroicon-o-document-text'),
                                             ]),
                                     ]),
 
                                 Section::make('Saldos y Costos')
                                     ->icon('heroicon-o-chart-bar')
-                                    ->description('Saldos y costos antes y después del movimiento')
+                                    ->description('Consulta el impacto calculado antes de guardar. El saldo posterior debe coincidir con la operación física.')
                                     ->schema([
                                         Grid::make(4)
                                             ->schema([
@@ -257,13 +318,13 @@ class KardexResource extends Resource
                                                         $almacenId = $get('almacen_id');
                                                         $cantidad = floatval($get('cantidad') ?? 0);
                                                         $direccion = $get('direccion');
-                                                        
+
                                                         if ($articuloId && $almacenId) {
                                                             $existencia = \App\Models\Inventario\Existencia::where('articulo_id', $articuloId)
                                                                 ->where('almacen_id', $almacenId)
                                                                 ->first();
                                                             $saldoActual = $existencia?->cantidad_disponible ?? 0;
-                                                            
+
                                                             if ($direccion === 'entrada') {
                                                                 return number_format($saldoActual + $cantidad, 2);
                                                             } elseif ($direccion === 'salida') {
@@ -305,6 +366,7 @@ class KardexResource extends Resource
 
                                 Section::make('Información Adicional')
                                     ->icon('heroicon-o-clipboard-document')
+                                    ->description('Deja evidencia suficiente para que otra persona pueda revisar o revertir el movimiento.')
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
@@ -319,13 +381,14 @@ class KardexResource extends Resource
                                                     ->default('confirmado')
                                                     ->required()
                                                     ->searchable()
-                                                    ->prefixIcon('heroicon-o-tag'),
+                                                    ->prefixIcon('heroicon-o-tag')
+                                                    ->helperText('Pendiente requiere revisión; Confirmado actualiza el inventario; Anulado conserva el historial sin efecto vigente.'),
 
                                                 TextInput::make('motivo')
                                                     ->label('Motivo')
                                                     ->maxLength(255)
                                                     ->placeholder('Motivo del movimiento...')
-                                                    ->helperText('Motivo o razón del movimiento')
+                                                    ->helperText('Indica por qué se realizó, especialmente en ajustes, mermas, despachos y devoluciones.')
                                                     ->prefixIcon('heroicon-o-document-text'),
                                             ]),
 
@@ -333,7 +396,7 @@ class KardexResource extends Resource
                                             ->label('Observaciones')
                                             ->rows(3)
                                             ->placeholder('Observaciones adicionales...')
-                                            ->helperText('Información adicional sobre el movimiento')
+                                            ->helperText('Añade evidencia, número de acta, responsable, lote, pedido u otra referencia útil para auditoría.')
                                             ->columnSpanFull(),
                                     ]),
                             ]),
@@ -407,7 +470,7 @@ class KardexResource extends Resource
 
                 BadgeColumn::make('tipo_movimiento')
                     ->label('Tipo')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'compra' => 'Compra',
                         'venta' => 'Venta',
                         'transferencia_entrada' => 'Transf. Ent.',
@@ -504,7 +567,7 @@ class KardexResource extends Resource
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'pendiente' => 'Pendiente',
                         'confirmado' => 'Confirmado',
                         'cancelado' => 'Cancelado',
@@ -639,10 +702,18 @@ class KardexResource extends Resource
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->action(function ($record) {
-                            $record->update(['estado' => 'anulado']);
+                        ->modalHeading('Revertir movimiento')
+                        ->modalSubheading('Se creará un movimiento compensatorio y se actualizarán las existencias.')
+                        ->form([
+                            Textarea::make('motivo')
+                                ->label('Motivo')
+                                ->required()
+                                ->maxLength(500),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $record->revertirMovimiento($data['motivo']);
                             Notification::make()
-                                ->title('Movimiento anulado')
+                                ->title('Movimiento revertido')
                                 ->warning()
                                 ->send();
                         })
@@ -651,12 +722,7 @@ class KardexResource extends Resource
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            // ->bulkActions([
-            //     Tables\Actions\BulkActionGroup::make([
-            //         Tables\Actions\DeleteBulkAction::make()
-            //             ->visible(fn($records) => $records->every(fn($record) => $record->estado === 'pendiente')),
-            //     ]),
-            // ])
+
             ->defaultSort('fecha_movimiento', 'desc')
             ->searchPlaceholder('Buscar en kardex...')
             ->emptyStateHeading('No hay movimientos registrados')
