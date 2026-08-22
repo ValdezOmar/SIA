@@ -2,21 +2,19 @@
 
 namespace App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
 
-use App\Models\RRHH\PerfilEmpleado;
-use Illuminate\Support\Facades\Auth;
-use Filament\Resources\Pages\ViewRecord;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
-use Filament\Forms\Form;
-use Filament\Forms\Components\Grid;
+use App\Models\RRHH\PerfilEmpleado;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Field;
+use Filament\Forms\Form;
+use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class ViewPerfilEmpleado extends ViewRecord
@@ -24,12 +22,13 @@ class ViewPerfilEmpleado extends ViewRecord
     protected static string $resource = PerfilEmpleadoResource::class;
 
     protected static ?string $title = 'Mi Perfil';
+
     public ?array $ubicacion_gps;
 
     public function mount(int|string $record): void
     {
         $user = Auth::user();
-        $empleado = PerfilEmpleado::where('correo_corporativo', $user->email)->first();
+        $empleado = PerfilEmpleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
 
         abort_unless($empleado && $empleado->id == $record, 403);
 
@@ -39,18 +38,18 @@ class ViewPerfilEmpleado extends ViewRecord
     public static function canAccess(array $parameters = []): bool
     {
         $user = Auth::user();
-        $empleado = PerfilEmpleado::where('correo_corporativo', $user->email)->first();
+        $empleado = PerfilEmpleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
 
         return $empleado !== null;
     }
 
     // Sobrescribe el método can() para ignorar los permisos
-    public static function can(\Filament\Resources\Resource | string $resource): bool
+    public static function can(\Filament\Resources\Resource|string $resource): bool
     {
         return true;
     }
 
-    //Este formulario es el que se muestra en la seccion derecha superior en MI PERFIL
+    // Este formulario es el que se muestra en la seccion derecha superior en MI PERFIL
     public function form(Form $form): Form
     {
         return $form
@@ -80,20 +79,20 @@ class ViewPerfilEmpleado extends ViewRecord
                                     display: flex; /* Para centrado vertical si es necesario */
                                     justify-content: center;
                                 ',
-                                'class' => 'flex flex-col items-center' // Clases de Tailwind para respaldo
+                                'class' => 'flex flex-col items-center', // Clases de Tailwind para respaldo
                             ])
                             ->imageCropAspectRatio('1:1')  // Relación de aspecto cuadrada
-                            ->default(fn($record) => $record?->foto)
-                            ->alignCenter()                            
+                            ->default(fn ($record) => $record?->foto)
+                            ->alignCenter()
                             ->placeholder(function ($get) {
                                 // Si no hay foto, mostrar iniciales con avatar por defecto
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
-                                $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
+                                $iniciales = substr($nombres, 0, 1).substr($apellidos, 0, 1);
 
                                 return view('filament.forms.components.avatar-placeholder', [
                                     'iniciales' => $iniciales ?: 'NA',
-                                    'defaultImage' => asset('images/default-avatar.jpg')
+                                    'defaultImage' => asset('images/default-avatar.jpg'),
                                 ]);
                             }),
 
@@ -101,24 +100,24 @@ class ViewPerfilEmpleado extends ViewRecord
                             ->schema([
                                 Placeholder::make('nombre_completo')
                                     ->label('Nombre Empleado:')
-                                    ->content(fn($get) => $get('nombres') . ' ' . $get('apellidos'))
+                                    ->content(fn ($get) => $get('nombres').' '.$get('apellidos'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('ci/dni')
                                     ->label('CI/DNI:')
-                                    ->content(fn($get) => ' ' . $get('ci'))
+                                    ->content(fn ($get) => ' '.$get('ci'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold']),
 
                                 Placeholder::make('email')
                                     ->label('Email empresa:')
-                                    ->content(fn($get) => ' ' . $get('correo_corporativo'))
+                                    ->content(fn (?PerfilEmpleado $record): string => ' '.($record?->historialActivo?->correo_corporativo ?? 'Sin asignar'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('numero_coporativo')
                                     ->label('Teléfono Corporativo:')
-                                    ->content(fn($get) => ' ' . $get('numero_corporativo'))
+                                    ->content(fn (?PerfilEmpleado $record): string => ' '.($record?->historialActivo?->numero_corporativo ?? 'Sin asignar'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold']),
                             ])
                             ->columnSpan(['md' => 2, 'lg' => 1])
@@ -160,12 +159,12 @@ class ViewPerfilEmpleado extends ViewRecord
                             ->hint('Nacionalidad del empleado')
                             ->hintIcon('heroicon-o-flag'),
 
-                        //croquis
+                        // croquis
                         Fieldset::make('Direccion y croquis de domicilio')
                             ->schema([
                                 TextInput::make('direccion')
                                     ->label('Dirección completa'),
-                                // Campo para el mapa (interactivo)                                
+                                // Campo para el mapa (interactivo)
                                 Field::make('ubicacion_gps')
                                     ->label('Ubicación GPS')
                                     ->view('filament.forms.components.map-picker')
@@ -175,14 +174,17 @@ class ViewPerfilEmpleado extends ViewRecord
                                             try {
                                                 $result = json_decode($state, true) ?? ['lat' => -16.504759, 'lng' => -68.119124];
                                                 Log::debug('Transformación de string a array:', $result);
+
                                                 return $result;
                                             } catch (\Exception $e) {
                                                 Log::error('Error decodificando JSON:', ['error' => $e->getMessage()]);
+
                                                 return ['lat' => -16.504759, 'lng' => -68.119124];
                                             }
                                         }
 
                                         $result = is_array($state) ? $state : ['lat' => -16.504759, 'lng' => -68.119124];
+
                                         return $result;
                                     })
                                     ->dehydrateStateUsing(function ($state) {
@@ -239,32 +241,39 @@ class ViewPerfilEmpleado extends ViewRecord
                 // Sección de datos laborales
                 Section::make('Datos Laborales')
                     ->schema([
-                        DatePicker::make('fecha_ingreso')
+                        Placeholder::make('fecha_ingreso')
                             ->label('Fecha de Ingreso')
+                            ->content(fn (?PerfilEmpleado $record): string => $record?->historialActivo?->fecha_inicio?->format('d/m/Y') ?? 'Sin contrato activo')
                             ->hint('Fecha en que el empleado se incorporó a la empresa')
                             ->hintIcon('heroicon-o-calendar'),
 
-                        TextInput::make('empresa')
+                        Placeholder::make('empresa')
+                            ->label('Empresa')
+                            ->content(fn (?PerfilEmpleado $record): string => $record?->historialActivo?->empresa?->razon_social ?? 'Sin asignar')
                             ->hint('Empresa a la que pertenece el empleado')
                             ->hintIcon('heroicon-o-building-library'),
 
-                        TextInput::make('cargo')
+                        Placeholder::make('cargo')
                             ->label('Cargo')
+                            ->content(fn (?PerfilEmpleado $record): string => $record?->historialActivo?->cargo?->nombre ?? 'Sin asignar')
                             ->hint('Puesto o función actual del empleado')
                             ->hintIcon('heroicon-o-briefcase'),
 
-                        TextInput::make('sucursal')
-                            ->label('Sucursal/Departamento'),
+                        Placeholder::make('sucursal')
+                            ->label('Sucursal/Departamento')
+                            ->content(fn (?PerfilEmpleado $record): string => $record?->historialActivo?->sucursal?->nombre ?? 'Sin asignar'),
 
                         Fieldset::make('Contacto empresarial')
                             ->schema([
-                                TextInput::make('correo_corporativo')
+                                Placeholder::make('correo_corporativo')
                                     ->label('Correo Corporativo')
+                                    ->content(fn (?PerfilEmpleado $record): string => $record?->historialActivo?->correo_corporativo ?? 'Sin asignar')
                                     ->hint('Correo electrónico asignado por la empresa')
                                     ->hintIcon('heroicon-o-envelope'),
 
-                                TextInput::make('numero_corporativo')
+                                Placeholder::make('numero_corporativo')
                                     ->label('Teléfono Corporativo')
+                                    ->content(fn (?PerfilEmpleado $record): string => $record?->historialActivo?->numero_corporativo ?? 'Sin asignar')
                                     ->hint('Teléfono proporcionado por la empresa')
                                     ->hintIcon('heroicon-o-phone'),
                             ])
@@ -283,8 +292,9 @@ class ViewPerfilEmpleado extends ViewRecord
                                     ->hint('Afiliación al seguro social')
                                     ->hintIcon('heroicon-o-shield-check'),
 
-                                TextInput::make('caja_salud')
+                                Placeholder::make('caja_salud')
                                     ->label('Caja de Salud')
+                                    ->content(fn (?PerfilEmpleado $record): string => $record?->historialActivo?->seguro_medico ?? 'Sin asignar')
                                     ->hint('Caja de salud a la que está afiliado')
                                     ->hintIcon('heroicon-o-heart'),
                             ])

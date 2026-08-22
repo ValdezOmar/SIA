@@ -12,17 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('rh_empleados', function (Blueprint $table) {
-            //Información Básica del Empleado
-            $table->id(); 
+            // Información Básica del Empleado
+            $table->id();
             $table->string('nombres');
             $table->string('apellidos');
-            $table->string('ci')->unique(); // Cédula de identidad            
+            $table->string('ci')->unique(); // Cédula de identidad
             $table->date('fecha_nacimiento')->nullable();
             $table->string('direccion')->nullable();
             $table->json('ubicacion_gps')->nullable();
             $table->string('genero')->nullable(); // hombre, mujer, otro
             $table->string('nacionalidad')->default('Boliviana');
-            //Datos Personales Adicionales
+            // Datos Personales Adicionales
             $table->string('estado_civil')->nullable();
             $table->integer('cantidad_hijos')->nullable();
             $table->string('telefono_personal')->nullable();
@@ -30,22 +30,12 @@ return new class extends Migration
             $table->string('persona_contacto')->nullable(); // persona en caso de emergencia
             $table->string('numero_contacto')->nullable(); // número de emergencia
             $table->string('persona_parentesco')->nullable(); // persona en caso de emergencia
-            $table->string('nua_cua')->nullable();            
-            //Datos Laborales
-            $table->boolean('activo')->default(true); // si sigue en la empresa
+            $table->string('nua_cua')->nullable();
+            // Estado y archivos propios del empleado. La información laboral vive en rh_historial_laboral.
+            $table->boolean('activo')->default(true);
             $table->string('foto')->nullable();
-            $table->date('fecha_ingreso')->nullable();
-            $table->date('fecha_desvinculacion')->nullable();
-            $table->string('estado_contrato')->nullable();
             $table->string('afp')->nullable();
-            $table->string('caja_salud')->nullable();            
-            $table->string('correo_corporativo')->nullable();
-            $table->string('numero_corporativo')->nullable();
-            $table->string('cargo')->nullable(); // cargo actual
-            $table->string('sucursal')->nullable(); // departamento donde trabaja
-            $table->string('empresa')->nullable();    
-            $table->decimal('salario', 10, 2)->nullable();                   
-            //Control
+            // Control
             $table->timestamps();
         });
     }

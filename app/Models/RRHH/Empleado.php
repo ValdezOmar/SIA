@@ -2,9 +2,6 @@
 
 namespace App\Models\RRHH;
 
-use App\Models\Sistema\Cargo;
-use App\Models\Sistema\Empresa;
-use App\Models\Sistema\Sucursal;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -37,27 +34,13 @@ class Empleado extends Model
         'persona_parentesco',
         'nua_cua',
 
-        // Datos Laborales
+        // Estado y archivos propios del empleado
         'activo',
-        'foto',
-        'fecha_ingreso',
-        'fecha_desvinculacion',
-        'estado_contrato',
         'afp',
-        'caja_salud',
-        'correo_corporativo',
-        'numero_corporativo',
-        'cargo',
-        'sucursal',
-        'empresa',
-        'salario', // Nuevo campo
     ];
 
     protected $casts = [
-        'salario' => 'float',
         'ubicacion_gps' => 'array', // Para almacenar coordenadas como JSON
-        'fecha_ingreso' => 'date',
-        'fecha_desvinculacion' => 'date',
     ];
 
     // protected $appends = ['foto_url', 'coordenadas'];
@@ -110,12 +93,6 @@ class Empleado extends Model
         ] : null;
     }
 
-    // Verificacion de email de empleado
-    public function user()
-    {
-        return $this->belongsTo(\App\Models\User::class, 'correo_corporativo', 'email');
-    }
-
     // Modelo de comprovaciond de foto
     protected static function boot()
     {
@@ -128,32 +105,9 @@ class Empleado extends Model
         });
     }
 
-    // relaciones
-    public function empresa()
-    {
-        return $this->belongsTo(Empresa::class, 'empresa', 'id');
-    }
-
-    public function sucursal()
-    {
-        return $this->belongsTo(Sucursal::class, 'sucursal', 'id');
-    }
-
     public function historialLaboral()
     {
         return $this->hasMany(HistorialLaboral::class, 'empleado_id');
-    }
-
-    // Accesor para obtener el nombre de la empresa
-    public function getEmpresaNombreAttribute()
-    {
-        return $this->empresa ? $this->empresa->razon_social : 'Sin empresa';
-    }
-
-    // Accesor para obtener el nombre de la sucursal
-    public function getSucursalNombreAttribute()
-    {
-        return $this->sucursal ? $this->sucursal->nombre : 'Sin sucursal';
     }
 
     // Historial de personal
@@ -161,11 +115,5 @@ class Empleado extends Model
     {
         return $this->hasOne(HistorialLaboral::class, 'empleado_id')
             ->where('activo', true);
-    }
-
-    // Cargo del empleado
-    public function cargo()
-    {
-        return $this->belongsTo(\App\Models\Sistema\Cargo::class, 'cargo', 'id');
     }
 }

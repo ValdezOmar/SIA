@@ -6,60 +6,63 @@ use App\Filament\Resources\RRHH\EmpleadoResource\Pages;
 use App\Filament\Resources\RRHH\EmpleadoResource\RelationManagers\HistorialLaboralRelationManager;
 use App\Models\RRHH\Empleado;
 use App\Models\RRHH\HistorialLaboral;
-use App\Models\Sistema\Cargo;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
-use Filament\Tables\Columns\ImageColumn;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
-use Filament\Forms\Components\Field;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Filament\Notifications\Notification;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Carbon\Carbon;
-use Filament\Actions\CreateAction;
-use Filament\Forms\Components\Repeater;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Components\Textarea;
-use Illuminate\Support\Facades\DB;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Components\Actions\Action;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
-use Illuminate\Support\Facades\Storage;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class EmpleadoResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Empleado::class;
+
     protected static array $tempEmpleadoData = [];
+
     protected static ?string $navigationIcon = 'heroicon-o-users';
-    protected static ?string $modelLabel = 'Empleados'; //Seccion para configurar el nombre en Filament-Shield
+
+    protected static ?string $modelLabel = 'Empleados'; // Seccion para configurar el nombre en Filament-Shield
+
     protected static ?string $pluralModelLabel = 'Listado de Empleados';
+
     protected static ?string $navigationLabel = 'Empleados';
+
     protected static ?string $navigationGroup = 'Recursos Humanos';
+
     protected static ?int $navigationSort = 1;
 
-    //Formulario de creacion edicion de empleados
+    // Formulario de creacion edicion de empleados
     public static function form(Form $form): Form
     {
         return $form
@@ -86,7 +89,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
 
                             ->extraAttributes([
                                 'class' => 'avatar-upload',
-                                'style' => 'width: 300px; height: 300px; margin: 0 auto; display: flex; justify-content: center;'
+                                'style' => 'width: 300px; height: 300px; margin: 0 auto; display: flex; justify-content: center;',
                             ])
 
                             ->rules([
@@ -96,27 +99,29 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             ])
 
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
-                                $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_' . uniqid();
-                                return $ci . '.' . $file->getClientOriginalExtension();
+                                $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_'.uniqid();
+
+                                return $ci.'.'.$file->getClientOriginalExtension();
                             })
 
-                            ->default(fn($record) => $record?->foto)
+                            ->default(fn ($record) => $record?->foto)
 
                             ->placeholder(function ($get) {
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
-                                $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
+                                $iniciales = substr($nombres, 0, 1).substr($apellidos, 0, 1);
 
                                 return view('filament.forms.components.avatar-placeholder', [
                                     'iniciales' => $iniciales ?: 'NA',
-                                    'defaultImage' => asset('images/default-avatar.jpg')
+                                    'defaultImage' => asset('images/default-avatar.jpg'),
                                 ]);
                             })
 
                             // Eliminar foto anterior al actualizar
                             ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
-                                $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_' . uniqid();
-                                return $ci . '.' . $file->getClientOriginalExtension();
+                                $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_'.uniqid();
+
+                                return $ci.'.'.$file->getClientOriginalExtension();
                             })
                             ->saveUploadedFileUsing(function (
                                 TemporaryUploadedFile $file,
@@ -133,7 +138,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                 // Guardar nuevo archivo (ya copiado)
                                 return $file->storePubliclyAs(
                                     'empleados',
-                                    $get('ci') . '.' . $file->getClientOriginalExtension(),
+                                    $get('ci').'.'.$file->getClientOriginalExtension(),
                                     'public'
                                 );
                             }),
@@ -142,34 +147,36 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             ->schema([
                                 Placeholder::make('nombre_completo')
                                     ->label('Nombre:')
-                                    ->content(fn($get) => $get('nombres') . ' ' . $get('apellidos'))
+                                    ->content(fn ($get) => $get('nombres').' '.$get('apellidos'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('ci/dni')
                                     ->label('CI/DNI:')
-                                    ->content(fn($get) => ' ' . $get('ci'))
+                                    ->content(fn ($get) => ' '.$get('ci'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('email')
                                     ->label('Email:')
-                                    ->content(fn($get) => ' ' . $get('correo_corporativo'))
+                                    ->content(fn (?Empleado $record): string => ' '.($record?->historialActivo?->correo_corporativo ?? 'Sin asignar'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('numero_corporativo')
                                     ->label('Teléfono:')
-                                    ->content(fn($get) => ' ' . $get('numero_corporativo'))
+                                    ->content(fn (?Empleado $record): string => ' '.($record?->historialActivo?->numero_corporativo ?? 'Sin asignar'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Toggle::make('activo')
-                                    ->label(fn($state) => $state ? 'Empleado Activo' : 'Empleado Inactivo')
+                                    ->label(fn ($state) => $state ? 'Empleado Activo' : 'Empleado Inactivo')
                                     ->live()
                                     ->reactive()
                                     ->afterStateUpdated(function ($state, $set, $get, $record) {
-                                        if (!$record) return;
+                                        if (! $record) {
+                                            return;
+                                        }
                                         $record->activo = $state;
                                         $record->save();
                                     })
@@ -186,6 +193,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                             $tieneHistorialActivo = HistorialLaboral::where('empleado_id', $record->id)
                                                 ->where('activo', true)
                                                 ->exists();
+
                                             return $tieneHistorialActivo;
                                         })
                                         ->color('danger')
@@ -242,7 +250,6 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                                 // Marcar empleado como inactivo
                                                 $empleado->update([
                                                     'activo' => false,
-                                                    'fecha_desvinculacion' => now(),
                                                 ]);
                                             });
 
@@ -260,10 +267,10 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->columns(['md' => 2, 'lg' => 2])
                     ->columnSpan('full'),
 
-                //Secciones organizadas en Tabs
+                // Secciones organizadas en Tabs
                 Tabs::make('Información del Empleado')
                     ->tabs([
-                        //TAB PERSONAL
+                        // TAB PERSONAL
                         Tab::make('Personal')
                             ->icon('heroicon-o-user')
                             ->schema([
@@ -274,7 +281,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                             ->maxLength(255)
                                             ->afterStateUpdated(function ($state, Set $set) {
                                                 // Convertir a minúscula y luego primera letra de cada palabra a mayúscula
-                                                $formatted = mb_convert_case(trim($state), MB_CASE_TITLE, "UTF-8");
+                                                $formatted = mb_convert_case(trim($state), MB_CASE_TITLE, 'UTF-8');
                                                 $set($formatted, true); // segundo argumento true para que se aplique correctamente
                                             }),
 
@@ -282,7 +289,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                             ->required()
                                             ->maxLength(255)
                                             ->afterStateUpdated(function ($state, Set $set) {
-                                                $formatted = mb_convert_case(trim($state), MB_CASE_TITLE, "UTF-8");
+                                                $formatted = mb_convert_case(trim($state), MB_CASE_TITLE, 'UTF-8');
                                                 $set($formatted, true);
                                             }),
 
@@ -290,7 +297,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                             ->required()
                                             ->unique(ignoreRecord: true)
                                             ->label('Cédula de Identidad')
-                                            //->hint('Número único de identificación')
+                                            // ->hint('Número único de identificación')
                                             ->hintIcon('heroicon-o-identification'),
 
                                         DatePicker::make('fecha_nacimiento')
@@ -311,7 +318,6 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                             ->hint('Nacionalidad')
                                             ->hintIcon('heroicon-o-flag'),
 
-
                                     ])
                                     ->columns(3),
                                 Fieldset::make('Direccion y croquis de domicilio')
@@ -322,7 +328,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                             ->hint('Busque en el mapa la ubicacion de su domicilio')
                                             ->hintIcon('heroicon-o-exclamation-triangle'),
 
-                                        // Campo para el mapa (interactivo)                                
+                                        // Campo para el mapa (interactivo)
                                         Field::make('ubicacion_gps')
                                             ->label('Ubicación GPS')
                                             ->view('filament.forms.components.map-picker'),
@@ -364,7 +370,6 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                             ->default('Gestora Pública')
                                             ->hintIcon('heroicon-o-banknotes'),
 
-
                                     ])
                                     ->columns(3),
                                 Fieldset::make('Contacto de Emergencia')
@@ -393,28 +398,29 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
         $user = Auth::user();
 
         $baseQuery = Empleado::query()
-            ->with(['empresa', 'sucursal']);
+            ->with(['historialActivo.empresa', 'historialActivo.sucursal', 'historialActivo.cargo']);
         // ->orderBy('rh_empleados.created_at', 'desc')
         // ->orderBy('rh_empleados.apellidos')
         // ->orderBy('rh_empleados.nombres');
         // Verificar si el usuario tiene el permiso específico
         if ($user->can('ver_empleados_sucursal_r::r::h::h::empleado')) {
-            if (!$user->can('ver_empleados_todos_r::r::h::h::empleado')) {
+            if (! $user->can('ver_empleados_todos_r::r::h::h::empleado')) {
                 // Buscar el empleado que corresponde al usuario actual
-                $empleadoUsuario = Empleado::whereRaw('LOWER(correo_corporativo) = ?', [strtolower($user->email)])->first();
-                if ($empleadoUsuario && $empleadoUsuario->sucursal) {
+                $empleadoUsuario = Empleado::whereHas('historialActivo', fn (Builder $query) => $query->whereRaw('LOWER(correo_corporativo) = ?', [strtolower($user->email)]))->first();
+                $sucursalId = $empleadoUsuario?->historialActivo?->sucursal_id;
+                if ($sucursalId) {
                     // Filtrar por la sucursal del empleado-usuario
-                    $baseQuery->where('sucursal', $empleadoUsuario->sucursal);
+                    $baseQuery->whereHas('historialActivo', fn (Builder $query) => $query->where('sucursal_id', $sucursalId));
                 } else {
                     // Si no encuentra empleado o no tiene sucursal, no mostrar nada
                     $baseQuery->whereRaw('0 = 1');
                 }
             }
         } elseif ($user->can('ver_empleados_todos_r::r::h::h::empleado')) {
-            Log::info(" mostrando todos los empleados");
+            Log::info(' mostrando todos los empleados');
         }
 
-        //Contruccion de la tabla principal que muetre a los empleados
+        // Contruccion de la tabla principal que muetre a los empleados
         return $table
             ->query($baseQuery)
             ->columns([
@@ -422,16 +428,15 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->label('')
                     ->circular()
                     ->defaultImageUrl(
-                        fn($record) =>
-                        $record->foto
-                            ? asset('storage/' . $record->foto) . '?t=' . filemtime(storage_path('app/public/' . $record->foto))
+                        fn ($record) => $record->foto
+                            ? asset('storage/'.$record->foto).'?t='.filemtime(storage_path('app/public/'.$record->foto))
                             : asset('images/default-avatar.jpg')
                     ),
 
                 TextColumn::make('nombre_completo')
                     ->label('Datos del Empleado')
                     ->html()
-                    ->getStateUsing(fn($record) => "
+                    ->getStateUsing(fn ($record) => "
                         <div>
                             <strong>{$record->nombres}</strong><br>
                             <small>{$record->apellidos}<br>CI: {$record->ci}</small>
@@ -444,28 +449,26 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->badge()
                     ->color('primary')
                     ->description(
-                        fn(Empleado $record) =>
-                        $record->historialActivo?->sucursal?->nombre
+                        fn (Empleado $record) => $record->historialActivo?->sucursal?->nombre
                             ?? 'Sin sucursal'
                     ),
 
                 TextColumn::make('historialActivo.tipo_contrato')
                     ->label('Contrato')
                     ->badge()
-                    ->color(fn(?string $state): string => match ($state) {
-                        'Contrato plazo fijo'      => 'info',
-                        'Contrato indefinido'      => 'success',
-                        'Contrato por servicios'   => 'warning',
-                        'Contrato por obra'        => 'warning',
-                        'Planta'                   => 'success',
-                        'Pasante'                  => 'gray',
-                        'Periodo de prueba'        => 'danger',
-                        'Otro'                     => 'danger',
-                        default                    => 'gray',
+                    ->color(fn (?string $state): string => match ($state) {
+                        'Contrato plazo fijo' => 'info',
+                        'Contrato indefinido' => 'success',
+                        'Contrato por servicios' => 'warning',
+                        'Contrato por obra' => 'warning',
+                        'Planta' => 'success',
+                        'Pasante' => 'gray',
+                        'Periodo de prueba' => 'danger',
+                        'Otro' => 'danger',
+                        default => 'gray',
                     })
                     ->description(
-                        fn(Empleado $record) =>
-                        $record->historialActivo?->cargo?->nombre
+                        fn (Empleado $record) => $record->historialActivo?->cargo?->nombre
                             ?? 'Sin cargo'
                     ),
 
@@ -481,8 +484,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->default('Indefinido')
 
                     ->getStateUsing(
-                        fn($record) =>
-                        $record->historialActivo?->fecha_fin
+                        fn ($record) => $record->historialActivo?->fecha_fin
                     )
 
                     ->formatStateUsing(function ($state, $record) {
@@ -495,16 +497,16 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         $fechaFin = Carbon::parse($state);
                         $fechaFormateada = $fechaFin->format('d/m/Y');
 
-                        if (!$record->activo) {
+                        if (! $record->activo) {
                             return $fechaFormateada;
                         }
 
                         $diasRestantes = Carbon::today()->diffInDays($fechaFin, false);
 
                         return match (true) {
-                            $diasRestantes < 0   => "{$fechaFormateada} (Vencido)",
+                            $diasRestantes < 0 => "{$fechaFormateada} (Vencido)",
                             $diasRestantes <= 15 => "{$fechaFormateada} (Faltan {$diasRestantes} días)",
-                            default              => $fechaFormateada,
+                            default => $fechaFormateada,
                         };
                     })
 
@@ -514,7 +516,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             return 'primary';
                         }
 
-                        if (!$record->activo) {
+                        if (! $record->activo) {
                             return 'gray';
                         }
 
@@ -522,10 +524,10 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         $diasRestantes = Carbon::today()->diffInDays($fechaFin, false);
 
                         return match (true) {
-                            $diasRestantes < 0   => 'danger',
+                            $diasRestantes < 0 => 'danger',
                             $diasRestantes <= 15 => 'warning',
                             $diasRestantes > 15 => 'success',
-                            default              => 'gray',
+                            default => 'gray',
                         };
                     }),
 
@@ -533,53 +535,34 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->label('Salario')
                     ->money('BOB'),
 
-                // TextColumn::make('fecha_ingreso')
-                //     ->label('Fechas')
-                //     ->formatStateUsing(function ($record) {
-                //         $textoFechaIngreso = $record->fecha_ingreso?->format('d/m/Y') ?? 'Sin fecha';
-
-                //         if ($record->fecha_desvinculacion) {
-                //             $textoFechaDesvinculacion = $record->fecha_desvinculacion->format('d/m/Y');
-                //             return "<div>{$textoFechaIngreso}<br><span class='text-red-500 text-xs'>Desvinculado: {$textoFechaDesvinculacion}</span></div>";
-                //         }
-
-                //         return $textoFechaIngreso;
-                //     })
-                //     ->html()
-                //     ->sortable(),                
-
                 TextColumn::make('coordenadas.texto')
                     ->label('Ubicación Domicilio')
-                    ->url(fn($record) => isset($record->coordenadas['lat'], $record->coordenadas['lng'])
-                        ? 'https://www.google.com/maps?q=' . $record->coordenadas['lat'] . ',' . $record->coordenadas['lng']
+                    ->url(fn ($record) => isset($record->coordenadas['lat'], $record->coordenadas['lng'])
+                        ? 'https://www.google.com/maps?q='.$record->coordenadas['lat'].','.$record->coordenadas['lng']
                         : null)
                     ->openUrlInNewTab()
-                    ->getStateUsing(fn($record) => isset($record->coordenadas['lat'], $record->coordenadas['lng'])
+                    ->getStateUsing(fn ($record) => isset($record->coordenadas['lat'], $record->coordenadas['lng'])
                         ? '🗺️ Ver Croquis'
                         : '❌ Sin Croquis')
                     ->toggleable(isToggledHiddenByDefault: false),
-                        
+
                 IconColumn::make('historialActivo.documento')
                     ->label('Documento')
                     ->getStateUsing(
-                        fn($record) =>
-                        filled($record->historialActivo?->documento)
+                        fn ($record) => filled($record->historialActivo?->documento)
                     )
                     ->icon(
-                        fn(bool $state) =>
-                        $state
+                        fn (bool $state) => $state
                             ? 'heroicon-o-document-text'
                             : 'heroicon-o-x-circle'
                     )
                     ->color(
-                        fn(bool $state) =>
-                        $state
+                        fn (bool $state) => $state
                             ? 'success'   // verde cuando tiene archivo
                             : 'gray'      // gris cuando no tiene
                     )
                     ->tooltip(
-                        fn(bool $state) =>
-                        $state
+                        fn (bool $state) => $state
                             ? 'Documento adjunto'
                             : 'Sin documento'
                     )
@@ -605,10 +588,10 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->label('Creación')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
 
-            //Filtros de Busqueda
+            // Filtros de Busqueda
             ->filters([
                 // Filtro por empresa del historial laboral activo
                 SelectFilter::make('empresa_id')
@@ -619,7 +602,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             ->toArray();
                     })
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
+                        if (! empty($data['value'])) {
                             $query->whereHas('historialActivo', function (Builder $q) use ($data) {
                                 $q->where('empresa_id', $data['value']);
                             });
@@ -630,17 +613,17 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                 SelectFilter::make('estado_contrato')
                     ->label('Tipo de Contrato')
                     ->options([
-                        'Contrato plazo fijo'      => 'Contrato plazo fijo',
-                        'Contrato indefinido'      => 'Contrato indefinido',
-                        'Contrato por servicios'   => 'Contrato por servicios',
-                        'Contrato por obra'        => 'Contrato por obra',
-                        'Planta'                   => 'Planta',
-                        'Pasante'                  => 'Pasante',
-                        'Periodo de prueba'        => 'Periodo de prueba',
-                        'Otro'                     => 'Otro tipo',
+                        'Contrato plazo fijo' => 'Contrato plazo fijo',
+                        'Contrato indefinido' => 'Contrato indefinido',
+                        'Contrato por servicios' => 'Contrato por servicios',
+                        'Contrato por obra' => 'Contrato por obra',
+                        'Planta' => 'Planta',
+                        'Pasante' => 'Pasante',
+                        'Periodo de prueba' => 'Periodo de prueba',
+                        'Otro' => 'Otro tipo',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
+                        if (! empty($data['value'])) {
                             $query->whereHas('historialActivo', function (Builder $q) use ($data) {
                                 $q->where('tipo_contrato', $data['value']);
                             });
@@ -662,7 +645,8 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
             ->defaultPaginationPageOption(100)
             ->striped();
     }
-    //Invoca el eager para el historial en la tabla   
+
+    // Invoca el eager para el historial en la tabla
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
@@ -671,7 +655,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                 'historialActivo.empresa',
                 'historialActivo.sucursal',
             ]);
-        //->orderByDesc('created_at');
+        // ->orderByDesc('created_at');
     }
 
     public static function getTempEmpleadoData(): array
@@ -679,24 +663,26 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
         return static::$tempEmpleadoData;
     }
 
-    //Permisos personalizados de filament shield
+    // Permisos personalizados de filament shield
     public static function getPermissionPrefixes(): array
     {
         return [
-            'view_any',    // los permisos del Shield usuales       
+            'view_any',    // los permisos del Shield usuales
             'create',
             'update',
             'ver_empleados_sucursal',
-            'ver_empleados_todos'
+            'ver_empleados_todos',
         ];
     }
-    //Relaciones 
+
+    // Relaciones
     public static function getRelations(): array
     {
         return [
             HistorialLaboralRelationManager::class,
         ];
     }
+
     public static function getPages(): array
     {
         return [

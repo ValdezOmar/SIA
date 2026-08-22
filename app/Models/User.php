@@ -3,16 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use Filament\Models\Contracts\HasAvatar;
 
 class User extends Authenticatable implements HasAvatar
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -52,12 +52,21 @@ class User extends Authenticatable implements HasAvatar
             'password' => 'hashed',
         ];
     }
-    //Relacion de usuario empleado para edicion de perfil
+
+    // Relacion de usuario empleado para edicion de perfil
     public function empleado()
     {
-        return $this->hasOne(\App\Models\RRHH\Empleado::class, 'correo_corporativo', 'email');
+        return $this->hasOneThrough(
+            \App\Models\RRHH\Empleado::class,
+            \App\Models\RRHH\HistorialLaboral::class,
+            'correo_corporativo',
+            'id',
+            'email',
+            'empleado_id',
+        )->where('rh_historial_laboral.activo', true);
     }
-    //Asociacion de foto de perfil con avatar
+
+    // Asociacion de foto de perfil con avatar
     public function getFilamentAvatarUrl(): ?string
     {
         return $this->empleado?->foto_url ?? asset('images/default-avatar.jpg');

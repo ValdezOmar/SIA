@@ -3,7 +3,7 @@
     $record = $getRecord();
 
     // Verificar permisos
-    if ($user->hasRole('Empleado') && $user->email !== $record->correo_corporativo) {
+    if ($user->hasRole('Empleado') && $user->email !== $record->historialActivo?->correo_corporativo) {
         echo '';
         return;
     }

@@ -51,7 +51,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
     public static function form(Form $form): Form
     {
         $user = Auth::user();
-        $empleado = Empleado::where('correo_corporativo', $user->email)->first();
+        $empleado = Empleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
         $ciEmpleado = $empleado ? $empleado->ci : null;
 
         return $form
@@ -244,7 +244,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 },
                 'asignacionesHorarioAsistencia.horario',
             ])
-            ->orderBy('sucursal')
             ->orderBy('nombres');
 
         // Verificar permisos en orden de prioridad
@@ -252,13 +251,14 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             // Puede ver todas las marcaciones → no se filtra nada más
         } elseif ($user->can('ver_marcacion_sucursal_r::r::h::h::asistencia')) {
             // Puede ver solo su sucursal
-            $empleadoUsuario = Empleado::where('correo_corporativo', $user->email)->first();
-            if ($empleadoUsuario && $empleadoUsuario->sucursal) {
-                $baseQuery->where('sucursal', $empleadoUsuario->sucursal);
+            $empleadoUsuario = Empleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
+            $sucursalId = $empleadoUsuario?->historialActivo?->sucursal_id;
+            if ($sucursalId) {
+                $baseQuery->whereHas('historialActivo', fn ($query) => $query->where('sucursal_id', $sucursalId));
             }
         } elseif ($user->can('ver_marcacion_propia_r::r::h::h::asistencia')) {
             // Puede ver solo sus propias marcaciones
-            $baseQuery->where('correo_corporativo', $user->email);
+            $baseQuery->whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email));
         } else {
             // No tiene permisos → retornar tabla vacía
             Log::debug('Sin permiso de acceso a asistencias!', [
@@ -524,8 +524,8 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                             $user = Auth::user();
 
                             if ($user->can('ver_marcacion_sucursal_r::r::h::h::asistencia')) {
-                                $empleadoUsuario = Empleado::where('correo_corporativo', $user->email)->first();
-                                $filtroSucursal = $empleadoUsuario->sucursal ?? null;
+                                $empleadoUsuario = Empleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
+                                $filtroSucursal = $empleadoUsuario?->historialActivo?->sucursal_id;
                             }
 
                             // Generar PDF con los mismos datos que la vista

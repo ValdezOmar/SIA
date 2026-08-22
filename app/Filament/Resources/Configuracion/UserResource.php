@@ -119,7 +119,7 @@ class UserResource extends Resource
                 Tables\Columns\TextColumn::make('empleado.full_name')
                     ->label('Perfil de empleado')
                     ->getStateUsing(fn (User $record): string => $record->empleado?->full_name ?? 'Sin vincular')
-                    ->description(fn (User $record): string => $record->empleado?->cargo?->nombre ?? 'El correo aún no coincide con un empleado')
+                    ->description(fn (User $record): string => $record->empleado?->historialActivo?->cargo?->nombre ?? 'El correo aún no coincide con un empleado')
                     ->icon(fn (User $record): string => $record->empleado ? 'heroicon-o-link' : 'heroicon-o-exclamation-circle')
                     ->iconColor(fn (User $record): string => $record->empleado ? 'success' : 'warning')
                     ->color(fn (User $record): string => $record->empleado ? 'success' : 'warning'),
@@ -172,7 +172,7 @@ class UserResource extends Resource
     {
         return parent::getEloquentQuery()->with([
             'roles',
-            'empleado.cargo',
+            'empleado.historialActivo.cargo',
         ]);
     }
 

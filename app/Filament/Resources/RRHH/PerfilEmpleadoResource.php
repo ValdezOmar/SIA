@@ -2,31 +2,37 @@
 
 namespace App\Filament\Resources\RRHH;
 
-use App\Models\RRHH\PerfilEmpleado;
-use Filament\Resources\Resource;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
-use Illuminate\Support\Facades\Auth;
+use App\Models\RRHH\PerfilEmpleado;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Filament\Resources\Resource;
+use Illuminate\Support\Facades\Auth;
 
 class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = PerfilEmpleado::class;
-    protected static ?string $modelLabel = 'Perfil del empleado'; //Seccion para configurar el nombre en Filament-Shield
+
+    protected static ?string $modelLabel = 'Perfil del empleado'; // Seccion para configurar el nombre en Filament-Shield
+
     protected static ?string $navigationIcon = 'heroicon-o-user-circle';
+
     protected static ?string $navigationLabel = 'Mi Perfil';
+
     protected static ?int $navigationSort = -1;
 
     // Este recurso no necesita listar ni crear registros
     public static function shouldRegisterNavigation(): bool
     {
         $user = Auth::user();
-        return PerfilEmpleado::where('correo_corporativo', $user->email)->exists();
+
+        return PerfilEmpleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->exists();
     }
 
-    //Busca parametro de empleado
+    // Busca parametro de empleado
     public static function getNavigationUrl(): string
     {
         $empleado = Auth::user()->empleado;
+
         return static::getUrl('edit', ['record' => $empleado?->getKey()]);
     }
 
@@ -35,7 +41,8 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
     {
         return 'mi_perfil_';
     }
-    //Rutas de dominio
+
+    // Rutas de dominio
     public static function getPages(): array
     {
         return [
@@ -44,11 +51,12 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
             'view' => Pages\ViewPerfilEmpleado::route('/{record}'),
         ];
     }
-    //Permisos personalizados de filament shield
+
+    // Permisos personalizados de filament shield
     public static function getPermissionPrefixes(): array
     {
         return [
-            'view_any',    // los permisos del Shield usuales                   
+            'view_any',    // los permisos del Shield usuales
             'update',
         ];
     }

@@ -2,24 +2,22 @@
 
 namespace App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
 
-use App\Models\RRHH\Empleado;
-use Illuminate\Support\Facades\Auth;
-use Filament\Resources\Pages\EditRecord;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
-use Filament\Forms\Form;
-use Filament\Forms\Components\Grid;
+use App\Models\RRHH\Empleado;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\Field;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Forms\Get;
-use Filament\Forms\Components\View;
-use Illuminate\Support\Facades\Log;
-use Filament\Actions\Action;
+use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class EditPerfilEmpleado extends EditRecord
@@ -27,9 +25,10 @@ class EditPerfilEmpleado extends EditRecord
     protected static string $resource = PerfilEmpleadoResource::class;
 
     protected static ?string $title = 'Mi Perfil';
+
     public ?array $ubicacion_gps = null;
 
-    //Funcion para guardar el array de gps
+    // Funcion para guardar el array de gps
     public function mutateFormDataBeforeSave(array $data): array
     {
         if (is_array($this->ubicacion_gps)) {
@@ -55,7 +54,7 @@ class EditPerfilEmpleado extends EditRecord
     public function mount(int|string $record): void
     {
         $user = Auth::user();
-        $empleado = Empleado::where('correo_corporativo', $user->email)->first();
+        $empleado = Empleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
 
         abort_unless($empleado && $empleado->id == $record, 403);
 
@@ -65,12 +64,12 @@ class EditPerfilEmpleado extends EditRecord
     public static function canAccess(array $parameters = []): bool
     {
         $user = Auth::user();
-        $empleado = Empleado::where('correo_corporativo', $user->email)->first();
+        $empleado = Empleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
 
         return $empleado !== null;
     }
 
-    //formulario de edicion de empleados que es mostrado solamente cuando el usuario tiene el rol empleado, este formulario es distinto al de rrhh
+    // formulario de edicion de empleados que es mostrado solamente cuando el usuario tiene el rol empleado, este formulario es distinto al de rrhh
     public function form(Form $form): Form
     {
         return $form
@@ -102,26 +101,27 @@ class EditPerfilEmpleado extends EditRecord
                                     display: flex; /* Para centrado vertical si es necesario */
                                     justify-content: center;
                                 ',
-                                'class' => 'flex flex-col items-center' // Clases de Tailwind para respaldo
+                                'class' => 'flex flex-col items-center', // Clases de Tailwind para respaldo
                             ])
                             ->imageCropAspectRatio('1:1')  // Relación de aspecto cuadrada
-                            ->default(fn($record) => $record?->foto)
+                            ->default(fn ($record) => $record?->foto)
                             ->alignCenter()
                             ->getUploadedFileNameForStorageUsing(
                                 function (TemporaryUploadedFile $file, Get $get): string {
-                                    $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_' . uniqid();
-                                    return $ci . '.' . $file->getClientOriginalExtension();
+                                    $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_'.uniqid();
+
+                                    return $ci.'.'.$file->getClientOriginalExtension();
                                 }
                             )
                             ->placeholder(function ($get) {
                                 // Si no hay foto, mostrar iniciales con avatar por defecto
                                 $nombres = $get('nombres') ?? '';
                                 $apellidos = $get('apellidos') ?? '';
-                                $iniciales = substr($nombres, 0, 1) . substr($apellidos, 0, 1);
+                                $iniciales = substr($nombres, 0, 1).substr($apellidos, 0, 1);
 
                                 return view('filament.forms.components.avatar-placeholder', [
                                     'iniciales' => $iniciales ?: 'NA',
-                                    'defaultImage' => asset('images/default-avatar.jpg')
+                                    'defaultImage' => asset('images/default-avatar.jpg'),
                                 ]);
                             }),
 
@@ -129,29 +129,27 @@ class EditPerfilEmpleado extends EditRecord
                             ->schema([
                                 Placeholder::make('nombre_completo')
                                     ->label('👤Nombre:')
-                                    ->content(fn($get) => $get('nombres') . ' ' . $get('apellidos'))
+                                    ->content(fn ($get) => $get('nombres').' '.$get('apellidos'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('ci/dni')
                                     ->label('🪪CI/DNI:')
-                                    ->content(fn($get) => ' ' . $get('ci'))
+                                    ->content(fn ($get) => ' '.$get('ci'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('email')
                                     ->label('📧Email:')
-                                    ->content(fn($get) => ' ' . $get('correo_corporativo'))
+                                    ->content(fn (?Empleado $record): string => ' '.($record?->historialActivo?->correo_corporativo ?? 'Sin asignar'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
 
                                 Placeholder::make('numero_coporativo')
                                     ->label('📱Teléfono:')
-                                    ->content(fn($get) => ' ' . $get('numero_corporativo'))
+                                    ->content(fn (?Empleado $record): string => ' '.($record?->historialActivo?->numero_corporativo ?? 'Sin asignar'))
                                     ->extraAttributes(['class' => 'text-center text-lg font-bold'])
                                     ->columnSpanFull(),
-
-
 
                             ])
                             ->columnSpan(['md' => 2, 'lg' => 1])
@@ -207,7 +205,7 @@ class EditPerfilEmpleado extends EditRecord
                             ->hint('Ingrese su nacionalidad')
                             ->hintIcon('heroicon-o-flag'),
 
-                        //croquis
+                        // croquis
                         Fieldset::make('Direccion y croquis de domicilio')
                             ->schema([
                                 TextInput::make('direccion')
@@ -217,9 +215,7 @@ class EditPerfilEmpleado extends EditRecord
                                     ->hint('Escriba la dirección completa y detallada de su domicilio')
                                     ->hintIcon('heroicon-o-exclamation-triangle'),
 
-
-
-                                // Campo para el mapa (interactivo) 
+                                // Campo para el mapa (interactivo)
                                 TextInput::make('titulo')
                                     ->label('Croquis de domicilio')
                                     ->hintIcon('heroicon-o-exclamation-triangle')
@@ -227,16 +223,15 @@ class EditPerfilEmpleado extends EditRecord
                                     ->required()
                                     ->visible(function ($get, $livewire) {
                                         // Ocultar cuando ubicacion_gps es null o es la ubicación por defecto
-                                        return (empty($livewire->ubicacion_gps) ||
+                                        return empty($livewire->ubicacion_gps) ||
                                             ($livewire->ubicacion_gps['lat'] == -16.500000 &&
-                                                $livewire->ubicacion_gps['lng'] == -68.150000));
+                                                $livewire->ubicacion_gps['lng'] == -68.150000);
                                     })
                                     ->extraAttributes(['class' => 'hidden'])
                                     ->disabled(true),
                                 Field::make('ubicacion_gps')
                                     ->live()
                                     ->view('filament.forms.components.map-picker'),
-
 
                             ])
                             ->columns(1),
@@ -279,7 +274,7 @@ class EditPerfilEmpleado extends EditRecord
                                             ->label('Correo Personal')
                                             ->hint('Ingrese su correo electrónico personal')
                                             ->hintIcon('heroicon-o-envelope'),
-                                            
+
                                         TextInput::make('nua_cua')
                                             ->label('Numero NUA/CUA')
                                             ->required()
@@ -287,8 +282,6 @@ class EditPerfilEmpleado extends EditRecord
                                             ->hintIcon('heroicon-o-shield-check'),
                                     ])
                                     ->columns(3),
-
-
 
                                 Fieldset::make('Contacto de Emergencia')
 
@@ -318,24 +311,19 @@ class EditPerfilEmpleado extends EditRecord
 
                         // Sección de datos laborales
                         Section::make('Datos Laborales')
-                            //->disabled()
+                            // ->disabled()
                             ->schema([
 
                                 Fieldset::make('Contacto empresarial')
+                                    ->disabled()
                                     ->schema([
-                                        TextInput::make('correo_corporativo')
-                                            ->disabled()
-                                            ->required()
-                                            ->email()
+                                        Placeholder::make('correo_corporativo_actual')
                                             ->label('Correo Corporativo')
-                                            ->hint('Correo electrónico asignado por la empresa')
-                                            ->hintIcon('heroicon-o-envelope'),
+                                            ->content(fn (?Empleado $record): string => $record?->historialActivo?->correo_corporativo ?? 'Sin asignar'),
 
-                                        TextInput::make('numero_corporativo')
-                                            ->tel()
+                                        Placeholder::make('numero_corporativo_actual')
                                             ->label('Teléfono Corporativo')
-                                            ->hint('Teléfono proporcionado por la empresa')
-                                            ->hintIcon('heroicon-o-phone'),
+                                            ->content(fn (?Empleado $record): string => $record?->historialActivo?->numero_corporativo ?? 'Sin asignar'),
                                     ])
                                     ->columns(2),
 
