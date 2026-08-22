@@ -3,46 +3,51 @@
 namespace App\Filament\Resources\RRHH;
 
 use App\Filament\Resources\RRHH\AsistenciaResource\Pages;
-use App\Models\RRHH\Empleado;
 use App\Models\RRHH\Asistencia;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Table;
-use Filament\Tables\Actions\Action;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Log;
+use App\Models\RRHH\Empleado;
+use App\Services\RRHH\AsistenciaHorarioService;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Auth;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Columns\ViewColumn;
-use Filament\Forms\Components\Group;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\View;
-use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Tables\Columns\ImageColumn;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Carbon\CarbonPeriod;
+use Filament\Forms;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\View;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
+use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Response;
 
 class AsistenciaResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Asistencia::class;
-    protected static ?string $modelLabel = 'Registros de Asistencia'; //Seccion para configurar el nombre en Filament-Shield
+
+    protected static ?string $modelLabel = 'Registros de Asistencia'; // Seccion para configurar el nombre en Filament-Shield
+
     protected static ?string $navigationIcon = 'heroicon-o-clock';
+
     protected static ?string $pluralModelLabel = 'Asistencias';
+
     protected static ?string $navigationLabel = 'Registro de Asistencias';
+
     protected static ?string $navigationGroup = 'Recursos Humanos';
+
     protected static ?int $navigationSort = 2;
 
-    //Formulario de registro de asistencias remotas
+    // Formulario de registro de asistencias remotas
     public static function form(Form $form): Form
     {
         $user = Auth::user();
@@ -77,7 +82,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                                     // Deshabilitar si no hay localización en el componente ListAsistencias
                                     return empty($livewire->localizacion);
                                 })
-                                ->extraAttributes(['class' => 'h-32'])
+                                ->extraAttributes(['class' => 'h-32']),
 
                         ])->columnSpan(1),
 
@@ -106,7 +111,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     ->afterStateUpdated(function ($state, callable $set) {
                         // Validar coordenadas
                         $coords = explode(',', $state);
-                        if (count($coords) !== 2 || !is_numeric(trim($coords[0]))) {
+                        if (count($coords) !== 2 || ! is_numeric(trim($coords[0]))) {
                             $set('localizacion', '');
                         }
                     }),
@@ -116,7 +121,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     ->default('')
                     ->reactive()
                     ->afterStateUpdated(function ($state, $set) {
-                        if (!empty($state)) {
+                        if (! empty($state)) {
                             try {
                                 // Validar JSON
                                 json_decode($state);
@@ -135,7 +140,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     ->label('¡Importante!')
                     ->required()
                     ->hidden(function ($get, $livewire) {
-                        return empty(!$livewire->localizacion);
+                        return empty(! $livewire->localizacion);
                     })
                     ->extraAttributes(['class' => 'hidden'])
                     ->disabled(true),
@@ -146,7 +151,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     ->hintIcon('heroicon-m-map-pin')
                     ->columnSpanFull()
                     ->hidden(function ($get, $livewire) {
-                        return empty(!($livewire->localizacion));
+                        return empty(! ($livewire->localizacion));
                     })
                     ->extraAttributes([
                         'class' => 'bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800',
@@ -154,7 +159,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             ]);
     } // Fin Formulario de registro de asistencias remotas
 
-    //Obtiene periodo de fechas de marcaciones
+    // Obtiene periodo de fechas de marcaciones
     public static function getPeriodoFechas(?string $mesSeleccionado = null): array
     {
         $now = now();
@@ -199,23 +204,23 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         return [
             'inicio' => $fechaInicio,
             'fin' => $fechaFin,
-            'label' => $label
+            'label' => $label,
         ];
     }
 
-    //Contruye la Tabla de vista prrincipal
+    // Contruye la Tabla de vista prrincipal
     public static function table(Table $table): Table
     {
         // Obtener el usuario actual
         $user = Auth::user();
 
-        // Obtenemos el período de la sesión (o calculamos el actual si no hay filtro)        
+        // Obtenemos el período de la sesión (o calculamos el actual si no hay filtro)
         $mesSeleccionado = request()->get('tableFilters')['mes']['value'] ?? null;
         $periodo = self::getPeriodoFechas($mesSeleccionado);
         $fechaInicio = $periodo['inicio'];
         $fechaFin = $periodo['fin'];
 
-        // Obtener fechas únicas con marcaciones del período actual    
+        // Obtener fechas únicas con marcaciones del período actual
         $period = CarbonPeriod::create($fechaInicio, $fechaFin);
 
         $uniqueDates = collect();
@@ -224,7 +229,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             $uniqueDates->push($date->format('Y-m-d'));
         }
         $uniqueDates = $uniqueDates->reverse(); // Esto invierte el orden
-
 
         // Construir la consulta base
         $baseQuery = Empleado::query()
@@ -237,11 +241,11 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 // CARGAR HISTORIAL LABORAL ACTIVO con sus relaciones
                 'historialActivo' => function ($q) {
                     $q->with(['empresa', 'cargo', 'sucursal']);
-                }
+                },
+                'asignacionesHorarioAsistencia.horario',
             ])
             ->orderBy('sucursal')
             ->orderBy('nombres');
-
 
         // Verificar permisos en orden de prioridad
         if ($user->can('ver_marcacion_todos_r::r::h::h::asistencia')) {
@@ -258,8 +262,9 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         } else {
             // No tiene permisos → retornar tabla vacía
             Log::debug('Sin permiso de acceso a asistencias!', [
-                'Usuario' => $user->name
+                'Usuario' => $user->name,
             ]);
+
             return $table
                 ->query(Empleado::query()->whereRaw('0 = 1')) // siempre vacío
                 ->columns([])
@@ -284,7 +289,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->height(50)
                 ->defaultImageUrl(function ($record) {
                     // Mostrar la foto del empleado si existe, de lo contrario el avatar por defecto
-                    return $record->foto ? asset('storage/' . $record->foto) : asset('images/default-avatar.jpg');
+                    return $record->foto ? asset('storage/'.$record->foto) : asset('images/default-avatar.jpg');
                 }),
 
             TextColumn::make('nombre_completo')
@@ -317,6 +322,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     if ($record->historialActivo && $record->historialActivo->sucursal) {
                         return $record->historialActivo->sucursal->nombre;
                     }
+
                     return 'Sin sucursal';
                 })
                 ->formatStateUsing(function (Empleado $record) {
@@ -324,6 +330,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     if ($record->historialActivo && $record->historialActivo->empresa) {
                         return $record->historialActivo->empresa->razon_social;
                     }
+
                     return 'Sin empresa';
                 })
                 ->searchable(query: function (Builder $query, string $search): Builder {
@@ -340,58 +347,41 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     });
                 }),
 
-            //Realiza el calculo de los retrasos, los cuenta y los inserta en la tabla de resumen Estado
+            // Realiza el calculo de los retrasos, los cuenta y los inserta en la tabla de resumen Estado
             TextColumn::make('estado')
                 ->label('Estado')
                 ->html()
-                ->getStateUsing(function ($record) use ($uniqueDates, $fechaInicio, $fechaFin) {
+                ->getStateUsing(function ($record) use ($uniqueDates) {
                     $retrasos = 0;
                     $omision = 0;
                     $faltas = 0;
                     $totalSegundosRetraso = 0;
 
-                    // CORRECCIÓN: Usar la fecha de cada registro para las comparaciones
                     foreach ($uniqueDates as $date) {
                         $carbonDate = Carbon::parse($date);
 
-                        // Saltar fines de semana
-                        if ($carbonDate->isWeekend()) {
-                            continue;
-                        }
-
-                        // Filtrar asistencias visibles para esta fecha
                         $asistenciasVisibles = $record->asistencias->filter(function ($asistencia) use ($date) {
                             return $asistencia->fecha == $date && $asistencia->visible !== false;
                         });
 
-                        if ($asistenciasVisibles->isEmpty()) {
-                            $faltas++;
+                        $evaluacion = AsistenciaHorarioService::evaluar($record, $carbonDate, $asistenciasVisibles);
+
+                        if ($evaluacion['estado'] === 'descanso' || $evaluacion['estado'] === 'sin_horario') {
                             continue;
                         }
 
-                        // Obtener primera marcación del día
-                        $primeraMarcacion = $asistenciasVisibles->sortBy('hora')->first();
+                        if ($evaluacion['estado'] === 'falta') {
+                            $faltas++;
 
-                        // CORRECCIÓN: Crear objetos Carbon con la fecha específica
-                        $horaMarcacion = Carbon::parse($date . ' ' . $primeraMarcacion->hora);
-
-                        // Definir horas límite para esta fecha específica
-                        $horaEntrada = Carbon::parse($date . ' 08:30:00');
-                        $horaLimiteRetraso = Carbon::parse($date . ' 08:35:59');
-                        $horaOmision = Carbon::parse($date . ' 10:00:00');
-
-                        // Clasificar la marcación
-                        if ($horaMarcacion->greaterThan($horaOmision)) {
-                            $omision++;
-                        } elseif ($horaMarcacion->greaterThan($horaLimiteRetraso)) {
-                            $retrasos++;
-
-                            // CORRECCIÓN: Calcular diferencia desde las 08:30
-                            $diferencia = $horaEntrada->diff($horaMarcacion);
-                            $segundosRetraso = $diferencia->h * 3600 + $diferencia->i * 60 + $diferencia->s;
-                            $totalSegundosRetraso += $segundosRetraso;
+                            continue;
                         }
-                        // Si llega antes de las 08:35:59, no es retraso ni omisión
+
+                        if ($evaluacion['estado'] === 'omision') {
+                            $omision++;
+                        } elseif ($evaluacion['estado'] === 'retraso') {
+                            $retrasos++;
+                            $totalSegundosRetraso += $evaluacion['retraso_segundos'];
+                        }
                     }
 
                     // Formatear tiempo total de retraso
@@ -400,9 +390,9 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     $segundosTotal = $totalSegundosRetraso % 60;
 
                     if ($horasTotal > 0) {
-                        $tiempoTotalRetraso = sprintf("%02d:%02d:%02d", $horasTotal, $minutosTotal, $segundosTotal);
+                        $tiempoTotalRetraso = sprintf('%02d:%02d:%02d', $horasTotal, $minutosTotal, $segundosTotal);
                     } else {
-                        $tiempoTotalRetraso = sprintf("%02d:%02d", $minutosTotal, $segundosTotal);
+                        $tiempoTotalRetraso = sprintf('%02d:%02d', $minutosTotal, $segundosTotal);
                     }
 
                     $resultado = "
@@ -420,13 +410,13 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->width('120px'),
         ];
 
-        //Realiza el calculo de los retrasos, los pinta en colores segun corresponda para luego dibujar en tabla
+        // Realiza el calculo de los retrasos, los pinta en colores segun corresponda para luego dibujar en tabla
         foreach ($uniqueDates as $date) {
             $carbonDate = Carbon::parse($date);
             $formattedDate = $carbonDate->format('d/m');
             $diaSemana = $carbonDate->translatedFormat('D');
 
-            //Realiza el calculo de los retrasos y pinta de colores
+            // Realiza el calculo de los retrasos y pinta de colores
             $columns[] = ViewColumn::make("{$date}")
                 ->label("{$formattedDate}\n{$diaSemana}")
                 ->view('filament.forms.components.asistencia-datafield')
@@ -440,13 +430,13 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
         }
 
         return $table
-            //Constuccion de la tabla principal donde se evaluan la consuta principal (prvilegios, periodos ,etc)
+            // Constuccion de la tabla principal donde se evaluan la consuta principal (prvilegios, periodos ,etc)
             ->query(function () use ($baseQuery) {
                 return $baseQuery;
             })
             ->columns($columns)
 
-            //Filtros de selleion de la tabla
+            // Filtros de selleion de la tabla
             ->filters([
                 // Filtro por mes primario que lista los periodos de asistencia
                 SelectFilter::make('mes')
@@ -474,24 +464,27 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                             'asistencias' => function ($q) use ($periodo) {
                                 $q->whereBetween('fecha', [$periodo['inicio'], $periodo['fin']])
                                     ->where('visible', true);
-                            }
+                            },
                         ]);
                     })
                     ->indicateUsing(function (array $data): ?string {
-                        if (! $data['value']) return null;
+                        if (! $data['value']) {
+                            return null;
+                        }
 
                         $periodo = AsistenciaResource::getPeriodoFechas($data['value']);
-                        return 'Período: ' . $periodo['label'];
-                    })
+
+                        return 'Período: '.$periodo['label'];
+                    }),
 
             ])
-            //Botonera de la Cabecera para hacer acciones adicionales
+            // Botonera de la Cabecera para hacer acciones adicionales
             ->headerActions([
 
-                //Exporatacion a archivo PDF de las marcaciones
+                // Exporatacion a archivo PDF de las marcaciones
                 Action::make('exportPdf')
                     // Restringir exportación si es empleado
-                    ->visible(fn() => Auth::user()->can('exportar_pdf_r::r::h::h::asistencia'))
+                    ->visible(fn () => Auth::user()->can('exportar_pdf_r::r::h::h::asistencia'))
                     ->label('Exportar a PDF')
                     ->color('danger')
                     ->icon('heroicon-o-document-arrow-down')
@@ -523,7 +516,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                                 },
                                 'historialActivo.empresa',
                                 'historialActivo.cargo',
-                                'historialActivo.sucursal'
+                                'historialActivo.sucursal',
                             ]);
 
                             // Preparar datos para la vista
@@ -543,7 +536,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                                 'fechaFin' => $periodo['fin'],
                                 'filtroSucursal' => $filtroSucursal,
                                 'filtroBusqueda' => $filters['search'] ?? null,
-                                'titulo' => 'Reporte de Asistencias - ' . $periodo['label']
+                                'titulo' => 'Reporte de Asistencias - '.$periodo['label'],
                             ]);
 
                             // Configurar el PDF para mejor visualización
@@ -551,16 +544,16 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
 
                             return Response::streamDownload(function () use ($pdf) {
                                 echo $pdf->stream();
-                            }, 'asistencias_' . now()->format('Y-m-d') . '.pdf');
+                            }, 'asistencias_'.now()->format('Y-m-d').'.pdf');
                         } catch (\Exception $e) {
-                            Log::error('Error generando PDF de asistencias: ' . $e->getMessage(), [
-                                'trace' => $e->getTraceAsString()
+                            Log::error('Error generando PDF de asistencias: '.$e->getMessage(), [
+                                'trace' => $e->getTraceAsString(),
                             ]);
 
                             // Mostrar error al usuario
                             Notification::make()
                                 ->title('Error al generar PDF')
-                                ->body('Ocurrió un error: ' . $e->getMessage())
+                                ->body('Ocurrió un error: '.$e->getMessage())
                                 ->danger()
                                 ->send();
                         }
@@ -569,13 +562,14 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             ->paginated([10, 25, 50, 100])    // Opciones de paginación
             ->defaultPaginationPageOption(100) // Por defecto: 100 filas
             ->striped();                       // Filas con fondo alternado
+
         return $table;
     }
 
     public static function getPermissionPrefixes(): array
     {
         return [
-            'view_any',    // los permisos del Shield usuales       
+            'view_any',    // los permisos del Shield usuales
             'create',
             'ver_marcacion_propia',
             'ver_marcacion_sucursal',

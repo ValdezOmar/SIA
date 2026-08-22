@@ -14,28 +14,33 @@
         ->orderBy('hora')
         ->get();
 
-    if ($asistencias->isEmpty()) {
-        echo $carbonDate->isWeekend() ? '<div style="color:rgb(7, 236, 57); font-weight: 500; padding: 5px; font-size: 0.875rem;">F/S</div>' : 'Falta';
+    $evaluacion = \App\Services\RRHH\AsistenciaHorarioService::evaluar($record, $carbonDate, $asistencias);
+
+    if ($evaluacion['estado'] === 'descanso') {
+        echo '<div style="color:rgb(7, 130, 57); font-weight: 500; padding: 5px; font-size: 0.875rem;">Descanso</div>';
         return;
     }
 
-    $horaLimite = Carbon::today()->setTime(8, 35, 59);
-    $horaOmision = Carbon::today()->setTime(10, 0, 0);
-    $primeraMarcacion = Carbon::parse($asistencias->first()->hora);
+    if ($evaluacion['estado'] === 'sin_horario') {
+        echo '<div style="color:rgb(180, 83, 9); font-weight: 500; padding: 5px; font-size: 0.875rem;">Sin horario</div>';
+        return;
+    }
+
+    if ($evaluacion['estado'] === 'falta') {
+        echo 'Falta';
+        return;
+    }
 @endphp
 
 <div style="text-align: center" x-data>
-    @if ($primeraMarcacion->greaterThan($horaOmision))
+    @if ($evaluacion['estado'] === 'omision')
         <span style='color: orange; font-weight: Bold; font-size: 0.875rem;'>Omisión</span><br>
     @endif
 
     @foreach ($asistencias as $index => $asistencia)
         @php
             $horaCompleta = Carbon::parse($asistencia->hora)->format('H:i:s');
-            $esRetraso =
-                $index === 0 &&
-                Carbon::parse($asistencia->hora)->greaterThan($horaLimite) &&
-                Carbon::parse($asistencia->hora)->lessThan($horaOmision);
+            $esRetraso = $index === 0 && $evaluacion['estado'] === 'retraso';
         @endphp
 
         @if ($asistencia->registro_remoto)
@@ -197,13 +202,3 @@
         @endif
     @endforeach
 </div>
-
-@if ($carbonDate->isWeekend())
-    <style>
-        .weekend-cell {
-            color: rgb(60, 218, 20);
-            padding: 5px;
-            font-size: 0.875rem;
-        }
-    </style>
-@endif

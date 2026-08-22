@@ -5,13 +5,14 @@ namespace App\Models\RRHH;
 use App\Models\Sistema\Cargo;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class Empleado extends Model
 {
     use HasFactory;
+
     protected $table = 'rh_empleados';
 
     protected $fillable = [
@@ -56,26 +57,31 @@ class Empleado extends Model
         'salario' => 'float',
         'ubicacion_gps' => 'array', // Para almacenar coordenadas como JSON
         'fecha_ingreso' => 'date',
-        'fecha_desvinculacion' => 'date'
+        'fecha_desvinculacion' => 'date',
     ];
 
-    //protected $appends = ['foto_url', 'coordenadas'];
+    // protected $appends = ['foto_url', 'coordenadas'];
 
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class, 'user_id', 'ci');
     }
 
+    public function asignacionesHorarioAsistencia()
+    {
+        return $this->hasMany(AsignacionHorarioAsistencia::class, 'empleado_id');
+    }
+
     // Accesor para nombre completo
     public function getFullNameAttribute()
     {
-        return $this->nombres . ' ' . $this->apellidos;
+        return $this->nombres.' '.$this->apellidos;
     }
 
     // Foto de perfil por defecto
     public function getFotoUrlAttribute()
     {
-        if (!$this->foto) {
+        if (! $this->foto) {
             return asset('images/default-avatar.jpg');
         }
 
@@ -85,7 +91,7 @@ class Empleado extends Model
         }
 
         // Verificar si la foto existe en storage
-        $path = 'empleados/' . basename($this->foto);
+        $path = 'empleados/'.basename($this->foto);
 
         if (Storage::disk('public')->exists($path)) {
             return Storage::disk('public')->url($path);
@@ -100,15 +106,17 @@ class Empleado extends Model
         return $this->ubicacion_gps ? [
             'lat' => $this->ubicacion_gps['lat'],
             'lng' => $this->ubicacion_gps['lng'],
-            'texto' => "Lat: {$this->ubicacion_gps['lat']}, Lng: {$this->ubicacion_gps['lng']}"
+            'texto' => "Lat: {$this->ubicacion_gps['lat']}, Lng: {$this->ubicacion_gps['lng']}",
         ] : null;
     }
+
     // Verificacion de email de empleado
     public function user()
     {
         return $this->belongsTo(\App\Models\User::class, 'correo_corporativo', 'email');
     }
-    //Modelo de comprovaciond de foto
+
+    // Modelo de comprovaciond de foto
     protected static function boot()
     {
         parent::boot();
@@ -119,7 +127,8 @@ class Empleado extends Model
             }
         });
     }
-    //relaciones
+
+    // relaciones
     public function empresa()
     {
         return $this->belongsTo(Empresa::class, 'empresa', 'id');
@@ -141,23 +150,22 @@ class Empleado extends Model
         return $this->empresa ? $this->empresa->razon_social : 'Sin empresa';
     }
 
-    // Accesor para obtener el nombre de la sucursal  
+    // Accesor para obtener el nombre de la sucursal
     public function getSucursalNombreAttribute()
     {
         return $this->sucursal ? $this->sucursal->nombre : 'Sin sucursal';
     }
 
-    //Historial de personal
+    // Historial de personal
     public function historialActivo()
     {
         return $this->hasOne(HistorialLaboral::class, 'empleado_id')
             ->where('activo', true);
     }
+
     // Cargo del empleado
     public function cargo()
     {
         return $this->belongsTo(\App\Models\Sistema\Cargo::class, 'cargo', 'id');
     }
-
-   
 }
