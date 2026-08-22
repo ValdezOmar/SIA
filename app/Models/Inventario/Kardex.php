@@ -249,7 +249,7 @@ class Kardex extends Model
         }
 
         // Si es entrada por compra, crear capa FIFO
-        if ($data['tipo_movimiento'] === 'compra') {
+        if (in_array($data['tipo_movimiento'], ['compra', 'devolucion_venta'], true)) {
             $capa = CapaCosto::create([
                 'articulo_id' => $data['articulo_id'],
                 'almacen_id' => $data['almacen_id'],
@@ -265,6 +265,65 @@ class Kardex extends Model
         }
 
         return $kardex;
+    }
+
+    public function revertirSalida(?string $motivo = null): ?self
+    {
+        if ($this->direccion !== 'salida' || $this->estado !== 'confirmado') {
+            return null;
+        }
+
+        $devolucionExistente = self::where('tipo_movimiento', 'devolucion_venta')
+            ->where('documento_tipo', 'devolucion_venta')
+            ->where('documento_id', $this->documento_id)
+            ->where('documento_detalle_id', $this->documento_detalle_id)
+            ->where('estado', 'confirmado')
+            ->first();
+
+        if ($devolucionExistente) {
+            $this->update(['estado' => 'anulado']);
+            return $devolucionExistente;
+        }
+
+        $cantidad = (float) $this->cantidad;
+        $costoUnitario = $cantidad > 0 ? (float) $this->costo_total / $cantidad : 0;
+
+        $devolucion = self::registrarEntrada([
+            'articulo_id' => $this->articulo_id,
+            'almacen_id' => $this->almacen_id,
+            'ubicacion_id' => $this->ubicacion_id,
+            'tipo_movimiento' => 'devolucion_venta',
+            'cantidad' => $cantidad,
+            'costo_unitario' => $costoUnitario,
+            'documento_tipo' => 'devolucion_venta',
+            'documento_id' => $this->documento_id,
+            'documento_codigo' => $this->documento_codigo,
+            'documento_detalle_id' => $this->documento_detalle_id,
+            'observaciones' => 'Reversión de salida por anulación de venta ' . $this->documento_codigo . ($motivo ? '. Motivo: ' . $motivo : ''),
+            'empresa_id' => $this->empresa_id,
+            'fecha_movimiento' => now(),
+            'estado' => 'confirmado',
+        ]);
+
+        MovimientoInventario::create([
+            'articulo_id' => $this->articulo_id,
+            'almacen_id' => $this->almacen_id,
+            'tipo' => 'entrada_devolucion',
+            'cantidad' => $cantidad,
+            'costo_unitario' => $costoUnitario,
+            'costo_total' => $this->costo_total,
+            'documento_tipo' => 'devolucion_venta',
+            'documento_id' => $this->documento_id,
+            'documento_codigo' => $this->documento_codigo,
+            'fecha' => now(),
+            'observacion' => 'Entrada por anulación de venta ' . $this->documento_codigo,
+            'estado' => 'confirmado',
+            'kardex_id' => $devolucion->id,
+        ]);
+
+        $this->update(['estado' => 'anulado']);
+
+        return $devolucion;
     }
 
     /**

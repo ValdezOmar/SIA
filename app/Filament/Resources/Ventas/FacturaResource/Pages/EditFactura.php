@@ -5,10 +5,39 @@ namespace App\Filament\Resources\Ventas\FacturaResource\Pages;
 use App\Filament\Resources\Ventas\FacturaResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Notifications\Notification;
 
 class EditFactura extends EditRecord
 {
     protected static string $resource = FacturaResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Actions\Action::make('anular')
+                ->label('Anular')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Anular Factura')
+                ->modalSubheading('Se revertirán inventario, pagos y contabilidad.')
+                ->form([
+                    \Filament\Forms\Components\Textarea::make('motivo')
+                        ->label('Motivo')
+                        ->required()
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data) {
+                    $this->record->anular($data['motivo']);
+                    Notification::make()
+                        ->title('Factura anulada')
+                        ->success()
+                        ->send();
+                    $this->redirect(FacturaResource::getUrl('index'));
+                })
+                ->visible(fn() => $this->record->estado !== 'anulada'),
+        ];
+    }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
@@ -43,12 +72,5 @@ class EditFactura extends EditRecord
         }
 
         $this->record->procesarVentaAutomatica();
-    }
-
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\DeleteAction::make(),
-        ];
-    }
+    }    
 }

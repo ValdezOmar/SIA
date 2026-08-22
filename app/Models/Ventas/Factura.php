@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Factura extends Model
 {
@@ -280,6 +281,54 @@ class Factura extends Model
             'kardex' => Kardex::where('documento_tipo', 'venta')->where('documento_id', $this->id)->get(),
             'asiento' => $asiento,
         ];
+    }
+
+    public function anular(?string $motivo = null): self
+    {
+        return DB::transaction(function () use ($motivo) {
+            $factura = self::query()->lockForUpdate()->findOrFail($this->id);
+
+            if ($factura->estado === 'anulada') {
+                return $factura;
+            }
+
+            $salidas = Kardex::where('documento_tipo', 'venta')
+                ->where('documento_id', $factura->id)
+                ->where('direccion', 'salida')
+                ->where('estado', 'confirmado')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($salidas as $salida) {
+                $salida->revertirSalida($motivo);
+            }
+
+            MovimientoInventario::where('documento_tipo', 'venta')
+                ->where('documento_id', $factura->id)
+                ->where('estado', 'confirmado')
+                ->update(['estado' => 'cancelado']);
+
+            $factura->pagos()
+                ->whereIn('estado', ['pendiente', 'confirmado'])
+                ->update(['estado' => 'anulado']);
+
+            $asiento = AsientoContable::where('documento_tipo', 'venta')
+                ->where('documento_id', $factura->id)
+                ->where('estado', 'confirmado')
+                ->first();
+
+            if ($asiento) {
+                $asiento->anular($motivo);
+            }
+
+            $factura->monto_pagado = 0;
+            $factura->saldo = $factura->total;
+            $factura->monto_restante = $factura->total;
+            $factura->estado = 'anulada';
+            $factura->save();
+
+            return $factura;
+        });
     }
 
     public static function generarNumero()

@@ -385,6 +385,7 @@ class FacturaResource extends Resource
                                                     ->helperText('Pedido asociado a esta factura')
                                                     ->prefixIcon('heroicon-o-shopping-cart')
                                                     ->columnSpan(1)
+                                                    ->disabledOn('edit')
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                                         if ($state) {
@@ -1160,7 +1161,30 @@ class FacturaResource extends Resource
 
                     Tables\Actions\ViewAction::make()
                         ->slideOver()
-                        ->modalWidth('7xl'),
+                        ->modalWidth('7xl')
+                        ->extraModalFooterActions([
+                            Tables\Actions\Action::make('anular_desde_vista')
+                                ->label('Anular')
+                                ->icon('heroicon-o-x-circle')
+                                ->color('danger')
+                                ->requiresConfirmation()
+                                ->modalHeading('Anular Factura')
+                                ->modalSubheading('Se revertirán inventario, pagos y contabilidad.')
+                                ->form([
+                                    Textarea::make('motivo')
+                                        ->label('Motivo')
+                                        ->required()
+                                        ->maxLength(500),
+                                ])
+                                ->action(function ($record, array $data) {
+                                    $record->anular($data['motivo']);
+                                    Notification::make()
+                                        ->title('Factura anulada')
+                                        ->success()
+                                        ->send();
+                                })
+                                ->visible(fn($record) => $record->estado !== 'anulada'),
+                        ]),
 
                     Tables\Actions\Action::make('registrar_pago')
                         ->label('Registrar Pago')
@@ -1219,15 +1243,21 @@ class FacturaResource extends Resource
                         ->color('danger')
                         ->requiresConfirmation()
                         ->modalHeading('Anular Factura')
-                        ->modalSubheading('¿Estás seguro de que deseas anular esta factura?')
-                        ->action(function ($record) {
-                            $record->update(['estado' => 'anulada']);
+                        ->modalSubheading('Se revertirán inventario, pagos y contabilidad.')
+                        ->form([
+                            Textarea::make('motivo')
+                                ->label('Motivo')
+                                ->required()
+                                ->maxLength(500),
+                        ])
+                        ->action(function ($record, array $data) {
+                            $record->anular($data['motivo']);
                             Notification::make()
                                 ->title('Factura anulada')
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => !in_array($record->estado, ['pagada', 'anulada'])),
+                        ->visible(fn($record) => $record->estado !== 'anulada'),
 
                     Tables\Actions\DeleteAction::make()
                         ->visible(fn($record) => $record->estado === 'borrador'),
