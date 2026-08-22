@@ -39,6 +39,7 @@ class DashboardPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources') // Descubre y registra automáticamente los recursos (CRUDs) dentro de app/Filament/Resources
             //->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')// Descubre y registra automáticamente las páginas personalizadas en app/Filament/Pages
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
+            ->discoverResources(in: app_path('Filament/Resources/Configuracion'), for: 'App\\Filament\\Resources\\Configuracion')
             ->pages([
                 Pages\Dashboard::class,
             ])
