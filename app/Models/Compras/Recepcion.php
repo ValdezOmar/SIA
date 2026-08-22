@@ -5,6 +5,7 @@ namespace App\Models\Compras;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Kardex;
 use App\Models\Inventario\MovimientoInventario;
+use App\Services\Inventario\TrazabilidadInventarioService;
 use App\Models\Sistema\Empresa;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -49,9 +50,6 @@ class Recepcion extends Model
             }
         });
 
-        static::created(function ($model) {
-            $model->procesarEntradaInventario();
-        });
     }
 
     // ========== RELACIONES ==========
@@ -174,7 +172,7 @@ class Recepcion extends Model
             }
 
             // Crear movimiento de inventario
-            MovimientoInventario::create([
+            $movimiento = MovimientoInventario::create([
                 'articulo_id' => $articulo->id,
                 'almacen_id' => $almacen->id,
                 'tipo' => 'entrada_compra',
@@ -187,6 +185,12 @@ class Recepcion extends Model
                 'observacion' => 'Recepción de compra ' . $this->codigo,
                 'kardex_id' => $kardex->id,
                 'estado' => 'confirmado',
+            ]);
+
+            app(TrazabilidadInventarioService::class)->registrarEntrada($movimiento, $articulo, [
+                'cantidad' => $detalle->cantidad_aceptada,
+                'series' => $detalle->series,
+                'lotes' => $detalle->lotes,
             ]);
         }
 

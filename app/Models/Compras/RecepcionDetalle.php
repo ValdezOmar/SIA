@@ -20,6 +20,8 @@ class RecepcionDetalle extends Model
         'cantidad_rechazada' => 'decimal:6',
         'costo_unitario' => 'decimal:6',
         'costo_total' => 'decimal:6',
+        'series' => 'array',
+        'lotes' => 'array',
         'linea' => 'integer',
     ];
 

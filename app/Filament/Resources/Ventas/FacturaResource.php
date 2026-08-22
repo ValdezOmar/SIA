@@ -713,6 +713,22 @@ class FacturaResource extends Resource
                                                                 }
                                                             }),
 
+                                                        Textarea::make('series')
+                                                            ->label('Números de serie')
+                                                            ->rows(2)
+                                                            ->placeholder('SERIE-001, SERIE-002')
+                                                            ->helperText('Una serie por unidad, separadas por coma. Obligatorio si el artículo lo requiere.')
+                                                            ->visible(fn ($get) => (bool) (($get('articulo_id') ? Articulo::find($get('articulo_id')) : null)?->maneja_series))
+                                                            ->columnSpan(8),
+
+                                                        Textarea::make('lotes')
+                                                            ->label('Lotes y cantidades')
+                                                            ->rows(2)
+                                                            ->placeholder('LOTE-A:2, LOTE-B:1')
+                                                            ->helperText('Formato NUMERO_LOTE:CANTIDAD. La suma debe coincidir con la cantidad vendida.')
+                                                            ->visible(fn ($get) => (bool) (($get('articulo_id') ? Articulo::find($get('articulo_id')) : null)?->maneja_lotes))
+                                                            ->columnSpan(8),
+
                                                         TextInput::make('cantidad')
                                                             ->label('Cant.')
                                                             ->integer()
@@ -946,8 +962,11 @@ class FacturaResource extends Resource
                                                     'observaciones' => $data['observaciones'] ?? null,
 
                                                     // Series y lotes
-                                                    'series' => $data['series'] ?? null,
-                                                    'lotes' => $data['lotes'] ?? null,
+                                                    'series' => filled($data['series'] ?? null) ? array_values(array_filter(array_map('trim', preg_split('/[,\n]+/', $data['series'])))) : null,
+                                                    'lotes' => filled($data['lotes'] ?? null) ? array_values(array_map(function ($item) {
+                                                        [$numero, $cantidad] = array_map('trim', explode(':', $item, 2));
+                                                        return ['numero_lote' => $numero, 'cantidad' => (float) $cantidad];
+                                                    }, array_filter(preg_split('/[,\n]+/', $data['lotes'])))) : null,
                                                 ];
                                             })
                                             ->mutateRelationshipDataBeforeFillUsing(function (array $data): array {

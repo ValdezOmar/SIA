@@ -10,6 +10,12 @@ class CreateRecepcion extends CreateRecord
 {
     protected static string $resource = RecepcionResource::class;
 
+    protected function afterCreate(): void
+    {
+        $this->record->refresh();
+        $this->record->procesarEntradaInventario();
+    }
+
     protected function getRedirectUrl(): string
     {
         return static::getResource()::getUrl('index');

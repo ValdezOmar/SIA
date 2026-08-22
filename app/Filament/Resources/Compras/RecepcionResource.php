@@ -332,6 +332,22 @@ class RecepcionResource extends Resource
                                                             })
                                                             ->extraAttributes(['class' => 'font-bold'])
                                                             ->columnSpan(2),
+
+                                                        Textarea::make('series')
+                                                            ->label('Números de serie')
+                                                            ->rows(2)
+                                                            ->placeholder('SERIE-001, SERIE-002')
+                                                            ->helperText('Una serie por unidad aceptada. Solo para artículos que manejan series.')
+                                                            ->visible(fn ($get) => (bool) (($get('articulo_id') ? Articulo::find($get('articulo_id')) : null)?->maneja_series))
+                                                            ->columnSpan(6),
+
+                                                        Textarea::make('lotes')
+                                                            ->label('Lotes y cantidades')
+                                                            ->rows(2)
+                                                            ->placeholder('LOTE-A:2, LOTE-B:1')
+                                                            ->helperText('Formato NUMERO_LOTE:CANTIDAD. La suma debe coincidir con la cantidad aceptada.')
+                                                            ->visible(fn ($get) => (bool) (($get('articulo_id') ? Articulo::find($get('articulo_id')) : null)?->maneja_lotes))
+                                                            ->columnSpan(6),
                                                     ]),
 
                                                 Textarea::make('motivo_rechazo')
@@ -381,6 +397,15 @@ class RecepcionResource extends Resource
                                                 $data['descripcion_articulo'] = $articulo ? ($articulo->descripcion ?? $articulo->nombre_comercial ?? 'Sin descripción') : ($data['descripcion_articulo'] ?? '');
                                                 $data['unidad_medida'] = $articulo ? ($articulo->unidadMedida?->abreviatura ?? 'UND') : ($data['unidad_medida'] ?? 'UND');
                                                 $data['costo_total'] = $cantidadAceptada * $costoUnitario;
+                                                $data['series'] = filled($data['series'] ?? null)
+                                                    ? array_values(array_filter(array_map('trim', preg_split('/[,\n]+/', $data['series']))))
+                                                    : null;
+                                                $data['lotes'] = filled($data['lotes'] ?? null)
+                                                    ? array_values(array_map(function ($item) {
+                                                        [$numero, $cantidad] = array_map('trim', explode(':', $item, 2));
+                                                        return ['numero_lote' => $numero, 'cantidad' => (float) $cantidad];
+                                                    }, array_filter(preg_split('/[,\n]+/', $data['lotes']))))
+                                                    : null;
 
                                                 return $data;
                                             }),

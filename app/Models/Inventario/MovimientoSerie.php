@@ -13,7 +13,7 @@ class MovimientoSerie extends Model
 
     public function movimiento()
     {
-        return $this->belongsTo(MovimientoInventario::class, 'movimiento_id');
+        return $this->belongsTo(MovimientoInventario::class, 'movimiento_inventario_id');
     }
 
     public function serie()

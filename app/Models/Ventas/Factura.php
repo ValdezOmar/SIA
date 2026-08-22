@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\Inventario\TrazabilidadInventarioService;
 
 class Factura extends Model
 {
@@ -254,7 +255,7 @@ class Factura extends Model
                     'estado' => 'confirmado',
                 ]);
 
-                MovimientoInventario::create([
+                $movimiento = MovimientoInventario::create([
                     'articulo_id' => $detalle->articulo_id,
                     'almacen_id' => $almacen->id,
                     'tipo' => 'salida_venta',
@@ -268,6 +269,13 @@ class Factura extends Model
                     'observacion' => 'Salida por venta ' . $this->numero,
                     'estado' => 'confirmado',
                     'kardex_id' => $kardex->id,
+                ]);
+
+                app(TrazabilidadInventarioService::class)->registrarSalida($movimiento, $detalle->articulo, [
+                    'cantidad' => $cantidad,
+                    'series' => $detalle->series,
+                    'lotes' => $detalle->lotes,
+                    'cliente_id' => $this->cliente_id,
                 ]);
             }
         }
@@ -302,6 +310,11 @@ class Factura extends Model
 
             foreach ($salidas as $salida) {
                 $salida->revertirSalida($motivo);
+                $original = MovimientoInventario::where('kardex_id', $salida->id)->first();
+                $reversion = MovimientoInventario::where('kardex_id', $salida->fresh()->movimientoRelacionado?->id)->first();
+                if ($original && $reversion) {
+                    app(TrazabilidadInventarioService::class)->revertirSalida($original, $reversion);
+                }
             }
 
             MovimientoInventario::where('documento_tipo', 'venta')

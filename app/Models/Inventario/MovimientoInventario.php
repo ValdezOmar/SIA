@@ -36,7 +36,7 @@ class MovimientoInventario extends Model
 
     public function series()
     {
-        return $this->hasMany(MovimientoSerie::class);
+        return $this->hasMany(MovimientoSerie::class, 'movimiento_inventario_id');
     }
 
     public function lotes()

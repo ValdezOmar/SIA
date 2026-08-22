@@ -29,7 +29,11 @@ return new class extends Migration
             
             $table->text('motivo_rechazo')->nullable();
             $table->text('observaciones')->nullable();
-            
+
+            // Identificación de unidades y distribución de cantidades por lote.
+            $table->json('series')->nullable();
+            $table->json('lotes')->nullable();
+
             $table->timestamps();
             $table->softDeletes();
 
