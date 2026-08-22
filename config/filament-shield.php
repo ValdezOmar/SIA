@@ -76,9 +76,7 @@ return [
             'FilamentInfoWidget',            
         ],
 
-        'resources' => [
-            \App\Filament\Clusters\HelpDesk\Resources\HelpDesk\EventoEntradaResource::class
-        ],
+        'resources' => [],
     ],
 
     'discovery' => [
