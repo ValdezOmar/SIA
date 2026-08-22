@@ -3,14 +3,13 @@
 namespace App\Filament\Clusters\Sistema\Resources\SucursalResource\Pages;
 
 use App\Filament\Clusters\Sistema\Resources\SucursalResource;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateSucursal extends CreateRecord
 {
     protected static string $resource = SucursalResource::class;
 
-    //Redirigir al index
+    // Redirigir al index
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

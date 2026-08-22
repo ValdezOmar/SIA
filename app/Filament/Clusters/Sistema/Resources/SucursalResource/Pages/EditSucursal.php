@@ -10,7 +10,7 @@ class EditSucursal extends EditRecord
 {
     protected static string $resource = SucursalResource::class;
 
-    //Redirigir al index
+    // Redirigir al index
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

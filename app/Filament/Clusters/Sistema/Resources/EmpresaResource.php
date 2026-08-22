@@ -5,23 +5,27 @@ namespace App\Filament\Clusters\Sistema\Resources;
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\EmpresaResource\Pages;
 use App\Models\Sistema\Empresa;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
 
 class EmpresaResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Empresa::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+
     protected static ?string $pluralModelLabel = 'Configuración de empresa';
+
+    protected static ?string $modelLabel = 'Empresa';
+
     protected static ?string $navigationLabel = 'Empresas';
 
     protected static ?string $cluster = Sistema::class;
@@ -30,76 +34,88 @@ class EmpresaResource extends Resource implements HasShieldPermissions
     {
         return $form
             ->schema([
-                 Section::make('Identificación')
+                Section::make('Identificación')
+                    ->description('Registre los datos legales y las áreas que pertenecen a la empresa.')
                     ->schema([
-                         TextInput::make('razon_social')
+                        TextInput::make('razon_social')
                             ->label('Razón Social')
+                            ->placeholder('Ej. Novanexa S.R.L.')
                             ->required()
-                            ->maxLength(255),
+                            ->maxLength(255)
+                            ->helperText('Nombre legal usado en documentos y reportes.'),
 
-                         TextInput::make('nombre_comercial')
+                        TextInput::make('nombre_comercial')
                             ->label('Nombre Comercial')
-                            ->maxLength(255),
+                            ->placeholder('Ej. Novanexa')
+                            ->maxLength(255)
+                            ->helperText('Nombre visible para clientes y personal.'),
 
-                         TextInput::make('nit')
+                        TextInput::make('nit')
                             ->label('NIT')
                             ->maxLength(50),
 
-                         TextInput::make('nro_matricula')
+                        TextInput::make('nro_matricula')
                             ->label('Nro. Matrícula')
                             ->maxLength(50),
-                         Select::make('areas')
+                        Select::make('areas')
                             ->label('Áreas de la empresa')
                             ->multiple()
                             ->relationship('areas', 'nombre')
                             ->searchable()
                             ->preload()
-                            ->hint('Seleccione todas las áreas que pertenecen a esta sociedad.'),
+                            ->helperText('Seleccione las áreas que operan dentro de esta empresa.'),
                     ])
                     ->columns(2),
 
-                 Section::make('Datos de Contacto')
+                Section::make('Datos de Contacto')
+                    ->description('Incluya solo los canales de contacto vigentes.')
                     ->schema([
-                         Textarea::make('direccion')
+                        Textarea::make('direccion')
                             ->label('Dirección')
                             ->rows(2),
 
-                         TextInput::make('ciudad')
+                        TextInput::make('ciudad')
                             ->label('Ciudad')
                             ->maxLength(150),
 
-                         TextInput::make('pais')
+                        TextInput::make('pais')
                             ->label('País')
                             ->default('Bolivia')
                             ->maxLength(100),
 
-                         TextInput::make('telefono')
+                        TextInput::make('telefono')
                             ->label('Teléfono')
                             ->maxLength(50),
 
-                         TextInput::make('celular')
+                        TextInput::make('celular')
                             ->label('Celular')
                             ->maxLength(50),
 
-                         TextInput::make('email')
+                        TextInput::make('email')
                             ->label('Email')
+                            ->placeholder('contacto@empresa.com')
                             ->email()
                             ->maxLength(150),
 
-                         TextInput::make('sitio_web')
+                        TextInput::make('sitio_web')
                             ->label('Sitio Web')
+                            ->placeholder('https://empresa.com')
                             ->url()
                             ->maxLength(150),
-                         TextInput::make('seguro_medico')
-                            ->label('Caja de Salud')                            
-                            ->hint('Caja de salud asignada a la empresa.')
-                            ->hintIcon('heroicon-o-heart')
+                        TextInput::make('seguro_medico')
+                            ->label('Caja de Salud')
+                            ->helperText('Entidad de salud que corresponde a sus empleados.')
+                            ->hintIcon('heroicon-o-heart'),
                     ])
                     ->columns(2),
 
-                 Toggle::make('empresa_activo')
-                    ->label('Empresa Activa')
-                    ->default(true),
+                Section::make('Estado')
+                    ->description('Desactive una empresa que ya no opera para evitar nuevas asignaciones.')
+                    ->schema([
+                        Toggle::make('empresa_activo')
+                            ->label('Empresa activa')
+                            ->default(true),
+                    ]),
             ]);
     }
 
@@ -110,7 +126,8 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                 Tables\Columns\TextColumn::make('razon_social')
                     ->label('Razón Social')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->description(fn (Empresa $record): string => $record->nit ? "NIT: {$record->nit}" : 'Sin NIT registrado'),
 
                 Tables\Columns\TextColumn::make('nombre_comercial')
                     ->label('Nombre Comercial')
@@ -133,32 +150,37 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                     ->label('Activa'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make()->label('Ver'),
+                Tables\Actions\EditAction::make()->label('Editar'),
+                Tables\Actions\DeleteAction::make()->label('Eliminar'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('razon_social')
+            ->emptyStateHeading('Aún no hay empresas')
+            ->emptyStateDescription('Registre una empresa antes de crear sus sucursales.')
+            ->emptyStateIcon('heroicon-o-building-office-2');
     }
-    //Permisos personalizados de filament shield
+
+    // Permisos personalizados de filament shield
     public static function getPermissionPrefixes(): array
     {
         return [
-            'view_any', //Mostrar en menú
-            'view', //Ver registro
-            'create', //Crear Registro
-            'update', //Actualizar registro            
-            'delete' //Eliminar Registro
+            'view_any', // Mostrar en menú
+            'view', // Ver registro
+            'create', // Crear Registro
+            'update', // Actualizar registro
+            'delete', // Eliminar Registro
         ];
     }
 
     public static function getRelations(): array
     {
         return [
-            //EmpresaAreasRelationManager::class,
+            // EmpresaAreasRelationManager::class,
         ];
     }
 

@@ -10,7 +10,7 @@ class EditArea extends EditRecord
 {
     protected static string $resource = AreaResource::class;
 
-    //Redirigir al index
+    // Redirigir al index
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

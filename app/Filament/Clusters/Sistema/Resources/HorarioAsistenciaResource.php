@@ -56,23 +56,24 @@ class HorarioAsistenciaResource extends Resource implements HasShieldPermissions
                         ->required()
                         ->minItems(1)
                         ->default([1, 2, 3, 4, 5])
+                        ->helperText('Seleccione los días en que este turno espera una marcación de entrada.')
                         ->columnSpanFull(),
                 ])->columns(2),
             Forms\Components\Section::make('Marcaciones esperadas')
                 ->description('Las horas se usan para calcular puntualidad. La primera marcación del día se contrasta con la entrada y su tolerancia.')
                 ->schema([
                     Forms\Components\TimePicker::make('hora_entrada')->label('Entrada')->seconds(false)->required(),
-                    Forms\Components\TextInput::make('tolerancia_minutos')->label('Tolerancia (minutos)')->numeric()->minValue(0)->maxValue(240)->default(0)->required(),
+                    Forms\Components\TextInput::make('tolerancia_minutos')->label('Tolerancia (minutos)')->numeric()->minValue(0)->maxValue(240)->default(0)->required()->helperText('Minutos permitidos antes de registrar retraso.'),
                     Forms\Components\TimePicker::make('hora_omision')->label('Desde qué hora es omisión')->seconds(false)->helperText('Opcional. Después de esta hora la primera marcación se clasifica como omisión.'),
                     Forms\Components\TimePicker::make('hora_inicio_almuerzo')->label('Inicio de almuerzo')->seconds(false),
                     Forms\Components\TimePicker::make('hora_fin_almuerzo')->label('Fin de almuerzo')->seconds(false),
                     Forms\Components\TimePicker::make('hora_salida')->label('Salida')->seconds(false),
-                    Forms\Components\Toggle::make('requiere_marcacion_almuerzo')->label('Exigir marcación de almuerzo'),
+                    Forms\Components\Toggle::make('requiere_marcacion_almuerzo')->label('Exigir marcación de almuerzo')->helperText('Úselo cuando el personal debe marcar salida y retorno de almuerzo.'),
                 ])->columns(3),
             Forms\Components\Section::make('Estado')
                 ->schema([
                     Forms\Components\Toggle::make('activo')->label('Turno activo')->default(true),
-                    Forms\Components\Toggle::make('predeterminado')->label('Usar cuando un empleado no tiene un turno asignado')->helperText('Solo puede existir un turno predeterminado.')->default(false),
+                    Forms\Components\Toggle::make('predeterminado')->label('Usar cuando un empleado no tiene un turno asignado')->helperText('Solo puede existir un turno predeterminado; los turnos específicos siempre tienen prioridad.')->default(false),
                     Forms\Components\Textarea::make('observaciones')->label('Observaciones')->maxLength(1000)->columnSpanFull(),
                 ])->columns(2),
         ]);
@@ -93,13 +94,17 @@ class HorarioAsistenciaResource extends Resource implements HasShieldPermissions
                 Tables\Filters\TernaryFilter::make('activo')->label('Activo'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->label('Editar')->tooltip('Editar turno y sus asignaciones'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('nombre')
+            ->emptyStateHeading('Aún no hay turnos')
+            ->emptyStateDescription('Cree un turno y luego asígnelo a los empleados que corresponda.')
+            ->emptyStateIcon('heroicon-o-clock');
     }
 
     public static function getRelations(): array

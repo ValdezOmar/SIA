@@ -4,21 +4,26 @@ namespace App\Filament\Clusters\Sistema\Resources;
 
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\CargoResource\Pages;
-use App\Filament\Clusters\Sistema\Resources\CargoResource\RelationManagers;
 use App\Models\Sistema\Cargo;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
 class CargoResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Cargo::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-briefcase';
+
     protected static ?string $navigationLabel = 'Cargos';
+
+    protected static ?string $modelLabel = 'Cargo';
+
+    protected static ?string $pluralModelLabel = 'Cargos';
+
     protected static ?string $cluster = Sistema::class;
 
     public static function form(Form $form): Form
@@ -31,7 +36,8 @@ class CargoResource extends Resource implements HasShieldPermissions
                         ->label('Nombre del Cargo')
                         ->placeholder('Ej. Jefe de Ventas, Desarrollador Backend')
                         ->required()
-                        ->maxLength(150),
+                        ->maxLength(150)
+                        ->helperText('Use el nombre del puesto, no el de una persona.'),
 
                     Forms\Components\Select::make('area_id')
                         ->label('Área')
@@ -39,7 +45,7 @@ class CargoResource extends Resource implements HasShieldPermissions
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->hint('Seleccione el área donde se desempeña este cargo.'),
+                        ->helperText('El área ayuda a organizar la estructura y los permisos.'),
                 ])
                 ->columns(2),
         ]);
@@ -61,32 +67,39 @@ class CargoResource extends Resource implements HasShieldPermissions
                     ->badge()
                     ->color('success'),
             ])
-            ->filters([])
+            ->filters([
+                Tables\Filters\SelectFilter::make('area_id')->label('Área')->relationship('area', 'nombre')->preload(),
+            ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->label('Editar')->tooltip('Editar cargo'),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
-            ]);
+            ])
+            ->defaultSort('nombre')
+            ->emptyStateHeading('Aún no hay cargos')
+            ->emptyStateDescription('Cree un cargo y asígnelo a un área para completar la estructura organizacional.')
+            ->emptyStateIcon('heroicon-o-briefcase');
     }
-    //Permisos personalizados de filament shield
+
+    // Permisos personalizados de filament shield
     public static function getPermissionPrefixes(): array
     {
         return [
-            'view_any', //Mostrar en menúF
-            'view', //Ver registro
-            'create', //Crear Registro
-            'update', //Actualizar registro            
-            'delete' //Eliminar Registro
+            'view_any', // Mostrar en menúF
+            'view', // Ver registro
+            'create', // Crear Registro
+            'update', // Actualizar registro
+            'delete', // Eliminar Registro
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListCargos::route('/'),
+            'index' => Pages\ListCargos::route('/'),
             'create' => Pages\CreateCargo::route('/create'),
-            'edit'   => Pages\EditCargo::route('/{record}/edit'),
+            'edit' => Pages\EditCargo::route('/{record}/edit'),
         ];
     }
 }

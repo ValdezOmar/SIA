@@ -29,10 +29,11 @@ class AsignacionesRelationManager extends RelationManager
                     ->all())
                 ->searchable()
                 ->preload()
+                ->helperText('Seleccione a quién aplicará este horario.')
                 ->required(),
-            Forms\Components\DatePicker::make('fecha_inicio')->label('Vigente desde')->default(today())->required(),
-            Forms\Components\DatePicker::make('fecha_fin')->label('Vigente hasta')->afterOrEqual('fecha_inicio')->helperText('Déjelo vacío para mantener el turno vigente.'),
-            Forms\Components\Toggle::make('activo')->label('Activa')->default(true),
+            Forms\Components\DatePicker::make('fecha_inicio')->label('Vigente desde')->default(today())->helperText('Fecha de inicio del turno.')->required(),
+            Forms\Components\DatePicker::make('fecha_fin')->label('Vigente hasta')->afterOrEqual('fecha_inicio')->helperText('Déjelo vacío si no tiene fecha de finalización.'),
+            Forms\Components\Toggle::make('activo')->label('Activa')->helperText('Solo las asignaciones activas se aplican al control de asistencia.')->default(true),
         ])->columns(2);
     }
 
@@ -48,17 +49,23 @@ class AsignacionesRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
+                    ->label('Asignar empleado')
+                    ->tooltip('Aplicar este horario a un empleado')
                     ->before(function (array $data): void {
                         $this->validarSolapamiento($data);
                     }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
+                    ->label('Editar')
+                    ->tooltip('Modificar la vigencia de esta asignación')
                     ->before(function (array $data, AsignacionHorarioAsistencia $record): void {
                         $this->validarSolapamiento($data, $record);
                     }),
                 Tables\Actions\DeleteAction::make(),
-            ]);
+            ])
+            ->emptyStateHeading('Sin empleados asignados')
+            ->emptyStateDescription('Asigne este horario a los empleados que corresponda.');
     }
 
     private function validarSolapamiento(array $data, $asignacionActual = null): void

@@ -3,12 +3,13 @@
 namespace App\Filament\Clusters\Sistema\Resources\AreaResource\RelationManagers;
 
 use Filament\Forms;
-use Filament\Tables;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
 
 class CargosRelationManager extends RelationManager
 {
     protected static string $relationship = 'cargos';
+
     protected static ?string $title = 'Cargos';
 
     public function form(Forms\Form $form): Forms\Form
@@ -19,7 +20,7 @@ class CargosRelationManager extends RelationManager
                 ->placeholder('Ej. Contador, Analista, Programador')
                 ->required()
                 ->maxLength(150)
-                ->hint('Escriba el título oficial del cargo.'),
+                ->helperText('Use el nombre oficial que verá el personal.'),
         ]);
     }
 
@@ -34,14 +35,18 @@ class CargosRelationManager extends RelationManager
                     ->weight('bold'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()->label('Añadir Cargo'),
+                Tables\Actions\CreateAction::make()
+                    ->label('Añadir cargo')
+                    ->tooltip('Registrar un cargo para esta área'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->label('Editar')->tooltip('Modificar este cargo'),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
-            ]);
+            ])
+            ->emptyStateHeading('Aún no hay cargos')
+            ->emptyStateDescription('Añada los cargos que pertenecen a esta área.');
     }
 }

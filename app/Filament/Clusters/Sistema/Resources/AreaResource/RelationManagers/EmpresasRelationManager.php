@@ -3,9 +3,8 @@
 namespace App\Filament\Clusters\Sistema\Resources\AreaResource\RelationManagers;
 
 use Filament\Forms;
-use Filament\Tables;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Actions\AttachAction;
 use Filament\Tables\Actions\DetachAction;
 use Filament\Tables\Columns\TextColumn;
@@ -13,7 +12,8 @@ use Filament\Tables\Table;
 
 class EmpresasRelationManager extends RelationManager
 {
-    protected static string $relationship = 'empresas'; // relación en el modelo Área
+    protected static string $relationship = 'empresas';
+
     protected static ?string $title = 'Empresas asociadas';
 
     public function form(Form $form): Form
@@ -21,6 +21,7 @@ class EmpresasRelationManager extends RelationManager
         return $form->schema([
             Forms\Components\TextInput::make('razon_social')
                 ->label('Razón Social')
+                ->helperText('La empresa se administra desde su propio registro.')
                 ->disabled(),
         ]);
     }
@@ -44,6 +45,7 @@ class EmpresasRelationManager extends RelationManager
             ->headerActions([
                 AttachAction::make()
                     ->label('Vincular Empresa')
+                    ->tooltip('Asociar una empresa a esta área')
                     ->recordSelect(function ($select) {
                         return $select
                             ->searchable()
@@ -56,6 +58,6 @@ class EmpresasRelationManager extends RelationManager
                     ->label('Quitar'),
             ])
             ->emptyStateHeading('Sin empresas asociadas')
-            ->emptyStateDescription('Puedes vincular una o más empresas a esta área.');
+            ->emptyStateDescription('Vincule las empresas que utilizan esta área.');
     }
 }
