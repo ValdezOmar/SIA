@@ -3,22 +3,20 @@
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
 use App\Models\Inventario\Almacen;
-use App\Models\Inventario\Existencia;
-use Filament\Forms;
+use App\Models\Inventario\Kardex;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Illuminate\Support\HtmlString;
 
 class ExistenciasRelationManager extends RelationManager
 {
@@ -32,7 +30,7 @@ class ExistenciasRelationManager extends RelationManager
 
     private static function formatearMonto($monto): string
     {
-        return 'Bs ' . number_format($monto ?? 0, 2);
+        return 'Bs '.number_format($monto ?? 0, 2);
     }
 
     public function form(Form $form): Form
@@ -46,7 +44,7 @@ class ExistenciasRelationManager extends RelationManager
                                 Select::make('almacen_id')
                                     ->label('Almacén')
                                     ->options(
-                                        fn() => Almacen::where('activo', true)
+                                        fn () => Almacen::where('activo', true)
                                             ->pluck('nombre', 'id')
                                             ->toArray()
                                     )
@@ -67,7 +65,10 @@ class ExistenciasRelationManager extends RelationManager
                                     ->step(1.00)
                                     ->default(0)
                                     ->placeholder('0.00')
-                                    ->prefixIcon('heroicon-o-cube'),
+                                    ->prefixIcon('heroicon-o-cube')
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->helperText('Se actualiza únicamente desde movimientos de Kardex.'),
 
                                 TextInput::make('cantidad_comprometida')
                                     ->label('Stock Comprometido')
@@ -76,7 +77,10 @@ class ExistenciasRelationManager extends RelationManager
                                     ->step(1.00)
                                     ->default(0)
                                     ->placeholder('0.00')
-                                    ->prefixIcon('heroicon-o-clock'),
+                                    ->prefixIcon('heroicon-o-clock')
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->helperText('Se actualiza automáticamente desde los documentos operativos.'),
                             ]),
 
                         Grid::make(3)
@@ -139,11 +143,11 @@ class ExistenciasRelationManager extends RelationManager
                                     ->schema([
                                         Placeholder::make('ultima_entrada')
                                             ->label('Última Entrada')
-                                            ->content(fn($record) => $record?->ultima_entrada?->format('d/m/Y H:i') ?? 'N/A'),
+                                            ->content(fn ($record) => $record?->ultima_entrada?->format('d/m/Y H:i') ?? 'N/A'),
 
                                         Placeholder::make('ultima_salida')
                                             ->label('Última Salida')
-                                            ->content(fn($record) => $record?->ultima_salida?->format('d/m/Y H:i') ?? 'N/A'),
+                                            ->content(fn ($record) => $record?->ultima_salida?->format('d/m/Y H:i') ?? 'N/A'),
                                     ]),
                             ]),
                     ]),
@@ -173,7 +177,7 @@ class ExistenciasRelationManager extends RelationManager
                     ->label('Stock Actual')
                     ->numeric(2)
                     ->sortable()
-                    ->color(fn($state) => $state <= 0 ? 'danger' : 'success')
+                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'success')
                     ->toggleable()
                     ->weight('bold'),
 
@@ -188,8 +192,8 @@ class ExistenciasRelationManager extends RelationManager
                     ->label('Disponible')
                     ->numeric(2)
                     ->sortable()
-                    ->getStateUsing(fn($record) => $record->stock_disponible)
-                    ->color(fn($state) => $state <= 0 ? 'danger' : 'success')
+                    ->getStateUsing(fn ($record) => $record->stock_disponible)
+                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'success')
                     ->toggleable(),
 
                 TextColumn::make('cantidad_minima')
@@ -214,9 +218,16 @@ class ExistenciasRelationManager extends RelationManager
                 BadgeColumn::make('estado_stock')
                     ->label('Estado')
                     ->getStateUsing(function ($record) {
-                        if ($record->cantidad_disponible <= 0) return 'Sin Stock';
-                        if ($record->cantidad_disponible <= $record->cantidad_minima) return 'Bajo Mínimo';
-                        if ($record->cantidad_maxima > 0 && $record->cantidad_disponible >= $record->cantidad_maxima) return 'Excedido';
+                        if ($record->cantidad_disponible <= 0) {
+                            return 'Sin Stock';
+                        }
+                        if ($record->cantidad_disponible <= $record->cantidad_minima) {
+                            return 'Bajo Mínimo';
+                        }
+                        if ($record->cantidad_maxima > 0 && $record->cantidad_disponible >= $record->cantidad_maxima) {
+                            return 'Excedido';
+                        }
+
                         return 'Normal';
                     })
                     ->colors([
@@ -248,15 +259,15 @@ class ExistenciasRelationManager extends RelationManager
             ->filters([
                 Filter::make('bajo_minimo')
                     ->label('Stock bajo mínimo')
-                    ->query(fn($query) => $query->whereRaw('cantidad_disponible <= cantidad_minima')),
+                    ->query(fn ($query) => $query->whereRaw('cantidad_disponible <= cantidad_minima')),
 
                 Filter::make('sin_stock')
                     ->label('Sin stock')
-                    ->query(fn($query) => $query->where('cantidad_disponible', '<=', 0)),
+                    ->query(fn ($query) => $query->where('cantidad_disponible', '<=', 0)),
 
                 Filter::make('excedido')
                     ->label('Stock excedido')
-                    ->query(fn($query) => $query->whereRaw('cantidad_maxima > 0 AND cantidad_disponible >= cantidad_maxima')),
+                    ->query(fn ($query) => $query->whereRaw('cantidad_maxima > 0 AND cantidad_disponible >= cantidad_maxima')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
@@ -266,6 +277,7 @@ class ExistenciasRelationManager extends RelationManager
                     ->modalWidth('4xl')
                     ->mutateFormDataUsing(function (array $data, $livewire): array {
                         $data['articulo_id'] = $livewire->getOwnerRecord()->id;
+
                         return $data;
                     })
                     ->after(function ($record) {
@@ -283,6 +295,7 @@ class ExistenciasRelationManager extends RelationManager
                         ->modalWidth('4xl')
                         ->mutateFormDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
+
                             return $data;
                         }),
 
@@ -299,27 +312,41 @@ class ExistenciasRelationManager extends RelationManager
                                 ->step(1.00),
                             TextInput::make('motivo')
                                 ->label('Motivo del Ajuste')
+                                ->required()
                                 ->maxLength(255)
                                 ->placeholder('Ej: Ajuste por inventario físico'),
                         ])
                         ->action(function (array $data, $record) {
-                            $record->update(['cantidad_disponible' => $data['nuevo_stock']]);
+                            $stockActual = (float) $record->cantidad_disponible;
+                            $nuevoStock = (float) $data['nuevo_stock'];
+                            $diferencia = abs($nuevoStock - $stockActual);
+
+                            if ($diferencia <= 0.000001) {
+                                return;
+                            }
+
+                            Kardex::registrarMovimiento([
+                                'articulo_id' => $record->articulo_id,
+                                'almacen_id' => $record->almacen_id,
+                                'tipo_movimiento' => $nuevoStock > $stockActual ? 'ajuste_incremento' : 'ajuste_decremento',
+                                'cantidad' => $diferencia,
+                                'costo_unitario' => $record->costo_promedio,
+                                'documento_tipo' => 'manual',
+                                'documento_id' => 0,
+                                'documento_codigo' => 'AJU-MANUAL',
+                                'motivo' => $data['motivo'],
+                                'observaciones' => 'Ajuste de stock desde '.$stockActual.' a '.$nuevoStock.'. '.$data['motivo'],
+                            ]);
+
                             Notification::make()
-                                ->title('Stock ajustado exitosamente')
-                                ->body("Nuevo stock: " . number_format($data['nuevo_stock'], 2))
+                                ->title('Ajuste registrado en Kardex')
+                                ->body('Nuevo stock: '.number_format($nuevoStock, 2))
                                 ->success()
                                 ->send();
                         }),
-
-                    Tables\Actions\DeleteAction::make(),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar existencia...')

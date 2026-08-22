@@ -4,6 +4,7 @@ namespace App\Models\Inventario;
 
 use App\Models\Sistema\Empresa;
 use App\Models\User;
+use App\Services\Inventario\TrazabilidadInventarioService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +40,7 @@ class Kardex extends Model
                 $kardex->documento_tipo = 'manual';
             }
 
-            if (empty($kardex->documento_id) && !isset($kardex->documento_id)) {
+            if (empty($kardex->documento_id) && ! isset($kardex->documento_id)) {
                 $kardex->documento_id = 0;
             }
 
@@ -178,7 +179,7 @@ class Kardex extends Model
 
     public function getEstadoLabelAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'pendiente' => 'Pendiente',
             'confirmado' => 'Confirmado',
             'cancelado' => 'Cancelado',
@@ -209,12 +210,12 @@ class Kardex extends Model
                 'consignacion' => 'entrada',
             ];
 
-            if (!array_key_exists($tipo, $direcciones)) {
-                throw new \InvalidArgumentException('Tipo de movimiento no soportado: ' . ($tipo ?? 'vacío'));
+            if (! array_key_exists($tipo, $direcciones)) {
+                throw new \InvalidArgumentException('Tipo de movimiento no soportado: '.($tipo ?? 'vacío'));
             }
 
             $direccion = $direcciones[$tipo];
-            if (!$direccion || !in_array($direccion, ['entrada', 'salida'], true)) {
+            if (! $direccion || ! in_array($direccion, ['entrada', 'salida'], true)) {
                 throw new \InvalidArgumentException('La dirección es obligatoria para un ajuste físico.');
             }
 
@@ -237,14 +238,14 @@ class Kardex extends Model
             }
 
             $data['direccion'] = $direccion;
-            $data['estado'] = $data['estado'] ?? 'confirmado';
+            $data['estado'] = 'confirmado';
             $data['fecha_movimiento'] = $data['fecha_movimiento'] ?? now();
 
             $kardex = $direccion === 'entrada'
                 ? self::registrarEntrada($data)
                 : self::registrarSalida($data);
 
-            MovimientoInventario::create([
+            $movimientoInventario = MovimientoInventario::create([
                 'articulo_id' => $kardex->articulo_id,
                 'almacen_id' => $kardex->almacen_id,
                 'tipo' => self::getTipoMovimientoAuxiliar($tipo, $direccion),
@@ -259,6 +260,17 @@ class Kardex extends Model
                 'estado' => $kardex->estado === 'anulado' ? 'cancelado' : $kardex->estado,
                 'kardex_id' => $kardex->id,
             ]);
+
+            $articulo = $kardex->articulo;
+            if (empty($data['omitir_trazabilidad']) && $articulo && ($articulo->maneja_series || $articulo->maneja_lotes)) {
+                $trazabilidad = app(TrazabilidadInventarioService::class);
+
+                if ($direccion === 'entrada') {
+                    $trazabilidad->registrarEntrada($movimientoInventario, $articulo, $data);
+                } else {
+                    $trazabilidad->registrarSalida($movimientoInventario, $articulo, $data);
+                }
+            }
 
             return $kardex;
         });
@@ -294,7 +306,7 @@ class Kardex extends Model
                 ->where('estado', 'confirmado')
                 ->first();
 
-            if (!$reversion) {
+            if (! $reversion) {
                 $tiposReversion = [
                     'compra' => 'devolucion_compra',
                     'venta' => 'devolucion_venta',
@@ -314,9 +326,11 @@ class Kardex extends Model
                 ];
 
                 $tipoReversion = $tiposReversion[$movimiento->tipo_movimiento] ?? null;
-                if (!$tipoReversion) {
-                    throw new \InvalidArgumentException('No existe una reversión definida para: ' . $movimiento->tipo_movimiento);
+                if (! $tipoReversion) {
+                    throw new \InvalidArgumentException('No existe una reversión definida para: '.$movimiento->tipo_movimiento);
                 }
+
+                $movimientoAuxiliarOriginal = MovimientoInventario::where('kardex_id', $movimiento->id)->first();
 
                 $reversion = self::registrarMovimiento([
                     'articulo_id' => $movimiento->articulo_id,
@@ -331,11 +345,20 @@ class Kardex extends Model
                     'documento_codigo' => $movimiento->documento_codigo,
                     'documento_detalle_id' => $movimiento->documento_detalle_id,
                     'movimiento_relacionado_id' => $movimiento->id,
-                    'observaciones' => 'Reversión de Kardex #' . $movimiento->id . ($motivo ? '. Motivo: ' . $motivo : ''),
+                    'observaciones' => 'Reversión de Kardex #'.$movimiento->id.($motivo ? '. Motivo: '.$motivo : ''),
                     'empresa_id' => $movimiento->empresa_id,
                     'fecha_movimiento' => now(),
                     'estado' => 'confirmado',
+                    'omitir_trazabilidad' => $movimiento->direccion === 'salida',
                 ]);
+
+                if ($movimiento->direccion === 'salida' && $movimientoAuxiliarOriginal) {
+                    $movimientoAuxiliarReversion = MovimientoInventario::where('kardex_id', $reversion->id)->first();
+
+                    if ($movimientoAuxiliarReversion) {
+                        app(TrazabilidadInventarioService::class)->revertirSalida($movimientoAuxiliarOriginal, $movimientoAuxiliarReversion);
+                    }
+                }
             }
 
             $movimiento->update(['estado' => 'anulado']);
@@ -357,6 +380,7 @@ class Kardex extends Model
         $articulo = Articulo::find($data['articulo_id']);
         $existencia = Existencia::where('articulo_id', $data['articulo_id'])
             ->where('almacen_id', $data['almacen_id'])
+            ->lockForUpdate()
             ->first();
 
         $cantidadAnterior = $existencia ? $existencia->cantidad_disponible : 0;
@@ -375,13 +399,14 @@ class Kardex extends Model
             'cantidad_posterior' => $cantidadPosterior,
             'costo_unitario' => $data['costo_unitario'],
             'costo_total' => $costoTotal,
-            'costo_promedio' => $cantidadPosterior > 0 ? 
-                (($existencia?->costo_promedio ?? 0) * $cantidadAnterior + $costoTotal) / $cantidadPosterior : 
+            'costo_promedio' => $cantidadPosterior > 0 ?
+                (($existencia?->costo_promedio ?? 0) * $cantidadAnterior + $costoTotal) / $cantidadPosterior :
                 $data['costo_unitario'],
             'costo_acumulado' => ($existencia?->costo_acumulado ?? 0) + $costoTotal,
             'documento_tipo' => $data['documento_tipo'],
             'documento_id' => $data['documento_id'],
             'documento_codigo' => $data['documento_codigo'] ?? null,
+            'documento_detalle_id' => $data['documento_detalle_id'] ?? null,
             'movimiento_relacionado_id' => $data['movimiento_relacionado_id'] ?? null,
             'usuario_id' => auth()->id(),
             'fecha_movimiento' => $data['fecha_movimiento'] ?? now(),
@@ -421,7 +446,7 @@ class Kardex extends Model
                 'costo_unitario' => $data['costo_unitario'],
                 'fecha' => $data['fecha_movimiento'] ?? now(),
             ]);
-            
+
             $kardex->capa_fifo_id = $capa->id;
             $kardex->save();
         }
@@ -444,6 +469,7 @@ class Kardex extends Model
 
         if ($devolucionExistente) {
             $this->update(['estado' => 'anulado']);
+
             return $devolucionExistente;
         }
 
@@ -462,7 +488,7 @@ class Kardex extends Model
             'documento_codigo' => $this->documento_codigo,
             'documento_detalle_id' => $this->documento_detalle_id,
             'movimiento_relacionado_id' => $this->id,
-            'observaciones' => 'Reversión de salida por anulación de venta ' . $this->documento_codigo . ($motivo ? '. Motivo: ' . $motivo : ''),
+            'observaciones' => 'Reversión de salida por anulación de venta '.$this->documento_codigo.($motivo ? '. Motivo: '.$motivo : ''),
             'empresa_id' => $this->empresa_id,
             'fecha_movimiento' => now(),
             'estado' => 'confirmado',
@@ -479,7 +505,7 @@ class Kardex extends Model
             'documento_id' => $this->documento_id,
             'documento_codigo' => $this->documento_codigo,
             'fecha' => now(),
-            'observacion' => 'Entrada por anulación de venta ' . $this->documento_codigo,
+            'observacion' => 'Entrada por anulación de venta '.$this->documento_codigo,
             'estado' => 'confirmado',
             'kardex_id' => $devolucion->id,
         ]);
@@ -497,9 +523,10 @@ class Kardex extends Model
         $articulo = Articulo::find($data['articulo_id']);
         $existencia = Existencia::where('articulo_id', $data['articulo_id'])
             ->where('almacen_id', $data['almacen_id'])
+            ->lockForUpdate()
             ->first();
 
-        if (!$existencia || $existencia->cantidad_disponible < $data['cantidad']) {
+        if (! $existencia || $existencia->cantidad_disponible < $data['cantidad']) {
             throw new \Exception('Stock insuficiente para la salida');
         }
 
@@ -531,7 +558,7 @@ class Kardex extends Model
 
             if ($metodoCosto === 'lifo') {
                 $consultaCapas->orderByDesc('fecha')->orderByDesc('id');
-            } elseif ($metodoCosto === 'especifica' && !empty($data['capa_costo_id'])) {
+            } elseif ($metodoCosto === 'especifica' && ! empty($data['capa_costo_id'])) {
                 $consultaCapas->where('id', $data['capa_costo_id']);
             } else {
                 $consultaCapas->orderBy('fecha')->orderBy('id');
@@ -540,7 +567,9 @@ class Kardex extends Model
             $capas = $consultaCapas->get();
 
             foreach ($capas as $capa) {
-                if ($cantidadPendiente <= 0) break;
+                if ($cantidadPendiente <= 0) {
+                    break;
+                }
 
                 $cantidadConsumir = min($cantidadPendiente, (float) $capa->cantidad_disponible);
                 $costoTotal += $cantidadConsumir * (float) $capa->costo_unitario;
@@ -566,8 +595,8 @@ class Kardex extends Model
         }
 
         $costoPromedioSalida = $costoUnitarioSalida;
-        $nuevoCostoPromedio = $cantidadPosterior > 0 ? 
-            ($existencia->costo_acumulado - $costoTotal) / $cantidadPosterior : 
+        $nuevoCostoPromedio = $cantidadPosterior > 0 ?
+            ($existencia->costo_acumulado - $costoTotal) / $cantidadPosterior :
             0;
 
         // Crear registro en kardex
@@ -588,6 +617,7 @@ class Kardex extends Model
             'documento_tipo' => $data['documento_tipo'],
             'documento_id' => $data['documento_id'],
             'documento_codigo' => $data['documento_codigo'] ?? null,
+            'documento_detalle_id' => $data['documento_detalle_id'] ?? null,
             'movimiento_relacionado_id' => $data['movimiento_relacionado_id'] ?? null,
             'usuario_id' => auth()->id(),
             'fecha_movimiento' => $data['fecha_movimiento'] ?? now(),

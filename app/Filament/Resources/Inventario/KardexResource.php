@@ -3,29 +3,26 @@
 namespace App\Filament\Resources\Inventario;
 
 use App\Filament\Resources\Inventario\KardexResource\Pages;
-use App\Models\Inventario\Kardex;
-use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Almacen;
-use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
+use App\Models\Inventario\Articulo;
+use App\Models\Inventario\Kardex;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\HtmlString;
+use Illuminate\Database\Eloquent\Model;
 
 class KardexResource extends Resource
 {
@@ -43,6 +40,16 @@ class KardexResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
+
     private static function getSimboloMoneda($moneda = 'BOB'): string
     {
         return match ($moneda) {
@@ -55,7 +62,7 @@ class KardexResource extends Resource
 
     private static function formatearMonto($monto, $moneda = 'BOB'): string
     {
-        return self::getSimboloMoneda($moneda) . ' ' . number_format($monto ?? 0, 2);
+        return self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2);
     }
 
     public static function form(Form $form): Form
@@ -76,11 +83,11 @@ class KardexResource extends Resource
                                                 Select::make('articulo_id')
                                                     ->label('Artículo')
                                                     ->options(
-                                                        fn() => Articulo::where('activo', true)
+                                                        fn () => Articulo::where('activo', true)
                                                             ->orderBy('codigo')
                                                             ->get()
-                                                            ->mapWithKeys(fn($item) => [
-                                                                $item->id => $item->codigo . ' - ' . ($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción')
+                                                            ->mapWithKeys(fn ($item) => [
+                                                                $item->id => $item->codigo.' - '.($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción'),
                                                             ])
                                                             ->toArray()
                                                     )
@@ -104,7 +111,7 @@ class KardexResource extends Resource
                                                 Select::make('almacen_id')
                                                     ->label('Almacén')
                                                     ->options(
-                                                        fn() => Almacen::where('activo', true)
+                                                        fn () => Almacen::where('activo', true)
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
                                                     )
@@ -123,7 +130,7 @@ class KardexResource extends Resource
                                                     ->native(false)
                                                     ->helperText('Fecha efectiva del movimiento. Se usa para ordenar el Kardex y el costo FIFO.')
                                                     ->prefixIcon('heroicon-o-calendar'),
-                                                    
+
                                                 Select::make('tipo_movimiento')
                                                     ->label('Tipo de Movimiento')
                                                     ->options([
@@ -202,7 +209,7 @@ class KardexResource extends Resource
                                                     ->searchable()
                                                     ->prefixIcon('heroicon-o-arrow-path')
                                                     ->helperText('Entrada suma stock; Salida lo descuenta. En otros tipos se calcula automáticamente.')
-                                                    ->disabled(fn($get) => $get('tipo_movimiento') !== 'ajuste_fisico')
+                                                    ->disabled(fn ($get) => $get('tipo_movimiento') !== 'ajuste_fisico')
                                                     ->dehydrated(),
 
                                                 TextInput::make('cantidad')
@@ -230,7 +237,7 @@ class KardexResource extends Resource
                                                     ->minValue(0)
                                                     ->step(0.000001)
                                                     ->placeholder('0.00')
-                                                    ->prefix(fn($get) => self::getSimboloMoneda('BOB'))
+                                                    ->prefix(fn ($get) => self::getSimboloMoneda('BOB'))
                                                     ->helperText('Costo por unidad. En entradas alimenta FIFO; en salidas se usa para valorar la operación.')
                                                     ->reactive()
                                                     ->afterStateUpdated(function ($state, callable $set, $get) {
@@ -246,7 +253,7 @@ class KardexResource extends Resource
                                                     ->minValue(0)
                                                     ->step(0.000001)
                                                     ->placeholder('0.00')
-                                                    ->prefix(fn($get) => self::getSimboloMoneda('BOB'))
+                                                    ->prefix(fn ($get) => self::getSimboloMoneda('BOB'))
                                                     ->helperText('Costo total del movimiento')
                                                     ->disabled(),
 
@@ -289,6 +296,25 @@ class KardexResource extends Resource
                                                     ->helperText('Código que permite encontrar rápidamente el documento en Ventas, Compras o Inventario.')
                                                     ->prefixIcon('heroicon-o-document-text'),
                                             ]),
+
+                                        Section::make('Series y lotes')
+                                            ->icon('heroicon-o-qr-code')
+                                            ->description('Completa solo el control que utiliza el artículo seleccionado. La cantidad debe coincidir exactamente con el movimiento.')
+                                            ->schema([
+                                                Textarea::make('series')
+                                                    ->label('Números de serie')
+                                                    ->rows(2)
+                                                    ->placeholder('SERIE-001, SERIE-002')
+                                                    ->helperText('Registra una serie por unidad, separadas por coma o salto de línea.')
+                                                    ->visible(fn ($get): bool => (bool) Articulo::find($get('articulo_id'))?->maneja_series),
+
+                                                Textarea::make('lotes')
+                                                    ->label('Lotes y cantidades')
+                                                    ->rows(2)
+                                                    ->placeholder('LOTE-A:2, LOTE-B:1')
+                                                    ->helperText('Formato LOTE:CANTIDAD. La suma debe coincidir con la cantidad del movimiento.')
+                                                    ->visible(fn ($get): bool => (bool) Articulo::find($get('articulo_id'))?->maneja_lotes),
+                                            ]),
                                     ]),
 
                                 Section::make('Saldos y Costos')
@@ -306,8 +332,10 @@ class KardexResource extends Resource
                                                             $existencia = \App\Models\Inventario\Existencia::where('articulo_id', $articuloId)
                                                                 ->where('almacen_id', $almacenId)
                                                                 ->first();
+
                                                             return number_format($existencia?->cantidad_disponible ?? 0, 2);
                                                         }
+
                                                         return '0.00';
                                                     }),
 
@@ -331,6 +359,7 @@ class KardexResource extends Resource
                                                                 return number_format(max(0, $saldoActual - $cantidad), 2);
                                                             }
                                                         }
+
                                                         return '0.00';
                                                     }),
 
@@ -343,8 +372,10 @@ class KardexResource extends Resource
                                                             $existencia = \App\Models\Inventario\Existencia::where('articulo_id', $articuloId)
                                                                 ->where('almacen_id', $almacenId)
                                                                 ->first();
+
                                                             return self::formatearMonto($existencia?->costo_promedio ?? 0);
                                                         }
+
                                                         return self::formatearMonto(0);
                                                     }),
 
@@ -357,8 +388,10 @@ class KardexResource extends Resource
                                                             $existencia = \App\Models\Inventario\Existencia::where('articulo_id', $articuloId)
                                                                 ->where('almacen_id', $almacenId)
                                                                 ->first();
+
                                                             return self::formatearMonto($existencia?->costo_acumulado ?? 0);
                                                         }
+
                                                         return self::formatearMonto(0);
                                                     }),
                                             ]),
@@ -380,7 +413,8 @@ class KardexResource extends Resource
                                                     ])
                                                     ->default('confirmado')
                                                     ->required()
-                                                    ->searchable()
+                                                    ->disabled()
+                                                    ->dehydrated()
                                                     ->prefixIcon('heroicon-o-tag')
                                                     ->helperText('Pendiente requiere revisión; Confirmado actualiza el inventario; Anulado conserva el historial sin efecto vigente.'),
 
@@ -411,22 +445,22 @@ class KardexResource extends Resource
                                             ->schema([
                                                 Placeholder::make('usuario.name')
                                                     ->label('Usuario')
-                                                    ->content(fn($record) => $record?->usuario?->name ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->usuario?->name ?? 'N/A'),
                                                 Placeholder::make('creador.name')
                                                     ->label('Creado por')
-                                                    ->content(fn($record) => $record?->creador?->name ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->creador?->name ?? 'N/A'),
                                                 Placeholder::make('autorizador.name')
                                                     ->label('Autorizado por')
-                                                    ->content(fn($record) => $record?->autorizador?->name ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->autorizador?->name ?? 'N/A'),
                                             ]),
                                         Grid::make(2)
                                             ->schema([
                                                 Placeholder::make('created_at')
                                                     ->label('Fecha creación')
-                                                    ->content(fn($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A'),
                                                 Placeholder::make('updated_at')
                                                     ->label('Última actualización')
-                                                    ->content(fn($record) => $record?->updated_at?->format('d/m/Y H:i') ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->updated_at?->format('d/m/Y H:i') ?? 'N/A'),
                                             ]),
                                     ]),
                             ]),
@@ -470,7 +504,7 @@ class KardexResource extends Resource
 
                 BadgeColumn::make('tipo_movimiento')
                     ->label('Tipo')
-                    ->formatStateUsing(fn($state) => match ($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'compra' => 'Compra',
                         'venta' => 'Venta',
                         'transferencia_entrada' => 'Transf. Ent.',
@@ -507,7 +541,7 @@ class KardexResource extends Resource
 
                 BadgeColumn::make('direccion')
                     ->label('Dir.')
-                    ->formatStateUsing(fn($state) => $state === 'entrada' ? 'Entrada' : 'Salida')
+                    ->formatStateUsing(fn ($state) => $state === 'entrada' ? 'Entrada' : 'Salida')
                     ->colors([
                         'success' => 'entrada',
                         'danger' => 'salida',
@@ -520,7 +554,7 @@ class KardexResource extends Resource
                     ->numeric(2)
                     ->sortable()
                     ->toggleable()
-                    ->color(fn($record) => $record->direccion === 'entrada' ? 'success' : 'danger')
+                    ->color(fn ($record) => $record->direccion === 'entrada' ? 'success' : 'danger')
                     ->weight('bold'),
 
                 TextColumn::make('costo_unitario')
@@ -567,7 +601,7 @@ class KardexResource extends Resource
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match ($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'pendiente' => 'Pendiente',
                         'confirmado' => 'Confirmado',
                         'cancelado' => 'Cancelado',
@@ -592,11 +626,11 @@ class KardexResource extends Resource
                 SelectFilter::make('articulo_id')
                     ->label('Artículo')
                     ->options(
-                        fn() => Articulo::where('activo', true)
+                        fn () => Articulo::where('activo', true)
                             ->orderBy('codigo')
                             ->get()
-                            ->mapWithKeys(fn($item) => [
-                                $item->id => $item->codigo . ' - ' . ($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción')
+                            ->mapWithKeys(fn ($item) => [
+                                $item->id => $item->codigo.' - '.($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción'),
                             ])
                             ->toArray()
                     )
@@ -606,7 +640,7 @@ class KardexResource extends Resource
                 SelectFilter::make('almacen_id')
                     ->label('Almacén')
                     ->options(
-                        fn() => Almacen::where('activo', true)
+                        fn () => Almacen::where('activo', true)
                             ->pluck('nombre', 'id')
                             ->toArray()
                     )
@@ -669,8 +703,8 @@ class KardexResource extends Resource
                     ])
                     ->query(function ($query, array $data) {
                         return $query
-                            ->when($data['fecha_desde'], fn($q, $fecha) => $q->whereDate('fecha_movimiento', '>=', $fecha))
-                            ->when($data['fecha_hasta'], fn($q, $fecha) => $q->whereDate('fecha_movimiento', '<=', $fecha));
+                            ->when($data['fecha_desde'], fn ($q, $fecha) => $q->whereDate('fecha_movimiento', '>=', $fecha))
+                            ->when($data['fecha_hasta'], fn ($q, $fecha) => $q->whereDate('fecha_movimiento', '<=', $fecha));
                     }),
             ])
             ->actions([
@@ -678,24 +712,6 @@ class KardexResource extends Resource
                     Tables\Actions\ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
-
-                    Tables\Actions\EditAction::make()
-                        ->slideOver()
-                        ->modalWidth('7xl')
-                        ->visible(fn($record) => $record->estado !== 'confirmado'),
-
-                    Tables\Actions\Action::make('confirmar')
-                        ->label('Confirmar')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->action(function ($record) {
-                            $record->update(['estado' => 'confirmado']);
-                            Notification::make()
-                                ->title('Movimiento confirmado')
-                                ->success()
-                                ->send();
-                        })
-                        ->visible(fn($record) => $record->estado === 'pendiente'),
 
                     Tables\Actions\Action::make('anular')
                         ->label('Anular')
@@ -717,7 +733,7 @@ class KardexResource extends Resource
                                 ->warning()
                                 ->send();
                         })
-                        ->visible(fn($record) => in_array($record->estado, ['pendiente', 'confirmado'])),
+                        ->visible(fn ($record) => $record->estado === 'confirmado'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
