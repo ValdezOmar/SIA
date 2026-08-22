@@ -2,6 +2,11 @@
 
 namespace App\Models\Ventas;
 
+use App\Models\Contabilidad\AsientoContable;
+use App\Models\Inventario\Almacen;
+use App\Models\Inventario\Existencia;
+use App\Models\Inventario\Kardex;
+use App\Models\Inventario\MovimientoInventario;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -117,19 +122,164 @@ class Factura extends Model
         return $pago;
     }
 
+    public function crearPagoAutomaticoSiEsContado(): ?Pago
+    {
+        if (($this->condicion_pago ?? null) !== 'contado') {
+            return null;
+        }
+
+        $pagoExistente = $this->pagos()
+            ->whereIn('estado', ['pendiente', 'confirmado'])
+            ->first();
+
+        if ($pagoExistente) {
+            return $pagoExistente;
+        }
+
+        $totalFactura = (float) ($this->total ?? 0);
+        if ($totalFactura <= 0) {
+            $totalFactura = (float) $this->detalles()->sum('total');
+        }
+
+        if ($totalFactura <= 0) {
+            $totalFactura = (float) $this->detalles()->sum('subtotal');
+        }
+
+        $fechaPago = $this->fecha_pago ?: now()->toDateString();
+        $montoPago = $totalFactura;
+
+        $this->subtotal = $this->subtotal ?? 0;
+        $this->descuento = $this->descuento ?? 0;
+        $this->impuesto = $this->impuesto ?? 0;
+        $this->total = $totalFactura;
+        $this->saldo = $totalFactura;
+        $this->monto_pagado = 0;
+        $this->monto_restante = $totalFactura;
+        $this->fecha_pago = $fechaPago;
+        $this->fecha_vencimiento = $this->fecha_vencimiento ?: $fechaPago;
+        $this->save();
+
+        $pago = Pago::create([
+            'factura_id' => $this->id,
+            'cliente_id' => $this->cliente_id,
+            'numero' => Pago::generarNumero(),
+            'fecha_pago' => $fechaPago,
+            'tipo_pago' => 'efectivo',
+            'monto' => $montoPago,
+            'moneda' => $this->moneda ?? 'BOB',
+            'tasa_cambio' => $this->tasa_cambio ?? 1,
+            'referencia' => 'PAGO AUTOMÁTICO CONTADO',
+            'observaciones' => 'Pago generado automáticamente al guardar la factura en condición de contado.',
+            'creado_por' => Auth::id(),
+            'empresa_id' => $this->empresa_id,
+            'estado' => 'confirmado',
+        ]);
+
+        $this->actualizarSaldo();
+
+        return $pago;
+    }
+
     public function actualizarSaldo()
     {
         $totalPagado = $this->pagos()->where('estado', 'confirmado')->sum('monto');
         $this->monto_pagado = $totalPagado;
-        $this->saldo = $this->total - $totalPagado;
+        $this->saldo = ($this->total ?? 0) - $totalPagado;
+        $this->monto_restante = $this->saldo;
 
         if ($this->saldo <= 0) {
             $this->estado = 'pagada';
         } elseif ($this->monto_pagado > 0 && $this->saldo > 0) {
             $this->estado = 'parcial';
+        } elseif (($this->total ?? 0) > 0) {
+            $this->estado = 'emitida';
+        } else {
+            $this->estado = 'borrador';
         }
 
         $this->save();
+    }
+
+    public function procesarVentaAutomatica(): array
+    {
+        $this->refresh();
+
+        $yaExisteKardex = Kardex::where('documento_tipo', 'venta')
+            ->where('documento_id', $this->id)
+            ->exists();
+
+        $yaExisteAsiento = AsientoContable::where('documento_tipo', 'venta')
+            ->where('documento_id', $this->id)
+            ->exists();
+
+        $almacen = Almacen::where('activo', true)->first();
+
+        if (!$almacen) {
+            throw new \RuntimeException('No existe un almacén activo para registrar la salida de inventario.');
+        }
+
+        if (!$yaExisteKardex) {
+            foreach ($this->detalles as $detalle) {
+                if (!($detalle->articulo_id ?? null) || !($detalle->cantidad ?? 0)) {
+                    continue;
+                }
+
+                $cantidad = (float) $detalle->cantidad;
+                $existencia = Existencia::where('articulo_id', $detalle->articulo_id)
+                    ->where('almacen_id', $almacen->id)
+                    ->first();
+
+                if (!$existencia) {
+                    throw new \RuntimeException('No existe stock del artículo ' . ($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id) . ' en el almacén activo.');
+                }
+
+                if ((float) $existencia->cantidad_disponible < $cantidad) {
+                    throw new \RuntimeException('Stock insuficiente para el artículo ' . ($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id) . '.');
+                }
+
+                $kardex = Kardex::registrarSalida([
+                    'articulo_id' => $detalle->articulo_id,
+                    'almacen_id' => $almacen->id,
+                    'tipo_movimiento' => 'venta',
+                    'cantidad' => $cantidad,
+                    'documento_tipo' => 'venta',
+                    'documento_id' => $this->id,
+                    'documento_codigo' => $this->numero,
+                    'documento_detalle_id' => $detalle->id,
+                    'observaciones' => 'Salida por venta ' . $this->numero,
+                    'empresa_id' => $this->empresa_id ?? Auth::user()?->empresa_id,
+                    'fecha_movimiento' => now(),
+                    'estado' => 'confirmado',
+                ]);
+
+                MovimientoInventario::create([
+                    'articulo_id' => $detalle->articulo_id,
+                    'almacen_id' => $almacen->id,
+                    'tipo' => 'salida_venta',
+                    'cantidad' => -$cantidad,
+                    'costo_unitario' => $kardex->costo_unitario ?? 0,
+                    'costo_total' => $kardex->costo_total ?? 0,
+                    'documento_tipo' => 'venta',
+                    'documento_id' => $this->id,
+                    'documento_codigo' => $this->numero,
+                    'fecha' => now(),
+                    'observacion' => 'Salida por venta ' . $this->numero,
+                    'estado' => 'confirmado',
+                    'kardex_id' => $kardex->id,
+                ]);
+            }
+        }
+
+        if (!$yaExisteAsiento) {
+            $asiento = AsientoContable::crearDesdeVenta($this);
+        } else {
+            $asiento = AsientoContable::where('documento_tipo', 'venta')->where('documento_id', $this->id)->first();
+        }
+
+        return [
+            'kardex' => Kardex::where('documento_tipo', 'venta')->where('documento_id', $this->id)->get(),
+            'asiento' => $asiento,
+        ];
     }
 
     public static function generarNumero()

@@ -22,6 +22,7 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\ValidationException;
 
 class PagosRelationManager extends RelationManager
 {
@@ -47,6 +48,13 @@ class PagosRelationManager extends RelationManager
     {
         $simbolo = self::getSimboloMoneda($moneda);
         return $simbolo . ' ' . number_format($monto ?? 0, 2);
+    }
+
+    private function facturaBloqueada($factura): bool
+    {
+        $estado = $factura?->estado ?? null;
+
+        return in_array($estado, ['pagada', 'pagado', 'anulada'], true);
     }
 
     public function form(Form $form): Form
@@ -217,13 +225,7 @@ class PagosRelationManager extends RelationManager
                     ->copyMessage('Número copiado')
                     ->toggleable()
                     ->width('120px')
-                    ->weight('bold'),
-
-                DatePicker::make('fecha_pago')
-                    ->label('Fecha')
-                    ->date('d/m/Y')
-                    ->sortable()
-                    ->toggleable(),
+                    ->weight('bold'),                
 
                 BadgeColumn::make('tipo_pago')
                     ->label('Tipo')
@@ -315,9 +317,28 @@ class PagosRelationManager extends RelationManager
                     ->icon('heroicon-o-plus')
                     ->modalHeading('Registrar Pago')
                     ->modalWidth('3xl')
+                    ->visible(fn ($livewire) => ! $this->facturaBloqueada($livewire->getOwnerRecord()))
+                    ->disabled(fn ($livewire) => $this->facturaBloqueada($livewire->getOwnerRecord()))
+                    ->before(function (array $data, $livewire) {
+                        if ($this->facturaBloqueada($livewire->getOwnerRecord())) {
+                            throw ValidationException::withMessages([
+                                'estado' => 'No se puede registrar un pago porque la factura ya está pagada o anulada.',
+                            ]);
+                        }
+
+                        return $data;
+                    })
                     ->mutateFormDataUsing(function (array $data, $livewire): array {
-                        $data['factura_id'] = $livewire->getOwnerRecord()->id;
-                        $data['cliente_id'] = $livewire->getOwnerRecord()->cliente_id;
+                        $factura = $livewire->getOwnerRecord();
+
+                        if ($this->facturaBloqueada($factura)) {
+                            throw ValidationException::withMessages([
+                                'estado' => 'La factura ya está en un estado final y no admite nuevos pagos.',
+                            ]);
+                        }
+
+                        $data['factura_id'] = $factura->id;
+                        $data['cliente_id'] = $factura->cliente_id;
                         $data['creado_por'] = Auth::id();
                         $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
 

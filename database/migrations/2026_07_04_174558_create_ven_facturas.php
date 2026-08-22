@@ -32,15 +32,7 @@ return new class extends Migration
             $table->foreignId('cliente_id')->constrained('ven_clientes')->cascadeOnDelete();
             
             // Estado
-            $table->enum('estado', [
-                'abierto',
-                'cerrado',
-                'borrador',
-                'emitida',                
-                'parcial',
-                'vencida',
-                'anulada'
-            ])->default('borrador');
+            $table->string('estado', 50)->default('borrador');
             
             // Condiciones
             $table->string('condicion_pago', 50);

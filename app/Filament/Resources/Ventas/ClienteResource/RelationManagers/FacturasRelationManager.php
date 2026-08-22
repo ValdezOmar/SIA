@@ -21,6 +21,7 @@ use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\ValidationException;
 
 class FacturasRelationManager extends RelationManager
 {
@@ -46,6 +47,13 @@ class FacturasRelationManager extends RelationManager
     {
         $simbolo = self::getSimboloMoneda($moneda);
         return $simbolo . ' ' . number_format($monto ?? 0, 2);
+    }
+
+    private function facturaBloqueada($factura): bool
+    {
+        $estado = $factura?->estado ?? null;
+
+        return in_array($estado, ['pagada', 'pagado', 'anulada'], true);
     }
 
     public function form(Form $form): Form
@@ -329,13 +337,19 @@ class FacturasRelationManager extends RelationManager
                                 ->searchable(),
                         ])
                         ->action(function (array $data, $record) {
+                            if ($this->facturaBloqueada($record)) {
+                                throw ValidationException::withMessages([
+                                    'estado' => 'No se puede registrar un pago porque la factura ya está pagada o anulada.',
+                                ]);
+                            }
+
                             $record->registrarPago($data);
                             Notification::make()
                                 ->title('Pago registrado exitosamente')
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => !in_array($record->estado, ['pagada', 'anulada'])),
+                        ->visible(fn($record) => ! $this->facturaBloqueada($record)),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

@@ -38,7 +38,7 @@ class FacturaResource extends Resource
 
     protected static ?string $navigationGroup = 'Ventas';
 
-    protected static ?string $navigationLabel = 'Facturas';
+    protected static ?string $navigationLabel = 'Registrar Venta';
 
     protected static ?string $modelLabel = 'Factura';
 
@@ -193,12 +193,12 @@ class FacturaResource extends Resource
                                                     ->label('Serie')
                                                     ->maxLength(20)
                                                     ->placeholder('F001')
-                                                    ->helperText('Serie de la factura')
+                                                    ->helperText('Serie del recibo fisico')
                                                     ->prefixIcon('heroicon-o-tag')
                                                     ->columnSpan(1),
 
                                                 DatePicker::make('fecha_emision')
-                                                    ->label('Fecha Emisión')
+                                                    ->label('Fecha de venta')
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
@@ -494,12 +494,12 @@ class FacturaResource extends Resource
                                                     ->columnSpan(1)
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, callable $set) {
-                                                        // Si quieres que al seleccionar una condición de pago se actualice automáticamente la fecha de vencimiento
                                                         if ($state === 'contado') {
-                                                            $set('fecha_vencimiento', now());
+                                                            $set('fecha_vencimiento', now()->toDateString());
+                                                            $set('fecha_pago', now()->toDateString());
                                                         } elseif (str_starts_with($state, 'credito_')) {
                                                             $dias = intval(str_replace('credito_', '', $state));
-                                                            $set('fecha_vencimiento', now()->addDays($dias));
+                                                            $set('fecha_vencimiento', now()->addDays($dias)->toDateString());
                                                         }
                                                     }),
                                             ]),
@@ -507,11 +507,11 @@ class FacturaResource extends Resource
                                         Grid::make(2)
                                             ->schema([
                                                 DatePicker::make('fecha_vencimiento')
-                                                    ->label('Fecha Vencimiento')
+                                                    ->label('Fecha de entrega')
                                                     ->displayFormat('d/m/Y')
-                                                    ->default(now()->addDays(30))
+                                                    ->default(now())
                                                     ->native(false)
-                                                    ->helperText('Fecha de vencimiento de la factura')
+                                                    ->helperText('Fecha de entrega de equipos')
                                                     ->prefixIcon('heroicon-o-calendar-days')
                                                     ->columnSpan(1),
 
@@ -1234,13 +1234,7 @@ class FacturaResource extends Resource
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->bulkActions([
-                // Tables\Actions\BulkActionGroup::make([
-                //     Tables\Actions\DeleteBulkAction::make()
-                //         ->visible(fn($records) => $records->every(fn($record) => $record->estado === 'borrador')),
-                // ]),
-            ])
+            ])            
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar factura por número, cliente...')
             ->emptyStateHeading('No hay facturas registradas')

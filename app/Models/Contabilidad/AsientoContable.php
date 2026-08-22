@@ -272,72 +272,118 @@ class AsientoContable extends Model
         }
     }
 
+    protected static function obtenerOCrearCuenta(string $codigo, string $nombre, string $tipoCuenta, string $naturaleza): ?PlanCuenta
+    {
+        $cuenta = PlanCuenta::where('codigo', $codigo)->first();
+
+        if ($cuenta) {
+            return $cuenta;
+        }
+
+        return PlanCuenta::create([
+            'codigo' => $codigo,
+            'nombre' => $nombre,
+            'nombre_completo' => $nombre,
+            'descripcion' => 'Cuenta creada automáticamente para el flujo de ventas.',
+            'cuenta_padre_id' => null,
+            'nivel' => 1,
+            'trayectoria' => $codigo,
+            'tipo_cuenta' => $tipoCuenta,
+            'naturaleza' => $naturaleza,
+            'tipo_detalle' => 'general',
+            'es_control' => false,
+            'es_analitica' => false,
+            'permite_movimiento' => true,
+            'requiere_centro_costo' => false,
+            'requiere_proyecto' => false,
+            'activo' => true,
+            'empresa_id' => Auth::user()?->empresa_id,
+            'sucursal_id' => Auth::user()?->sucursal_id,
+        ]);
+    }
+
     /**
      * Crear asiento desde una venta
      */
     public static function crearDesdeVenta($venta)
     {
+        $yaExiste = self::where('documento_tipo', 'venta')
+            ->where('documento_id', $venta->id)
+            ->first();
+
+        if ($yaExiste) {
+            return $yaExiste;
+        }
+
+        $documentoCodigo = $venta->numero ?? $venta->codigo ?? 'VENTA-' . $venta->id;
+        $clienteNombre = $venta->cliente?->nombre ?? $venta->cliente?->nombre_comercial ?? 'Cliente';
+        $subtotal = (float) ($venta->subtotal ?? $venta->detalles()->sum('subtotal'));
+        $impuesto = (float) ($venta->impuesto ?? $venta->detalles()->sum('impuesto'));
+        $total = (float) ($venta->total ?? $venta->detalles()->sum('total'));
+        $costoTotal = (float) \App\Models\Inventario\Kardex::where('documento_tipo', 'venta')
+            ->where('documento_id', $venta->id)
+            ->sum('costo_total');
+
         $asiento = self::create([
             'codigo' => self::generarCodigo(),
             'numero_asiento' => null,
             'fecha_asiento' => now(),
             'documento_tipo' => 'venta',
             'documento_id' => $venta->id,
-            'documento_codigo' => $venta->codigo,
+            'documento_codigo' => $documentoCodigo,
             'tipo' => 'venta',
-            'concepto' => 'Venta ' . $venta->codigo . ' - Cliente: ' . $venta->cliente->nombre,
-            'empresa_id' => $venta->empresa_id,
+            'concepto' => 'Venta ' . $documentoCodigo . ' - Cliente: ' . $clienteNombre,
+            'empresa_id' => $venta->empresa_id ?? Auth::user()?->empresa_id,
         ]);
 
-        // Debe: Cuenta por Cobrar (Activo)
+        $cuentaClientes = self::obtenerOCrearCuenta('1.1.1', 'Clientes', 'activo', 'deudora');
+        $cuentaVentas = self::obtenerOCrearCuenta('4.1', 'Ventas', 'ingreso', 'acreedora');
+        $cuentaIva = self::obtenerOCrearCuenta('2.1.3', 'IVA Débito Fiscal', 'pasivo', 'acreedora');
+        $cuentaInventario = self::obtenerOCrearCuenta('1.1.5', 'Inventario', 'activo', 'deudora');
+        $cuentaCostoVenta = self::obtenerOCrearCuenta('6.1', 'Costo de Ventas', 'costo', 'deudora');
+
         $asiento->detalles()->create([
             'linea' => 1,
-            'cuenta_id' => PlanCuenta::where('codigo', '1.1.1')->first()?->id, // Clientes
-            'debe' => $venta->total,
+            'cuenta_id' => $cuentaClientes?->id,
+            'debe' => $total,
             'haber' => 0,
-            'descripcion' => 'Venta ' . $venta->codigo,
+            'descripcion' => 'Venta ' . $documentoCodigo,
         ]);
 
-        // Haber: Ingreso por Ventas
         $asiento->detalles()->create([
             'linea' => 2,
-            'cuenta_id' => PlanCuenta::where('codigo', '4.1')->first()?->id, // Ventas
+            'cuenta_id' => $cuentaVentas?->id,
             'debe' => 0,
-            'haber' => $venta->subtotal,
-            'descripcion' => 'Ingreso por venta ' . $venta->codigo,
+            'haber' => $subtotal,
+            'descripcion' => 'Ingreso por venta ' . $documentoCodigo,
         ]);
 
-        // Haber: IVA Débito Fiscal (si aplica)
-        if ($venta->impuesto > 0) {
+        if ($impuesto > 0 && $cuentaIva) {
             $asiento->detalles()->create([
                 'linea' => 3,
-                'cuenta_id' => PlanCuenta::where('codigo', '2.1.3')->first()?->id, // IVA Débito Fiscal
+                'cuenta_id' => $cuentaIva->id,
                 'debe' => 0,
-                'haber' => $venta->impuesto,
-                'descripcion' => 'IVA por venta ' . $venta->codigo,
+                'haber' => $impuesto,
+                'descripcion' => 'IVA por venta ' . $documentoCodigo,
             ]);
         }
 
-        // Haber: Costo de Ventas (si existe)
-        if ($venta instanceof \App\Models\Ventas\Factura) {
-            $costoTotal = $venta->entregas()->sum('costo_total');
-            if ($costoTotal > 0) {
-                $asiento->detalles()->create([
-                    'linea' => 4,
-                    'cuenta_id' => PlanCuenta::where('codigo', '6.1')->first()?->id, // Costo de Ventas
-                    'debe' => $costoTotal,
-                    'haber' => 0,
-                    'descripcion' => 'Costo de venta ' . $venta->codigo,
-                ]);
+        if ($costoTotal > 0 && $cuentaCostoVenta && $cuentaInventario) {
+            $asiento->detalles()->create([
+                'linea' => 4,
+                'cuenta_id' => $cuentaCostoVenta->id,
+                'debe' => $costoTotal,
+                'haber' => 0,
+                'descripcion' => 'Costo de venta ' . $documentoCodigo,
+            ]);
 
-                $asiento->detalles()->create([
-                    'linea' => 5,
-                    'cuenta_id' => PlanCuenta::where('codigo', '1.1.5')->first()?->id, // Inventario
-                    'debe' => 0,
-                    'haber' => $costoTotal,
-                    'descripcion' => 'Salida de inventario por venta ' . $venta->codigo,
-                ]);
-            }
+            $asiento->detalles()->create([
+                'linea' => 5,
+                'cuenta_id' => $cuentaInventario->id,
+                'debe' => 0,
+                'haber' => $costoTotal,
+                'descripcion' => 'Salida de inventario por venta ' . $documentoCodigo,
+            ]);
         }
 
         $asiento->recalcularTotales();
