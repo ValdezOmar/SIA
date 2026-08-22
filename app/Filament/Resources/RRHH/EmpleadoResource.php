@@ -448,9 +448,10 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->label('Empresa')
                     ->badge()
                     ->color('primary')
+                    ->placeholder('Sin asignar')
                     ->description(
                         fn (Empleado $record) => $record->historialActivo?->sucursal?->nombre
-                            ?? 'Sin sucursal'
+                            ?? 'Sin asignar'
                     ),
 
                 TextColumn::make('historialActivo.tipo_contrato')
@@ -467,31 +468,31 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                         'Otro' => 'danger',
                         default => 'gray',
                     })
+                    ->placeholder('Sin asignar')
                     ->description(
                         fn (Empleado $record) => $record->historialActivo?->cargo?->nombre
-                            ?? 'Sin cargo'
+                            ?? 'Sin asignar'
                     ),
 
                 TextColumn::make('historialActivo.fecha_inicio')
                     ->label('Ingreso')
                     ->date('d/m/Y')
+                    ->placeholder('Sin asignar')
                     ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('historialActivo.fecha_fin')
                     ->label('Final Contrato')
                     ->badge()
-                    // Fuerza un valor cuando viene null desde BD
-                    ->default('Indefinido')
-
                     ->getStateUsing(
-                        fn ($record) => $record->historialActivo?->fecha_fin
+                        fn (Empleado $record): string|\Carbon\CarbonInterface|null => ! $record->historialActivo
+                            ? 'Sin asignar'
+                            : ($record->historialActivo->fecha_fin ?? 'Indefinido')
                     )
 
                     ->formatStateUsing(function ($state, $record) {
 
-                        // Indefinido
-                        if ($state === 'Indefinido') {
-                            return 'Indefinido';
+                        if (in_array($state, ['Sin asignar', 'Indefinido'], true)) {
+                            return $state;
                         }
 
                         $fechaFin = Carbon::parse($state);
@@ -516,6 +517,10 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                             return 'primary';
                         }
 
+                        if ($state === 'Sin asignar') {
+                            return 'gray';
+                        }
+
                         if (! $record->activo) {
                             return 'gray';
                         }
@@ -533,7 +538,8 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
 
                 TextColumn::make('historialActivo.salario')
                     ->label('Salario')
-                    ->money('BOB'),
+                    ->money('BOB')
+                    ->placeholder('Sin asignar'),
 
                 TextColumn::make('coordenadas.texto')
                     ->label('Ubicación Domicilio')

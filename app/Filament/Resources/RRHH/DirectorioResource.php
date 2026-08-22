@@ -3,12 +3,16 @@
 namespace App\Filament\Resources\RRHH;
 
 use App\Models\RRHH\Directorio;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class DirectorioResource extends Resource implements HasShieldPermissions
 {
@@ -18,7 +22,7 @@ class DirectorioResource extends Resource implements HasShieldPermissions
 
     protected static ?string $modelLabel = 'Directorio';
 
-    protected static ?string $pluralModelLabel = 'Directorio de Empleados';
+    protected static ?string $pluralModelLabel = 'Directorio de empleados';
 
     protected static ?string $navigationLabel = 'Directorio';
 
@@ -29,104 +33,93 @@ class DirectorioResource extends Resource implements HasShieldPermissions
     public static function table(Table $table): Table
     {
         return $table
-            // Filtra solo empleados activos
-            ->modifyQueryUsing(fn ($query) => $query->where('activo', true))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                ->where('activo', true)
+                ->with([
+                    'historialActivo.empresa',
+                    'historialActivo.cargo',
+                    'historialActivo.sucursal',
+                ]))
             ->columns([
-                ImageColumn::make('foto')
+                ImageColumn::make('foto_url')
                     ->label('')
                     ->circular()
                     ->defaultImageUrl(asset('images/default-avatar.jpg'))
-                    ->width(50)
-                    ->height(50)
-                    ->extraAttributes([
-                        'class' => 'cursor-pointer hover:opacity-75',
-                        'x-on:click' => 'window.open($event.target.src, "_blank", "width=600,height=600")',
-                    ]),
-
+                    ->size(48),
                 TextColumn::make('nombres')
-                    ->searchable()
-                    ->sortable()
-                    ->description(fn (Directorio $record) => $record->apellidos),
-
+                    ->label('Empleado')
+                    ->formatStateUsing(fn (Directorio $record): string => $record->full_name)
+                    ->searchable(['nombres', 'apellidos', 'ci'])
+                    ->sortable(['apellidos', 'nombres'])
+                    ->description(fn (Directorio $record): string => "CI: {$record->ci}"),
                 TextColumn::make('historialActivo.cargo.nombre')
                     ->label('Cargo')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('historialActivo.correo_corporativo')
-                    ->label('Correo')
-                    ->searchable()
-                    ->sortable()
-                    ->icon('heroicon-o-envelope')
-                    ->iconColor('primary'),
-
-                TextColumn::make('historialActivo.numero_corporativo')
-                    ->label('Teléfono')
-                    ->searchable()
-                    ->sortable()
-                    ->icon('heroicon-o-phone')
-                    ->iconColor('primary'),
-
-                TextColumn::make('historialActivo.sucursal.nombre')
-                    ->label('Sucursal')
-                    ->searchable()
-                    ->sortable()
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'La Paz' => 'success',
-                        'Cochabamba' => 'warning',
-                        'Santa Cruz' => 'danger',
-                        'Sucre' => 'info',
-                        'Tarija' => 'gray',
-                        default => 'gray',
-                    }),
-
+                    ->placeholder('Sin asignar')
+                    ->description(fn (Directorio $record): string => $record->historialActivo?->tipo_contrato ?? 'Sin contrato vigente'),
                 TextColumn::make('historialActivo.empresa.razon_social')
                     ->label('Empresa')
-                    ->searchable()
-                    ->sortable()
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'Novanexa' => 'success',
-                        'Ireilab' => 'warning',
-                        'Requilab' => 'danger',
-                        default => 'gray',
-                    }),
+                    ->color('primary')
+                    ->placeholder('Sin asignar')
+                    ->toggleable(),
+                TextColumn::make('historialActivo.sucursal.nombre')
+                    ->label('Sucursal')
+                    ->badge()
+                    ->color('info')
+                    ->placeholder('Sin asignar'),
+                TextColumn::make('historialActivo.correo_corporativo')
+                    ->label('Contacto corporativo')
+                    ->icon('heroicon-o-envelope')
+                    ->iconColor('primary')
+                    ->url(fn (Directorio $record): ?string => $record->historialActivo?->correo_corporativo ? "mailto:{$record->historialActivo->correo_corporativo}" : null)
+                    ->copyable()
+                    ->copyMessage('Correo copiado')
+                    ->description(fn (Directorio $record): string => $record->historialActivo?->numero_corporativo ?: 'Sin teléfono corporativo')
+                    ->placeholder('Sin contacto asignado')
+                    ->toggleable(),
+                IconColumn::make('historialActivo.id')
+                    ->label('Vínculo')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-exclamation-circle')
+                    ->trueColor('success')
+                    ->falseColor('warning')
+                    ->tooltip(fn (Directorio $record): string => $record->historialActivo ? 'Contrato laboral vigente' : 'Sin contrato laboral vigente'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('empresa_id')
                     ->label('Empresa')
-                    ->options(
-                        \App\Models\Sistema\Empresa::query()
-                            ->orderBy('razon_social')
-                            ->pluck('razon_social', 'id')
-                            ->toArray()
-                    )
-                    ->query(fn ($query, array $data) => $query->when($data['value'] ?? null, fn ($query, $empresaId) => $query->whereHas('historialActivo', fn ($query) => $query->where('empresa_id', $empresaId)))),
-
+                    ->options(Empresa::query()->where('empresa_activo', true)->orderBy('razon_social')->pluck('razon_social', 'id')->all())
+                    ->query(fn (Builder $query, array $data): Builder => $query->when($data['value'] ?? null, fn (Builder $query, $empresaId): Builder => $query->whereHas('historialActivo', fn (Builder $query): Builder => $query->where('empresa_id', $empresaId)))),
                 Tables\Filters\SelectFilter::make('sucursal_id')
                     ->label('Sucursal')
-                    ->options(
-                        \App\Models\Sistema\Sucursal::query()
-                            ->orderBy('nombre')
-                            ->pluck('nombre', 'id')
-                            ->toArray()
-                    )
-                    ->query(fn ($query, array $data) => $query->when($data['value'] ?? null, fn ($query, $sucursalId) => $query->whereHas('historialActivo', fn ($query) => $query->where('sucursal_id', $sucursalId)))),
+                    ->options(Sucursal::query()->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all())
+                    ->query(fn (Builder $query, array $data): Builder => $query->when($data['value'] ?? null, fn (Builder $query, $sucursalId): Builder => $query->whereHas('historialActivo', fn (Builder $query): Builder => $query->where('sucursal_id', $sucursalId)))),
+                Tables\Filters\TernaryFilter::make('con_vinculo_laboral')
+                    ->label('Vínculo laboral')
+                    ->placeholder('Todos')
+                    ->trueLabel('Con contrato vigente')
+                    ->falseLabel('Sin contrato vigente')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->whereHas('historialActivo'),
+                        false: fn (Builder $query): Builder => $query->whereDoesntHave('historialActivo'),
+                    ),
             ])
-            ->actions([]) // Sin acciones de edición/eliminación
-            ->recordUrl(null) // Desactiva el click en las filas
+            ->actions([])
+            ->recordUrl(null)
+            ->defaultSort('apellidos')
+            ->emptyStateHeading('No hay empleados activos')
+            ->emptyStateDescription('Los empleados activos aparecerán aquí cuando se registren en Recursos Humanos.')
+            ->emptyStateIcon('heroicon-o-user-group')
             ->paginated([10, 25, 50, 100])
-            ->defaultPaginationPageOption(100)
-            ->bulkActions([]); // Sin acciones masivas
+            ->defaultPaginationPageOption(25)
+            ->striped()
+            ->bulkActions([]);
     }
 
-    // Permisos personalizados de filament shield
     public static function getPermissionPrefixes(): array
     {
-        return [
-            'view_any',    // los permisos del Shield usuales
-        ];
+        return ['view_any'];
     }
 
     public static function getPages(): array
