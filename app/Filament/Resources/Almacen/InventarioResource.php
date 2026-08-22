@@ -28,7 +28,6 @@ use Filament\Tables\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use App\Models\Almacen\Articulo;
 
 class InventarioResource extends Resource implements HasShieldPermissions
 {

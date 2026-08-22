@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Almacen\InventarioResource\Pages;
 use App\Filament\Resources\Almacen\InventarioResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
-use App\Models\Almacen\Articulo;
+use App\Models\Inventario\Articulo;
 use Filament\Forms\Components\DatePicker;
 use App\Models\Almacen\Inventario;
 use Filament\Actions\Action;
@@ -38,22 +38,21 @@ class ListInventarios extends ListRecords
                         ->update(['activo' => false]);
 
                     // 2. Crear nuevo inventario para cada artículo
-                    $articulos = Articulo::all();
+                    $articulos = Articulo::with(['unidadMedida', 'existencias.almacen'])->get();
 
                     foreach ($articulos as $articulo) {
+                        $existencia = $articulo->existencias->first();
+
                         Inventario::create([
                             'codigo' => $articulo->codigo,
                             'descripcion' => $articulo->descripcion,
-                            'presentacion' => $articulo->presentacion,
-                            'unidad' => $articulo->unidad,
+                            'presentacion' => $articulo->nombre_comercial,
+                            'unidad' => $articulo->unidadMedida?->abreviatura,
                             'codigo_alterno' => $articulo->codigo_alterno,
-                            'cod_almacen' => $articulo->cod_almacen,
-                            'nombre_almacen' => $articulo->nombre_almacen,
-                            'lote' => $articulo->lote,
-                            'fecha_ven' => $articulo->fecha_ven,
-                            'sn_qr' => $articulo->sn_qr,
-                            'empresa' => $articulo->empresa,
-                            'saldo_actual' => $articulo->saldo_actual,
+                            'cod_almacen' => $existencia?->almacen?->codigo,
+                            'nombre_almacen' => $existencia?->almacen?->nombre,
+                            'empresa' => $articulo->empresa?->nombre_comercial,
+                            'saldo_actual' => $existencia?->cantidad_disponible ?? 0,
                             'fecha_conteo_inventario' => $fecha,
                             'activo' => true,
                         ]);

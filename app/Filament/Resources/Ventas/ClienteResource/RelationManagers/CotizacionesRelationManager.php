@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Ventas\ClienteResource\RelationManagers;
 
-use App\Models\Almacen\Articulo;
+use App\Models\Inventario\Articulo;
 use App\Models\Ventas\Cotizacion;
 use App\Models\Ventas\Cliente;
 use App\Models\User;

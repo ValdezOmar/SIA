@@ -46,7 +46,6 @@ class DashboardPanelProvider extends PanelProvider
             ->widgets([
                 Widgets\AccountWidget::class,
                 \App\Filament\Widgets\NextcloudWidget::class,
-                \App\Filament\Widgets\EstadoVencimientoChart::class,
                 ])
                 
             //Gestion de los middelewares

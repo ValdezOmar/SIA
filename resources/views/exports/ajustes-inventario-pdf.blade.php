@@ -159,13 +159,7 @@
             @foreach($records as $index => $record)
             @php
                 // Obtener artículo relacionado
-                $articulo = App\Models\Almacen\Articulo::firstWhere([
-                    'codigo' => $record->codigo,
-                    'cod_almacen' => $record->cod_almacen,
-                    'lote' => $record->lote
-                ]);
-                
-                $saldoArticulo = $articulo->saldo_actual ?? null;
+                $saldoArticulo = $record->saldo_actual ?? null;
                 $diferencia = null;
                 $ajuste = null;
                 $textoAjuste = 'N/A';
