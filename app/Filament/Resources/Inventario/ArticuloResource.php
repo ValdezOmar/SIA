@@ -388,11 +388,26 @@ class ArticuloResource extends Resource
                                                     ->options([
                                                         'promedio' => 'Costo Promedio',
                                                         'fifo' => 'FIFO',
+                                                        'lifo' => 'LIFO / UEPS',
+                                                        'especifica' => 'Identificación Específica',
                                                         'estandar' => 'Costo Estándar',
                                                     ])
-                                                    ->default('promedio')
-                                                    ->helperText('Método para calcular el costo')
+                                                    ->default('especifica')
+                                                    ->required()
+                                                    ->live()
+                                                    ->helperText('Define cómo se valora cada salida. Identificación Específica es la opción recomendada cuando cada unidad tiene un costo de compra identificable.')
                                                     ->prefixIcon('heroicon-o-calculator')
+                                                    ->columnSpan(1),
+
+                                                TextInput::make('costo_estandar')
+                                                    ->label('Costo Estándar por Unidad')
+                                                    ->numeric()
+                                                    ->minValue(0)
+                                                    ->step(0.000001)
+                                                    ->prefix('Bs')
+                                                    ->helperText('Se usa solo con Costo Estándar. Define el valor contable unitario de referencia.')
+                                                    ->visible(fn(Forms\Get $get) => $get('metodo_costo') === 'estandar')
+                                                    ->required(fn(Forms\Get $get) => $get('metodo_costo') === 'estandar')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -652,6 +667,25 @@ class ArticuloResource extends Resource
                     ->trueColor('warning')
                     ->falseColor('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('metodo_costo')
+                    ->label('Costeo')
+                    ->formatStateUsing(fn($state) => match ($state) {
+                        'promedio' => 'CPP',
+                        'fifo' => 'PEPS / FIFO',
+                        'lifo' => 'UEPS / LIFO',
+                        'especifica' => 'Específica',
+                        'estandar' => 'Estándar',
+                        default => $state ?? 'Específica',
+                    })
+                    ->badge()
+                    ->color(fn($state) => match ($state) {
+                        'especifica' => 'success',
+                        'estandar' => 'warning',
+                        default => 'info',
+                    })
+                    ->tooltip('Método utilizado para calcular el costo de cada salida')
+                    ->toggleable(),
 
                 TextColumn::make('stock_total')
                     ->label('Stock')

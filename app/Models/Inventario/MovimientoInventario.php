@@ -31,7 +31,7 @@ class MovimientoInventario extends Model
 
     public function capasCostos()
     {
-        return $this->hasMany(CapaCosto::class, 'movimiento_id');
+        return $this->hasMany(CapaCosto::class, 'kardex_id', 'kardex_id');
     }
 
     public function series()

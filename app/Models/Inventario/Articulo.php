@@ -29,6 +29,7 @@ class Articulo extends Model
         'maneja_series',
         'requiere_serie_en_salida',
         'metodo_costo',
+        'costo_estandar',
         'comision',
         'foto_catalogo',
         'documentacion_tecnica',
@@ -45,7 +46,8 @@ class Articulo extends Model
         'maneja_lotes' => false,
         'maneja_series' => false,
         'requiere_serie_en_salida' => false,
-        'metodo_costo' => 'promedio'
+        'metodo_costo' => 'especifica',
+        'costo_estandar' => 0,
     ];
 
     protected $casts = [
@@ -57,6 +59,7 @@ class Articulo extends Model
         'requiere_serie_en_salida' => 'boolean',
         'activo' => 'boolean',
         'comision' => 'decimal:2',
+        'costo_estandar' => 'decimal:6',
         'documentacion_tecnica' => 'array',
     ];
 

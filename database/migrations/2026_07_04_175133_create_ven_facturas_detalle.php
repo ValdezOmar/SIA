@@ -17,6 +17,8 @@ return new class extends Migration
             // Relaciones
             $table->foreignId('factura_id')->constrained('ven_facturas')->cascadeOnDelete();
             $table->foreignId('articulo_id')->constrained('alm_articulos')->cascadeOnDelete();
+            // Capa de costo específica seleccionada para valorar la salida.
+            $table->unsignedBigInteger('capa_costo_id')->nullable();
             $table->foreignId('lista_precio')->nullable()->constrained('alm_listas_precios')->nullOnDelete();
 
             // Datos del artículo (copiados para preservar históricos)

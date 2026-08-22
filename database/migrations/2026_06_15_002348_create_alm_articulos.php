@@ -66,8 +66,13 @@ return new class extends Migration
             $table->enum('metodo_costo', [
                 'promedio',
                 'fifo',
+                'lifo',
+                'especifica',
                 'estandar'
-            ])->default('promedio');           
+            ])->default('especifica');
+
+            // Valor unitario usado cuando el artículo trabaja con costo estándar.
+            $table->decimal('costo_estandar', 18, 6)->default(0);
 
             $table->decimal('comision', 18, 6)
                 ->default(0);

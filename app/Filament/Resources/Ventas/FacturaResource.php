@@ -638,6 +638,7 @@ class FacturaResource extends Resource
                                                                 if ($state) {
                                                                     $articulo = Articulo::find($state);
                                                                     if ($articulo) {
+                                                                        $set('capa_costo_id', null);
                                                                         $precios = $articulo->getPreciosConListas();
                                                                         if ($precios->isNotEmpty()) {
                                                                             $primeraListaId = $precios->keys()->first();
@@ -651,6 +652,35 @@ class FacturaResource extends Resource
                                                                     }
                                                                 }
                                                             }),
+
+                                                        Select::make('capa_costo_id')
+                                                            ->label('Costo de compra')
+                                                            ->options(function ($get) {
+                                                                $articuloId = $get('articulo_id');
+                                                                if (!$articuloId) return [];
+
+                                                                return \App\Models\Inventario\CapaCosto::where('articulo_id', $articuloId)
+                                                                    ->where('cantidad_disponible', '>', 0)
+                                                                    ->orderByDesc('fecha')
+                                                                    ->get()
+                                                                    ->mapWithKeys(fn($capa) => [
+                                                                        $capa->id => 'Capa #' . $capa->id . ' | Compra: ' . number_format($capa->costo_unitario, 6) . ' | Disponible: ' . number_format($capa->cantidad_disponible, 6),
+                                                                    ])
+                                                                    ->toArray();
+                                                            })
+                                                            ->searchable()
+                                                            ->preload()
+                                                            ->placeholder('Seleccionar costo')
+                                                            ->helperText('Obligatorio para Identificación Específica; selecciona la capa que corresponde a la unidad vendida.')
+                                                            ->visible(function ($get) {
+                                                                $articulo = $get('articulo_id') ? Articulo::find($get('articulo_id')) : null;
+                                                                return $articulo?->metodo_costo === 'especifica';
+                                                            })
+                                                            ->required(function ($get) {
+                                                                $articulo = $get('articulo_id') ? Articulo::find($get('articulo_id')) : null;
+                                                                return $articulo?->metodo_costo === 'especifica';
+                                                            })
+                                                            ->columnSpan(6),
 
                                                         Select::make('lista_precio')
                                                             ->label('Lista Precios')

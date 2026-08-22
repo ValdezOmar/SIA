@@ -247,6 +247,7 @@ class Factura extends Model
                     'documento_id' => $this->id,
                     'documento_codigo' => $this->numero,
                     'documento_detalle_id' => $detalle->id,
+                    'capa_costo_id' => $detalle->capa_costo_id,
                     'observaciones' => 'Salida por venta ' . $this->numero,
                     'empresa_id' => $this->empresa_id ?? Auth::user()?->empresa_id,
                     'fecha_movimiento' => now(),

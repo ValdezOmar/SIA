@@ -11,9 +11,9 @@ class CapaCosto extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'cantidad_original' => 'decimal:2',
-        'cantidad_disponible' => 'decimal:2',
-        'costo_unitario' => 'decimal:2',
+        'cantidad_original' => 'decimal:6',
+        'cantidad_disponible' => 'decimal:6',
+        'costo_unitario' => 'decimal:6',
         'fecha' => 'datetime',
         'activo' => 'boolean',
     ];

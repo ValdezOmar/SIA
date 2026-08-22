@@ -11,14 +11,14 @@ class Existencia extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'cantidad_disponible' => 'decimal:2',
-        'cantidad_comprometida' => 'decimal:2',
-        'cantidad_pedida' => 'decimal:2',
-        'cantidad_minima' => 'decimal:2',
-        'cantidad_maxima' => 'decimal:2',
-        'costo_promedio' => 'decimal:2',
-        'costo_acumulado' => 'decimal:2',
-        'ultimo_costo' => 'decimal:2',
+        'cantidad_disponible' => 'decimal:6',
+        'cantidad_comprometida' => 'decimal:6',
+        'cantidad_pedida' => 'decimal:6',
+        'cantidad_minima' => 'decimal:6',
+        'cantidad_maxima' => 'decimal:6',
+        'costo_promedio' => 'decimal:6',
+        'costo_acumulado' => 'decimal:6',
+        'ultimo_costo' => 'decimal:6',
         'ultima_entrada' => 'datetime',
         'ultima_salida' => 'datetime',
     ];

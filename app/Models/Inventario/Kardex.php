@@ -506,37 +506,66 @@ class Kardex extends Model
         $cantidadAnterior = $existencia->cantidad_disponible;
         $cantidadPosterior = $cantidadAnterior - $data['cantidad'];
 
-        // Calcular costo usando FIFO
+        // Valorar la salida según el método configurado en el artículo.
+        $metodoCosto = $articulo?->metodo_costo ?: 'especifica';
+        $costoEstandar = (float) ($articulo?->costo_estandar ?? 0);
         $costoTotal = 0;
         $capasConsumidas = [];
         $cantidadPendiente = $data['cantidad'];
 
-        $capas = CapaCosto::where('articulo_id', $data['articulo_id'])
-            ->where('almacen_id', $data['almacen_id'])
-            ->where('cantidad_disponible', '>', 0)
-            ->orderBy('fecha')
-            ->orderBy('id')
-            ->get();
+        if ($metodoCosto === 'promedio') {
+            $costoUnitarioSalida = (float) ($existencia->costo_promedio ?? 0);
+            $costoTotal = $cantidadPendiente * $costoUnitarioSalida;
+        } elseif ($metodoCosto === 'estandar') {
+            if ($costoEstandar <= 0) {
+                throw new \RuntimeException('El artículo no tiene costo estándar configurado.');
+            }
 
-        foreach ($capas as $capa) {
-            if ($cantidadPendiente <= 0) break;
+            $costoUnitarioSalida = $costoEstandar;
+            $costoTotal = $cantidadPendiente * $costoEstandar;
+        } else {
+            $consultaCapas = CapaCosto::where('articulo_id', $data['articulo_id'])
+                ->where('almacen_id', $data['almacen_id'])
+                ->where('cantidad_disponible', '>', 0)
+                ->lockForUpdate();
 
-            $cantidadConsumir = min($cantidadPendiente, $capa->cantidad_disponible);
-            $costoTotal += $cantidadConsumir * $capa->costo_unitario;
+            if ($metodoCosto === 'lifo') {
+                $consultaCapas->orderByDesc('fecha')->orderByDesc('id');
+            } elseif ($metodoCosto === 'especifica' && !empty($data['capa_costo_id'])) {
+                $consultaCapas->where('id', $data['capa_costo_id']);
+            } else {
+                $consultaCapas->orderBy('fecha')->orderBy('id');
+            }
 
-            $capasConsumidas[] = [
-                'capa_id' => $capa->id,
-                'cantidad' => $cantidadConsumir,
-                'costo_unitario' => $capa->costo_unitario,
-            ];
+            $capas = $consultaCapas->get();
 
-            $capa->cantidad_disponible -= $cantidadConsumir;
-            $capa->save();
+            foreach ($capas as $capa) {
+                if ($cantidadPendiente <= 0) break;
 
-            $cantidadPendiente -= $cantidadConsumir;
+                $cantidadConsumir = min($cantidadPendiente, (float) $capa->cantidad_disponible);
+                $costoTotal += $cantidadConsumir * (float) $capa->costo_unitario;
+
+                $capasConsumidas[] = [
+                    'capa_id' => $capa->id,
+                    'cantidad' => $cantidadConsumir,
+                    'costo_unitario' => (float) $capa->costo_unitario,
+                    'metodo' => $metodoCosto,
+                ];
+
+                $capa->cantidad_disponible -= $cantidadConsumir;
+                $capa->save();
+
+                $cantidadPendiente -= $cantidadConsumir;
+            }
+
+            if ($cantidadPendiente > 0) {
+                throw new \RuntimeException('No existen capas de costo suficientes para valorar toda la salida.');
+            }
+
+            $costoUnitarioSalida = $data['cantidad'] > 0 ? $costoTotal / $data['cantidad'] : 0;
         }
 
-        $costoPromedioSalida = $data['cantidad'] > 0 ? $costoTotal / $data['cantidad'] : 0;
+        $costoPromedioSalida = $costoUnitarioSalida;
         $nuevoCostoPromedio = $cantidadPosterior > 0 ? 
             ($existencia->costo_acumulado - $costoTotal) / $cantidadPosterior : 
             0;

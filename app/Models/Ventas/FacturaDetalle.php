@@ -18,6 +18,7 @@ class FacturaDetalle extends Model
     protected $fillable = [
         'factura_id',
         'articulo_id',
+        'capa_costo_id',
         'lista_precio',
         'codigo_articulo',
         'descripcion_articulo',
@@ -40,15 +41,15 @@ class FacturaDetalle extends Model
     ];
 
     protected $casts = [
-        'cantidad' => 'decimal:2',
-        'precio_unitario' => 'decimal:2',
-        'precio_original' => 'decimal:2',
-        'descuento' => 'decimal:2',
-        'descuento_porcentaje' => 'decimal:2',
-        'subtotal' => 'decimal:2',
-        'impuesto' => 'decimal:2',
-        'total' => 'decimal:2',
-        'tasa_impuesto' => 'decimal:2',
+        'cantidad' => 'decimal:6',
+        'precio_unitario' => 'decimal:6',
+        'precio_original' => 'decimal:6',
+        'descuento' => 'decimal:6',
+        'descuento_porcentaje' => 'decimal:6',
+        'subtotal' => 'decimal:6',
+        'impuesto' => 'decimal:6',
+        'total' => 'decimal:6',
+        'tasa_impuesto' => 'decimal:6',
         'aplicar_iva' => 'boolean',
         'series' => 'array',
         'lotes' => 'array',
