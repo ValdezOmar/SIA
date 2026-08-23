@@ -10,10 +10,15 @@ class ListAtributos extends ListRecords
 {
     protected static string $resource = AtributoResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Defina características reutilizables, como color, talla o material.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()->label('Nuevo atributo'),
         ];
     }
 }

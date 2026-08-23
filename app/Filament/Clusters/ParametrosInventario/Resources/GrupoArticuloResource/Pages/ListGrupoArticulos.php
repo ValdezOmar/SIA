@@ -10,10 +10,15 @@ class ListGrupoArticulos extends ListRecords
 {
     protected static string $resource = GrupoArticuloResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Organice los artículos en grupos y subgrupos para facilitar su búsqueda y reportes.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()->label('Nuevo grupo'),
         ];
     }
 }

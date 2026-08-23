@@ -10,10 +10,15 @@ class ListUnidadMedidas extends ListRecords
 {
     protected static string $resource = UnidadMedidaResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Defina las unidades que usarán los artículos, por ejemplo unidad, kilogramo o litro.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()->label('Nueva unidad de medida'),
         ];
     }
 }

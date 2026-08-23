@@ -10,10 +10,15 @@ class ListListaPrecios extends ListRecords
 {
     protected static string $resource = ListaPrecioResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Cree una lista antes de asignar precios a los artículos.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()->label('Nueva lista de precios'),
         ];
     }
 }

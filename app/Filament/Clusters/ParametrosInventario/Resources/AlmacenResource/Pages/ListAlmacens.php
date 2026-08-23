@@ -10,10 +10,15 @@ class ListAlmacens extends ListRecords
 {
     protected static string $resource = AlmacenResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Cree los almacenes antes de definir ubicaciones, existencias o traspasos.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()->label('Nuevo almacén'),
         ];
     }
 }

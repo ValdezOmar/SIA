@@ -10,10 +10,15 @@ class ListUbicacions extends ListRecords
 {
     protected static string $resource = UbicacionResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Identifique pasillos, estantes y niveles para encontrar el stock sin demora.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()->label('Nueva ubicación'),
         ];
     }
 }
