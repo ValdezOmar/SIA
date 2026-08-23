@@ -31,11 +31,11 @@ class StockAlmacenResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventario';
 
-    protected static ?string $navigationLabel = 'Stock Almacenes';
+    protected static ?string $navigationLabel = 'Almacenes y stock';
 
     protected static ?string $modelLabel = 'Almacén';
 
-    protected static ?string $pluralModelLabel = 'Almacenes';
+    protected static ?string $pluralModelLabel = 'Almacenes y stock';
 
     protected static ?int $navigationSort = 2;
 
@@ -67,9 +67,20 @@ class StockAlmacenResource extends Resource
     {
         return $form
             ->schema([
+                Section::make('Cómo usar esta pantalla')
+                    ->description('Revise el almacén, sus ubicaciones y el stock disponible. El stock se modifica desde Compras, Ventas o Kardex para mantener el historial correcto.')
+                    ->icon('heroicon-o-information-circle')
+                    ->compact()
+                    ->schema([
+                        Placeholder::make('guia_almacen')
+                            ->label('')
+                            ->content('1. Seleccione un almacén. 2. Revise dónde se guarda la mercadería. 3. Consulte el resumen. Para corregir cantidades, use Kardex.'),
+                    ])
+                    ->columnSpanFull(),
+
                 Tabs::make('')
                     ->tabs([
-                        Tabs\Tab::make('General')
+                        Tabs\Tab::make('Datos básicos')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Almacén')
@@ -132,7 +143,7 @@ class StockAlmacenResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Ubicaciones')
+                        Tabs\Tab::make('Dónde se guarda')
                             ->icon('heroicon-o-map-pin')
                             ->schema([
                                 Section::make('Ubicaciones del Almacén')
