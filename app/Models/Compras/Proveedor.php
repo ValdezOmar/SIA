@@ -5,12 +5,9 @@ namespace App\Models\Compras;
 use App\Models\Inventario\Articulo;
 use App\Models\Sistema\Empresa;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Proveedor extends Model
 {
-    
-
     protected $table = 'cmp_proveedores';
 
     protected $guarded = [];
@@ -18,6 +15,13 @@ class Proveedor extends Model
     protected $casts = [
         'activo' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $proveedor): void {
+            $proveedor->codigo ??= self::generarCodigo();
+        });
+    }
 
     // ========== RELACIONES ==========
 
@@ -77,14 +81,17 @@ class Proveedor extends Model
 
     // ========== MÉTODOS ==========
 
-    public static function generarCodigo()
+    public static function generarCodigo(): string
     {
-        $ultimo = self::withTrashed()
+        $ultimo = self::query()
             ->where('codigo', 'LIKE', 'PROV-%')
-            ->orderBy('id', 'desc')
+            ->orderByDesc('codigo')
             ->first();
 
-        $numero = $ultimo ? intval(substr($ultimo->codigo, -6)) + 1 : 1;
-        return 'PROV-' . str_pad($numero, 6, '0', STR_PAD_LEFT);
+        $numero = $ultimo && preg_match('/^PROV-(\d+)$/', $ultimo->codigo, $coincidencias)
+            ? (int) $coincidencias[1] + 1
+            : 1;
+
+        return 'PROV-'.str_pad((string) $numero, 6, '0', STR_PAD_LEFT);
     }
 }

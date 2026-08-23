@@ -54,13 +54,18 @@ class ProveedorResource extends Resource
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('codigo')
+                                                    ->disabled()
+                                                    ->dehydrated(false)
                                                     ->label('Código')
                                                     ->required()
                                                     ->maxLength(50)
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('Ej: PROV-001')
                                                     ->helperText('Código único para identificar al proveedor')
-                                                    ->columnSpan(1),
+                                                    ->columnSpan(1)
+                                                    ->required(false)
+                                                    ->placeholder('Se genera automáticamente')
+                                                    ->disabled(),
 
                                                 TextInput::make('nombre')
                                                     ->label('Nombre / Razón Social')

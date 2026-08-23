@@ -5,7 +5,6 @@ namespace App\Filament\Clusters\ParametrosInventario\Resources;
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Clusters\ParametrosInventario\Resources\AtributoResource\Pages;
 use App\Models\Inventario\Atributo;
-use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
@@ -45,6 +44,10 @@ class AtributoResource extends Resource
                         Grid::make(2)
                             ->schema([
                                 TextInput::make('codigo')
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->required(false)
+                                    ->placeholder('Se genera automáticamente')
                                     ->label('Código')
                                     ->required()
                                     ->maxLength(50)
@@ -52,7 +55,10 @@ class AtributoResource extends Resource
                                     ->placeholder('Ej: ATRIB-001')
                                     ->helperText('Código único del atributo')
                                     ->disabledOn('edit')
-                                    ->columnSpan(1),
+                                    ->columnSpan(1)
+                                    ->required(false)
+                                    ->placeholder('Se genera automáticamente')
+                                    ->disabled(),
 
                                 TextInput::make('nombre')
                                     ->label('Nombre')
@@ -149,7 +155,7 @@ class AtributoResource extends Resource
                     ->query(function ($query, array $data) {
                         return $query->when(
                             $data['nombre'],
-                            fn($query, $nombre) => $query->where('nombre', 'like', "%{$nombre}%")
+                            fn ($query, $nombre) => $query->where('nombre', 'like', "%{$nombre}%")
                         );
                     }),
             ])
@@ -165,7 +171,7 @@ class AtributoResource extends Resource
                         ->color('info')
                         ->action(function ($record) {
                             $newRecord = $record->replicate();
-                            $newRecord->codigo = $record->codigo . '-COPY-' . time();
+                            $newRecord->codigo = $record->codigo.'-COPY-'.time();
                             $newRecord->created_at = now();
                             $newRecord->updated_at = now();
                             $newRecord->save();
@@ -187,7 +193,7 @@ class AtributoResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de atributos'),
                 ]),

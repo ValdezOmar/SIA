@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Atributo extends Model
 {
+    use Concerns\GeneraCodigoInventario;
+
     protected $table = 'alm_atributos';
 
     protected $guarded = [];
@@ -13,6 +15,13 @@ class Atributo extends Model
     protected $casts = [
         'activo' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $atributo): void {
+            $atributo->codigo ??= self::codigoCorrelativo('ATR');
+        });
+    }
 
     // ========== RELACIONES ==========
 

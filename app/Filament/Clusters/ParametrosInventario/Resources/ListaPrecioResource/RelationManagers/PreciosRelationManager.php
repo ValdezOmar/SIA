@@ -2,6 +2,10 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\RelationManagers;
 
+use App\Models\Inventario\Articulo;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -11,45 +15,49 @@ class PreciosRelationManager extends RelationManager
 {
     protected static string $relationship = 'precios';
 
-    protected static ?string $title = '💰 Artículos con Precios';
+    protected static ?string $title = 'Artículos y precios';
+
+    public function form(Form $form): Form
+    {
+        return $form->schema([
+            Select::make('articulo_id')
+                ->label('Artículo')
+                ->options(fn () => Articulo::query()->where('activo', true)->orderBy('codigo')->get()
+                    ->mapWithKeys(fn (Articulo $articulo) => [$articulo->id => $articulo->codigo.' — '.($articulo->nombre_comercial ?: $articulo->descripcion)])
+                    ->all())
+                ->searchable()
+                ->required()
+                ->helperText('Elija el artículo al que aplicará este precio.'),
+            TextInput::make('precio')
+                ->label('Precio')
+                ->numeric()
+                ->minValue(0)
+                ->step(0.01)
+                ->required()
+                ->helperText('Importe en la moneda definida para esta lista.'),
+        ]);
+    }
 
     public function table(Table $table): Table
     {
         return $table
             ->columns([
-                TextColumn::make('articulo.codigo')
-                    ->label('Código')
+                TextColumn::make('articulo.codigo')->label('Código')->searchable()->sortable(),
+                TextColumn::make('articulo.nombre_comercial')->label('Artículo')
+                    ->description(fn ($record) => $record->articulo?->descripcion)
                     ->searchable()
+                    ->limit(40),
+                TextColumn::make('precio')->label('Precio')
+                    ->money(fn () => $this->getOwnerRecord()->moneda ?? 'BOB')
                     ->sortable(),
-
-                TextColumn::make('articulo.descripcion')
-                    ->label('Artículo')
-                    ->searchable()
-                    ->limit(30)
-                    ->tooltip(fn ($record) => $record->articulo->descripcion),
-
-                TextColumn::make('precio')
-                    ->label('Precio')
-                    ->money(fn ($record) => $this->getOwnerRecord()->moneda ?? 'BOB')
-                    ->sortable(),
-
-                TextColumn::make('created_at')
-                    ->label('Creado')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')->label('Actualizado')->dateTime('d/m/Y H:i')->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
-                //
-            ])
+            ->headerActions([Tables\Actions\CreateAction::make()->label('Asignar precio')])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->label('Editar'),
                 Tables\Actions\DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->emptyStateHeading('Aún no hay precios')
+            ->emptyStateDescription('Asigne el precio de los artículos para esta lista.');
     }
 }

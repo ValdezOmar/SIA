@@ -9,6 +9,7 @@ use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\Atributo
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\CapasCostosRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\CodigosBarrasRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ExistenciasRelationManager;
+use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ImagenesRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\KardexPorAlmacenRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\KardexRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\LotesRelationManager;
@@ -847,6 +848,10 @@ class ArticuloResource extends Resource
 
         if (Schema::hasTable('alm_codigos_barras')) {
             $relations[] = CodigosBarrasRelationManager::class;
+        }
+
+        if (Schema::hasTable('alm_articulos_imagenes')) {
+            $relations[] = ImagenesRelationManager::class;
         }
 
         // if (Schema::hasTable('alm_codigos_barras')) {

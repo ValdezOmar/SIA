@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Almacen extends Model
 {
+    use Concerns\GeneraCodigoInventario;
+
     protected $table = 'alm_almacenes';
 
     protected $guarded = [];
@@ -14,6 +16,13 @@ class Almacen extends Model
     protected $casts = [
         'activo' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $almacen): void {
+            $almacen->codigo ??= self::codigoCorrelativo('ALM');
+        });
+    }
 
     // ========== RELACIONES ==========
 
@@ -51,12 +60,11 @@ class Almacen extends Model
     {
         return $this->hasMany(CapaCosto::class);
     }
-    
+
     public function kardex()
     {
         return $this->hasMany(Kardex::class);
     }
-
 
     // ========== SCOPES ==========
 

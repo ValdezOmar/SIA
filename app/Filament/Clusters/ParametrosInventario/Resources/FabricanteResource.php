@@ -4,7 +4,6 @@ namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Clusters\ParametrosInventario\Resources\FabricanteResource\Pages;
-
 use App\Models\Inventario\Fabricante;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
@@ -20,7 +19,6 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Schema;
 
 class FabricanteResource extends Resource
 {
@@ -44,7 +42,7 @@ class FabricanteResource extends Resource
             ->schema([
                 Tabs::make('Gestión de Fabricante')
                     ->tabs([
-                        
+
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
                         Tabs\Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
@@ -56,6 +54,10 @@ class FabricanteResource extends Resource
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('codigo')
+                                                    ->disabled()
+                                                    ->dehydrated(false)
+                                                    ->required(false)
+                                                    ->placeholder('Se genera automáticamente')
                                                     ->label('Código')
                                                     ->required()
                                                     ->maxLength(50)
@@ -63,7 +65,10 @@ class FabricanteResource extends Resource
                                                     ->placeholder('Ej: FAB-001')
                                                     ->helperText('Código único del fabricante')
                                                     ->disabledOn('edit')
-                                                    ->columnSpan(1),
+                                                    ->columnSpan(1)
+                                                    ->required(false)
+                                                    ->placeholder('Se genera automáticamente')
+                                                    ->disabled(),
 
                                                 TextInput::make('nombre')
                                                     ->label('Nombre')
@@ -168,7 +173,7 @@ class FabricanteResource extends Resource
                                         Forms\Components\Placeholder::make('estadisticas')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return 'Las estadísticas se mostrarán después de guardar el fabricante.';
                                                 }
 
@@ -180,12 +185,12 @@ class FabricanteResource extends Resource
                                                         '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                                                 <div class="text-sm text-blue-600 font-medium">Total de Artículos</div>
-                                                                <div class="text-2xl font-bold text-blue-900">' . number_format($totalArticulos) . '</div>
+                                                                <div class="text-2xl font-bold text-blue-900">'.number_format($totalArticulos).'</div>
                                                                 <div class="text-xs text-blue-500 mt-1">Artículos de este fabricante</div>
                                                             </div>
                                                             <div class="bg-green-50 p-4 rounded-lg border border-green-200">
                                                                 <div class="text-sm text-green-600 font-medium">Artículos Activos</div>
-                                                                <div class="text-2xl font-bold text-green-900">' . number_format($articulosActivos) . '</div>
+                                                                <div class="text-2xl font-bold text-green-900">'.number_format($articulosActivos).'</div>
                                                                 <div class="text-xs text-green-500 mt-1">Artículos disponibles de este fabricante</div>
                                                             </div>
                                                         </div>'
@@ -307,7 +312,7 @@ class FabricanteResource extends Resource
                         ->color('info')
                         ->action(function ($record) {
                             $newRecord = $record->replicate();
-                            $newRecord->codigo = $record->codigo . '-COPY-' . time();
+                            $newRecord->codigo = $record->codigo.'-COPY-'.time();
                             $newRecord->created_at = now();
                             $newRecord->updated_at = now();
                             $newRecord->save();
@@ -323,7 +328,7 @@ class FabricanteResource extends Resource
                         ->icon('heroicon-o-power')
                         ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
-                            $record->update(['activo' => !$record->activo]);
+                            $record->update(['activo' => ! $record->activo]);
                             \Filament\Notifications\Notification::make()
                                 ->title($record->activo ? 'Fabricante activado' : 'Fabricante desactivado')
                                 ->success()
@@ -332,8 +337,8 @@ class FabricanteResource extends Resource
 
                     Tables\Actions\DeleteAction::make(),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -341,7 +346,7 @@ class FabricanteResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn ($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de fabricantes')
                         ->modalSubheading('¿Deseas cambiar el estado de los fabricantes seleccionados?'),

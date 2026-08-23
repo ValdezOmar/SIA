@@ -4,7 +4,6 @@ namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Clusters\ParametrosInventario\Resources\UnidadMedidaResource\Pages;
-
 use App\Models\Inventario\UnidadMedida;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
@@ -43,7 +42,7 @@ class UnidadMedidaResource extends Resource
             ->schema([
                 Tabs::make('Gestión de Unidad')
                     ->tabs([
-                        
+
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
                         Tabs\Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
@@ -55,6 +54,10 @@ class UnidadMedidaResource extends Resource
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('codigo')
+                                                    ->disabled()
+                                                    ->dehydrated(false)
+                                                    ->required(false)
+                                                    ->placeholder('Se genera automáticamente')
                                                     ->label('Código')
                                                     ->required()
                                                     ->maxLength(50)
@@ -62,7 +65,10 @@ class UnidadMedidaResource extends Resource
                                                     ->placeholder('Ej: UND')
                                                     ->helperText('Código único de la unidad')
                                                     ->columnSpan(1)
+                                                    ->required(false)
+                                                    ->placeholder('Se genera automáticamente')
                                                     ->disabledOn('edit')
+                                                    ->disabled()
                                                     ->visible(fn () => Schema::hasColumn('alm_unidades_medida', 'codigo')),
 
                                                 TextInput::make('nombre')
@@ -108,7 +114,7 @@ class UnidadMedidaResource extends Resource
                                         Forms\Components\Placeholder::make('estadisticas')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return 'Las estadísticas se mostrarán después de guardar la unidad.';
                                                 }
 
@@ -120,12 +126,12 @@ class UnidadMedidaResource extends Resource
                                                         '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                                                 <div class="text-sm text-blue-600 font-medium">Total de Artículos</div>
-                                                                <div class="text-2xl font-bold text-blue-900">' . number_format($totalArticulos) . '</div>
+                                                                <div class="text-2xl font-bold text-blue-900">'.number_format($totalArticulos).'</div>
                                                                 <div class="text-xs text-blue-500 mt-1">Artículos con esta unidad</div>
                                                             </div>
                                                             <div class="bg-green-50 p-4 rounded-lg border border-green-200">
                                                                 <div class="text-sm text-green-600 font-medium">Artículos Activos</div>
-                                                                <div class="text-2xl font-bold text-green-900">' . number_format($articulosActivos) . '</div>
+                                                                <div class="text-2xl font-bold text-green-900">'.number_format($articulosActivos).'</div>
                                                                 <div class="text-xs text-green-500 mt-1">Artículos disponibles con esta unidad</div>
                                                             </div>
                                                         </div>'
@@ -225,7 +231,7 @@ class UnidadMedidaResource extends Resource
                         ->action(function ($record) {
                             $newRecord = $record->replicate();
                             if (Schema::hasColumn('alm_unidades_medida', 'codigo')) {
-                                $newRecord->codigo = $record->codigo . '-COPY-' . time();
+                                $newRecord->codigo = $record->codigo.'-COPY-'.time();
                             }
                             $newRecord->created_at = now();
                             $newRecord->updated_at = now();
@@ -243,7 +249,7 @@ class UnidadMedidaResource extends Resource
                         ->color(fn ($record) => $record->activo ?? true ? 'warning' : 'success')
                         ->action(function ($record) {
                             if (Schema::hasColumn('alm_unidades_medida', 'activo')) {
-                                $record->update(['activo' => !$record->activo]);
+                                $record->update(['activo' => ! $record->activo]);
                             }
                             \Filament\Notifications\Notification::make()
                                 ->title($record->activo ? 'Unidad activada' : 'Unidad desactivada')
@@ -254,8 +260,8 @@ class UnidadMedidaResource extends Resource
 
                     Tables\Actions\DeleteAction::make(),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -263,7 +269,7 @@ class UnidadMedidaResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn ($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de unidades')
                         ->visible(fn () => Schema::hasColumn('alm_unidades_medida', 'activo')),

@@ -2,9 +2,7 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
-use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -13,23 +11,23 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ImagenesRelationManager extends RelationManager
 {
     protected static string $relationship = 'imagenes';
 
+    protected static ?string $title = 'Imágenes del artículo';
+
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('archivo')
-                    ->required()
-                    ->maxLength(255),
                 FileUpload::make('archivo')
+                    ->label('Imagen')
                     ->image()
-                    ->directory('articulos'),
+                    ->directory('articulos')
+                    ->required()
+                    ->helperText('Suba una imagen clara del artículo.'),
 
                 TextInput::make('orden')
                     ->numeric(),
@@ -43,8 +41,8 @@ class ImagenesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('archivo')
             ->columns([
-                Tables\Columns\TextColumn::make('archivo'),
-                ImageColumn::make('archivo'),
+                ImageColumn::make('archivo')->label('Imagen'),
+                Tables\Columns\TextColumn::make('archivo')->label('Archivo')->limit(40),
 
                 TextColumn::make('orden'),
 

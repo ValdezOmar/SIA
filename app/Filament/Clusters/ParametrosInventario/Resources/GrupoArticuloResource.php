@@ -4,7 +4,6 @@ namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Clusters\ParametrosInventario\Resources\GrupoArticuloResource\Pages;
-
 use App\Models\Inventario\GrupoArticulo;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
@@ -20,7 +19,6 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Schema;
 
 class GrupoArticuloResource extends Resource
 {
@@ -44,7 +42,7 @@ class GrupoArticuloResource extends Resource
             ->schema([
                 Tabs::make('Gestión de Grupo')
                     ->tabs([
-                        
+
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
                         Tabs\Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
@@ -56,6 +54,10 @@ class GrupoArticuloResource extends Resource
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('codigo')
+                                                    ->disabled()
+                                                    ->dehydrated(false)
+                                                    ->required(false)
+                                                    ->placeholder('Se genera automáticamente')
                                                     ->label('Código')
                                                     ->required()
                                                     ->maxLength(50)
@@ -63,7 +65,10 @@ class GrupoArticuloResource extends Resource
                                                     ->placeholder('Ej: GRP-001')
                                                     ->helperText('Código único del grupo')
                                                     ->disabledOn('edit')
-                                                    ->columnSpan(1),
+                                                    ->columnSpan(1)
+                                                    ->required(false)
+                                                    ->placeholder('Se genera automáticamente')
+                                                    ->disabled(),
 
                                                 TextInput::make('nombre')
                                                     ->label('Nombre del Grupo')
@@ -104,39 +109,39 @@ class GrupoArticuloResource extends Resource
 
                         // ========== TAB 2: ESTRUCTURA ==========
                         Tabs\Tab::make('Estructura')
-                            //->icon('heroicon-o-sitemap')
+                            // ->icon('heroicon-o-sitemap')
                             ->schema([
                                 Section::make('Jerarquía del Grupo')
-                                    //->icon('heroicon-o-sitemap')
+                                    // ->icon('heroicon-o-sitemap')
                                     ->description('Visualización de la estructura jerárquica')
                                     ->schema([
                                         Forms\Components\Placeholder::make('estructura_info')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return 'La estructura se mostrará después de guardar el grupo.';
                                                 }
 
                                                 try {
                                                     $subgrupos = $record->subgrupos()->where('activo', true)->get();
-                                                    
+
                                                     if ($subgrupos->isEmpty()) {
                                                         return '<div class="text-sm text-gray-500">Este grupo no tiene subgrupos.</div>';
                                                     }
 
                                                     $html = '<div class="bg-gray-50 p-4 rounded-lg border border-gray-200">';
-                                                    $html .= '<p class="text-sm font-medium text-gray-700 mb-2">Subgrupos de ' . $record->nombre . ':</p>';
+                                                    $html .= '<p class="text-sm font-medium text-gray-700 mb-2">Subgrupos de '.$record->nombre.':</p>';
                                                     $html .= '<ul class="list-disc pl-5 space-y-1">';
-                                                    
+
                                                     foreach ($subgrupos as $subgrupo) {
-                                                        $html .= '<li class="text-sm text-gray-600">' . $subgrupo->codigo . ' - ' . $subgrupo->nombre;
-                                                        $html .= ' <span class="text-xs text-gray-400">(' . $subgrupo->articulos()->count() . ' artículos)</span>';
+                                                        $html .= '<li class="text-sm text-gray-600">'.$subgrupo->codigo.' - '.$subgrupo->nombre;
+                                                        $html .= ' <span class="text-xs text-gray-400">('.$subgrupo->articulos()->count().' artículos)</span>';
                                                         $html .= '</li>';
                                                     }
-                                                    
+
                                                     $html .= '</ul>';
                                                     $html .= '</div>';
-                                                    
+
                                                     return new \Illuminate\Support\HtmlString($html);
                                                 } catch (\Exception $e) {
                                                     return '<div class="text-sm text-gray-500">No hay información de estructura disponible.</div>';
@@ -156,7 +161,7 @@ class GrupoArticuloResource extends Resource
                                         Forms\Components\Placeholder::make('estadisticas')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return 'Las estadísticas se mostrarán después de guardar el grupo.';
                                                 }
 
@@ -170,22 +175,22 @@ class GrupoArticuloResource extends Resource
                                                         '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                                                 <div class="text-sm text-blue-600 font-medium">Total de Artículos</div>
-                                                                <div class="text-2xl font-bold text-blue-900">' . number_format($totalArticulos) . '</div>
+                                                                <div class="text-2xl font-bold text-blue-900">'.number_format($totalArticulos).'</div>
                                                                 <div class="text-xs text-blue-500 mt-1">Artículos en este grupo</div>
                                                             </div>
                                                             <div class="bg-green-50 p-4 rounded-lg border border-green-200">
                                                                 <div class="text-sm text-green-600 font-medium">Artículos Activos</div>
-                                                                <div class="text-2xl font-bold text-green-900">' . number_format($articulosActivos) . '</div>
+                                                                <div class="text-2xl font-bold text-green-900">'.number_format($articulosActivos).'</div>
                                                                 <div class="text-xs text-green-500 mt-1">Artículos disponibles</div>
                                                             </div>
                                                             <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                                                                 <div class="text-sm text-yellow-600 font-medium">Total de Subgrupos</div>
-                                                                <div class="text-2xl font-bold text-yellow-900">' . number_format($totalSubgrupos) . '</div>
+                                                                <div class="text-2xl font-bold text-yellow-900">'.number_format($totalSubgrupos).'</div>
                                                                 <div class="text-xs text-yellow-500 mt-1">Subgrupos en este grupo</div>
                                                             </div>
                                                             <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
                                                                 <div class="text-sm text-purple-600 font-medium">Subgrupos Activos</div>
-                                                                <div class="text-2xl font-bold text-purple-900">' . number_format($subgruposActivos) . '</div>
+                                                                <div class="text-2xl font-bold text-purple-900">'.number_format($subgruposActivos).'</div>
                                                                 <div class="text-xs text-purple-500 mt-1">Subgrupos disponibles</div>
                                                             </div>
                                                         </div>'
@@ -298,7 +303,7 @@ class GrupoArticuloResource extends Resource
                         ->color('info')
                         ->action(function ($record) {
                             $newRecord = $record->replicate();
-                            $newRecord->codigo = $record->codigo . '-COPY-' . time();
+                            $newRecord->codigo = $record->codigo.'-COPY-'.time();
                             $newRecord->created_at = now();
                             $newRecord->updated_at = now();
                             $newRecord->save();
@@ -314,7 +319,7 @@ class GrupoArticuloResource extends Resource
                         ->icon('heroicon-o-power')
                         ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
-                            $record->update(['activo' => !$record->activo]);
+                            $record->update(['activo' => ! $record->activo]);
                             \Filament\Notifications\Notification::make()
                                 ->title($record->activo ? 'Grupo activado' : 'Grupo desactivado')
                                 ->success()
@@ -323,8 +328,8 @@ class GrupoArticuloResource extends Resource
 
                     Tables\Actions\DeleteAction::make(),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -332,7 +337,7 @@ class GrupoArticuloResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn ($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de grupos'),
                 ]),

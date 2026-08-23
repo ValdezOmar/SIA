@@ -7,10 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class GrupoArticulo extends Model
 {
-    //
+    use Concerns\GeneraCodigoInventario;
+
     protected $table = 'alm_grupos_articulos';
 
     protected $guarded = [];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $grupo): void {
+            $grupo->codigo ??= self::codigoDosIniciales($grupo->nombre);
+        });
+    }
 
     public function grupoPadre()
     {
@@ -26,6 +34,7 @@ class GrupoArticulo extends Model
     {
         return $this->hasMany(Articulo::class);
     }
+
     public function empresa()
     {
         return $this->belongsTo(Empresa::class);

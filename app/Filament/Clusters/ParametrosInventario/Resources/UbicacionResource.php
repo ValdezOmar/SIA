@@ -4,7 +4,6 @@ namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Clusters\ParametrosInventario\Resources\UbicacionResource\Pages;
-
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Ubicacion;
 use Filament\Forms;
@@ -58,16 +57,25 @@ class UbicacionResource extends Resource
                                     ->preload()
                                     ->placeholder('Seleccione un almacén')
                                     ->helperText('Almacén donde se encuentra esta ubicación')
-                                    ->columnSpan(1),
+                                    ->columnSpan(1)
+                                    ->required(false)
+                                    ->placeholder('Se genera automáticamente'),
 
                                 TextInput::make('codigo')
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->required(false)
+                                    ->placeholder('Se genera automáticamente')
                                     ->label('Código de Ubicación')
                                     ->required()
                                     ->maxLength(255)
                                     ->unique(ignoreRecord: true)
                                     ->placeholder('Ej: A-01-03')
                                     ->helperText('Código único para identificar la ubicación')
-                                    ->columnSpan(1),
+                                    ->columnSpan(1)
+                                    ->required(false)
+                                    ->placeholder('Se genera automáticamente')
+                                    ->disabled(),
                             ]),
 
                         Grid::make(4)
@@ -112,17 +120,17 @@ class UbicacionResource extends Resource
                     ->label('')
                     ->content(function ($get) {
                         $almacenId = $get('almacen_id');
-                        if (!$almacenId) {
+                        if (! $almacenId) {
                             return 'Seleccione un almacén para ver su información.';
                         }
 
                         $almacen = Almacen::find($almacenId);
-                        if (!$almacen) {
+                        if (! $almacen) {
                             return 'Almacén no encontrado.';
                         }
 
-                        return "🏪 {$almacen->nombre}\n" .
-                               "📋 Código: {$almacen->codigo}\n" .
+                        return "🏪 {$almacen->nombre}\n".
+                               "📋 Código: {$almacen->codigo}\n".
                                ($almacen->direccion ? "📌 Dirección: {$almacen->direccion}" : '');
                     })
                     ->columnSpanFull(),
@@ -160,10 +168,19 @@ class UbicacionResource extends Resource
                     ->label('Ubicación Completa')
                     ->getStateUsing(function ($record) {
                         $partes = [];
-                        if ($record->pasillo) $partes[] = "Pasillo {$record->pasillo}";
-                        if ($record->estante) $partes[] = "Estante {$record->estante}";
-                        if ($record->nivel) $partes[] = "Nivel {$record->nivel}";
-                        if ($record->posicion) $partes[] = "Posición {$record->posicion}";
+                        if ($record->pasillo) {
+                            $partes[] = "Pasillo {$record->pasillo}";
+                        }
+                        if ($record->estante) {
+                            $partes[] = "Estante {$record->estante}";
+                        }
+                        if ($record->nivel) {
+                            $partes[] = "Nivel {$record->nivel}";
+                        }
+                        if ($record->posicion) {
+                            $partes[] = "Posición {$record->posicion}";
+                        }
+
                         return implode(' → ', $partes) ?: '-';
                     })
                     ->searchable()
@@ -260,7 +277,7 @@ class UbicacionResource extends Resource
                         ->color('info')
                         ->action(function ($record) {
                             $newRecord = $record->replicate();
-                            $newRecord->codigo = $record->codigo . '-COPY-' . time();
+                            $newRecord->codigo = $record->codigo.'-COPY-'.time();
                             $newRecord->created_at = now();
                             $newRecord->updated_at = now();
                             $newRecord->save();
@@ -276,7 +293,7 @@ class UbicacionResource extends Resource
                         ->icon('heroicon-o-power')
                         ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
-                            $record->update(['activo' => !$record->activo]);
+                            $record->update(['activo' => ! $record->activo]);
                             \Filament\Notifications\Notification::make()
                                 ->title($record->activo ? 'Ubicación activada' : 'Ubicación desactivada')
                                 ->success()
@@ -285,8 +302,8 @@ class UbicacionResource extends Resource
 
                     Tables\Actions\DeleteAction::make(),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -294,7 +311,7 @@ class UbicacionResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn ($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de ubicaciones'),
                 ]),

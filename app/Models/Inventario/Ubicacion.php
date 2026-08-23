@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Ubicacion extends Model
 {
+    use Concerns\GeneraCodigoInventario;
+
     protected $table = 'alm_ubicaciones';
 
     protected $guarded = [];
@@ -13,6 +15,13 @@ class Ubicacion extends Model
     protected $casts = [
         'activo' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $ubicacion): void {
+            $ubicacion->codigo ??= self::codigoCorrelativo('UBI');
+        });
+    }
 
     // ========== RELACIONES ==========
 
@@ -43,22 +52,38 @@ class Ubicacion extends Model
     public function getUbicacionCompletaAttribute()
     {
         $partes = [];
-        if ($this->pasillo) $partes[] = "Pasillo {$this->pasillo}";
-        if ($this->estante) $partes[] = "Estante {$this->estante}";
-        if ($this->nivel) $partes[] = "Nivel {$this->nivel}";
-        if ($this->posicion) $partes[] = "Posición {$this->posicion}";
-        
+        if ($this->pasillo) {
+            $partes[] = "Pasillo {$this->pasillo}";
+        }
+        if ($this->estante) {
+            $partes[] = "Estante {$this->estante}";
+        }
+        if ($this->nivel) {
+            $partes[] = "Nivel {$this->nivel}";
+        }
+        if ($this->posicion) {
+            $partes[] = "Posición {$this->posicion}";
+        }
+
         return implode(' → ', $partes) ?: $this->codigo;
     }
 
     public function getUbicacionCortaAttribute()
     {
         $partes = [];
-        if ($this->pasillo) $partes[] = $this->pasillo;
-        if ($this->estante) $partes[] = $this->estante;
-        if ($this->nivel) $partes[] = $this->nivel;
-        if ($this->posicion) $partes[] = $this->posicion;
-        
+        if ($this->pasillo) {
+            $partes[] = $this->pasillo;
+        }
+        if ($this->estante) {
+            $partes[] = $this->estante;
+        }
+        if ($this->nivel) {
+            $partes[] = $this->nivel;
+        }
+        if ($this->posicion) {
+            $partes[] = $this->posicion;
+        }
+
         return implode('-', $partes) ?: $this->codigo;
     }
 }

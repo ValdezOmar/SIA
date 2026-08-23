@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\Pages;
+use App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\RelationManagers\PreciosRelationManager;
 use App\Models\Inventario\ListaPrecio;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -41,8 +42,8 @@ class ListaPrecioResource extends Resource
                 ->icon('heroicon-o-identification')
                 ->schema([
                     Grid::make(2)->schema([
-                        TextInput::make('codigo')->label('Código')->required()->maxLength(50)->unique(ignoreRecord: true)
-                            ->placeholder('Ej.: LST-GENERAL')->helperText('Identificador único de la lista.'),
+                        TextInput::make('codigo')->disabled()->dehydrated(false)->label('Código')->required(false)->maxLength(50)->unique(ignoreRecord: true)
+                            ->placeholder('Se genera automáticamente')->helperText('Identificador único generado al guardar.'),
                         TextInput::make('nombre')->label('Nombre de la lista')->required()->maxLength(100)
                             ->placeholder('Ej.: Precio general')->helperText('Nombre visible al seleccionar precios.'),
                     ]),
@@ -102,7 +103,7 @@ class ListaPrecioResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [PreciosRelationManager::class];
     }
 
     public static function getPages(): array

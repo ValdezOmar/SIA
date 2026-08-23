@@ -31,11 +31,11 @@ class StockAlmacenResource extends Resource
 
     protected static ?string $navigationGroup = 'Inventario';
 
-    protected static ?string $navigationLabel = 'Almacenes y stock';
+    protected static ?string $navigationLabel = 'Stock de Almacenes';
 
     protected static ?string $modelLabel = 'Almacén';
 
-    protected static ?string $pluralModelLabel = 'Almacenes y stock';
+    protected static ?string $pluralModelLabel = 'Stock de Almacenes';
 
     protected static ?int $navigationSort = 2;
 

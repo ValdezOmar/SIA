@@ -21,7 +21,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Eloquent\Builder;
 
 class AlmacenResource extends Resource
 {
@@ -44,12 +43,13 @@ class AlmacenResource extends Resource
      */
     private static function ubicacionesTieneAlmacenId(): bool
     {
-        if (!Schema::hasTable('alm_ubicaciones')) {
+        if (! Schema::hasTable('alm_ubicaciones')) {
             return false;
         }
 
         try {
             $columns = Schema::getColumnListing('alm_ubicaciones');
+
             return in_array('almacen_id', $columns);
         } catch (\Exception $e) {
             return false;
@@ -61,12 +61,13 @@ class AlmacenResource extends Resource
      */
     private static function existenciasTieneAlmacenId(): bool
     {
-        if (!Schema::hasTable('alm_existencias')) {
+        if (! Schema::hasTable('alm_existencias')) {
             return false;
         }
 
         try {
             $columns = Schema::getColumnListing('alm_existencias');
+
             return in_array('almacen_id', $columns);
         } catch (\Exception $e) {
             return false;
@@ -91,6 +92,10 @@ class AlmacenResource extends Resource
                                         Grid::make(2)
                                             ->schema([
                                                 TextInput::make('codigo')
+                                                    ->disabled()
+                                                    ->dehydrated(false)
+                                                    ->required(false)
+                                                    ->placeholder('Se genera automáticamente')
                                                     ->label('Código')
                                                     ->required()
                                                     ->maxLength(20)
@@ -98,7 +103,10 @@ class AlmacenResource extends Resource
                                                     ->placeholder('Ej: ALM-001')
                                                     ->helperText('Código único para identificar el almacén')
                                                     ->disabledOn('edit')
-                                                    ->columnSpan(1),
+                                                    ->columnSpan(1)
+                                                    ->required(false)
+                                                    ->placeholder('Se genera automáticamente')
+                                                    ->disabled(),
 
                                                 TextInput::make('nombre')
                                                     ->label('Nombre del Almacén')
@@ -119,7 +127,7 @@ class AlmacenResource extends Resource
                                                     ->placeholder('Seleccione una sucursal')
                                                     ->helperText('Sucursal a la que pertenece este almacén')
                                                     ->columnSpan(1)
-                                                    ->visible(fn() => Schema::hasTable('conf_sucursales')),
+                                                    ->visible(fn () => Schema::hasTable('conf_sucursales')),
 
                                                 Textarea::make('direccion')
                                                     ->label('Dirección')
@@ -155,7 +163,7 @@ class AlmacenResource extends Resource
                                         Forms\Components\Placeholder::make('ubicaciones_info')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return '<div class="text-sm text-gray-500">Las ubicaciones se gestionan después de guardar el almacén.</div>';
                                                 }
 
@@ -168,11 +176,11 @@ class AlmacenResource extends Resource
                                                             <div class="grid grid-cols-2 gap-4">
                                                                 <div>
                                                                     <p class="text-sm text-gray-600">Total de Ubicaciones</p>
-                                                                    <p class="text-2xl font-bold text-gray-900">' . $totalUbicaciones . '</p>
+                                                                    <p class="text-2xl font-bold text-gray-900">'.$totalUbicaciones.'</p>
                                                                 </div>
                                                                 <div>
                                                                     <p class="text-sm text-gray-600">Ubicaciones Activas</p>
-                                                                    <p class="text-2xl font-bold text-green-600">' . $ubicacionesActivas . '</p>
+                                                                    <p class="text-2xl font-bold text-green-600">'.$ubicacionesActivas.'</p>
                                                                 </div>
                                                             </div>
                                                             <p class="text-xs text-gray-500 mt-2">Gestiona las ubicaciones en la pestaña "Ubicaciones" en la sección de relaciones.</p>
@@ -196,7 +204,7 @@ class AlmacenResource extends Resource
                                         Forms\Components\Placeholder::make('estadisticas')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return 'Las estadísticas se mostrarán después de guardar el almacén.';
                                                 }
 
@@ -218,17 +226,17 @@ class AlmacenResource extends Resource
                                                         '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                                                 <div class="text-sm text-blue-600 font-medium">Artículos en Stock</div>
-                                                                <div class="text-2xl font-bold text-blue-900">' . number_format($totalArticulos) . '</div>
+                                                                <div class="text-2xl font-bold text-blue-900">'.number_format($totalArticulos).'</div>
                                                                 <div class="text-xs text-blue-500 mt-1">Productos disponibles en este almacén</div>
                                                             </div>
                                                             <div class="bg-green-50 p-4 rounded-lg border border-green-200">
                                                                 <div class="text-sm text-green-600 font-medium">Existencias Totales</div>
-                                                                <div class="text-2xl font-bold text-green-900">' . number_format($totalExistencias, 0) . '</div>
+                                                                <div class="text-2xl font-bold text-green-900">'.number_format($totalExistencias, 0).'</div>
                                                                 <div class="text-xs text-green-500 mt-1">Unidades disponibles en inventario</div>
                                                             </div>
                                                             <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
                                                                 <div class="text-sm text-purple-600 font-medium">Movimientos</div>
-                                                                <div class="text-2xl font-bold text-purple-900">' . number_format($totalMovimientos) . '</div>
+                                                                <div class="text-2xl font-bold text-purple-900">'.number_format($totalMovimientos).'</div>
                                                                 <div class="text-xs text-purple-500 mt-1">Total de movimientos registrados</div>
                                                             </div>
                                                         </div>'
@@ -275,7 +283,7 @@ class AlmacenResource extends Resource
                 ->color('info')
                 ->toggleable()
                 ->placeholder('-')
-                ->visible(fn() => Schema::hasTable('conf_sucursales')),
+                ->visible(fn () => Schema::hasTable('conf_sucursales')),
 
             TextColumn::make('direccion')
                 ->label('Dirección')
@@ -342,7 +350,7 @@ class AlmacenResource extends Resource
                     ->relationship('sucursal', 'nombre')
                     ->searchable()
                     ->preload()
-                    ->visible(fn() => Schema::hasTable('conf_sucursales')),
+                    ->visible(fn () => Schema::hasTable('conf_sucursales')),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -360,7 +368,7 @@ class AlmacenResource extends Resource
                         ->color('info')
                         ->action(function ($record) {
                             $newRecord = $record->replicate();
-                            $newRecord->codigo = $record->codigo . '-COPY-' . time();
+                            $newRecord->codigo = $record->codigo.'-COPY-'.time();
                             $newRecord->created_at = now();
                             $newRecord->updated_at = now();
                             $newRecord->save();
@@ -374,9 +382,9 @@ class AlmacenResource extends Resource
                     Tables\Actions\Action::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->color(fn($record) => $record->activo ? 'warning' : 'success')
+                        ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
-                            $record->update(['activo' => !$record->activo]);
+                            $record->update(['activo' => ! $record->activo]);
                             \Filament\Notifications\Notification::make()
                                 ->title($record->activo ? 'Almacén activado' : 'Almacén desactivado')
                                 ->success()
@@ -394,7 +402,7 @@ class AlmacenResource extends Resource
                     Tables\Actions\BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de almacenes')
                         ->modalSubheading('¿Deseas cambiar el estado de los almacenes seleccionados?'),
