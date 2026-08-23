@@ -7,6 +7,7 @@ use App\Models\Compras\FacturaCompra;
 use App\Models\Compras\OrdenCompra;
 use App\Models\Compras\Proveedor;
 use App\Models\Compras\Recepcion;
+use App\Models\Contabilidad\AsientoContable;
 use App\Models\Inventario\Articulo;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
@@ -649,6 +650,24 @@ class FacturaCompraResource extends Resource
                     Tables\Actions\EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
+
+                    Tables\Actions\Action::make('contabilizar')
+                        ->label('Generar asiento')
+                        ->icon('heroicon-o-calculator')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Generar asiento de compra')
+                        ->modalDescription('Se creará un asiento balanceado por la factura. La operación solo puede realizarse una vez.')
+                        ->action(function ($record): void {
+                            $asiento = AsientoContable::crearDesdeCompra($record);
+
+                            Notification::make()
+                                ->title('Asiento generado')
+                                ->body('Se registró el asiento '.$asiento->codigo.'.')
+                                ->success()
+                                ->send();
+                        })
+                        ->visible(fn ($record): bool => in_array($record->estado, ['registrada', 'parcial', 'pagada']) && ! AsientoContable::where('documento_tipo', 'compra')->where('documento_id', $record->id)->exists()),
 
                     Tables\Actions\ViewAction::make()
                         ->slideOver()

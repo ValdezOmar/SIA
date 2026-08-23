@@ -8,6 +8,8 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class AsientoContable extends Model
 {
@@ -147,7 +149,8 @@ class AsientoContable extends Model
             ->first();
 
         $numero = $ultimo ? intval(substr($ultimo->codigo, -6)) + 1 : 1;
-        return 'ASI-' . str_pad($numero, 6, '0', STR_PAD_LEFT);
+
+        return 'ASI-'.str_pad($numero, 6, '0', STR_PAD_LEFT);
     }
 
     public function getTotalDebeAttribute()
@@ -171,33 +174,95 @@ class AsientoContable extends Model
 
     public function confirmar($usuarioId = null)
     {
-        if (!$this->esta_balanceado) {
-            throw new \Exception('El asiento no está balanceado. Total Debe: ' . $this->total_debe . ', Total Haber: ' . $this->total_haber);
-        }
+        return DB::transaction(function () use ($usuarioId) {
+            self::query()->whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            $this->refresh();
 
-        $this->estado = 'confirmado';
-        $this->autorizado_por = $usuarioId ?? Auth::id();
-        $this->fecha_autorizacion = now();
-        $this->save();
+            if ($this->estado === 'confirmado') {
+                return $this;
+            }
 
-        // Actualizar saldos de cuentas
-        $this->actualizarSaldos();
+            if ($this->estado === 'anulado') {
+                throw new RuntimeException('No se puede confirmar un asiento anulado.');
+            }
 
-        return $this;
+            $this->validarAntesDeConfirmar();
+
+            if (! $this->esta_balanceado) {
+                throw new \Exception('El asiento no está balanceado. Total Debe: '.$this->total_debe.', Total Haber: '.$this->total_haber);
+            }
+
+            $this->estado = 'confirmado';
+            $this->autorizado_por = $usuarioId ?? Auth::id();
+            $this->fecha_autorizacion = now();
+            $this->save();
+
+            // Actualizar saldos de cuentas
+            $this->actualizarSaldos();
+
+            return $this;
+        });
     }
 
     public function anular($motivo = null)
     {
-        $this->estado = 'anulado';
-        if ($motivo) {
-            $this->observaciones = ($this->observaciones ? $this->observaciones . "\n" : '') . 'Anulado: ' . $motivo;
+        return DB::transaction(function () use ($motivo) {
+            self::query()->whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            $this->refresh();
+
+            if ($this->estado === 'anulado') {
+                return $this;
+            }
+
+            if ($this->estado !== 'confirmado') {
+                throw new RuntimeException('Solo se pueden anular asientos confirmados.');
+            }
+
+            $this->estado = 'anulado';
+            if ($motivo) {
+                $this->observaciones = ($this->observaciones ? $this->observaciones."\n" : '').'Anulado: '.$motivo;
+            }
+            $this->save();
+
+            // Revertir saldos
+            $this->revertirSaldos();
+
+            return $this;
+        });
+    }
+
+    private function validarAntesDeConfirmar(): void
+    {
+        $detalles = $this->detalles()->with('cuenta')->get();
+
+        if ($detalles->count() < 2) {
+            throw new RuntimeException('El asiento debe incluir al menos dos partidas.');
         }
-        $this->save();
 
-        // Revertir saldos
-        $this->revertirSaldos();
+        foreach ($detalles as $detalle) {
+            if (! $detalle->cuenta || ! $detalle->cuenta->activo || ! $detalle->cuenta->permite_movimiento) {
+                throw new RuntimeException('Cada partida debe usar una cuenta activa que permita movimientos.');
+            }
 
-        return $this;
+            if (((float) $detalle->debe > 0) === ((float) $detalle->haber > 0)) {
+                throw new RuntimeException('Cada partida debe tener importe únicamente en Debe o únicamente en Haber.');
+            }
+        }
+
+        if (! $this->esta_balanceado || (float) $this->total_debe <= 0) {
+            throw new RuntimeException('El asiento debe estar balanceado y tener un importe mayor a cero.');
+        }
+
+        $periodo = PeriodoContable::query()
+            ->where('empresa_id', $this->empresa_id)
+            ->where('anio', $this->fecha_asiento->year)
+            ->where('mes', $this->fecha_asiento->month)
+            ->when($this->sucursal_id, fn ($query) => $query->where('sucursal_id', $this->sucursal_id))
+            ->first();
+
+        if ($periodo && ! $periodo->estaAbierto()) {
+            throw new RuntimeException('El período contable de este asiento está cerrado o bloqueado.');
+        }
     }
 
     private function actualizarSaldos()
@@ -206,13 +271,20 @@ class AsientoContable extends Model
             $mes = $this->fecha_asiento->month;
             $anio = $this->fecha_asiento->year;
 
-            $saldo = SaldoCuenta::firstOrCreate([
-                'cuenta_id' => $detalle->cuenta_id,
-                'anio' => $anio,
-                'mes' => $mes,
-                'centro_costo_id' => $detalle->centro_costo_id,
-                'proyecto_id' => $detalle->proyecto_id,
-            ]);
+            $saldo = SaldoCuenta::firstOrCreate(
+                [
+                    'cuenta_id' => $detalle->cuenta_id,
+                    'anio' => $anio,
+                    'mes' => $mes,
+                    'centro_costo_id' => $detalle->centro_costo_id,
+                    'proyecto_id' => $detalle->proyecto_id,
+                ],
+                [
+                    'empresa_id' => $this->empresa_id,
+                    'sucursal_id' => $this->sucursal_id,
+                    'naturaleza' => $detalle->cuenta->naturaleza,
+                ],
+            );
 
             $saldo->movimiento_debe += $detalle->debe;
             $saldo->movimiento_haber += $detalle->haber;
@@ -315,7 +387,7 @@ class AsientoContable extends Model
             return $yaExiste;
         }
 
-        $documentoCodigo = $venta->numero ?? $venta->codigo ?? 'VENTA-' . $venta->id;
+        $documentoCodigo = $venta->numero ?? $venta->codigo ?? 'VENTA-'.$venta->id;
         $clienteNombre = $venta->cliente?->nombre ?? $venta->cliente?->nombre_comercial ?? 'Cliente';
         $subtotal = (float) ($venta->subtotal ?? $venta->detalles()->sum('subtotal'));
         $impuesto = (float) ($venta->impuesto ?? $venta->detalles()->sum('impuesto'));
@@ -332,7 +404,7 @@ class AsientoContable extends Model
             'documento_id' => $venta->id,
             'documento_codigo' => $documentoCodigo,
             'tipo' => 'venta',
-            'concepto' => 'Venta ' . $documentoCodigo . ' - Cliente: ' . $clienteNombre,
+            'concepto' => 'Venta '.$documentoCodigo.' - Cliente: '.$clienteNombre,
             'empresa_id' => $venta->empresa_id ?? Auth::user()?->empresa_id,
         ]);
 
@@ -347,7 +419,7 @@ class AsientoContable extends Model
             'cuenta_id' => $cuentaClientes?->id,
             'debe' => $total,
             'haber' => 0,
-            'descripcion' => 'Venta ' . $documentoCodigo,
+            'descripcion' => 'Venta '.$documentoCodigo,
         ]);
 
         $asiento->detalles()->create([
@@ -355,7 +427,7 @@ class AsientoContable extends Model
             'cuenta_id' => $cuentaVentas?->id,
             'debe' => 0,
             'haber' => $subtotal,
-            'descripcion' => 'Ingreso por venta ' . $documentoCodigo,
+            'descripcion' => 'Ingreso por venta '.$documentoCodigo,
         ]);
 
         if ($impuesto > 0 && $cuentaIva) {
@@ -364,7 +436,7 @@ class AsientoContable extends Model
                 'cuenta_id' => $cuentaIva->id,
                 'debe' => 0,
                 'haber' => $impuesto,
-                'descripcion' => 'IVA por venta ' . $documentoCodigo,
+                'descripcion' => 'IVA por venta '.$documentoCodigo,
             ]);
         }
 
@@ -374,7 +446,7 @@ class AsientoContable extends Model
                 'cuenta_id' => $cuentaCostoVenta->id,
                 'debe' => $costoTotal,
                 'haber' => 0,
-                'descripcion' => 'Costo de venta ' . $documentoCodigo,
+                'descripcion' => 'Costo de venta '.$documentoCodigo,
             ]);
 
             $asiento->detalles()->create([
@@ -382,7 +454,7 @@ class AsientoContable extends Model
                 'cuenta_id' => $cuentaInventario->id,
                 'debe' => 0,
                 'haber' => $costoTotal,
-                'descripcion' => 'Salida de inventario por venta ' . $documentoCodigo,
+                'descripcion' => 'Salida de inventario por venta '.$documentoCodigo,
             ]);
         }
 
@@ -397,6 +469,19 @@ class AsientoContable extends Model
      */
     public static function crearDesdeCompra($compra)
     {
+        $existente = self::query()
+            ->where('documento_tipo', 'compra')
+            ->where('documento_id', $compra->id)
+            ->first();
+
+        if ($existente) {
+            return $existente;
+        }
+
+        $cuentaInventario = self::obtenerOCrearCuenta('1.1.5', 'Inventario', 'activo', 'deudora');
+        $cuentaIva = self::obtenerOCrearCuenta('1.1.4', 'IVA Crédito Fiscal', 'activo', 'deudora');
+        $cuentaProveedores = self::obtenerOCrearCuenta('2.1.1', 'Proveedores', 'pasivo', 'acreedora');
+
         $asiento = self::create([
             'codigo' => self::generarCodigo(),
             'fecha_asiento' => now(),
@@ -404,17 +489,17 @@ class AsientoContable extends Model
             'documento_id' => $compra->id,
             'documento_codigo' => $compra->codigo,
             'tipo' => 'compra',
-            'concepto' => 'Compra ' . $compra->codigo . ' - Proveedor: ' . $compra->proveedor->nombre,
+            'concepto' => 'Compra '.$compra->codigo.' - Proveedor: '.$compra->proveedor->nombre,
             'empresa_id' => $compra->empresa_id,
         ]);
 
         // Debe: Inventario
         $asiento->detalles()->create([
             'linea' => 1,
-            'cuenta_id' => PlanCuenta::where('codigo', '1.1.5')->first()?->id,
+            'cuenta_id' => $cuentaInventario?->id,
             'debe' => $compra->subtotal,
             'haber' => 0,
-            'descripcion' => 'Compra ' . $compra->codigo,
+            'descripcion' => 'Compra '.$compra->codigo,
         ]);
 
         // Debe: IVA Crédito Fiscal
@@ -424,17 +509,17 @@ class AsientoContable extends Model
                 'cuenta_id' => PlanCuenta::where('codigo', '1.1.4')->first()?->id, // IVA Crédito Fiscal
                 'debe' => $compra->impuesto,
                 'haber' => 0,
-                'descripcion' => 'IVA por compra ' . $compra->codigo,
+                'descripcion' => 'IVA por compra '.$compra->codigo,
             ]);
         }
 
         // Haber: Cuenta por Pagar
         $asiento->detalles()->create([
             'linea' => 3,
-            'cuenta_id' => PlanCuenta::where('codigo', '2.1.1')->first()?->id, // Proveedores
+            'cuenta_id' => $cuentaProveedores?->id,
             'debe' => 0,
             'haber' => $compra->total,
-            'descripcion' => 'Compra ' . $compra->codigo,
+            'descripcion' => 'Compra '.$compra->codigo,
         ]);
 
         $asiento->recalcularTotales();
