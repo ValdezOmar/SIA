@@ -692,10 +692,7 @@ class OrdenCompraResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            // RelationManagers\RecepcionesRelationManager::class,
-            // RelationManagers\FacturasCompraRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

@@ -11,7 +11,6 @@ use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\CodigosB
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ExistenciasRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ImagenesRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\KardexPorAlmacenRelationManager;
-use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\KardexRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\LotesRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\PreciosRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ProveedoresRelationManager;
@@ -853,10 +852,6 @@ class ArticuloResource extends Resource
         if (Schema::hasTable('alm_articulos_imagenes')) {
             $relations[] = ImagenesRelationManager::class;
         }
-
-        // if (Schema::hasTable('alm_codigos_barras')) {
-        //     $relations[] = KardexRelationManager::class;
-        // }
 
         if (Schema::hasTable('alm_kardex') && Schema::hasColumn('alm_kardex', 'articulo_id')) {
             $relations[] = KardexPorAlmacenRelationManager::class;

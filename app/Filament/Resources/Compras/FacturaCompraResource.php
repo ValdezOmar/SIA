@@ -114,8 +114,7 @@ class FacturaCompraResource extends Resource
                                                     ->columnSpan(1),
 
                                                 Select::make('estado')
-                                                    ->label('Estado')
-                                                    ->disabled()
+                                                    ->label('Estado')                                                    
                                                     ->dehydrated()
                                                     ->options([
                                                         'borrador' => 'Borrador',
