@@ -2,7 +2,6 @@
 
 namespace App\Models\Ventas;
 
-use App\Models\Inventario\Articulo;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;
@@ -40,6 +39,8 @@ class Cotizacion extends Model
             // Asignar creador
             if (Auth::check()) {
                 $model->creado_por = Auth::id();
+                $model->empresa_id ??= Auth::user()?->empresa_id;
+                $model->sucursal_id ??= Auth::user()?->sucursal_id;
             }
 
             // Generar código si no tiene
@@ -253,11 +254,11 @@ class Cotizacion extends Model
     public static function generarCodigo()
     {
         $gestion = date('y'); // 26 para 2026
-        $prefijo = 'COT-' . $gestion;
+        $prefijo = 'COT-'.$gestion;
 
         // Buscar el último código con el prefijo de la gestión actual
         $ultimo = self::withTrashed()
-            ->where('codigo', 'LIKE', $prefijo . '%')
+            ->where('codigo', 'LIKE', $prefijo.'%')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -271,6 +272,6 @@ class Cotizacion extends Model
         }
 
         // Formatear el correlativo con 4 dígitos
-        return $prefijo . str_pad($correlativo, 4, '0', STR_PAD_LEFT);
+        return $prefijo.str_pad($correlativo, 4, '0', STR_PAD_LEFT);
     }
 }

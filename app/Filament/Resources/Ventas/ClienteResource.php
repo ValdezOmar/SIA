@@ -25,6 +25,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
 class ClienteResource extends Resource
@@ -42,6 +43,13 @@ class ClienteResource extends Resource
     protected static ?string $pluralModelLabel = 'Clientes';
 
     protected static ?int $navigationSort = 1;
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        return $query->when(Auth::user()?->empresa_id, fn ($builder, $empresaId) => $builder->where('empresa_id', $empresaId));
+    }
 
     public static function form(Form $form): Form
     {

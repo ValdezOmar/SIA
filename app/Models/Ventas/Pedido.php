@@ -45,6 +45,8 @@ class Pedido extends Model
             // Asignar creador
             if (Auth::check()) {
                 $model->creado_por = Auth::id();
+                $model->empresa_id ??= Auth::user()?->empresa_id;
+                $model->sucursal_id ??= Auth::user()?->sucursal_id;
             }
 
             // Generar código si no tiene

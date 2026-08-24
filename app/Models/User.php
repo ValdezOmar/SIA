@@ -66,6 +66,16 @@ class User extends Authenticatable implements HasAvatar
         )->where('rh_historial_laboral.activo', true);
     }
 
+    public function getEmpresaIdAttribute(): ?int
+    {
+        return $this->empleado?->historialActivo?->empresa_id;
+    }
+
+    public function getSucursalIdAttribute(): ?int
+    {
+        return $this->empleado?->historialActivo?->sucursal_id;
+    }
+
     // Asociacion de foto de perfil con avatar
     public function getFilamentAvatarUrl(): ?string
     {

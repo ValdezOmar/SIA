@@ -7,6 +7,7 @@ use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Existencia;
 use App\Models\Inventario\Kardex;
 use App\Models\Inventario\MovimientoInventario;
+use App\Models\Sistema\Sucursal;
 use App\Models\User;
 use App\Services\Inventario\TrazabilidadInventarioService;
 use Illuminate\Database\Eloquent\Model;
@@ -46,6 +47,8 @@ class Factura extends Model
         static::creating(function ($model) {
             if (Auth::check()) {
                 $model->creado_por = Auth::id();
+                $model->empresa_id ??= Auth::user()?->empresa_id;
+                $model->sucursal_id ??= Auth::user()?->sucursal_id;
             }
             if (empty($model->numero)) {
                 $model->numero = self::generarNumero();
@@ -71,6 +74,11 @@ class Factura extends Model
     public function pedido()
     {
         return $this->belongsTo(Pedido::class);
+    }
+
+    public function sucursal()
+    {
+        return $this->belongsTo(Sucursal::class);
     }
 
     public function detalles()
@@ -226,7 +234,7 @@ class Factura extends Model
                     'cliente_id' => $factura->cliente_id, 'fecha_pedido' => now()->toDateString(),
                     'condicion_pago' => $factura->condicion_pago, 'moneda' => $factura->moneda,
                     'tasa_cambio' => $factura->tasa_cambio, 'vendedor_id' => $factura->vendedor_id,
-                    'empresa_id' => $factura->empresa_id, 'estado' => 'reservado',
+                    'empresa_id' => $factura->empresa_id, 'sucursal_id' => $factura->sucursal_id, 'estado' => 'reservado',
                     'observaciones' => 'Pedido generado desde la factura '.$factura->numero.' por pago recibido.',
                 ]);
                 foreach ($factura->detalles as $detalle) {

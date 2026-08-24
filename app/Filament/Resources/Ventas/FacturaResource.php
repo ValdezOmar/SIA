@@ -7,6 +7,8 @@ use App\Filament\Resources\Ventas\FacturaResource\RelationManagers\PagosRelation
 use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Kardex;
 use App\Models\Inventario\MovimientoInventario;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\Pedido;
@@ -48,6 +50,16 @@ class FacturaResource extends Resource
     protected static ?string $pluralModelLabel = 'Facturas';
 
     protected static ?int $navigationSort = 4;
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $usuario = Auth::user();
+
+        return $query
+            ->when($usuario?->empresa_id, fn ($builder, $empresaId) => $builder->where('empresa_id', $empresaId))
+            ->when($usuario?->sucursal_id, fn ($builder, $sucursalId) => $builder->where('sucursal_id', $sucursalId));
+    }
 
     // ========== MÉTODOS DE CÁLCULO ==========
     private static function recalcularLinea(callable $set, callable $get): void
@@ -174,6 +186,13 @@ class FacturaResource extends Resource
     {
         return $form
             ->schema([
+                Section::make('Empresa y sucursal')
+                    ->description('El empleado no tiene una asignación laboral activa. Indique dónde se registrará esta venta.')
+                    ->visible(fn (): bool => blank(Auth::user()?->empresa_id) || blank(Auth::user()?->sucursal_id))
+                    ->schema([
+                        Select::make('empresa_id')->label('Empresa')->options(fn (): array => Empresa::query()->where('empresa_activo', true)->orderByRaw('COALESCE(nombre_comercial, razon_social)')->pluck('nombre_comercial', 'id')->all())->default(fn (): ?int => Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))->required()->searchable()->preload()->live()->afterStateUpdated(fn (callable $set) => $set('sucursal_id', null)),
+                        Select::make('sucursal_id')->label('Sucursal')->options(fn (callable $get): array => filled($get('empresa_id')) ? Sucursal::query()->where('empresa_id', $get('empresa_id'))->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all() : [])->required()->searchable()->preload()->disabled(fn (callable $get): bool => blank($get('empresa_id'))),
+                    ])->columns(2),
                 Tabs::make('Gestión de Factura')
                     ->tabs([
                         Tabs\Tab::make('General')
@@ -240,6 +259,7 @@ class FacturaResource extends Resource
                                                     ->label('Cliente')
                                                     ->options(
                                                         fn () => Cliente::where('activo', true)
+                                                            ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
                                                             ->orderBy('nombre')
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
@@ -385,6 +405,8 @@ class FacturaResource extends Resource
                                                     ->label('Pedido Asociado')
                                                     ->options(
                                                         fn () => Pedido::where('estado', '!=', 'cancelado')
+                                                            ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
+                                                            ->when(Auth::user()?->sucursal_id, fn ($query, $sucursalId) => $query->where('sucursal_id', $sucursalId))
                                                             ->whereHas('detalles')
                                                             ->whereDoesntHave('detalles', fn ($query) => $query->whereDoesntHave('articulo'))
                                                             ->orderBy('codigo')
@@ -893,20 +915,6 @@ class FacturaResource extends Resource
                                                             ->extraAttributes(['class' => 'flex items-center'])
                                                             ->columnSpan(2),
 
-                                                        Placeholder::make('total_con_iva')
-                                                            ->label('Total')
-                                                            ->content(function ($get) {
-                                                                $moneda = $get('../../moneda') ?? 'BOB';
-                                                                $total = floatval($get('total') ?? 0);
-
-                                                                return new HtmlString(
-                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">'.
-                                                                        self::formatearMonto($total, $moneda).
-                                                                        '</span>'
-                                                                );
-                                                            })
-                                                            ->extraAttributes(['class' => 'flex items-center'])
-                                                            ->columnSpan(2),
                                                     ]),
 
                                                 TextInput::make('observaciones')

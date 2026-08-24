@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Ventas;
 use App\Filament\Resources\Ventas\PedidoResource\Pages;
 use App\Filament\Resources\Ventas\PedidoResource\RelationManagers\PedidoPagosRelationManager;
 use App\Models\Inventario\Articulo;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Pedido;
 use Filament\Forms\Components\DatePicker;
@@ -44,6 +46,16 @@ class PedidoResource extends Resource
     protected static ?string $pluralModelLabel = 'Pedidos';
 
     protected static ?int $navigationSort = 3;
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+        $usuario = Auth::user();
+
+        return $query
+            ->when($usuario?->empresa_id, fn ($builder, $empresaId) => $builder->where('empresa_id', $empresaId))
+            ->when($usuario?->sucursal_id, fn ($builder, $sucursalId) => $builder->where('sucursal_id', $sucursalId));
+    }
 
     // ========== MÉTODOS DE CÁLCULO ==========
     private static function recalcularLinea(callable $set, callable $get): void
@@ -184,6 +196,13 @@ class PedidoResource extends Resource
     {
         return $form
             ->schema([
+                Section::make('Empresa y sucursal')
+                    ->description('El empleado no tiene una asignación laboral activa. Indique dónde se registrará este pedido.')
+                    ->visible(fn (): bool => blank(Auth::user()?->empresa_id) || blank(Auth::user()?->sucursal_id))
+                    ->schema([
+                        Select::make('empresa_id')->label('Empresa')->options(fn (): array => Empresa::query()->where('empresa_activo', true)->orderByRaw('COALESCE(nombre_comercial, razon_social)')->pluck('nombre_comercial', 'id')->all())->default(fn (): ?int => Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))->required()->searchable()->preload()->live()->afterStateUpdated(fn (callable $set) => $set('sucursal_id', null)),
+                        Select::make('sucursal_id')->label('Sucursal')->options(fn (callable $get): array => filled($get('empresa_id')) ? Sucursal::query()->where('empresa_id', $get('empresa_id'))->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all() : [])->required()->searchable()->preload()->disabled(fn (callable $get): bool => blank($get('empresa_id'))),
+                    ])->columns(2),
                 Tabs::make('Gestión de Pedido')
                     ->tabs([
 
@@ -255,6 +274,7 @@ class PedidoResource extends Resource
                                                     ->label('Cliente')
                                                     ->options(
                                                         fn () => Cliente::where('activo', true)
+                                                            ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
                                                             ->orderBy('nombre')
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()

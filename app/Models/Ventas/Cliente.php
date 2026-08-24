@@ -37,6 +37,7 @@ class Cliente extends Model
         static::creating(function ($model) {
             if (Auth::check()) {
                 $model->creado_por = Auth::id();
+                $model->empresa_id ??= Auth::user()?->empresa_id;
             }
             if (empty($model->codigo)) {
                 $model->codigo = self::generarCodigo();
@@ -176,6 +177,7 @@ class Cliente extends Model
         if ($this->bloqueado) {
             return 'Bloqueado';
         }
+
         return $this->activo ? 'Activo' : 'Inactivo';
     }
 
@@ -184,6 +186,7 @@ class Cliente extends Model
         if ($this->bloqueado) {
             return 'danger';
         }
+
         return $this->activo ? 'success' : 'gray';
     }
 
@@ -209,10 +212,10 @@ class Cliente extends Model
     public static function generarCodigo()
     {
         $gestion = date('y');
-        $prefijo = 'CLI-' . $gestion;
+        $prefijo = 'CLI-'.$gestion;
 
         $ultimo = self::withTrashed()
-            ->where('codigo', 'LIKE', $prefijo . '%')
+            ->where('codigo', 'LIKE', $prefijo.'%')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -222,6 +225,6 @@ class Cliente extends Model
             $correlativo = 1;
         }
 
-        return $prefijo . str_pad($correlativo, 3, '0', STR_PAD_LEFT);
+        return $prefijo.str_pad($correlativo, 3, '0', STR_PAD_LEFT);
     }
 }
