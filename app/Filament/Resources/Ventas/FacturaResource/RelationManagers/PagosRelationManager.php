@@ -3,25 +3,21 @@
 namespace App\Filament\Resources\Ventas\FacturaResource\RelationManagers;
 
 use App\Models\Ventas\Pago;
-use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 class PagosRelationManager extends RelationManager
@@ -47,7 +43,8 @@ class PagosRelationManager extends RelationManager
     private static function formatearMonto($monto, $moneda): string
     {
         $simbolo = self::getSimboloMoneda($moneda);
-        return $simbolo . ' ' . number_format($monto ?? 0, 2);
+
+        return $simbolo.' '.number_format($monto ?? 0, 2);
     }
 
     private function facturaBloqueada($factura): bool
@@ -75,7 +72,7 @@ class PagosRelationManager extends RelationManager
                                     ->unique(ignoreRecord: true)
                                     ->placeholder('PAG-000001')
                                     ->helperText('Número único del pago')
-                                    ->default(fn() => Pago::generarNumero())
+                                    ->default(fn () => Pago::generarNumero())
                                     ->prefixIcon('heroicon-o-hashtag')
                                     ->columnSpan(1),
 
@@ -92,13 +89,13 @@ class PagosRelationManager extends RelationManager
                                 Select::make('tipo_pago')
                                     ->label('Tipo de Pago')
                                     ->options([
-                                        'efectivo' => '💵 Efectivo',
-                                        'transferencia' => '🏦 Transferencia',
-                                        'cheque' => '📄 Cheque',
-                                        'tarjeta' => '💳 Tarjeta',
-                                        'deposito' => '🏛️ Depósito',
-                                        'nota_credito' => '📝 Nota de Crédito',
-                                        'otros' => '📌 Otros',
+                                        'efectivo' => 'Efectivo',
+                                        'transferencia' => 'Transferencia',
+                                        'cheque' => 'Cheque',
+                                        'tarjeta' => 'Tarjeta',
+                                        'deposito' => 'Depósito',
+                                        'nota_credito' => 'Nota de Crédito',
+                                        'otros' => 'Otros',
                                     ])
                                     ->required()
                                     ->searchable()
@@ -116,7 +113,7 @@ class PagosRelationManager extends RelationManager
                                     ->minValue(0.01)
                                     ->step(1.00)
                                     ->placeholder('0.00')
-                                    ->prefix(fn($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
+                                    ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                     ->helperText('Monto del pago')
                                     ->live()
                                     ->columnSpan(1),
@@ -124,9 +121,9 @@ class PagosRelationManager extends RelationManager
                                 Select::make('moneda')
                                     ->label('Moneda')
                                     ->options([
-                                        'BOB' => '🇧🇴 Bolivianos',
-                                        'USD' => '🇺🇸 Dólares',
-                                        'EUR' => '🇪🇺 Euros',
+                                        'BOB' => 'Bolivianos',
+                                        'USD' => 'Dólares',
+                                        'EUR' => 'Euros',
                                     ])
                                     ->default('BOB')
                                     ->required()
@@ -143,7 +140,7 @@ class PagosRelationManager extends RelationManager
                                     ->step(0.000001)
                                     ->helperText('Tasa de cambio aplicada')
                                     ->prefixIcon('heroicon-o-arrow-path')
-                                    ->visible(fn($get) => $get('moneda') !== 'BOB')
+                                    ->visible(fn ($get) => $get('moneda') !== 'BOB')
                                     ->columnSpan(1),
                             ]),
 
@@ -163,7 +160,7 @@ class PagosRelationManager extends RelationManager
                                     ->placeholder('Nombre del banco')
                                     ->helperText('Banco utilizado')
                                     ->prefixIcon('heroicon-o-building-office')
-                                    ->visible(fn($get) => in_array($get('tipo_pago'), ['transferencia', 'cheque', 'deposito']))
+                                    ->visible(fn ($get) => in_array($get('tipo_pago'), ['transferencia', 'cheque', 'deposito']))
                                     ->columnSpan(1),
 
                                 TextInput::make('numero_cheque')
@@ -172,7 +169,7 @@ class PagosRelationManager extends RelationManager
                                     ->placeholder('CHQ-001')
                                     ->helperText('Número del cheque')
                                     ->prefixIcon('heroicon-o-document-text')
-                                    ->visible(fn($get) => $get('tipo_pago') === 'cheque')
+                                    ->visible(fn ($get) => $get('tipo_pago') === 'cheque')
                                     ->columnSpan(1),
                             ]),
 
@@ -182,7 +179,7 @@ class PagosRelationManager extends RelationManager
                             ->native(false)
                             ->helperText('Fecha del cheque')
                             ->prefixIcon('heroicon-o-calendar')
-                            ->visible(fn($get) => $get('tipo_pago') === 'cheque')
+                            ->visible(fn ($get) => $get('tipo_pago') === 'cheque')
                             ->columnSpan(1),
 
                         Select::make('estado')
@@ -193,7 +190,7 @@ class PagosRelationManager extends RelationManager
                                 'pendiente' => '⏳ Pendiente',
                                 'confirmado' => '✅ Confirmado',
                                 'rechazado' => '❌ Rechazado',
-                                'anulado' => '🚫 Anulado',
+                                'anulado' => 'Anulado',
                             ])
                             ->default('confirmado')
                             ->required()
@@ -225,18 +222,18 @@ class PagosRelationManager extends RelationManager
                     ->copyMessage('Número copiado')
                     ->toggleable()
                     ->width('120px')
-                    ->weight('bold'),                
+                    ->weight('bold'),
 
                 BadgeColumn::make('tipo_pago')
                     ->label('Tipo')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'efectivo' => '💵 Efectivo',
-                        'transferencia' => '🏦 Transferencia',
-                        'cheque' => '📄 Cheque',
-                        'tarjeta' => '💳 Tarjeta',
-                        'deposito' => '🏛️ Depósito',
-                        'nota_credito' => '📝 Nota Crédito',
-                        'otros' => '📌 Otros',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'efectivo' => 'Efectivo',
+                        'transferencia' => 'Transferencia',
+                        'cheque' => 'Cheque',
+                        'tarjeta' => 'Tarjeta',
+                        'deposito' => 'Depósito',
+                        'nota_credito' => 'Nota Crédito',
+                        'otros' => 'Otros',
                         default => $state,
                     })
                     ->colors([
@@ -251,7 +248,7 @@ class PagosRelationManager extends RelationManager
 
                 TextColumn::make('monto')
                     ->label('Monto')
-                    ->formatStateUsing(fn($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
+                    ->formatStateUsing(fn ($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
                     ->sortable()
                     ->toggleable()
                     ->weight('bold')
@@ -259,11 +256,11 @@ class PagosRelationManager extends RelationManager
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'pendiente' => '⏳ Pendiente',
                         'confirmado' => '✅ Confirmado',
                         'rechazado' => '❌ Rechazado',
-                        'anulado' => '🚫 Anulado',
+                        'anulado' => 'Anulado',
                         default => $state,
                     })
                     ->colors([
@@ -354,7 +351,7 @@ class PagosRelationManager extends RelationManager
 
                         Notification::make()
                             ->title('Pago registrado exitosamente')
-                            ->body('El pago ' . $record->numero . ' ha sido registrado.')
+                            ->body('El pago '.$record->numero.' ha sido registrado.')
                             ->success()
                             ->send();
                     }),
@@ -379,7 +376,7 @@ class PagosRelationManager extends RelationManager
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'pendiente'),
+                        ->visible(fn ($record) => $record->estado === 'pendiente'),
 
                     Tables\Actions\Action::make('rechazar')
                         ->label('Rechazar')
@@ -393,10 +390,10 @@ class PagosRelationManager extends RelationManager
                                 ->warning()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'pendiente'),
+                        ->visible(fn ($record) => $record->estado === 'pendiente'),
 
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn($record) => in_array($record->estado, ['pendiente', 'rechazado'])),
+                        ->visible(fn ($record) => in_array($record->estado, ['pendiente', 'rechazado'])),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

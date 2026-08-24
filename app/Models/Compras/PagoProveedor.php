@@ -2,11 +2,13 @@
 
 namespace App\Models\Compras;
 
+use App\Models\Contabilidad\AsientoContable;
 use App\Models\Sistema\Empresa;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class PagoProveedor extends Model
@@ -22,6 +24,7 @@ class PagoProveedor extends Model
         'fecha_cheque' => 'date',
         'monto' => 'decimal:6',
         'tasa_cambio' => 'decimal:6',
+        'respaldos' => 'array',
     ];
 
     // ========== BOOT ==========
@@ -56,6 +59,10 @@ class PagoProveedor extends Model
 
             if ($model->estado !== 'confirmado') {
                 return;
+            }
+
+            if (empty($model->respaldos) || ! is_array($model->respaldos)) {
+                throw ValidationException::withMessages(['respaldos' => 'Debe adjuntar al menos un respaldo del pago.']);
             }
 
             $otrosPagosConfirmados = $factura->pagos()
@@ -178,5 +185,30 @@ class PagoProveedor extends Model
         $this->save();
 
         return $this;
+    }
+
+    public function anular(string $motivo): void
+    {
+        DB::transaction(function () use ($motivo): void {
+            /** @var self $pago */
+            $pago = self::query()->lockForUpdate()->findOrFail($this->id);
+
+            if ($pago->estado !== 'confirmado') {
+                throw ValidationException::withMessages(['estado' => 'Solo se pueden anular pagos confirmados.']);
+            }
+
+            AsientoContable::query()
+                ->where('documento_tipo', 'pago_proveedor')
+                ->where('documento_id', $pago->id)
+                ->where('estado', 'confirmado')
+                ->each(fn (AsientoContable $asiento) => $asiento->anular($motivo));
+
+            $pago->updateQuietly([
+                'estado' => 'anulado',
+                'observaciones' => trim(($pago->observaciones ? $pago->observaciones."\n" : '').'Pago anulado: '.$motivo),
+            ]);
+
+            $pago->factura?->actualizarSaldo();
+        });
     }
 }

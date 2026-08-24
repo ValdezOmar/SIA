@@ -222,10 +222,10 @@ class PedidosRelationManager extends RelationManager
                                                     ->disabled()
                                                     ->dehydrated()
                                                     ->options([
-                                                        'reservado' => '📌 Reservado',
+                                                        'reservado' => 'Reservado',
                                                         'pendiente' => '⏳ Pendiente',
-                                                        'parcial' => '📦 Parcial',
-                                                        'despachado' => '🚚 Despachado',
+                                                        'parcial' => 'Parcial',
+                                                        'despachado' => 'Despachado',
                                                         'entregado' => '✅ Entregado',
                                                         'cancelado' => '❌ Cancelado',
                                                     ])
@@ -263,10 +263,10 @@ class PedidosRelationManager extends RelationManager
                                                 Select::make('prioridad')
                                                     ->label('Prioridad')
                                                     ->options([
-                                                        'baja' => '🟢 Baja',
-                                                        'normal' => '🟡 Normal',
-                                                        'alta' => '🟠 Alta',
-                                                        'urgente' => '🔴 Urgente',
+                                                        'baja' => 'Baja',
+                                                        'normal' => 'Normal',
+                                                        'alta' => 'Alta',
+                                                        'urgente' => 'Urgente',
                                                     ])
                                                     ->default('normal')
                                                     ->required()
@@ -281,9 +281,9 @@ class PedidosRelationManager extends RelationManager
                                                 Select::make('moneda')
                                                     ->label('Moneda')
                                                     ->options([
-                                                        'BOB' => '🇧🇴 Bolivianos',
-                                                        'USD' => '🇺🇸 Dólares',
-                                                        'EUR' => '🇪🇺 Euros',
+                                                        'BOB' => 'Bolivianos',
+                                                        'USD' => 'Dólares',
+                                                        'EUR' => 'Euros',
                                                     ])
                                                     ->default('BOB')
                                                     ->required()
@@ -332,10 +332,10 @@ class PedidosRelationManager extends RelationManager
                                                         Select::make('metodo_envio')
                                                             ->label('Método de Envío')
                                                             ->options([
-                                                                'recojo_tienda' => '🏪 Recojo en Tienda',
-                                                                'delivery' => '🚚 Delivery',
-                                                                'courier' => '📦 Courier',
-                                                                'transporte' => '🚛 Transporte',
+                                                                'recojo_tienda' => 'Recojo en Tienda',
+                                                                'delivery' => 'Delivery',
+                                                                'courier' => 'Courier',
+                                                                'transporte' => 'Transporte',
                                                             ])
                                                             ->searchable()
                                                             ->preload()
@@ -807,10 +807,10 @@ class PedidosRelationManager extends RelationManager
                 BadgeColumn::make('estado')
                     ->label('Estado')
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'reservado' => '📌 Reservado',
+                        'reservado' => 'Reservado',
                         'pendiente' => '⏳ Pendiente',
-                        'parcial' => '📦 Parcial',
-                        'despachado' => '🚚 Despachado',
+                        'parcial' => 'Parcial',
+                        'despachado' => 'Despachado',
                         'entregado' => '✅ Entregado',
                         'cancelado' => '❌ Cancelado',
                         default => $state,
@@ -828,10 +828,10 @@ class PedidosRelationManager extends RelationManager
                 BadgeColumn::make('prioridad')
                     ->label('Prioridad')
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'baja' => '🟢 Baja',
-                        'normal' => '🟡 Normal',
-                        'alta' => '🟠 Alta',
-                        'urgente' => '🔴 Urgente',
+                        'baja' => 'Baja',
+                        'normal' => 'Normal',
+                        'alta' => 'Alta',
+                        'urgente' => 'Urgente',
                         default => $state,
                     })
                     ->colors([
@@ -923,10 +923,10 @@ class PedidosRelationManager extends RelationManager
                             Select::make('estado')
                                 ->label('Nuevo Estado')
                                 ->options([
-                                    'reservado' => '📌 Reservado',
+                                    'reservado' => 'Reservado',
                                     'pendiente' => '⏳ Pendiente',
-                                    'parcial' => '📦 Parcial',
-                                    'despachado' => '🚚 Despachado',
+                                    'parcial' => 'Parcial',
+                                    'despachado' => 'Despachado',
                                     'entregado' => '✅ Entregado',
                                     'cancelado' => '❌ Cancelado',
                                 ])

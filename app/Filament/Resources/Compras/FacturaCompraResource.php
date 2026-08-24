@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Compras;
 
 use App\Filament\Resources\Compras\FacturaCompraResource\Pages;
+use App\Filament\Resources\Compras\FacturaCompraResource\RelationManagers\PagosProveedorRelationManager;
 use App\Models\Compras\FacturaCompra;
 use App\Models\Compras\OrdenCompra;
 use App\Models\Compras\Proveedor;
@@ -10,6 +11,7 @@ use App\Models\Compras\Recepcion;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Inventario\Articulo;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -114,18 +116,18 @@ class FacturaCompraResource extends Resource
                                                     ->columnSpan(1),
 
                                                 Select::make('estado')
-                                                    ->label('Estado')                                                    
+                                                    ->label('Estado')
                                                     ->dehydrated()
                                                     ->options([
                                                         'borrador' => 'Borrador',
-                                                        'registrada' => 'Registrada',
                                                         'pagada' => 'Pagada',
                                                         'parcial' => 'Parcial',
-                                                        'anulada' => 'Anulada',
                                                     ])
                                                     ->default('borrador')
                                                     ->required()
                                                     ->searchable()
+                                                    ->live()
+                                                    ->disabledOn('edit')
                                                     ->helperText('Estado actual')
                                                     ->prefixIcon('heroicon-o-tag')
                                                     ->columnSpan(1),
@@ -182,6 +184,15 @@ class FacturaCompraResource extends Resource
                                                     ->visible(fn ($get) => $get('orden_compra_id'))
                                                     ->columnSpan(1),
                                             ]),
+
+                                        FileUpload::make('adjuntos')
+                                            ->label('Factura emitida por el proveedor')
+                                            ->helperText('Adjunte el PDF emitido por el proveedor. Puede añadir imágenes si el comprobante fue escaneado.')
+                                            ->multiple()
+                                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
+                                            ->directory('compras/facturas-proveedor')
+                                            // ->required(fn ($get): bool => in_array($get('estado'), ['registrada', 'parcial', 'pagada'], true))
+                                            ->columnSpanFull(),
 
                                         Grid::make(3)
                                             ->schema([
@@ -289,6 +300,30 @@ class FacturaCompraResource extends Resource
                                                     }),
                                             ]),
                                     ]),
+
+                                Section::make('Pago y respaldo')
+                                    ->description(fn ($get) => $get('estado') === 'pagada'
+                                        ? 'Al guardar se registrará un pago único por el total de la factura.'
+                                        : 'Indique el importe abonado hoy y adjunte su respaldo. El saldo podrá completarse después desde Pagos y respaldos.')
+                                    ->icon('heroicon-o-paper-clip')
+                                    ->visible(fn ($get) => in_array($get('estado'), ['pagada', 'parcial'], true))
+                                    ->schema([
+                                        TextInput::make('pago_monto')->label('Monto abonado ahora')->numeric()->minValue(0.01)
+                                            ->visible(fn ($get) => $get('estado') === 'parcial')
+                                            ->required(fn ($get) => $get('estado') === 'parcial')
+                                            ->helperText('Debe ser menor que el total de la factura; el saldo quedará pendiente.'),
+                                        DatePicker::make('pago_fecha')->label('Fecha de pago')->default(today())->required(fn ($get) => in_array($get('estado'), ['pagada', 'parcial'], true)),
+                                        Select::make('pago_tipo')->label('Método de pago')->options([
+                                            'efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'cheque' => 'Cheque',
+                                            'deposito' => 'Depósito', 'nota_credito' => 'Nota de crédito', 'otros' => 'Otro',
+                                        ])->required(fn ($get) => in_array($get('estado'), ['pagada', 'parcial'], true)),
+                                        TextInput::make('pago_referencia')->label('Referencia del comprobante')->maxLength(100),
+                                        FileUpload::make('pago_respaldos')->label('Respaldos del pago')->multiple()
+                                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+                                            ->directory('compras/pagos-proveedor')
+                                            // ->required(fn ($get) => in_array($get('estado'), ['pagada', 'parcial'], true))
+                                            ->helperText('Adjunte imágenes o PDF del pago. Es obligatorio para conservar la trazabilidad.'),
+                                    ])->columns(2),
 
                                 Textarea::make('observaciones')
                                     ->label('Observaciones')
@@ -490,7 +525,8 @@ class FacturaCompraResource extends Resource
                     ])
                     ->activeTab(1)
                     ->columnSpanFull(),
-            ]);
+            ])
+            ->disabled(fn (?FacturaCompra $record) => $record && ((float) $record->monto_pagado > 0 || in_array($record->estado, ['pagada', 'anulada'], true)));
     }
 
     private static function calcularTotales($get, $record = null): array
@@ -650,6 +686,29 @@ class FacturaCompraResource extends Resource
                         ->slideOver()
                         ->modalWidth('7xl'),
 
+                    Tables\Actions\Action::make('asociar_recepcion')
+                        ->label('Asociar recepción')
+                        ->icon('heroicon-o-link')
+                        ->color('gray')
+                        ->modalHeading('Asociar recepción física')
+                        ->modalDescription('Seleccione la recepción que confirma la entrega física. El stock continuará sin cambios hasta que esa recepción sea procesada en Almacén.')
+                        ->form([
+                            Select::make('recepcion_id')
+                                ->label('Recepción confirmada')
+                                ->options(fn ($record) => Recepcion::query()
+                                    ->where('orden_compra_id', $record->orden_compra_id)
+                                    ->whereIn('estado', ['parcial', 'completada'])
+                                    ->orderBy('codigo')
+                                    ->pluck('codigo', 'id'))
+                                ->required()
+                                ->searchable()
+                                ->helperText('Solo se muestran recepciones de la orden de compra de esta factura.'),
+                        ])
+                        ->action(fn (array $data, $record) => $record->update(['recepcion_id' => $data['recepcion_id']]))
+                        ->visible(fn ($record): bool => ! $record->recepcion_id
+                            && (bool) $record->orden_compra_id
+                            && in_array($record->estado, ['registrada', 'parcial', 'pagada'], true)),
+
                     Tables\Actions\Action::make('contabilizar')
                         ->label('Generar asiento')
                         ->icon('heroicon-o-calculator')
@@ -666,7 +725,10 @@ class FacturaCompraResource extends Resource
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn ($record): bool => in_array($record->estado, ['registrada', 'parcial', 'pagada']) && ! AsientoContable::where('documento_tipo', 'compra')->where('documento_id', $record->id)->exists()),
+                        ->visible(fn ($record): bool => in_array($record->estado, ['registrada', 'parcial', 'pagada'], true)
+                            && $record->recepcion?->estado === 'completada'
+                            && $record->recepcion?->inventario_procesado_at
+                            && ! AsientoContable::where('documento_tipo', 'compra')->where('documento_id', $record->id)->exists()),
 
                     Tables\Actions\ViewAction::make()
                         ->slideOver()
@@ -713,23 +775,26 @@ class FacturaCompraResource extends Resource
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn ($record) => ! in_array($record->estado, ['pagada', 'anulada'])),
+                        ->visible(fn () => false),
 
                     Tables\Actions\Action::make('anular')
-                        ->label('Anular')
+                        ->label('Anular factura')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
+                        ->form([
+                            Textarea::make('motivo')->label('Motivo de la anulación')->required()->maxLength(2000),
+                        ])
                         ->modalHeading('Anular Factura')
                         ->modalSubheading('¿Estás seguro de que deseas anular esta factura?')
-                        ->action(function ($record) {
-                            $record->update(['estado' => 'anulada']);
+                        ->action(function (array $data, $record) {
+                            $record->anularDocumento($data['motivo']);
                             Notification::make()
                                 ->title('Factura anulada')
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn ($record) => ! in_array($record->estado, ['pagada', 'anulada'])),
+                        ->visible(fn ($record) => $record->estado !== 'anulada'),
 
                     Tables\Actions\DeleteAction::make()
                         ->visible(fn ($record) => $record->estado === 'borrador'),
@@ -748,9 +813,7 @@ class FacturaCompraResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            // RelationManagers\PagosProveedorRelationManager::class,
-        ];
+        return [PagosProveedorRelationManager::class];
     }
 
     public static function getPages(): array

@@ -478,9 +478,15 @@ class AsientoContable extends Model
             return $existente;
         }
 
+        $compra->loadMissing('recepcion');
+        if (! $compra->recepcion?->inventario_procesado_at || $compra->recepcion->estado !== 'completada') {
+            throw new \RuntimeException('La factura solo puede contabilizarse como inventario después de que la recepción física esté completada y su ingreso a almacén haya sido procesado.');
+        }
+
         $cuentaInventario = self::obtenerOCrearCuenta('1.1.5', 'Inventario', 'activo', 'deudora');
         $cuentaIva = self::obtenerOCrearCuenta('1.1.4', 'IVA Crédito Fiscal', 'activo', 'deudora');
         $cuentaProveedores = self::obtenerOCrearCuenta('2.1.1', 'Proveedores', 'pasivo', 'acreedora');
+        $cuentaAnticipos = self::obtenerOCrearCuenta('1.1.3', 'Anticipos a proveedores', 'activo', 'deudora');
 
         $asiento = self::create([
             'codigo' => self::generarCodigo(),
@@ -522,6 +528,43 @@ class AsientoContable extends Model
             'descripcion' => 'Compra '.$compra->codigo,
         ]);
 
+        $anticiposAplicados = $compra->pagos()->where('estado', 'confirmado')->get()->sum(function ($pago) use ($cuentaAnticipos) {
+            return self::query()
+                ->where('documento_tipo', 'pago_proveedor')
+                ->where('documento_id', $pago->id)
+                ->where('estado', 'confirmado')
+                ->whereHas('detalles', fn ($query) => $query->where('cuenta_id', $cuentaAnticipos?->id)->where('haber', '>', 0))
+                ->exists() ? (float) $pago->monto : 0;
+        });
+        if ($anticiposAplicados > 0) {
+            $asiento->detalles()->create(['linea' => 4, 'cuenta_id' => $cuentaProveedores?->id, 'debe' => $anticiposAplicados, 'haber' => 0, 'descripcion' => 'Aplicación de anticipos de '.$compra->codigo]);
+            $asiento->detalles()->create(['linea' => 5, 'cuenta_id' => $cuentaAnticipos?->id, 'debe' => 0, 'haber' => $anticiposAplicados, 'descripcion' => 'Aplicación de anticipos de '.$compra->codigo]);
+        }
+
+        $asiento->recalcularTotales();
+        $asiento->confirmar();
+
+        return $asiento;
+    }
+
+    public static function crearDesdePagoProveedor($pago)
+    {
+        $existente = self::query()->where('documento_tipo', 'pago_proveedor')->where('documento_id', $pago->id)->first();
+        if ($existente) {
+            return $existente;
+        }
+
+        $pago->loadMissing('factura');
+        $compraContabilizada = self::query()->where('documento_tipo', 'compra')->where('documento_id', $pago->factura_id)->where('estado', 'confirmado')->exists();
+        $cuentaDestino = $compraContabilizada
+            ? self::obtenerOCrearCuenta('2.1.1', 'Proveedores', 'pasivo', 'acreedora')
+            : self::obtenerOCrearCuenta('1.1.3', 'Anticipos a proveedores', 'activo', 'deudora');
+        $cuentaBanco = self::obtenerOCrearCuenta('1.1.1', 'Caja y Bancos', 'activo', 'deudora');
+        $concepto = ($compraContabilizada ? 'Pago de factura ' : 'Anticipo de factura ').$pago->factura->codigo;
+
+        $asiento = self::create(['codigo' => self::generarCodigo(), 'fecha_asiento' => $pago->fecha_pago, 'documento_tipo' => 'pago_proveedor', 'documento_id' => $pago->id, 'documento_codigo' => $pago->codigo, 'tipo' => 'egreso', 'concepto' => $concepto, 'empresa_id' => $pago->empresa_id]);
+        $asiento->detalles()->create(['linea' => 1, 'cuenta_id' => $cuentaDestino?->id, 'debe' => $pago->monto, 'haber' => 0, 'descripcion' => $concepto]);
+        $asiento->detalles()->create(['linea' => 2, 'cuenta_id' => $cuentaBanco?->id, 'debe' => 0, 'haber' => $pago->monto, 'descripcion' => 'Salida de fondos '.$pago->codigo]);
         $asiento->recalcularTotales();
         $asiento->confirmar();
 

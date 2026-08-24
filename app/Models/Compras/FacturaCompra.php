@@ -2,12 +2,14 @@
 
 namespace App\Models\Compras;
 
-use App\Models\Inventario\Articulo;
+use App\Models\Contabilidad\AsientoContable;
 use App\Models\Sistema\Empresa;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class FacturaCompra extends Model
 {
@@ -28,6 +30,8 @@ class FacturaCompra extends Model
         'saldo' => 'decimal:6',
         'monto_pagado' => 'decimal:6',
         'tasa_cambio' => 'decimal:6',
+        'pago_pendiente' => 'boolean',
+        'adjuntos' => 'array',
     ];
 
     // ========== BOOT ==========
@@ -105,7 +109,7 @@ class FacturaCompra extends Model
 
     public function getEstadoLabelAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'borrador' => 'Borrador',
             'registrada' => 'Registrada',
             'pagada' => 'Pagada',
@@ -120,10 +124,10 @@ class FacturaCompra extends Model
     public static function generarCodigo()
     {
         $gestion = date('y');
-        $prefijo = 'FAC-' . $gestion;
+        $prefijo = 'FAC-'.$gestion;
 
         $ultimo = self::withTrashed()
-            ->where('codigo', 'LIKE', $prefijo . '%')
+            ->where('codigo', 'LIKE', $prefijo.'%')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -133,50 +137,122 @@ class FacturaCompra extends Model
             $correlativo = 1;
         }
 
-        return $prefijo . str_pad($correlativo, 4, '0', STR_PAD_LEFT);
+        return $prefijo.str_pad($correlativo, 4, '0', STR_PAD_LEFT);
     }
 
-    public function registrarPago($data)
+    public function registrarPago(array $data): PagoProveedor
     {
-        $pago = PagoProveedor::create([
-            'factura_id' => $this->id,
-            'proveedor_id' => $this->proveedor_id,
-            'codigo' => PagoProveedor::generarCodigo(),
-            'fecha_pago' => $data['fecha_pago'],
-            'tipo_pago' => $data['tipo_pago'],
-            'monto' => $data['monto'],
-            'moneda' => $this->moneda,
-            'tasa_cambio' => $this->tasa_cambio,
-            'referencia' => $data['referencia'] ?? null,
-            'creado_por' => Auth::id(),
-            'empresa_id' => $this->empresa_id,
-            'estado' => 'confirmado',
-        ]);
+        return DB::transaction(function () use ($data): PagoProveedor {
+            /** @var self $factura */
+            $factura = self::query()->lockForUpdate()->findOrFail($this->id);
 
-        $this->actualizarSaldo();
-        return $pago;
+            if (in_array($factura->estado, ['pagada', 'anulada'], true)) {
+                throw ValidationException::withMessages(['factura_id' => 'No se pueden registrar pagos para una factura pagada o anulada.']);
+            }
+
+            $monto = (float) ($data['monto'] ?? 0);
+            if ($monto <= 0 || $monto > (float) $factura->saldo) {
+                throw ValidationException::withMessages(['monto' => 'El pago debe ser mayor a cero y no puede superar el saldo pendiente.']);
+            }
+            if (empty($data['respaldos']) || ! is_array($data['respaldos'])) {
+                throw ValidationException::withMessages(['respaldos' => 'Adjunte al menos un respaldo del pago.']);
+            }
+
+            $pago = PagoProveedor::create([
+                'factura_id' => $factura->id,
+                'proveedor_id' => $factura->proveedor_id,
+                'fecha_pago' => $data['fecha_pago'] ?? now()->toDateString(),
+                'tipo_pago' => $data['tipo_pago'] ?? 'transferencia',
+                'monto' => $monto,
+                'moneda' => $factura->moneda,
+                'tasa_cambio' => $factura->tasa_cambio,
+                'referencia' => $data['referencia'] ?? null,
+                'banco' => $data['banco'] ?? null,
+                'numero_cheque' => $data['numero_cheque'] ?? null,
+                'fecha_cheque' => $data['fecha_cheque'] ?? null,
+                'respaldos' => $data['respaldos'],
+                'observaciones' => $data['observaciones'] ?? null,
+                'creado_por' => Auth::id(),
+                'empresa_id' => $factura->empresa_id,
+                'estado' => 'confirmado',
+            ]);
+
+            AsientoContable::crearDesdePagoProveedor($pago);
+
+            $factura->actualizarSaldo();
+
+            return $pago;
+        });
     }
 
     public function actualizarSaldo()
     {
         $totalPagado = $this->pagos()->where('estado', 'confirmado')->sum('monto');
+        $saldo = max(0, (float) $this->total - (float) $totalPagado);
         $this->monto_pagado = $totalPagado;
-        $this->saldo = $this->total - $totalPagado;
-
+        $this->saldo = $saldo;
+        $this->pago_pendiente = $totalPagado > 0 && $saldo > 0;
         $this->save();
     }
 
     private function actualizarEstado()
     {
-        if ($this->saldo <= 0) {
+        if (in_array($this->estado, ['borrador', 'anulada'], true) || (float) $this->total <= 0) {
+            return;
+        }
+
+        if ($this->saldo <= 0 && $this->monto_pagado > 0) {
             $this->estado = 'pagada';
+            $this->pago_pendiente = false;
         } elseif ($this->monto_pagado > 0 && $this->saldo > 0) {
             $this->estado = 'parcial';
-        } elseif ($this->estado === 'borrador') {
+            $this->pago_pendiente = true;
+        } else {
             $this->estado = 'registrada';
+            $this->pago_pendiente = false;
         }
 
         $this->saveQuietly();
+    }
+
+    public function anularDocumento(string $motivo): void
+    {
+        DB::transaction(function () use ($motivo): void {
+            /** @var self $factura */
+            $factura = self::query()->lockForUpdate()->findOrFail($this->id);
+            if ($factura->estado === 'anulada') {
+                return;
+            }
+
+            $factura->loadMissing('recepcion');
+            if ($factura->recepcion?->inventario_procesado_at) {
+                throw ValidationException::withMessages([
+                    'recepcion_id' => 'No se puede anular una factura cuya recepción ya ingresó inventario. Primero revierta la recepción mediante el proceso de inventario autorizado.',
+                ]);
+            }
+
+            $factura->pagos()->where('estado', 'confirmado')->each(function (PagoProveedor $pago) use ($motivo): void {
+                AsientoContable::query()->where('documento_tipo', 'pago_proveedor')->where('documento_id', $pago->id)->where('estado', 'confirmado')
+                    ->each(fn (AsientoContable $asiento) => $asiento->anular($motivo));
+                $pago->estado = 'anulado';
+                $pago->observaciones = trim(($pago->observaciones ? $pago->observaciones."\n" : '').'Anulado por factura: '.$motivo);
+                $pago->saveQuietly();
+            });
+
+            AsientoContable::query()
+                ->where('documento_tipo', 'compra')
+                ->where('documento_id', $factura->id)
+                ->where('estado', 'confirmado')
+                ->each(fn (AsientoContable $asiento) => $asiento->anular($motivo));
+
+            $factura->updateQuietly([
+                'estado' => 'anulada',
+                'monto_pagado' => 0,
+                'saldo' => 0,
+                'pago_pendiente' => false,
+                'observaciones' => trim(($factura->observaciones ? $factura->observaciones."\n" : '').'Factura anulada: '.$motivo),
+            ]);
+        });
     }
 
     public function recalcularTotales()

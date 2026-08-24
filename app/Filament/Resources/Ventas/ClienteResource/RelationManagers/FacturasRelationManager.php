@@ -3,22 +3,21 @@
 namespace App\Filament\Resources\Ventas\ClienteResource\RelationManagers;
 
 use App\Models\Ventas\Factura;
-use Filament\Forms;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
@@ -46,7 +45,8 @@ class FacturasRelationManager extends RelationManager
     private static function formatearMonto($monto, $moneda): string
     {
         $simbolo = self::getSimboloMoneda($moneda);
-        return $simbolo . ' ' . number_format($monto ?? 0, 2);
+
+        return $simbolo.' '.number_format($monto ?? 0, 2);
     }
 
     private function facturaBloqueada($factura): bool
@@ -73,7 +73,7 @@ class FacturasRelationManager extends RelationManager
                                     ->unique(ignoreRecord: true)
                                     ->placeholder('FAC-000001')
                                     ->helperText('Número único de la factura')
-                                    ->default(fn() => Factura::generarNumero())
+                                    ->default(fn () => Factura::generarNumero())
                                     ->prefixIcon('heroicon-o-hashtag')
                                     ->columnSpan(1),
 
@@ -92,10 +92,10 @@ class FacturasRelationManager extends RelationManager
                                     ->disabled()
                                     ->dehydrated()
                                     ->options([
-                                        'borrador' => '📝 Borrador',
-                                        'emitida' => '📤 Emitida',
+                                        'borrador' => 'Borrador',
+                                        'emitida' => 'Emitida',
                                         'pagada' => '✅ Pagada',
-                                        'parcial' => '💰 Parcial',
+                                        'parcial' => 'Parcial',
                                         'vencida' => '⏰ Vencida',
                                         'anulada' => '❌ Anulada',
                                     ])
@@ -112,9 +112,9 @@ class FacturasRelationManager extends RelationManager
                                 Select::make('moneda')
                                     ->label('Moneda')
                                     ->options([
-                                        'BOB' => '🇧🇴 Bolivianos',
-                                        'USD' => '🇺🇸 Dólares',
-                                        'EUR' => '🇪🇺 Euros',
+                                        'BOB' => 'Bolivianos',
+                                        'USD' => 'Dólares',
+                                        'EUR' => 'Euros',
                                     ])
                                     ->default('BOB')
                                     ->required()
@@ -139,6 +139,7 @@ class FacturasRelationManager extends RelationManager
                                     ->label('Total')
                                     ->content(function ($get, $record) {
                                         $moneda = $get('moneda') ?? 'BOB';
+
                                         return self::formatearMonto($record?->total ?? 0, $moneda);
                                     }),
 
@@ -146,6 +147,7 @@ class FacturasRelationManager extends RelationManager
                                     ->label('Pagado')
                                     ->content(function ($get, $record) {
                                         $moneda = $get('moneda') ?? 'BOB';
+
                                         return self::formatearMonto($record?->monto_pagado ?? 0, $moneda);
                                     }),
 
@@ -155,9 +157,10 @@ class FacturasRelationManager extends RelationManager
                                         $moneda = $get('moneda') ?? 'BOB';
                                         $saldo = ($record?->total ?? 0) - ($record?->monto_pagado ?? 0);
                                         $color = $saldo <= 0 ? 'success' : 'danger';
+
                                         return new HtmlString(
-                                            '<span class="font-bold text-' . $color . '-600">' .
-                                                self::formatearMonto($saldo, $moneda) .
+                                            '<span class="font-bold text-'.$color.'-600">'.
+                                                self::formatearMonto($saldo, $moneda).
                                                 '</span>'
                                         );
                                     }),
@@ -193,19 +196,19 @@ class FacturasRelationManager extends RelationManager
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable(),
-                    // ->color(fn($state, $record) => {
-                    //     if ($record?->estado === 'pagada') return 'success';
-                    //     if ($state && $state < now()) return 'danger';
-                    //     return 'warning';
-                    // }),
+                // ->color(fn($state, $record) => {
+                //     if ($record?->estado === 'pagada') return 'success';
+                //     if ($state && $state < now()) return 'danger';
+                //     return 'warning';
+                // }),
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'borrador' => '📝 Borrador',
-                        'emitida' => '📤 Emitida',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'borrador' => 'Borrador',
+                        'emitida' => 'Emitida',
                         'pagada' => '✅ Pagada',
-                        'parcial' => '💰 Parcial',
+                        'parcial' => 'Parcial',
                         'vencida' => '⏰ Vencida',
                         'anulada' => '❌ Anulada',
                         default => $state,
@@ -222,7 +225,7 @@ class FacturasRelationManager extends RelationManager
 
                 TextColumn::make('total')
                     ->label('Total')
-                    ->formatStateUsing(fn($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
+                    ->formatStateUsing(fn ($state, $record) => self::formatearMonto($state, $record->moneda ?? 'BOB'))
                     ->sortable()
                     ->toggleable()
                     ->weight('bold'),
@@ -232,14 +235,15 @@ class FacturasRelationManager extends RelationManager
                     ->formatStateUsing(function ($state, $record) {
                         $moneda = $record->moneda ?? 'BOB';
                         $saldo = ($record->total ?? 0) - ($record->monto_pagado ?? 0);
+
                         return self::formatearMonto($saldo, $moneda);
                     })
                     ->sortable()
                     ->toggleable(),
-                    // ->color(fn($record) => {
-                    //     $saldo = ($record->total ?? 0) - ($record->monto_pagado ?? 0);
-                    //     return $saldo <= 0 ? 'success' : 'danger';
-                    // }),
+                // ->color(fn($record) => {
+                //     $saldo = ($record->total ?? 0) - ($record->monto_pagado ?? 0);
+                //     return $saldo <= 0 ? 'success' : 'danger';
+                // }),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
@@ -267,8 +271,8 @@ class FacturasRelationManager extends RelationManager
                     ->trueLabel('Facturas pagadas')
                     ->falseLabel('Facturas pendientes')
                     ->queries(
-                        true: fn($query) => $query->where('estado', 'pagada'),
-                        false: fn($query) => $query->whereIn('estado', ['emitida', 'parcial', 'vencida']),
+                        true: fn ($query) => $query->where('estado', 'pagada'),
+                        false: fn ($query) => $query->whereIn('estado', ['emitida', 'parcial', 'vencida']),
                     ),
             ])
             ->headerActions([
@@ -289,7 +293,7 @@ class FacturasRelationManager extends RelationManager
 
                         Notification::make()
                             ->title('Factura creada exitosamente')
-                            ->body('La factura ' . $factura->numero . ' ha sido creada.')
+                            ->body('La factura '.$factura->numero.' ha sido creada.')
                             ->success()
                             ->send();
 
@@ -312,8 +316,8 @@ class FacturasRelationManager extends RelationManager
                                 ->numeric()
                                 ->required()
                                 ->minValue(0.01)
-                                ->maxValue(fn($record) => ($record->total ?? 0) - ($record->monto_pagado ?? 0))
-                                ->prefix(fn($get, $record) => self::getSimboloMoneda($record->moneda ?? 'BOB')),
+                                ->maxValue(fn ($record) => ($record->total ?? 0) - ($record->monto_pagado ?? 0))
+                                ->prefix(fn ($get, $record) => self::getSimboloMoneda($record->moneda ?? 'BOB')),
 
                             DatePicker::make('fecha_pago')
                                 ->label('Fecha Pago')
@@ -325,13 +329,13 @@ class FacturasRelationManager extends RelationManager
                             Select::make('tipo_pago')
                                 ->label('Tipo de Pago')
                                 ->options([
-                                    'efectivo' => '💵 Efectivo',
-                                    'transferencia' => '🏦 Transferencia',
-                                    'cheque' => '📄 Cheque',
-                                    'tarjeta' => '💳 Tarjeta',
-                                    'deposito' => '🏛️ Depósito',
-                                    'nota_credito' => '📝 Nota de Crédito',
-                                    'otros' => '📌 Otros',
+                                    'efectivo' => 'Efectivo',
+                                    'transferencia' => 'Transferencia',
+                                    'cheque' => 'Cheque',
+                                    'tarjeta' => 'Tarjeta',
+                                    'deposito' => 'Depósito',
+                                    'nota_credito' => 'Nota de Crédito',
+                                    'otros' => 'Otros',
                                 ])
                                 ->required()
                                 ->searchable(),
@@ -349,7 +353,7 @@ class FacturasRelationManager extends RelationManager
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => ! $this->facturaBloqueada($record)),
+                        ->visible(fn ($record) => ! $this->facturaBloqueada($record)),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
