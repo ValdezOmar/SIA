@@ -8,15 +8,17 @@ use App\Models\Inventario\Existencia;
 use App\Models\Inventario\Kardex;
 use App\Models\Inventario\MovimientoInventario;
 use App\Models\User;
+use App\Services\Inventario\TrazabilidadInventarioService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Services\Inventario\TrazabilidadInventarioService;
+use Illuminate\Validation\ValidationException;
 
 class Factura extends Model
 {
-    use SoftDeletes;
+    use Prunable, SoftDeletes;
 
     protected $table = 'ven_facturas';  // Nombre correcto
 
@@ -105,13 +107,18 @@ class Factura extends Model
 
     public function registrarPago($data)
     {
+        $monto = (float) ($data['monto'] ?? 0);
+        if ($monto <= 0 || $monto > (float) $this->saldo) {
+            throw ValidationException::withMessages(['monto' => 'El pago debe ser mayor a cero y no puede superar el saldo pendiente.']);
+        }
+
         $pago = Pago::create([
             'factura_id' => $this->id,
             'cliente_id' => $this->cliente_id,
             'numero' => Pago::generarNumero(),
             'fecha_pago' => $data['fecha_pago'],
             'tipo_pago' => $data['tipo_pago'],
-            'monto' => $data['monto'],
+            'monto' => $monto,
             'moneda' => $this->moneda,
             'tasa_cambio' => $this->tasa_cambio,
             'referencia' => $data['referencia'] ?? null,
@@ -121,6 +128,10 @@ class Factura extends Model
         ]);
 
         $this->actualizarSaldo();
+        if ((float) $this->monto_pagado > 0 && (float) $this->saldo > 0) {
+            $this->asegurarPedidoReservado();
+        }
+
         return $pago;
     }
 
@@ -189,22 +200,120 @@ class Factura extends Model
         $this->saldo = ($this->total ?? 0) - $totalPagado;
         $this->monto_restante = $this->saldo;
 
-        if ($this->saldo <= 0) {
-            $this->estado = 'pagada';
-        } elseif ($this->monto_pagado > 0 && $this->saldo > 0) {
-            $this->estado = 'parcial';
-        } elseif (($this->total ?? 0) > 0) {
-            $this->estado = 'emitida';
-        } else {
+        if ((float) $this->monto_pagado <= 0) {
             $this->estado = 'borrador';
+        } elseif ($this->saldo <= 0) {
+            $this->estado = 'pagada';
+        } else {
+            $this->estado = 'parcial';
         }
 
         $this->save();
     }
 
+    public function prunable()
+    {
+        return static::query()->where('estado', 'borrador')->where('created_at', '<=', now()->subDays(30));
+    }
+
+    public function asegurarPedidoReservado(): Pedido
+    {
+        return DB::transaction(function (): Pedido {
+            $factura = self::query()->with('pedido')->lockForUpdate()->findOrFail($this->id);
+            $pedido = $factura->pedido;
+            if (! $pedido) {
+                $pedido = Pedido::create([
+                    'cliente_id' => $factura->cliente_id, 'fecha_pedido' => now()->toDateString(),
+                    'condicion_pago' => $factura->condicion_pago, 'moneda' => $factura->moneda,
+                    'tasa_cambio' => $factura->tasa_cambio, 'vendedor_id' => $factura->vendedor_id,
+                    'empresa_id' => $factura->empresa_id, 'estado' => 'reservado',
+                    'observaciones' => 'Pedido generado desde la factura '.$factura->numero.' por pago recibido.',
+                ]);
+                foreach ($factura->detalles as $detalle) {
+                    $pedido->detalles()->create($detalle->only(['linea', 'articulo_id', 'lista_precio', 'codigo_articulo', 'descripcion_articulo', 'unidad_medida', 'cantidad', 'precio_unitario', 'precio_original', 'descuento', 'descuento_porcentaje', 'subtotal', 'tipo_impuesto', 'tasa_impuesto', 'impuesto', 'total', 'observaciones']));
+                }
+                $factura->updateQuietly(['pedido_id' => $pedido->id, 'numero_pedido' => $pedido->codigo]);
+            }
+            $pedido->reservarInventario();
+
+            return $pedido;
+        });
+    }
+
+    public function reservarInventario(): void
+    {
+        DB::transaction(function (): void {
+            if (MovimientoInventario::query()
+                ->where('documento_tipo', 'venta_reserva')
+                ->where('documento_id', $this->id)
+                ->where('estado', 'confirmado')
+                ->exists()) {
+                return;
+            }
+
+            $almacen = Almacen::where('activo', true)->first();
+            if (! $almacen) {
+                throw new \RuntimeException('No existe un almacén activo para reservar los productos.');
+            }
+
+            foreach ($this->detalles as $detalle) {
+                $cantidad = (float) ($detalle->cantidad ?? 0);
+                if (! $detalle->articulo_id || $cantidad <= 0) {
+                    continue;
+                }
+
+                $existencia = Existencia::query()
+                    ->where('articulo_id', $detalle->articulo_id)
+                    ->where('almacen_id', $almacen->id)
+                    ->lockForUpdate()
+                    ->first();
+                $disponible = (float) ($existencia?->cantidad_disponible ?? 0) - (float) ($existencia?->cantidad_comprometida ?? 0);
+                if (! $existencia || $disponible < $cantidad) {
+                    throw new \RuntimeException('No hay stock disponible para reservar el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
+                }
+
+                $existencia->increment('cantidad_comprometida', $cantidad);
+                MovimientoInventario::create([
+                    'articulo_id' => $detalle->articulo_id, 'almacen_id' => $almacen->id,
+                    'tipo' => 'reserva_venta', 'cantidad' => 0, 'documento_tipo' => 'venta_reserva',
+                    'documento_id' => $this->id, 'documento_codigo' => $this->numero, 'fecha' => now(),
+                    'observacion' => 'Reserva por pago parcial de venta '.$this->numero, 'estado' => 'confirmado',
+                ]);
+            }
+        });
+    }
+
+    public function liberarReservaInventario(): void
+    {
+        DB::transaction(function (): void {
+            $reservas = MovimientoInventario::query()
+                ->where('documento_tipo', 'venta_reserva')
+                ->where('documento_id', $this->id)
+                ->where('estado', 'confirmado')
+                ->lockForUpdate()
+                ->get();
+            foreach ($reservas as $reserva) {
+                $cantidad = (float) ($this->detalles()->where('articulo_id', $reserva->articulo_id)->value('cantidad') ?? 0);
+                Existencia::query()->where('articulo_id', $reserva->articulo_id)->where('almacen_id', $reserva->almacen_id)
+                    ->lockForUpdate()->first()?->decrement('cantidad_comprometida', $cantidad);
+                $reserva->update(['estado' => 'cancelado', 'observacion' => $reserva->observacion.'; reserva liberada']);
+            }
+        });
+    }
+
     public function procesarVentaAutomatica(): array
     {
         $this->refresh();
+
+        if ((float) $this->saldo > 0) {
+            throw new \RuntimeException('La entrega solo puede confirmarse cuando el pago total de la venta esté verificado.');
+        }
+
+        $this->asegurarPedidoReservado();
+
+        $this->liberarReservaInventario();
+        $this->loadMissing('pedido');
+        $this->pedido?->liberarReservaInventario();
 
         $yaExisteKardex = Kardex::where('documento_tipo', 'venta')
             ->where('documento_id', $this->id)
@@ -216,13 +325,13 @@ class Factura extends Model
 
         $almacen = Almacen::where('activo', true)->first();
 
-        if (!$almacen) {
+        if (! $almacen) {
             throw new \RuntimeException('No existe un almacén activo para registrar la salida de inventario.');
         }
 
-        if (!$yaExisteKardex) {
+        if (! $yaExisteKardex) {
             foreach ($this->detalles as $detalle) {
-                if (!($detalle->articulo_id ?? null) || !($detalle->cantidad ?? 0)) {
+                if (! ($detalle->articulo_id ?? null) || ! ($detalle->cantidad ?? 0)) {
                     continue;
                 }
 
@@ -231,12 +340,12 @@ class Factura extends Model
                     ->where('almacen_id', $almacen->id)
                     ->first();
 
-                if (!$existencia) {
-                    throw new \RuntimeException('No existe stock del artículo ' . ($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id) . ' en el almacén activo.');
+                if (! $existencia) {
+                    throw new \RuntimeException('No existe stock del artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).' en el almacén activo.');
                 }
 
                 if ((float) $existencia->cantidad_disponible < $cantidad) {
-                    throw new \RuntimeException('Stock insuficiente para el artículo ' . ($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id) . '.');
+                    throw new \RuntimeException('Stock insuficiente para el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
                 }
 
                 $kardex = Kardex::registrarSalida([
@@ -248,8 +357,9 @@ class Factura extends Model
                     'documento_id' => $this->id,
                     'documento_codigo' => $this->numero,
                     'documento_detalle_id' => $detalle->id,
-                    'capa_costo_id' => $detalle->capa_costo_id,
-                    'observaciones' => 'Salida por venta ' . $this->numero,
+                    // Kardex aplica FIFO: consume automáticamente las capas más antiguas disponibles.
+                    'capa_costo_id' => null,
+                    'observaciones' => 'Salida por venta '.$this->numero,
                     'empresa_id' => $this->empresa_id ?? Auth::user()?->empresa_id,
                     'fecha_movimiento' => now(),
                     'estado' => 'confirmado',
@@ -266,7 +376,7 @@ class Factura extends Model
                     'documento_id' => $this->id,
                     'documento_codigo' => $this->numero,
                     'fecha' => now(),
-                    'observacion' => 'Salida por venta ' . $this->numero,
+                    'observacion' => 'Salida por venta '.$this->numero,
                     'estado' => 'confirmado',
                     'kardex_id' => $kardex->id,
                 ]);
@@ -280,11 +390,19 @@ class Factura extends Model
             }
         }
 
-        if (!$yaExisteAsiento) {
+        if (! $yaExisteAsiento) {
             $asiento = AsientoContable::crearDesdeVenta($this);
         } else {
             $asiento = AsientoContable::where('documento_tipo', 'venta')->where('documento_id', $this->id)->first();
         }
+
+        if ($this->pedido && $this->pedido->estado !== 'cancelado') {
+            $this->pedido->update([
+                'estado' => 'entregado',
+                'fecha_entrega_real' => now()->toDateString(),
+            ]);
+        }
+        $this->actualizarSaldo();
 
         return [
             'kardex' => Kardex::where('documento_tipo', 'venta')->where('documento_id', $this->id)->get(),
@@ -299,6 +417,13 @@ class Factura extends Model
 
             if ($factura->estado === 'anulada') {
                 return $factura;
+            }
+
+            $factura->liberarReservaInventario();
+            $factura->loadMissing('pedido');
+            if ($factura->pedido && $factura->pedido->estado !== 'entregado') {
+                $factura->pedido->liberarReservaInventario();
+                $factura->pedido->update(['estado' => 'cancelado']);
             }
 
             $salidas = Kardex::where('documento_tipo', 'venta')
@@ -348,10 +473,10 @@ class Factura extends Model
     public static function generarNumero()
     {
         $gestion = date('y');
-        $prefijo = 'FAC-' . $gestion;
+        $prefijo = 'FAC-'.$gestion;
 
         $ultimo = self::withTrashed()
-            ->where('numero', 'LIKE', $prefijo . '%')
+            ->where('numero', 'LIKE', $prefijo.'%')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -361,6 +486,6 @@ class Factura extends Model
             $correlativo = 1;
         }
 
-        return $prefijo . str_pad($correlativo, 4, '0', STR_PAD_LEFT);
+        return $prefijo.str_pad($correlativo, 4, '0', STR_PAD_LEFT);
     }
 }

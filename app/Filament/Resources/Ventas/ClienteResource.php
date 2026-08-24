@@ -6,28 +6,25 @@ use App\Filament\Resources\Ventas\ClienteResource\Pages;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\CotizacionesRelationManager;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\FacturasRelationManager;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\PedidosRelationManager;
-use App\Models\Ventas\Cliente;
 use App\Models\Inventario\ListaPrecio;
+use App\Models\Ventas\Cliente;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\HtmlString;
 
 class ClienteResource extends Resource
@@ -59,7 +56,7 @@ class ClienteResource extends Resource
                             ->schema([
                                 Section::make('Datos Básicos')
                                     ->icon('heroicon-o-identification')
-                                    ->description('Información principal del cliente')
+                                    ->description('Registre aquí a la persona o empresa antes de crear cotizaciones, pedidos o ventas. Un cliente puede tener varios documentos comerciales.')
                                     ->schema([
                                         Grid::make(3)
                                             ->schema([
@@ -71,7 +68,7 @@ class ClienteResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('Generado automáticamente')
                                                     ->helperText('Código único del cliente')
-                                                    ->default(fn() => Cliente::generarCodigo())
+                                                    ->default(fn () => Cliente::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -140,7 +137,7 @@ class ClienteResource extends Resource
                                                 Select::make('lista_precio_id')
                                                     ->label('Lista de Precios')
                                                     ->options(
-                                                        fn() => ListaPrecio::where('activo', true)
+                                                        fn () => ListaPrecio::where('activo', true)
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
                                                     )
@@ -153,6 +150,7 @@ class ClienteResource extends Resource
                                                     ->default(function () {
                                                         try {
                                                             $primeraLista = ListaPrecio::where('activo', true)->first();
+
                                                             return $primeraLista?->id;
                                                         } catch (\Exception $e) {
                                                             return null;
@@ -228,7 +226,7 @@ class ClienteResource extends Resource
                                                     ->placeholder('Ej: Deuda pendiente')
                                                     ->helperText('Razón del bloqueo')
                                                     ->prefixIcon('heroicon-o-exclamation-triangle')
-                                                    ->visible(fn(Forms\Get $get) => $get('bloqueado'))
+                                                    ->visible(fn (Forms\Get $get) => $get('bloqueado'))
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -251,7 +249,7 @@ class ClienteResource extends Resource
                                                     ->helperText('Teléfono fijo')
                                                     ->prefixIcon('heroicon-o-phone')
                                                     ->columnSpan(1),
-                                                    
+
                                                 TextInput::make('correo')
                                                     ->label('Correo Electrónico')
                                                     ->email()
@@ -356,7 +354,7 @@ class ClienteResource extends Resource
                                         Placeholder::make('comercial_info')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return 'La información comercial se mostrará después de guardar el cliente.';
                                                 }
 
@@ -396,12 +394,12 @@ class ClienteResource extends Resource
                                             ->schema([
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
-                                                    ->content(fn($record) => $record?->creador?->name ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->creador?->name ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('created_at')
                                                     ->label('Fecha de creación')
-                                                    ->content(fn($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
                                                     ->columnSpan(1),
                                             ]),
 
@@ -409,12 +407,12 @@ class ClienteResource extends Resource
                                             ->schema([
                                                 Placeholder::make('updated_at')
                                                     ->label('Última modificación')
-                                                    ->content(fn($record) => $record?->updated_at?->format('d/m/Y H:i') ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->updated_at?->format('d/m/Y H:i') ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('deleted_at')
                                                     ->label('Fecha de eliminación')
-                                                    ->content(fn($record) => $record?->deleted_at?->format('d/m/Y H:i') ?? 'No eliminado')
+                                                    ->content(fn ($record) => $record?->deleted_at?->format('d/m/Y H:i') ?? 'No eliminado')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -455,7 +453,7 @@ class ClienteResource extends Resource
 
                 BadgeColumn::make('tipo_cliente')
                     ->label('Tipo')
-                    ->formatStateUsing(fn($state) => match ($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'persona_natural' => '👤 Natural',
                         'empresa' => '🏢 Empresa',
                         'gobierno' => '🏛️ Gobierno',
@@ -472,7 +470,7 @@ class ClienteResource extends Resource
 
                 BadgeColumn::make('categoria')
                     ->label('Categoría')
-                    ->formatStateUsing(fn($state) => match ($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'regular' => 'Regular',
                         'mayorista' => 'Mayorista',
                         'minorista' => 'Minorista',
@@ -506,7 +504,7 @@ class ClienteResource extends Resource
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->getStateUsing(fn($record) => $record->estado_label)
+                    ->getStateUsing(fn ($record) => $record->estado_label)
                     ->colors([
                         'success' => 'Activo',
                         'gray' => 'Inactivo',
@@ -567,25 +565,25 @@ class ClienteResource extends Resource
                     Tables\Actions\ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
-                   
+
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([                    
+                Tables\Actions\BulkActionGroup::make([
 
                     Tables\Actions\BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->action(fn($records) => $records->each->update(['activo' => !$records->first()->activo]))
+                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de clientes'),
 
                     Tables\Actions\BulkAction::make('toggle_blocked_bulk')
                         ->label('Bloquear/Desbloquear')
                         ->icon('heroicon-o-lock-closed')
-                        ->action(fn($records) => $records->each->update(['bloqueado' => !$records->first()->bloqueado]))
+                        ->action(fn ($records) => $records->each->update(['bloqueado' => ! $records->first()->bloqueado]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar bloqueo de clientes'),
                 ]),
@@ -603,7 +601,7 @@ class ClienteResource extends Resource
         return [
             CotizacionesRelationManager::class,
             PedidosRelationManager::class,
-            FacturasRelationManager::class
+            FacturasRelationManager::class,
         ];
     }
 

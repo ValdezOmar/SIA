@@ -10,6 +10,11 @@ class ListFacturas extends ListRecords
 {
     protected static string $resource = FacturaResource::class;
 
+    public function getSubheading(): ?string
+    {
+        return 'Registre la venta final aquí cuando entregue los productos o complete el servicio. Después gestione los cobros en la propia factura.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [

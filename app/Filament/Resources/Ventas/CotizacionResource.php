@@ -3,28 +3,28 @@
 namespace App\Filament\Resources\Ventas;
 
 use App\Filament\Resources\Ventas\CotizacionResource\Pages;
-use App\Models\Ventas\Cotizacion;
-use App\Models\Ventas\Cliente;
 use App\Models\Inventario\Articulo;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
+use App\Models\Ventas\Cliente;
+use App\Models\Ventas\Cotizacion;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
@@ -113,12 +113,13 @@ class CotizacionResource extends Resource
                     $impuesto += floatval($detalle->impuesto ?? 0);
                     $total += floatval($detalle->total ?? 0);
                 }
+
                 return compact('subtotal', 'descuento', 'impuesto', 'total');
             }
         }
 
         $detalles = $get('detalles') ?? [];
-        if (is_array($detalles) && !empty($detalles)) {
+        if (is_array($detalles) && ! empty($detalles)) {
             foreach ($detalles as $detalle) {
                 if (is_array($detalle)) {
                     $subtotal += floatval($detalle['subtotal'] ?? 0);
@@ -136,12 +137,15 @@ class CotizacionResource extends Resource
 
         return compact('subtotal', 'descuento', 'impuesto', 'total');
     }
+
     /**
      * Formatear número para mostrar (sin decimales si es 0, 2 decimales si tiene)
      */
     private static function formatearNumero($valor, $decimales = 2): string
     {
-        if ($valor === null || $valor === '') return '0';
+        if ($valor === null || $valor === '') {
+            return '0';
+        }
 
         $valor = floatval($valor);
 
@@ -153,6 +157,7 @@ class CotizacionResource extends Resource
         // Si tiene decimales, mostrar con 2 decimales
         return number_format($valor, $decimales, '.', '');
     }
+
     private static function getSimboloMoneda($moneda): string
     {
         return match ($moneda) {
@@ -166,15 +171,17 @@ class CotizacionResource extends Resource
     private static function formatearMonto($monto, $moneda): string
     {
         $simbolo = self::getSimboloMoneda($moneda);
-        return $simbolo . ' ' . number_format($monto ?? 0, 2);
+
+        return $simbolo.' '.number_format($monto ?? 0, 2);
     }
 
     private static function formatearMontoHtml($monto, $moneda, $clase = ''): HtmlString
     {
         $simbolo = self::getSimboloMoneda($moneda);
+
         return new HtmlString(
-            '<span class="' . $clase . '">' .
-                $simbolo . ' ' . number_format($monto ?? 0, 2) .
+            '<span class="'.$clase.'">'.
+                $simbolo.' '.number_format($monto ?? 0, 2).
                 '</span>'
         );
     }
@@ -191,6 +198,7 @@ class CotizacionResource extends Resource
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Cotización')
+                                    ->description('Use una cotización para enviar una propuesta de precios sin comprometer inventario ni generar una venta. Conviértala en pedido cuando el cliente confirme.')
                                     ->icon('heroicon-o-document-text')
                                     ->description('Información principal de la cotización')
                                     ->schema([
@@ -204,7 +212,7 @@ class CotizacionResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('COT-000001')
                                                     ->helperText('Código único de la cotización')
-                                                    ->default(fn() => Cotizacion::generarCodigo())
+                                                    ->default(fn () => Cotizacion::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -225,11 +233,20 @@ class CotizacionResource extends Resource
                                                     ->native(false)
                                                     ->helperText(function ($get) {
                                                         $fecha = $get('fecha_validez');
-                                                        if (!$fecha) return 'Seleccione fecha';
+                                                        if (! $fecha) {
+                                                            return 'Seleccione fecha';
+                                                        }
                                                         $dias = intval(now()->diffInDays($fecha, false));
-                                                        if ($dias < 0) return '⚠️ Expirada';
-                                                        if ($dias == 0) return '⏰ Vence hoy';
-                                                        if ($dias <= 3) return "⚠️ {$dias} días restantes";
+                                                        if ($dias < 0) {
+                                                            return '⚠️ Expirada';
+                                                        }
+                                                        if ($dias == 0) {
+                                                            return '⏰ Vence hoy';
+                                                        }
+                                                        if ($dias <= 3) {
+                                                            return "⚠️ {$dias} días restantes";
+                                                        }
+
                                                         return "✅ {$dias} días";
                                                     })
                                                     ->prefixIcon('heroicon-o-calendar-days')
@@ -261,7 +278,7 @@ class CotizacionResource extends Resource
                                                 Select::make('cliente_id')
                                                     ->label('Cliente')
                                                     ->options(
-                                                        fn() => Cliente::where('activo', true)
+                                                        fn () => Cliente::where('activo', true)
                                                             ->orderBy('nombre')
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
@@ -277,7 +294,9 @@ class CotizacionResource extends Resource
                                                     ->afterStateUpdated(function ($state, callable $set) {
                                                         if ($state) {
                                                             $cliente = Cliente::find($state);
-                                                            if ($cliente) $set('condicion_pago', $cliente->condicion_pago);
+                                                            if ($cliente) {
+                                                                $set('condicion_pago', $cliente->condicion_pago);
+                                                            }
                                                         }
                                                     })
                                                     ->createOptionForm([
@@ -293,7 +312,7 @@ class CotizacionResource extends Resource
                                                                             ->disabled()
                                                                             ->maxLength(50)
                                                                             ->unique(ignoreRecord: true)
-                                                                            ->default(fn() => Cliente::generarCodigo())
+                                                                            ->default(fn () => Cliente::generarCodigo())
                                                                             ->prefixIcon('heroicon-o-hashtag')
                                                                             ->columnSpan(1),
                                                                         TextInput::make('nombre')
@@ -397,6 +416,7 @@ class CotizacionResource extends Resource
                                                         $data['creado_por'] = Auth::id();
                                                         $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
                                                         $cliente = Cliente::create($data);
+
                                                         return $cliente->id;
                                                     }),
 
@@ -445,8 +465,8 @@ class CotizacionResource extends Resource
                                                     ->step(1.00)
                                                     ->helperText('Tasa de cambio aplicada')
                                                     ->prefixIcon('heroicon-o-arrow-path')
-                                                    ->formatStateUsing(fn($state) => self::formatearNumero($state, 6))
-                                                    ->visible(fn($get) => $get('moneda') !== 'BOB')
+                                                    ->formatStateUsing(fn ($state) => self::formatearNumero($state, 6))
+                                                    ->visible(fn ($get) => $get('moneda') !== 'BOB')
                                                     ->columnSpan(1),
 
                                                 TextInput::make('condicion_pago')
@@ -470,6 +490,7 @@ class CotizacionResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['subtotal'], $moneda);
                                                     }),
 
@@ -478,6 +499,7 @@ class CotizacionResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['descuento'], $moneda);
                                                     }),
 
@@ -486,6 +508,7 @@ class CotizacionResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['impuesto'], $moneda);
                                                     }),
 
@@ -494,6 +517,7 @@ class CotizacionResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMontoHtml(
                                                             $totales['total'],
                                                             $moneda,
@@ -509,7 +533,10 @@ class CotizacionResource extends Resource
                         Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
-                                if (!$record) return 0;
+                                if (! $record) {
+                                    return 0;
+                                }
+
                                 return $record->detalles()->count();
                             })
                             ->schema([
@@ -527,12 +554,12 @@ class CotizacionResource extends Resource
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
                                                             ->options(
-                                                                fn() => Articulo::where('activo', true)
+                                                                fn () => Articulo::where('activo', true)
                                                                     ->where('vendible', true)
                                                                     ->orderBy('codigo')
                                                                     ->get()
-                                                                    ->mapWithKeys(fn($item) => [
-                                                                        $item->id => $item->codigo . ' - ' . ($item->descripcion ?? $item->nombre_comercial ?? 'Sin descripción')
+                                                                    ->mapWithKeys(fn ($item) => [
+                                                                        $item->id => $item->codigo.' - '.($item->descripcion ?? $item->nombre_comercial ?? 'Sin descripción'),
                                                                     ])
                                                                     ->toArray()
                                                             )
@@ -565,21 +592,28 @@ class CotizacionResource extends Resource
                                                             ->label('Lista Precios')
                                                             ->options(function ($get) {
                                                                 $articuloId = $get('articulo_id');
-                                                                if (!$articuloId) return [];
+                                                                if (! $articuloId) {
+                                                                    return [];
+                                                                }
                                                                 $articulo = Articulo::find($articuloId);
-                                                                if (!$articulo) return [];
+                                                                if (! $articulo) {
+                                                                    return [];
+                                                                }
                                                                 $precios = $articulo->getPreciosConListas();
-                                                                if ($precios->isEmpty()) return [];
-                                                                return $precios->mapWithKeys(fn($item, $key) => [
-                                                                    $key => $item['nombre'] . ' - ' . number_format($item['precio'], 2) . ' ' . $item['moneda']
+                                                                if ($precios->isEmpty()) {
+                                                                    return [];
+                                                                }
+
+                                                                return $precios->mapWithKeys(fn ($item, $key) => [
+                                                                    $key => $item['nombre'].' - '.number_format($item['precio'], 2).' '.$item['moneda'],
                                                                 ])->toArray();
                                                             })
-                                                            //->visible(fn($get) => $get('articulo_id') !== null)
+                                                            // ->visible(fn($get) => $get('articulo_id') !== null)
                                                             ->searchable()
                                                             ->preload()
                                                             ->placeholder('Seleccione lista')
                                                             ->helperText('Lista de precios')
-                                                            //->prefixIcon('heroicon-o-tag')
+                                                            // ->prefixIcon('heroicon-o-tag')
                                                             ->columnSpan(4)
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
@@ -602,8 +636,8 @@ class CotizacionResource extends Resource
                                                             ->maxValue(999999)
                                                             ->step(1.00)
                                                             ->default(1)
-                                                            //->prefixIcon('heroicon-o-numbered-list')
-                                                            ->formatStateUsing(fn($state) => (int) $state) // Siempre entero
+                                                            // ->prefixIcon('heroicon-o-numbered-list')
+                                                            ->formatStateUsing(fn ($state) => (int) $state) // Siempre entero
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $state = intval($state);
@@ -620,9 +654,9 @@ class CotizacionResource extends Resource
                                                             ->maxValue(999999.99)
                                                             ->step(1.00)
                                                             ->default(0)
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
-                                                            ->formatStateUsing(fn($state) => self::formatearNumero($state, 2))
+                                                            ->formatStateUsing(fn ($state) => self::formatearNumero($state, 2))
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 self::recalcularLinea($set, $get);
@@ -633,6 +667,7 @@ class CotizacionResource extends Resource
                                                             ->label('Subtotal')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
+
                                                                 return self::formatearMonto($get('subtotal') ?? 0, $moneda);
                                                             })
                                                             ->extraAttributes(['class' => 'font-bold'])
@@ -651,7 +686,7 @@ class CotizacionResource extends Resource
                                                             ->suffix('%')
                                                             ->prefixIcon('heroicon-o-percent-badge')
                                                             ->live()
-                                                            ->formatStateUsing(fn($state) => $state !== null ? (int) $state : 0) // Convertir a entero
+                                                            ->formatStateUsing(fn ($state) => $state !== null ? (int) $state : 0) // Convertir a entero
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -671,10 +706,10 @@ class CotizacionResource extends Resource
                                                             ->minValue(0)
                                                             ->step(1.00)
                                                             ->default(0)
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')
                                                             ->live()
-                                                            ->formatStateUsing(fn($state) => number_format($state ?? 0, 2, '.', '')) // Formatear a 2 decimales
+                                                            ->formatStateUsing(fn ($state) => number_format($state ?? 0, 2, '.', '')) // Formatear a 2 decimales
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -702,6 +737,7 @@ class CotizacionResource extends Resource
                                                             ->label('Impuesto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
+
                                                                 return self::formatearMonto($get('impuesto') ?? 0, $moneda);
                                                             })
                                                             ->columnSpan(4),
@@ -711,9 +747,10 @@ class CotizacionResource extends Resource
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
                                                                 $total = floatval($get('total') ?? 0);
+
                                                                 return new HtmlString(
-                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">' .
-                                                                        self::formatearMonto($total, $moneda) .
+                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">'.
+                                                                        self::formatearMonto($total, $moneda).
                                                                         '</span>'
                                                                 );
                                                             })
@@ -745,7 +782,7 @@ class CotizacionResource extends Resource
                                                 $descuento = floatval($data['descuento'] ?? 0);
                                                 $subtotal = ($precioUnitario * $cantidad) - $descuento;
 
-                                                $aplicarIVA = isset($data['aplicar_iva']) ? (bool)$data['aplicar_iva'] : false;
+                                                $aplicarIVA = isset($data['aplicar_iva']) ? (bool) $data['aplicar_iva'] : false;
                                                 if ($aplicarIVA) {
                                                     $impuesto = $subtotal * (13 / 100);
                                                     $total = $subtotal + $impuesto;
@@ -776,7 +813,8 @@ class CotizacionResource extends Resource
                                                 $data['impuesto'] = floatval($data['impuesto'] ?? 0);
                                                 $data['total'] = floatval($data['total'] ?? 0);
                                                 $data['precio_original'] = floatval($data['precio_original'] ?? 0);
-                                                $data['aplicar_iva'] = isset($data['aplicar_iva']) ? (bool)$data['aplicar_iva'] : false;
+                                                $data['aplicar_iva'] = isset($data['aplicar_iva']) ? (bool) $data['aplicar_iva'] : false;
+
                                                 return $data;
                                             }),
                                     ]),
@@ -816,12 +854,12 @@ class CotizacionResource extends Resource
                                             ->schema([
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
-                                                    ->content(fn($record) => $record?->creador?->name ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->creador?->name ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('created_at')
                                                     ->label('Fecha creación')
-                                                    ->content(fn($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -862,11 +900,11 @@ class CotizacionResource extends Resource
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable()
-                    ->color(fn($state) => $state && $state < now() ? 'danger' : 'success'),
+                    ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success'),
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match ($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'borrador' => '📝 Borrador',
                         'enviada' => '📤 Enviada',
                         'aprobada' => '✅ Aprobada',
@@ -888,7 +926,7 @@ class CotizacionResource extends Resource
                 // Cantidad de Items (mejorado)
                 TextColumn::make('total_items')
                     ->label('Items')
-                    ->getStateUsing(fn($record) => $record->detalles()->count())
+                    ->getStateUsing(fn ($record) => $record->detalles()->count())
                     ->badge()
                     ->color('info')
                     ->sortable()
@@ -905,7 +943,8 @@ class CotizacionResource extends Resource
                             'EUR' => '€',
                             default => $moneda,
                         };
-                        return $simbolo . ' ' . number_format($state ?? 0, 2);
+
+                        return $simbolo.' '.number_format($state ?? 0, 2);
                     })
                     ->sortable()
                     ->toggleable(),
@@ -955,9 +994,9 @@ class CotizacionResource extends Resource
                     ->trueLabel('Cotizaciones vigentes')
                     ->falseLabel('Cotizaciones expiradas')
                     ->queries(
-                        true: fn($query) => $query->where('fecha_validez', '>=', now()->toDateString())
+                        true: fn ($query) => $query->where('fecha_validez', '>=', now()->toDateString())
                             ->whereIn('estado', ['enviada', 'aprobada']),
-                        false: fn($query) => $query->where(function ($q) {
+                        false: fn ($query) => $query->where(function ($q) {
                             $q->where('fecha_validez', '<', now()->toDateString())
                                 ->orWhereIn('estado', ['rechazada', 'expirada']);
                         }),
@@ -1002,7 +1041,7 @@ class CotizacionResource extends Resource
                                 $pedido = $record->convertirPedido();
                                 Notification::make()
                                     ->title('Cotización convertida a pedido')
-                                    ->body('El pedido ' . $pedido->codigo . ' ha sido creado exitosamente.')
+                                    ->body('El pedido '.$pedido->codigo.' ha sido creado exitosamente.')
                                     ->success()
                                     ->send();
 
@@ -1015,7 +1054,7 @@ class CotizacionResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn($record) => $record->estado === 'aprobada'),
+                        ->visible(fn ($record) => $record->estado === 'aprobada'),
 
                     Tables\Actions\Action::make('enviar')
                         ->label('Enviar')
@@ -1029,7 +1068,7 @@ class CotizacionResource extends Resource
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'borrador'),
+                        ->visible(fn ($record) => $record->estado === 'borrador'),
 
                     Tables\Actions\Action::make('aprobar')
                         ->label('Aprobar')
@@ -1043,7 +1082,7 @@ class CotizacionResource extends Resource
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'enviada'),
+                        ->visible(fn ($record) => $record->estado === 'enviada'),
 
                     Tables\Actions\Action::make('rechazar')
                         ->label('Rechazar')
@@ -1057,7 +1096,7 @@ class CotizacionResource extends Resource
                                 ->warning()
                                 ->send();
                         })
-                        ->visible(fn($record) => $record->estado === 'enviada'),
+                        ->visible(fn ($record) => $record->estado === 'enviada'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

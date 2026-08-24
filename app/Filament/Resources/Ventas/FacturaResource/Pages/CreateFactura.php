@@ -3,15 +3,25 @@
 namespace App\Filament\Resources\Ventas\FacturaResource\Pages;
 
 use App\Filament\Resources\Ventas\FacturaResource;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateFactura extends CreateRecord
 {
     protected static string $resource = FacturaResource::class;
 
+    protected ?array $pagoInicial = null;
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        if (($data['condicion_pago'] ?? null) === 'parcial') {
+            $this->pagoInicial = [
+                'monto' => $data['pago_inicial_monto'] ?? null,
+                'fecha_pago' => $data['fecha_pago'] ?? now()->toDateString(),
+                'tipo_pago' => 'efectivo',
+            ];
+        }
+        unset($data['pago_inicial_monto']);
+
         if (($data['condicion_pago'] ?? null) === 'contado') {
             $data['fecha_vencimiento'] = now()->toDateString();
             $data['fecha_pago'] = now()->toDateString();
@@ -39,11 +49,10 @@ class CreateFactura extends CreateRecord
             'monto_restante' => $total,
         ]);
 
-        if (($this->record->condicion_pago ?? null) === 'contado') {
-            $this->record->crearPagoAutomaticoSiEsContado();
+        if ($this->pagoInicial) {
+            $this->record->registrarPago($this->pagoInicial);
         }
 
-        $this->record->procesarVentaAutomatica();
     }
 
     protected function getRedirectUrl(): string

@@ -2,13 +2,16 @@
 
 namespace App\Models\Ventas;
 
-use App\Models\Inventario\Articulo;
+use App\Models\Inventario\Almacen;
+use App\Models\Inventario\Existencia;
+use App\Models\Inventario\MovimientoInventario;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Pedido extends Model
 {
@@ -108,6 +111,16 @@ class Pedido extends Model
         return $this->hasMany(PedidoDetalle::class)->orderBy('linea');
     }
 
+    public function facturas()
+    {
+        return $this->hasMany(Factura::class, 'pedido_id');
+    }
+
+    public function pagos()
+    {
+        return $this->hasManyThrough(Pago::class, Factura::class, 'pedido_id', 'factura_id');
+    }
+
     public function creador()
     {
         return $this->belongsTo(User::class, 'creado_por');
@@ -149,7 +162,7 @@ class Pedido extends Model
 
     public function getEstadoLabelAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'reservado' => 'Reservado',
             'pendiente' => 'Pendiente',
             'parcial' => 'Parcial',
@@ -162,7 +175,7 @@ class Pedido extends Model
 
     public function getEstadoColorAttribute()
     {
-        return match($this->estado) {
+        return match ($this->estado) {
             'reservado' => 'warning',
             'pendiente' => 'info',
             'parcial' => 'primary',
@@ -175,7 +188,7 @@ class Pedido extends Model
 
     public function getPrioridadLabelAttribute()
     {
-        return match($this->prioridad) {
+        return match ($this->prioridad) {
             'baja' => 'Baja',
             'normal' => 'Normal',
             'alta' => 'Alta',
@@ -186,7 +199,7 @@ class Pedido extends Model
 
     public function getPrioridadColorAttribute()
     {
-        return match($this->prioridad) {
+        return match ($this->prioridad) {
             'baja' => 'gray',
             'normal' => 'info',
             'alta' => 'warning',
@@ -235,7 +248,52 @@ class Pedido extends Model
     public function cambiarEstado($estado)
     {
         $this->update(['estado' => $estado]);
+
         return $this;
+    }
+
+    public function reservarInventario(): void
+    {
+        DB::transaction(function (): void {
+            if (MovimientoInventario::query()->where('documento_tipo', 'pedido_reserva')->where('documento_id', $this->id)->where('estado', 'confirmado')->exists()) {
+                return;
+            }
+
+            $almacen = Almacen::query()->where('activo', true)->first();
+            if (! $almacen) {
+                throw new \RuntimeException('No existe un almacén activo para reservar los productos del pedido.');
+            }
+
+            foreach ($this->detalles as $detalle) {
+                $cantidad = (float) ($detalle->cantidad ?? 0);
+                if (! $detalle->articulo_id || $cantidad <= 0) {
+                    continue;
+                }
+                $existencia = Existencia::query()->where('articulo_id', $detalle->articulo_id)->where('almacen_id', $almacen->id)->lockForUpdate()->first();
+                $disponible = (float) ($existencia?->cantidad_disponible ?? 0) - (float) ($existencia?->cantidad_comprometida ?? 0);
+                if (! $existencia || $disponible < $cantidad) {
+                    throw new \RuntimeException('No hay stock disponible para reservar el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
+                }
+                $existencia->increment('cantidad_comprometida', $cantidad);
+                MovimientoInventario::create([
+                    'articulo_id' => $detalle->articulo_id, 'almacen_id' => $almacen->id, 'tipo' => 'reserva_pedido', 'cantidad' => 0,
+                    'documento_tipo' => 'pedido_reserva', 'documento_id' => $this->id, 'documento_codigo' => $this->codigo,
+                    'fecha' => now(), 'observacion' => 'Reserva de pedido '.$this->codigo, 'estado' => 'confirmado',
+                ]);
+            }
+        });
+    }
+
+    public function liberarReservaInventario(): void
+    {
+        DB::transaction(function (): void {
+            MovimientoInventario::query()->where('documento_tipo', 'pedido_reserva')->where('documento_id', $this->id)->where('estado', 'confirmado')->lockForUpdate()->get()
+                ->each(function (MovimientoInventario $reserva): void {
+                    $cantidad = (float) ($this->detalles()->where('articulo_id', $reserva->articulo_id)->value('cantidad') ?? 0);
+                    Existencia::query()->where('articulo_id', $reserva->articulo_id)->where('almacen_id', $reserva->almacen_id)->lockForUpdate()->first()?->decrement('cantidad_comprometida', $cantidad);
+                    $reserva->update(['estado' => 'cancelado', 'observacion' => $reserva->observacion.'; reserva liberada']);
+                });
+        });
     }
 
     /**
@@ -302,10 +360,10 @@ class Pedido extends Model
     public static function generarCodigo()
     {
         $gestion = date('y');
-        $prefijo = 'PED-' . $gestion;
+        $prefijo = 'PED-'.$gestion;
 
         $ultimo = self::withTrashed()
-            ->where('codigo', 'LIKE', $prefijo . '%')
+            ->where('codigo', 'LIKE', $prefijo.'%')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -315,6 +373,6 @@ class Pedido extends Model
             $correlativo = 1;
         }
 
-        return $prefijo . str_pad($correlativo, 4, '0', STR_PAD_LEFT);
+        return $prefijo.str_pad($correlativo, 4, '0', STR_PAD_LEFT);
     }
 }

@@ -348,6 +348,9 @@ class PagosRelationManager extends RelationManager
                     ->after(function ($record, $livewire) {
                         $factura = $livewire->getOwnerRecord();
                         $factura->actualizarSaldo();
+                        if ((float) $factura->monto_pagado > 0 && (float) $factura->saldo > 0) {
+                            $factura->asegurarPedidoReservado();
+                        }
 
                         Notification::make()
                             ->title('Pago registrado exitosamente')
@@ -370,6 +373,9 @@ class PagosRelationManager extends RelationManager
                             $record->update(['estado' => 'confirmado']);
                             $factura = $livewire->getOwnerRecord();
                             $factura->actualizarSaldo();
+                            if ((float) $factura->monto_pagado > 0 && (float) $factura->saldo > 0) {
+                                $factura->asegurarPedidoReservado();
+                            }
 
                             Notification::make()
                                 ->title('Pago confirmado')

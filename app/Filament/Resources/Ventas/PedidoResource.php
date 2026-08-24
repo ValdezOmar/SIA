@@ -3,28 +3,29 @@
 namespace App\Filament\Resources\Ventas;
 
 use App\Filament\Resources\Ventas\PedidoResource\Pages;
-use App\Models\Ventas\Pedido;
-use App\Models\Ventas\Cliente;
+use App\Filament\Resources\Ventas\PedidoResource\RelationManagers\PedidoPagosRelationManager;
 use App\Models\Inventario\Articulo;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
+use App\Models\Ventas\Cliente;
+use App\Models\Ventas\Pedido;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
@@ -113,12 +114,13 @@ class PedidoResource extends Resource
                     $impuesto += floatval($detalle->impuesto ?? 0);
                     $total += floatval($detalle->total ?? 0);
                 }
+
                 return compact('subtotal', 'descuento', 'impuesto', 'total');
             }
         }
 
         $detalles = $get('detalles') ?? [];
-        if (is_array($detalles) && !empty($detalles)) {
+        if (is_array($detalles) && ! empty($detalles)) {
             foreach ($detalles as $detalle) {
                 if (is_array($detalle)) {
                     $subtotal += floatval($detalle['subtotal'] ?? 0);
@@ -139,11 +141,14 @@ class PedidoResource extends Resource
 
     private static function formatearNumero($valor, $decimales = 2): string
     {
-        if ($valor === null || $valor === '') return '0';
+        if ($valor === null || $valor === '') {
+            return '0';
+        }
         $valor = floatval($valor);
         if ($valor == 0 || $valor == intval($valor)) {
             return (string) intval($valor);
         }
+
         return number_format($valor, $decimales, '.', '');
     }
 
@@ -160,15 +165,17 @@ class PedidoResource extends Resource
     private static function formatearMonto($monto, $moneda): string
     {
         $simbolo = self::getSimboloMoneda($moneda);
-        return $simbolo . ' ' . number_format($monto ?? 0, 2);
+
+        return $simbolo.' '.number_format($monto ?? 0, 2);
     }
 
     private static function formatearMontoHtml($monto, $moneda, $clase = ''): HtmlString
     {
         $simbolo = self::getSimboloMoneda($moneda);
+
         return new HtmlString(
-            '<span class="' . $clase . '">' .
-                $simbolo . ' ' . number_format($monto ?? 0, 2) .
+            '<span class="'.$clase.'">'.
+                $simbolo.' '.number_format($monto ?? 0, 2).
                 '</span>'
         );
     }
@@ -185,6 +192,7 @@ class PedidoResource extends Resource
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Pedido')
+                                    ->description('Use un pedido cuando el cliente ya confirmó qué productos desea. Sirve para organizar la preparación y entrega antes de emitir la venta.')
                                     ->icon('heroicon-o-document-text')
                                     ->description('Información principal del pedido')
                                     ->schema([
@@ -198,7 +206,7 @@ class PedidoResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('PED-000001')
                                                     ->helperText('Código único del pedido')
-                                                    ->default(fn() => Pedido::generarCodigo())
+                                                    ->default(fn () => Pedido::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -226,12 +234,12 @@ class PedidoResource extends Resource
                                                     ->disabled()
                                                     ->dehydrated()
                                                     ->options([
-                                                        'reservado' => '📌 Reservado',
-                                                        'pendiente' => '⏳ Pendiente',
-                                                        'parcial' => '📦 Parcial',
-                                                        'despachado' => '🚚 Despachado',
-                                                        'entregado' => '✅ Entregado',
-                                                        'cancelado' => '❌ Cancelado',
+                                                        'reservado' => 'Reservado',
+                                                        'pendiente' => 'Pendiente',
+                                                        'parcial' => 'Parcial',
+                                                        'despachado' => 'Despachado',
+                                                        'entregado' => 'Entregado',
+                                                        'cancelado' => 'Cancelado',
                                                     ])
                                                     ->default('reservado')
                                                     ->required()
@@ -246,7 +254,7 @@ class PedidoResource extends Resource
                                                 Select::make('cliente_id')
                                                     ->label('Cliente')
                                                     ->options(
-                                                        fn() => Cliente::where('activo', true)
+                                                        fn () => Cliente::where('activo', true)
                                                             ->orderBy('nombre')
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
@@ -262,7 +270,9 @@ class PedidoResource extends Resource
                                                     ->afterStateUpdated(function ($state, callable $set) {
                                                         if ($state) {
                                                             $cliente = Cliente::find($state);
-                                                            if ($cliente) $set('condicion_pago', $cliente->condicion_pago);
+                                                            if ($cliente) {
+                                                                $set('condicion_pago', $cliente->condicion_pago);
+                                                            }
                                                         }
                                                     })
                                                     ->createOptionForm([
@@ -278,7 +288,7 @@ class PedidoResource extends Resource
                                                                             ->disabled()
                                                                             ->maxLength(50)
                                                                             ->unique(ignoreRecord: true)
-                                                                            ->default(fn() => Cliente::generarCodigo())
+                                                                            ->default(fn () => Cliente::generarCodigo())
                                                                             ->prefixIcon('heroicon-o-hashtag')
                                                                             ->columnSpan(1),
                                                                         TextInput::make('nombre')
@@ -300,10 +310,10 @@ class PedidoResource extends Resource
                                                                         Select::make('tipo_cliente')
                                                                             ->label('Tipo')
                                                                             ->options([
-                                                                                'persona_natural' => '👤 Natural',
-                                                                                'empresa' => '🏢 Empresa',
-                                                                                'gobierno' => '🏛️ Gobierno',
-                                                                                'extranjero' => '🌍 Extranjero',
+                                                                                'persona_natural' => 'Natural',
+                                                                                'empresa' => 'Empresa',
+                                                                                'gobierno' => 'Gobierno',
+                                                                                'extranjero' => 'Extranjero',
                                                                             ])
                                                                             ->default('persona_natural')
                                                                             ->prefixIcon('heroicon-o-tag')
@@ -382,6 +392,7 @@ class PedidoResource extends Resource
                                                         $data['creado_por'] = Auth::id();
                                                         $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
                                                         $cliente = Cliente::create($data);
+
                                                         return $cliente->id;
                                                     }),
 
@@ -400,10 +411,10 @@ class PedidoResource extends Resource
                                                 Select::make('prioridad')
                                                     ->label('Prioridad')
                                                     ->options([
-                                                        'baja' => '🟢 Baja',
-                                                        'normal' => '🟡 Normal',
-                                                        'alta' => '🟠 Alta',
-                                                        'urgente' => '🔴 Urgente',
+                                                        'baja' => 'Baja',
+                                                        'normal' => 'Normal',
+                                                        'alta' => 'Alta',
+                                                        'urgente' => 'Urgente',
                                                     ])
                                                     ->default('normal')
                                                     ->required()
@@ -418,9 +429,9 @@ class PedidoResource extends Resource
                                                 Select::make('moneda')
                                                     ->label('Moneda')
                                                     ->options([
-                                                        'BOB' => '🇧🇴 Bolivianos',
-                                                        'USD' => '🇺🇸 Dólares',
-                                                        'EUR' => '🇪🇺 Euros',
+                                                        'BOB' => 'Bolivianos',
+                                                        'USD' => 'Dólares',
+                                                        'EUR' => 'Euros',
                                                     ])
                                                     ->default('BOB')
                                                     ->required()
@@ -437,8 +448,8 @@ class PedidoResource extends Resource
                                                     ->step(1.00)
                                                     ->helperText('Tasa de cambio aplicada')
                                                     ->prefixIcon('heroicon-o-arrow-path')
-                                                    ->formatStateUsing(fn($state) => self::formatearNumero($state, 6))
-                                                    ->visible(fn($get) => $get('moneda') !== 'BOB')
+                                                    ->formatStateUsing(fn ($state) => self::formatearNumero($state, 6))
+                                                    ->visible(fn ($get) => $get('moneda') !== 'BOB')
                                                     ->columnSpan(1),
 
                                                 TextInput::make('condicion_pago')
@@ -469,10 +480,10 @@ class PedidoResource extends Resource
                                                         Select::make('metodo_envio')
                                                             ->label('Método de Envío')
                                                             ->options([
-                                                                'recojo_tienda' => '🏪 Recojo en Tienda',
-                                                                'delivery' => '🚚 Delivery',
-                                                                'courier' => '📦 Courier',
-                                                                'transporte' => '🚛 Transporte',
+                                                                'recojo_tienda' => 'Recojo en Tienda',
+                                                                'delivery' => 'Delivery',
+                                                                'courier' => 'Courier',
+                                                                'transporte' => 'Transporte',
                                                             ])
                                                             ->searchable()
                                                             ->preload()
@@ -490,7 +501,7 @@ class PedidoResource extends Resource
                                                     ->minValue(0)
                                                     ->step(1.00)
                                                     ->default(0)
-                                                    ->prefix(fn($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
+                                                    ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                                     ->helperText('Costo del envío')
                                                     ->prefixIcon('heroicon-o-calculator')
                                                     ->live()
@@ -505,7 +516,7 @@ class PedidoResource extends Resource
                                                     ->disabled()
                                                     ->placeholder('0')
                                                     ->prefixIcon('heroicon-o-shopping-bag')
-                                                    ->formatStateUsing(fn($record) => $record?->detalles()->count() ?? 0)
+                                                    ->formatStateUsing(fn ($record) => $record?->detalles()->count() ?? 0)
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -521,6 +532,7 @@ class PedidoResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['subtotal'], $moneda);
                                                     }),
 
@@ -529,6 +541,7 @@ class PedidoResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['descuento'], $moneda);
                                                     }),
 
@@ -537,6 +550,7 @@ class PedidoResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
+
                                                         return self::formatearMonto($totales['impuesto'], $moneda);
                                                     }),
 
@@ -545,6 +559,7 @@ class PedidoResource extends Resource
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $costoEnvio = floatval($get('costo_envio') ?? $record?->costo_envio ?? 0);
+
                                                         return self::formatearMonto($costoEnvio, $moneda);
                                                     }),
 
@@ -555,6 +570,7 @@ class PedidoResource extends Resource
                                                         $totales = self::calcularTotales($get, $record);
                                                         $costoEnvio = floatval($get('costo_envio') ?? $record?->costo_envio ?? 0);
                                                         $total = $totales['total'] + $costoEnvio;
+
                                                         return self::formatearMontoHtml(
                                                             $total,
                                                             $moneda,
@@ -570,7 +586,10 @@ class PedidoResource extends Resource
                         Tabs\Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
-                                if (!$record) return 0;
+                                if (! $record) {
+                                    return 0;
+                                }
+
                                 return $record->detalles()->count();
                             })
                             ->schema([
@@ -582,18 +601,19 @@ class PedidoResource extends Resource
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()
+                                            ->disabledOn('edit')
                                             ->schema([
                                                 Grid::make(16)
                                                     ->schema([
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
                                                             ->options(
-                                                                fn() => Articulo::where('activo', true)
+                                                                fn () => Articulo::where('activo', true)
                                                                     ->where('vendible', true)
                                                                     ->orderBy('codigo')
                                                                     ->get()
-                                                                    ->mapWithKeys(fn($item) => [
-                                                                        $item->id => $item->codigo . ' - ' . ($item->descripcion ?? $item->nombre_comercial ?? 'Sin descripción')
+                                                                    ->mapWithKeys(fn ($item) => [
+                                                                        $item->id => $item->codigo.' - '.($item->descripcion ?? $item->nombre_comercial ?? 'Sin descripción'),
                                                                     ])
                                                                     ->toArray()
                                                             )
@@ -626,13 +646,20 @@ class PedidoResource extends Resource
                                                             ->label('Lista Precios')
                                                             ->options(function ($get) {
                                                                 $articuloId = $get('articulo_id');
-                                                                if (!$articuloId) return [];
+                                                                if (! $articuloId) {
+                                                                    return [];
+                                                                }
                                                                 $articulo = Articulo::find($articuloId);
-                                                                if (!$articulo) return [];
+                                                                if (! $articulo) {
+                                                                    return [];
+                                                                }
                                                                 $precios = $articulo->getPreciosConListas();
-                                                                if ($precios->isEmpty()) return [];
-                                                                return $precios->mapWithKeys(fn($item, $key) => [
-                                                                    $key => $item['nombre'] . ' - ' . number_format($item['precio'], 2) . ' ' . $item['moneda']
+                                                                if ($precios->isEmpty()) {
+                                                                    return [];
+                                                                }
+
+                                                                return $precios->mapWithKeys(fn ($item, $key) => [
+                                                                    $key => $item['nombre'].' - '.number_format($item['precio'], 2).' '.$item['moneda'],
                                                                 ])->toArray();
                                                             })
                                                             ->searchable()
@@ -661,7 +688,7 @@ class PedidoResource extends Resource
                                                             ->maxValue(999999)
                                                             ->step(1.00)
                                                             ->default(1)
-                                                            ->formatStateUsing(fn($state) => (int) $state)
+                                                            ->formatStateUsing(fn ($state) => (int) $state)
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $state = intval($state);
@@ -678,9 +705,9 @@ class PedidoResource extends Resource
                                                             ->maxValue(999999.99)
                                                             ->step(1.00)
                                                             ->default(0)
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
-                                                            ->formatStateUsing(fn($state) => self::formatearNumero($state, 2))
+                                                            ->formatStateUsing(fn ($state) => self::formatearNumero($state, 2))
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 self::recalcularLinea($set, $get);
@@ -691,6 +718,7 @@ class PedidoResource extends Resource
                                                             ->label('Subtotal')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
+
                                                                 return self::formatearMonto($get('subtotal') ?? 0, $moneda);
                                                             })
                                                             ->extraAttributes(['class' => 'font-bold'])
@@ -709,7 +737,7 @@ class PedidoResource extends Resource
                                                             ->suffix('%')
                                                             ->prefixIcon('heroicon-o-percent-badge')
                                                             ->live()
-                                                            ->formatStateUsing(fn($state) => $state !== null ? (int) $state : 0)
+                                                            ->formatStateUsing(fn ($state) => $state !== null ? (int) $state : 0)
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -729,10 +757,10 @@ class PedidoResource extends Resource
                                                             ->minValue(0)
                                                             ->step(1.00)
                                                             ->default(0)
-                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')
                                                             ->live()
-                                                            ->formatStateUsing(fn($state) => number_format($state ?? 0, 2, '.', ''))
+                                                            ->formatStateUsing(fn ($state) => number_format($state ?? 0, 2, '.', ''))
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -760,6 +788,7 @@ class PedidoResource extends Resource
                                                             ->label('Impuesto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
+
                                                                 return self::formatearMonto($get('impuesto') ?? 0, $moneda);
                                                             })
                                                             ->columnSpan(4),
@@ -769,9 +798,10 @@ class PedidoResource extends Resource
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
                                                                 $total = floatval($get('total') ?? 0);
+
                                                                 return new HtmlString(
-                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">' .
-                                                                        self::formatearMonto($total, $moneda) .
+                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">'.
+                                                                        self::formatearMonto($total, $moneda).
                                                                         '</span>'
                                                                 );
                                                             })
@@ -803,7 +833,7 @@ class PedidoResource extends Resource
                                                 $descuento = floatval($data['descuento'] ?? 0);
                                                 $subtotal = ($precioUnitario * $cantidad) - $descuento;
 
-                                                $aplicarIVA = isset($data['aplicar_iva']) ? (bool)$data['aplicar_iva'] : false;
+                                                $aplicarIVA = isset($data['aplicar_iva']) ? (bool) $data['aplicar_iva'] : false;
                                                 if ($aplicarIVA) {
                                                     $impuesto = $subtotal * (13 / 100);
                                                     $total = $subtotal + $impuesto;
@@ -834,7 +864,8 @@ class PedidoResource extends Resource
                                                 $data['impuesto'] = floatval($data['impuesto'] ?? 0);
                                                 $data['total'] = floatval($data['total'] ?? 0);
                                                 $data['precio_original'] = floatval($data['precio_original'] ?? 0);
-                                                $data['aplicar_iva'] = isset($data['aplicar_iva']) ? (bool)$data['aplicar_iva'] : false;
+                                                $data['aplicar_iva'] = isset($data['aplicar_iva']) ? (bool) $data['aplicar_iva'] : false;
+
                                                 return $data;
                                             }),
                                     ]),
@@ -874,17 +905,17 @@ class PedidoResource extends Resource
                                             ->schema([
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
-                                                    ->content(fn($record) => $record?->creador?->name ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->creador?->name ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('created_at')
                                                     ->label('Fecha creación')
-                                                    ->content(fn($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('aprobado_por')
                                                     ->label('Aprobado por')
-                                                    ->content(fn($record) => $record?->aprobador?->name ?? 'N/A')
+                                                    ->content(fn ($record) => $record?->aprobador?->name ?? 'N/A')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -928,18 +959,18 @@ class PedidoResource extends Resource
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable()
-                    ->color(fn($state) => $state && $state < now() ? 'danger' : 'success')
+                    ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match ($state) {
-                        'reservado' => '📌 Reservado',
-                        'pendiente' => '⏳ Pendiente',
-                        'parcial' => '📦 Parcial',
-                        'despachado' => '🚚 Despachado',
-                        'entregado' => '✅ Entregado',
-                        'cancelado' => '❌ Cancelado',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'reservado' => 'Reservado',
+                        'pendiente' => 'Pendiente',
+                        'parcial' => 'Parcial',
+                        'despachado' => 'Despachado',
+                        'entregado' => 'Entregado',
+                        'cancelado' => 'Cancelado',
                         default => $state,
                     })
                     ->colors([
@@ -954,11 +985,11 @@ class PedidoResource extends Resource
 
                 BadgeColumn::make('prioridad')
                     ->label('Prioridad')
-                    ->formatStateUsing(fn($state) => match ($state) {
-                        'baja' => '🟢 Baja',
-                        'normal' => '🟡 Normal',
-                        'alta' => '🟠 Alta',
-                        'urgente' => '🔴 Urgente',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'baja' => 'Baja',
+                        'normal' => 'Normal',
+                        'alta' => 'Alta',
+                        'urgente' => 'Urgente',
                         default => $state,
                     })
                     ->colors([
@@ -971,7 +1002,7 @@ class PedidoResource extends Resource
 
                 TextColumn::make('total_items')
                     ->label('Items')
-                    ->getStateUsing(fn($record) => $record->detalles()->count())
+                    ->getStateUsing(fn ($record) => $record->detalles()->count())
                     ->badge()
                     ->color('info')
                     ->sortable()
@@ -988,9 +1019,36 @@ class PedidoResource extends Resource
                             'EUR' => '€',
                             default => $moneda,
                         };
-                        return $simbolo . ' ' . number_format($state ?? 0, 2);
+
+                        return $simbolo.' '.number_format($state ?? 0, 2);
                     })
                     ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('monto_pagado')
+                    ->label('Pagado')
+                    ->getStateUsing(fn ($record) => $record->pagos()->where('ven_pagos.estado', 'confirmado')->sum('monto'))
+                    ->formatStateUsing(function ($state, $record) {
+                        $simbolo = match ($record->moneda ?? 'BOB') {
+                            'BOB' => 'Bs', 'USD' => '$', 'EUR' => '€', default => $record->moneda,
+                        };
+
+                        return $simbolo.' '.number_format($state ?? 0, 2);
+                    })
+                    ->color('success')
+                    ->toggleable(),
+
+                TextColumn::make('saldo_pendiente')
+                    ->label('Saldo')
+                    ->getStateUsing(fn ($record) => (float) $record->total - (float) $record->pagos()->where('ven_pagos.estado', 'confirmado')->sum('monto'))
+                    ->formatStateUsing(function ($state, $record) {
+                        $simbolo = match ($record->moneda ?? 'BOB') {
+                            'BOB' => 'Bs', 'USD' => '$', 'EUR' => '€', default => $record->moneda,
+                        };
+
+                        return $simbolo.' '.number_format($state ?? 0, 2);
+                    })
+                    ->color(fn ($state) => (float) $state <= 0 ? 'success' : 'warning')
                     ->toggleable(),
 
                 TextColumn::make('vendedor.name')
@@ -1049,9 +1107,9 @@ class PedidoResource extends Resource
                     ->trueLabel('Entregas vencidas')
                     ->falseLabel('Entregas pendientes')
                     ->queries(
-                        true: fn($query) => $query->where('fecha_entrega_estimada', '<', now()->toDateString())
+                        true: fn ($query) => $query->where('fecha_entrega_estimada', '<', now()->toDateString())
                             ->whereNotIn('estado', ['entregado', 'cancelado']),
-                        false: fn($query) => $query->where('fecha_entrega_estimada', '>=', now()->toDateString())
+                        false: fn ($query) => $query->where('fecha_entrega_estimada', '>=', now()->toDateString())
                             ->orWhereNull('fecha_entrega_estimada'),
                     ),
             ])
@@ -1065,38 +1123,64 @@ class PedidoResource extends Resource
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('cambiar_estado')
-                        ->label('Cambiar Estado')
-                        ->icon('heroicon-o-arrow-path')
+                    Tables\Actions\Action::make('reservar_stock')
+                        ->label('Reservar stock')
+                        ->icon('heroicon-o-lock-closed')
                         ->color('warning')
-                        ->form([
-                            Select::make('estado')
-                                ->label('Nuevo Estado')
-                                ->options([
-                                    'reservado' => '📌 Reservado',
-                                    'pendiente' => '⏳ Pendiente',
-                                    'parcial' => '📦 Parcial',
-                                    'despachado' => '🚚 Despachado',
-                                    'entregado' => '✅ Entregado',
-                                    'cancelado' => '❌ Cancelado',
-                                ])
-                                ->required(),
-                            Textarea::make('observaciones')
-                                ->label('Observaciones')
-                                ->rows(2)
-                                ->placeholder('Motivo del cambio de estado...'),
-                        ])
-                        ->action(function (array $data, $record) {
-                            $record->update([
-                                'estado' => $data['estado'],
-                                'observaciones' => $data['observaciones'] ?? $record->observaciones,
-                            ]);
-                            Notification::make()
-                                ->title('Estado actualizado')
-                                ->body('El pedido ahora está en estado: ' . ucfirst($data['estado']))
-                                ->success()
-                                ->send();
-                        }),
+                        ->requiresConfirmation()
+                        ->modalDescription('Compromete los productos para este cliente sin descontarlos del almacén.')
+                        ->action(function ($record): void {
+                            try {
+                                $record->reservarInventario();
+                                $record->update(['estado' => 'reservado']);
+                                Notification::make()->title('Stock reservado')->success()->send();
+                            } catch (\RuntimeException $exception) {
+                                Notification::make()
+                                    ->title('No se pudo reservar el stock')
+                                    ->body($exception->getMessage())
+                                    ->danger()
+                                    ->persistent()
+                                    ->send();
+                            }
+                        })
+                        ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente'], true)),
+
+                    Tables\Actions\Action::make('preparar')
+                        ->label('Preparar entrega')
+                        ->icon('heroicon-o-archive-box')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalDescription('Indica que el stock reservado debe ser preparado para la entrega. La salida se realizará al facturar y confirmar la entrega.')
+                        ->action(fn ($record) => $record->update(['estado' => 'pendiente']))
+                        ->visible(fn ($record): bool => $record->estado === 'reservado'),
+
+                    Tables\Actions\Action::make('confirmar_entrega')
+                        ->label('Confirmar entrega')
+                        ->icon('heroicon-o-truck')
+                        ->color('primary')
+                        ->requiresConfirmation()
+                        ->modalDescription('Confirma la entrega, descuenta el inventario y completa la venta únicamente si la factura asociada está totalmente pagada.')
+                        ->action(function ($record): void {
+                            $factura = $record->facturas()->where('estado', '!=', 'anulada')->latest('id')->first();
+                            if (! $factura) {
+                                throw new \RuntimeException('Debe asociar una factura al pedido antes de confirmar la entrega.');
+                            }
+                            $factura->procesarVentaAutomatica();
+                            Notification::make()->title('Entrega confirmada')->success()->send();
+                        })
+                        ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente'], true)),
+
+                    Tables\Actions\Action::make('cancelar')
+                        ->label('Cancelar pedido')
+                        ->icon('heroicon-o-x-circle')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->form([Textarea::make('motivo')->label('Motivo de la cancelación')->required()->maxLength(2000)])
+                        ->action(function (array $data, $record): void {
+                            $record->liberarReservaInventario();
+                            $record->update(['estado' => 'cancelado', 'observaciones' => trim(($record->observaciones ? $record->observaciones."\n" : '').'Cancelado: '.$data['motivo'])]);
+                        })
+                        ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente', 'parcial'], true)),
 
                     Tables\Actions\Action::make('duplicate')
                         ->label('Duplicar')
@@ -1115,44 +1199,13 @@ class PedidoResource extends Resource
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make(),
+                    Tables\Actions\DeleteAction::make()
+                        ->visible(fn ($record): bool => $record->estado === 'cancelado'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('cambiar_estado_bulk')
-                        ->label('Cambiar Estado')
-                        ->icon('heroicon-o-arrow-path')
-                        ->form([
-                            Select::make('estado')
-                                ->label('Estado')
-                                ->options([
-                                    'reservado' => 'Reservado',
-                                    'pendiente' => 'Pendiente',
-                                    'parcial' => 'Parcial',
-                                    'despachado' => 'Despachado',
-                                    'entregado' => 'Entregado',
-                                    'cancelado' => 'Cancelado',
-                                ])
-                                ->required(),
-                        ])
-                        ->action(function (array $data, $records) {
-                            foreach ($records as $record) {
-                                $record->update(['estado' => $data['estado']]);
-                            }
-                            Notification::make()
-                                ->title('Estados actualizados')
-                                ->body('Se actualizaron ' . $records->count() . ' pedidos')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Cambiar Estado de Pedidos'),
-                ]),
-            ])
+            ->bulkActions([])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar pedido por código, cliente...')
             ->emptyStateHeading('No hay pedidos registrados')
@@ -1163,7 +1216,7 @@ class PedidoResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [PedidoPagosRelationManager::class];
     }
 
     public static function getPages(): array
