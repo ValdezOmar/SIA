@@ -37,6 +37,7 @@ use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 class ArticuloResource extends Resource
 {
@@ -277,21 +278,18 @@ class ArticuloResource extends Resource
                                                     ->imageResizeTargetHeight('400')
                                                     ->directory('articulos/catalogo')
                                                     ->visibility('public')
-                                                    ->helperText('Subir imagen principal')
+                                                    ->helperText('La imagen se guarda con el modelo del equipo y un identificador único')
                                                     ->imagePreviewHeight('200')
                                                     ->loadingIndicatorPosition('left')
                                                     ->panelLayout('grid')
                                                     ->columnSpan(1)
                                                     ->getUploadedFileNameForStorageUsing(function ($file, $livewire) {
-                                                        $codigo = $livewire->data['codigo'] ?? $livewire->record?->codigo ?? 'sin-codigo';
                                                         $modelo = $livewire->data['codigo_alterno'] ?? $livewire->record?->codigo_alterno ?? 'sin-modelo';
-                                                        $extension = $file->getClientOriginalExtension();
+                                                        $modelo = Str::upper(Str::slug($modelo)) ?: 'SIN-MODELO';
+                                                        $identificador = Str::uuid()->toString();
+                                                        $extension = Str::lower($file->getClientOriginalExtension());
 
-                                                        // Limpiar caracteres especiales
-                                                        $codigo = preg_replace('/[^a-zA-Z0-9-]/', '', $codigo);
-                                                        $modelo = preg_replace('/[^a-zA-Z0-9-]/', '', $modelo);
-
-                                                        return $codigo.'-'.$modelo.'-foto.'.$extension;
+                                                        return $modelo.'-'.$identificador.'.'.$extension;
                                                     }),
 
                                                 FileUpload::make('documentacion_tecnica')
