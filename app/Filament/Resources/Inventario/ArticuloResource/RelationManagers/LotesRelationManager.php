@@ -40,7 +40,8 @@ class LotesRelationManager extends RelationManager
     {
         // Si no maneja lotes, es de solo lectura (esto oculta el contenido)
         $record = $this->getOwnerRecord();
-        return !$record || !$record->maneja_lotes;
+
+        return ! $record || ! $record->maneja_lotes;
     }
 
     public function form(Form $form): Form
@@ -60,6 +61,7 @@ class LotesRelationManager extends RelationManager
                                     ->unique(ignoreRecord: true)
                                     ->placeholder('Ej: LOTE-2024-001')
                                     ->helperText('Número de lote único')
+                                    ->disabledOn('edit')
                                     ->columnSpan(1),
 
                                 DatePicker::make('fecha_fabricacion')
@@ -99,7 +101,7 @@ class LotesRelationManager extends RelationManager
                                                 Select::make('almacen_id')
                                                     ->label('Almacén')
                                                     ->options(
-                                                        fn() => Almacen::where('activo', true)
+                                                        fn () => Almacen::where('activo', true)
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
                                                     )
@@ -128,6 +130,7 @@ class LotesRelationManager extends RelationManager
                                     ->cloneable()
                                     ->addActionLabel('Agregar Stock por Almacén')
                                     ->reorderable()
+                                    ->disabled()
                                     ->columnSpanFull(),
                             ]),
 
@@ -136,12 +139,12 @@ class LotesRelationManager extends RelationManager
                             ->label('')
                             ->content(function ($livewire) {
                                 $articulo = $livewire->getOwnerRecord();
-                                if (!$articulo) {
+                                if (! $articulo) {
                                     return 'No hay artículo asociado.';
                                 }
 
-                                return "Artículo: {$articulo->codigo} - {$articulo->descripcion}\n" .
-                                    "Unidad: " . ($articulo->unidadMedida->nombre ?? 'N/A');
+                                return "Artículo: {$articulo->codigo} - {$articulo->descripcion}\n".
+                                    'Unidad: '.($articulo->unidadMedida->nombre ?? 'N/A');
                             })
                             ->columnSpanFull(),
                     ]),
@@ -173,13 +176,13 @@ class LotesRelationManager extends RelationManager
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable()
-                    ->color(fn($state) => $state && $state < now() ? 'danger' : 'success')
+                    ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success')
                     ->placeholder('-'),
 
                 TextColumn::make('dias_restantes')
                     ->label('Días Restantes')
                     ->getStateUsing(function ($record) {
-                        if (!$record->fecha_vencimiento) {
+                        if (! $record->fecha_vencimiento) {
                             return '-';
                         }
 
@@ -188,9 +191,10 @@ class LotesRelationManager extends RelationManager
                             return '<span class="text-red-600 font-bold">Vencido</span>';
                         }
                         if ($dias <= 30) {
-                            return '<span class="text-orange-500 font-bold">' . $dias . ' días</span>';
+                            return '<span class="text-orange-500 font-bold">'.$dias.' días</span>';
                         }
-                        return '<span class="text-green-600">' . $dias . ' días</span>';
+
+                        return '<span class="text-green-600">'.$dias.' días</span>';
                     })
                     ->html()
                     ->toggleable(),
@@ -202,7 +206,7 @@ class LotesRelationManager extends RelationManager
                     })
                     ->numeric(2)
                     ->sortable()
-                    ->color(fn($state) => $state <= 0 ? 'danger' : 'success')
+                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'success')
                     ->toggleable(),
 
                 TextColumn::make('stocks_count')
@@ -235,18 +239,19 @@ class LotesRelationManager extends RelationManager
                     ->query(function ($query, array $data) {
                         return $query->when(
                             $data['vencimiento_hasta'],
-                            fn($query, $fecha) => $query->where('fecha_vencimiento', '<=', $fecha)
+                            fn ($query, $fecha) => $query->where('fecha_vencimiento', '<=', $fecha)
                         );
                     }),
 
                 Tables\Filters\Filter::make('lotes_vencidos')
                     ->label('Lotes Vencidos')
-                    ->query(fn($query) => $query->where('fecha_vencimiento', '<', now())->whereNotNull('fecha_vencimiento')),
+                    ->query(fn ($query) => $query->where('fecha_vencimiento', '<', now())->whereNotNull('fecha_vencimiento')),
 
                 Tables\Filters\Filter::make('lotes_proximos_vencer')
                     ->label('Próximos a Vencer (30 días)')
                     ->query(function ($query) {
                         $fechaLimite = now()->addDays(30);
+
                         return $query->where('fecha_vencimiento', '>=', now())
                             ->where('fecha_vencimiento', '<=', $fechaLimite);
                     }),
@@ -254,7 +259,7 @@ class LotesRelationManager extends RelationManager
                 Tables\Filters\SelectFilter::make('almacen_id')
                     ->label('Almacén con Stock')
                     ->options(
-                        fn() => Almacen::where('activo', true)
+                        fn () => Almacen::where('activo', true)
                             ->pluck('nombre', 'id')
                             ->toArray()
                     )
@@ -263,29 +268,11 @@ class LotesRelationManager extends RelationManager
                     ->query(function ($query, array $data) {
                         return $query->when(
                             $data['value'],
-                            fn($query, $almacenId) => $query->whereHas('stocks', function ($q) use ($almacenId) {
+                            fn ($query, $almacenId) => $query->whereHas('stocks', function ($q) use ($almacenId) {
                                 $q->where('almacen_id', $almacenId)
                                     ->where('cantidad', '>', 0);
                             })
                         );
-                    }),
-            ])
-            ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->label('Nuevo Lote')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Agregar Lote al Artículo')
-                    ->modalWidth('5xl')
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $data['articulo_id'] = $this->getOwnerRecord()->id;
-                        return $data;
-                    })
-                    ->after(function ($record) {
-                        Notification::make()
-                            ->title('Lote agregado exitosamente')
-                            ->body('El lote ' . $record->numero_lote . ' ha sido registrado.')
-                            ->success()
-                            ->send();
                     }),
             ])
             ->actions([
@@ -295,40 +282,25 @@ class LotesRelationManager extends RelationManager
                         ->modalWidth('5xl')
                         ->mutateFormDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
+
                             return $data;
                         })
                         ->after(function ($record) {
                             Notification::make()
                                 ->title('Lote actualizado')
-                                ->body('El lote ' . $record->numero_lote . ' ha sido actualizado.')
+                                ->body('El lote '.$record->numero_lote.' ha sido actualizado.')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make()
-                        ->before(function ($record) {
-                            Notification::make()
-                                ->title('Lote eliminado')
-                                ->body('El lote ' . $record->numero_lote . ' ha sido eliminado.')
-                                ->warning()
-                                ->send();
-                        }),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados')
-                        ->icon('heroicon-o-trash')
-                        ->color('danger'),
-                ]),
-            ])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar lote...')
             ->emptyStateHeading('Sin lotes registrados')
-            ->emptyStateDescription('Agrega lotes para este artículo')
+            ->emptyStateDescription('Los lotes se registran automáticamente al recepcionar inventario.')
             ->emptyStateIcon('heroicon-o-beaker')
             ->poll('60s');
     }

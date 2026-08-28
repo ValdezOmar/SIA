@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
 use App\Models\Inventario\UnidadMedida;
-use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -179,13 +178,8 @@ class UnidadesRelationManager extends RelationManager
 
                     Tables\Actions\DeleteAction::make(),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->defaultSort('unidadMedida.nombre')
             ->searchPlaceholder('Buscar unidades alternas...')

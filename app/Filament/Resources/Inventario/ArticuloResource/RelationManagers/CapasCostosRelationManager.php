@@ -2,21 +2,18 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
-use App\Models\Inventario\CapaCosto;
-use Filament\Forms;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\HtmlString;
 
 class CapasCostosRelationManager extends RelationManager
 {
@@ -37,7 +34,7 @@ class CapasCostosRelationManager extends RelationManager
 
     private static function formatearMonto($monto): string
     {
-        return 'Bs ' . number_format($monto ?? 0, 2);
+        return 'Bs '.number_format($monto ?? 0, 2);
     }
 
     public function form(Form $form): Form
@@ -84,6 +81,7 @@ class CapasCostosRelationManager extends RelationManager
                                     ->content(function ($get) {
                                         $cantidad = floatval($get('cantidad_disponible') ?? 0);
                                         $costo = floatval($get('costo_unitario') ?? 0);
+
                                         return self::formatearMonto($cantidad * $costo);
                                     }),
 
@@ -118,7 +116,7 @@ class CapasCostosRelationManager extends RelationManager
                     ->numeric(2)
                     ->sortable()
                     ->toggleable()
-                    ->color(fn($state) => $state <= 0 ? 'danger' : 'success')
+                    ->color(fn ($state) => $state <= 0 ? 'danger' : 'success')
                     ->weight('bold'),
 
                 TextColumn::make('costo_unitario')
@@ -133,12 +131,12 @@ class CapasCostosRelationManager extends RelationManager
                     ->numeric(2)
                     ->sortable()
                     ->toggleable()
-                    ->getStateUsing(fn($record) => $record->cantidad_disponible * $record->costo_unitario)
+                    ->getStateUsing(fn ($record) => $record->cantidad_disponible * $record->costo_unitario)
                     ->prefix('$'),
 
                 BadgeColumn::make('activo')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => $state ? 'Activa' : 'Inactiva')
+                    ->formatStateUsing(fn ($state) => $state ? 'Activa' : 'Inactiva')
                     ->colors([
                         'success' => true,
                         'danger' => false,
@@ -154,21 +152,16 @@ class CapasCostosRelationManager extends RelationManager
             ->filters([
                 Filter::make('activo')
                     ->label('Capas Activas')
-                    ->query(fn($query) => $query->where('activo', true)->where('cantidad_disponible', '>', 0)),
+                    ->query(fn ($query) => $query->where('activo', true)->where('cantidad_disponible', '>', 0)),
 
                 Filter::make('inactivo')
                     ->label('Capas Inactivas')
-                    ->query(fn($query) => $query->where('activo', false)->orWhere('cantidad_disponible', '<=', 0)),
+                    ->query(fn ($query) => $query->where('activo', false)->orWhere('cantidad_disponible', '<=', 0)),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->slideOver()
                     ->modalWidth('3xl'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar capas...')

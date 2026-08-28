@@ -84,61 +84,61 @@ class ProveedoresRelationManager extends RelationManager
                             ->label('Información de Contacto')
                             ->content(function ($get) {
                                 $proveedorId = $get('proveedor_id');
-                                if (!$proveedorId) {
+                                if (! $proveedorId) {
                                     return 'Seleccione un proveedor para ver su información de contacto.';
                                 }
 
                                 $proveedor = Proveedor::find($proveedorId);
-                                if (!$proveedor) {
+                                if (! $proveedor) {
                                     return 'Proveedor no encontrado.';
                                 }
 
                                 $html = '<div class="bg-gray-50 p-4 rounded-lg border border-gray-200">';
                                 $html .= '<div class="grid grid-cols-2 gap-2 text-sm">';
-                                
-                                $html .= '<div><span class="font-medium">Código:</span> ' . $proveedor->codigo . '</div>';
-                                $html .= '<div><span class="font-medium">NIT:</span> ' . ($proveedor->nit ?? 'N/A') . '</div>';
-                                
+
+                                $html .= '<div><span class="font-medium">Código:</span> '.$proveedor->codigo.'</div>';
+                                $html .= '<div><span class="font-medium">NIT:</span> '.($proveedor->nit ?? 'N/A').'</div>';
+
                                 if ($proveedor->telefono) {
-                                    $html .= '<div><span class="font-medium">Teléfono:</span> ' . $proveedor->telefono . '</div>';
+                                    $html .= '<div><span class="font-medium">Teléfono:</span> '.$proveedor->telefono.'</div>';
                                 }
-                                
+
                                 if ($proveedor->correo) {
-                                    $html .= '<div><span class="font-medium">Correo:</span> ' . $proveedor->correo . '</div>';
+                                    $html .= '<div><span class="font-medium">Correo:</span> '.$proveedor->correo.'</div>';
                                 }
-                                
+
                                 if ($proveedor->contacto_nombre) {
-                                    $html .= '<div><span class="font-medium">Contacto:</span> ' . $proveedor->contacto_nombre . '</div>';
+                                    $html .= '<div><span class="font-medium">Contacto:</span> '.$proveedor->contacto_nombre.'</div>';
                                 }
-                                
+
                                 if ($proveedor->contacto_telefono) {
-                                    $html .= '<div><span class="font-medium">Tel. Contacto:</span> ' . $proveedor->contacto_telefono . '</div>';
+                                    $html .= '<div><span class="font-medium">Tel. Contacto:</span> '.$proveedor->contacto_telefono.'</div>';
                                 }
-                                
+
                                 if ($proveedor->tipo_proveedor) {
                                     $tipos = ['nacional' => 'Nacional', 'internacional' => 'Internacional', 'local' => 'Local'];
-                                    $html .= '<div><span class="font-medium">Tipo:</span> ' . ($tipos[$proveedor->tipo_proveedor] ?? $proveedor->tipo_proveedor) . '</div>';
+                                    $html .= '<div><span class="font-medium">Tipo:</span> '.($tipos[$proveedor->tipo_proveedor] ?? $proveedor->tipo_proveedor).'</div>';
                                 }
-                                
+
                                 if ($proveedor->calificacion) {
-                                    $html .= '<div><span class="font-medium">Calificación:</span> ' . $proveedor->calificacion . '/5</div>';
+                                    $html .= '<div><span class="font-medium">Calificación:</span> '.$proveedor->calificacion.'/5</div>';
                                 }
-                                
+
                                 if ($proveedor->tiempo_entrega) {
-                                    $html .= '<div><span class="font-medium">Tiempo Entrega:</span> ' . $proveedor->tiempo_entrega . ' días</div>';
+                                    $html .= '<div><span class="font-medium">Tiempo Entrega:</span> '.$proveedor->tiempo_entrega.' días</div>';
                                 }
-                                
+
                                 if ($proveedor->condiciones_pago) {
-                                    $html .= '<div><span class="font-medium">Condiciones Pago:</span> ' . $proveedor->condiciones_pago . '</div>';
+                                    $html .= '<div><span class="font-medium">Condiciones Pago:</span> '.$proveedor->condiciones_pago.'</div>';
                                 }
-                                
+
                                 if ($proveedor->direccion) {
-                                    $html .= '<div class="col-span-2"><span class="font-medium">Dirección:</span> ' . $proveedor->direccion . '</div>';
+                                    $html .= '<div class="col-span-2"><span class="font-medium">Dirección:</span> '.$proveedor->direccion.'</div>';
                                 }
-                                
+
                                 $html .= '</div>';
                                 $html .= '</div>';
-                                
+
                                 return new \Illuminate\Support\HtmlString($html);
                             })
                             ->columnSpanFull(),
@@ -184,13 +184,13 @@ class ProveedoresRelationManager extends RelationManager
                 TextColumn::make('proveedor.tipo_proveedor')
                     ->label('Tipo')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'nacional' => 'Nacional',
                         'internacional' => 'Internacional',
                         'local' => 'Local',
                         default => $state,
                     })
-                    ->color(fn ($state) => match($state) {
+                    ->color(fn ($state) => match ($state) {
                         'nacional' => 'info',
                         'internacional' => 'warning',
                         'local' => 'success',
@@ -201,7 +201,7 @@ class ProveedoresRelationManager extends RelationManager
 
                 TextColumn::make('proveedor.calificacion')
                     ->label('Calificación')
-                    ->formatStateUsing(fn ($state) => $state ? (string) $state . '/5' : '-')
+                    ->formatStateUsing(fn ($state) => $state ? (string) $state.'/5' : '-')
                     ->toggleable()
                     ->visible(fn () => Schema::hasColumn('cmp_proveedores', 'calificacion')),
 
@@ -276,6 +276,7 @@ class ProveedoresRelationManager extends RelationManager
                     ->modalWidth('4xl')
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['articulo_id'] = $this->getOwnerRecord()->id;
+
                         return $data;
                     })
                     ->after(function ($record) {
@@ -294,6 +295,7 @@ class ProveedoresRelationManager extends RelationManager
                         ->modalWidth('4xl')
                         ->mutateFormDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
+
                             return $data;
                         })
                         ->after(function ($record) {
@@ -311,14 +313,14 @@ class ProveedoresRelationManager extends RelationManager
                         ->color(fn ($record) => $record->es_principal ? 'warning' : 'gray')
                         ->action(function ($record) {
                             // Si este proveedor se marca como principal, desmarcar los demás
-                            if (!$record->es_principal) {
+                            if (! $record->es_principal) {
                                 \App\Models\Compras\ArticuloProveedor::where('articulo_id', $record->articulo_id)
                                     ->where('id', '!=', $record->id)
                                     ->update(['es_principal' => false]);
                             }
-                            
-                            $record->update(['es_principal' => !$record->es_principal]);
-                            
+
+                            $record->update(['es_principal' => ! $record->es_principal]);
+
                             \Filament\Notifications\Notification::make()
                                 ->title($record->es_principal ? 'Proveedor marcado como principal' : 'Proveedor desmarcado como principal')
                                 ->success()
@@ -342,64 +344,8 @@ class ProveedoresRelationManager extends RelationManager
                                 ->send();
                         }),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados')
-                        ->icon('heroicon-o-trash')
-                        ->color('danger'),
-
-                    Tables\Actions\BulkAction::make('set_principal')
-                        ->label('Marcar como Principal')
-                        ->icon('heroicon-o-star')
-                        ->color('warning')
-                        ->action(function ($records) {
-                            $articuloId = $records->first()->articulo_id;
-                            \App\Models\Compras\ArticuloProveedor::where('articulo_id', $articuloId)
-                                ->update(['es_principal' => false]);
-                            
-                            $records->each->update(['es_principal' => true]);
-                            
-                            \Filament\Notifications\Notification::make()
-                                ->title('Proveedores marcados como principales')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Marcar como Principal')
-                        ->modalSubheading('¿Deseas marcar los proveedores seleccionados como principales?'),
-
-                    Tables\Actions\BulkAction::make('update_costo')
-                        ->label('Actualizar Costo')
-                        ->icon('heroicon-o-currency-dollar')
-                        ->color('success')
-                        ->form([
-                            TextInput::make('nuevo_costo')
-                                ->label('Nuevo Costo')
-                                ->numeric()
-                                ->prefix('$')
-                                ->required()
-                                ->minValue(0)
-                                ->placeholder('0.00'),
-                        ])
-                        ->action(function (array $data, $records) {
-                            foreach ($records as $record) {
-                                $record->update(['costo_compra' => $data['nuevo_costo']]);
-                            }
-                            
-                            \Filament\Notifications\Notification::make()
-                                ->title('Costos actualizados')
-                                ->body('Se actualizaron los costos de ' . $records->count() . ' proveedores')
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Actualizar Costos')
-                        ->modalSubheading('¿Deseas actualizar el costo de compra para los proveedores seleccionados?'),
-                ]),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->defaultSort('es_principal', 'desc')
             ->searchPlaceholder('Buscar proveedores...')

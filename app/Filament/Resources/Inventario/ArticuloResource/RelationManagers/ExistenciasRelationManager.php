@@ -55,7 +55,8 @@ class ExistenciasRelationManager extends RelationManager
                                     ->prefixIcon('heroicon-o-building-storefront')
                                     ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
                                         return $rule->where('articulo_id', $get('articulo_id') ?? request()->route('record'));
-                                    }),
+                                    })
+                                    ->disabledOn('edit'),
 
                                 TextInput::make('cantidad_disponible')
                                     ->label('Stock Actual')
@@ -268,25 +269,6 @@ class ExistenciasRelationManager extends RelationManager
                 Filter::make('excedido')
                     ->label('Stock excedido')
                     ->query(fn ($query) => $query->whereRaw('cantidad_maxima > 0 AND cantidad_disponible >= cantidad_maxima')),
-            ])
-            ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->label('Agregar Existencia')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Agregar Existencia')
-                    ->modalWidth('4xl')
-                    ->mutateFormDataUsing(function (array $data, $livewire): array {
-                        $data['articulo_id'] = $livewire->getOwnerRecord()->id;
-
-                        return $data;
-                    })
-                    ->after(function ($record) {
-                        Notification::make()
-                            ->title('Existencia agregada exitosamente')
-                            ->body('Se ha registrado la existencia en el almacén.')
-                            ->success()
-                            ->send();
-                    }),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([

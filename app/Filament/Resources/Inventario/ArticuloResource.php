@@ -9,7 +9,6 @@ use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\Atributo
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\CapasCostosRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\CodigosBarrasRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ExistenciasRelationManager;
-use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\ImagenesRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\KardexPorAlmacenRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\LotesRelationManager;
 use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\PreciosRelationManager;
@@ -55,6 +54,11 @@ class ArticuloResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->withCount('precios');
+    }
+
     // ========== HELPERS ==========
     private static function getSafeOptions(string $table, string $labelColumn, string $valueColumn = 'id', array $filters = [], array $additionalConditions = []): array
     {
@@ -80,7 +84,13 @@ class ArticuloResource extends Resource
                 }
             }
 
-            return $query->orderBy($labelColumn)->pluck($labelColumn, $valueColumn)->toArray();
+            return $query
+                ->whereNotNull($labelColumn)
+                ->where($labelColumn, '!=', '')
+                ->orderBy($labelColumn)
+                ->pluck($labelColumn, $valueColumn)
+                ->map(fn ($label): string => (string) $label)
+                ->toArray();
         } catch (\Exception $e) {
             return [];
         }
@@ -106,18 +116,15 @@ class ArticuloResource extends Resource
                 return [];
             }
 
-            $labelColumn = 'nombre';
-            if (Schema::hasColumn('alm_fabricantes', 'nombre_comercial')) {
-                $labelColumn = 'nombre_comercial';
-            } elseif (Schema::hasColumn('alm_fabricantes', 'razon_social')) {
-                $labelColumn = 'razon_social';
-            }
-
             return DB::table('alm_fabricantes')
-                ->select('id', "$labelColumn as label")
-                ->orderBy($labelColumn)
+                ->selectRaw("id, COALESCE(NULLIF(nombre_comercial, ''), nombre) as label")
+                ->whereNotNull('nombre')
+                ->where('nombre', '!=', '')
+                ->orderByRaw("COALESCE(NULLIF(nombre_comercial, ''), nombre)")
                 ->get()
                 ->pluck('label', 'id')
+                ->filter(fn ($label) => filled($label))
+                ->map(fn ($label): string => (string) $label)
                 ->toArray();
         } catch (\Exception $e) {
             return [];
@@ -644,6 +651,16 @@ class ArticuloResource extends Resource
                     ->toggleable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                TextColumn::make('precios_count')
+                    ->label('Precios')
+                    ->badge()
+                    ->formatStateUsing(fn (int $state): string => $state > 0 ? "{$state} asignado(s)" : 'Sin precio')
+                    ->color(fn (int $state): string => $state > 0 ? 'success' : 'warning')
+                    ->icon(fn (int $state): string => $state > 0 ? 'heroicon-o-banknotes' : 'heroicon-o-exclamation-triangle')
+                    ->tooltip(fn (int $state): string => $state > 0 ? 'Tiene precio en una o más listas de precios.' : 'Asigne al menos un precio antes de vender este artículo.')
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('descripcion')
                     ->label('Descripción')
                     ->limit(25)
@@ -847,10 +864,6 @@ class ArticuloResource extends Resource
 
         if (Schema::hasTable('alm_codigos_barras')) {
             $relations[] = CodigosBarrasRelationManager::class;
-        }
-
-        if (Schema::hasTable('alm_articulos_imagenes')) {
-            $relations[] = ImagenesRelationManager::class;
         }
 
         if (Schema::hasTable('alm_kardex') && Schema::hasColumn('alm_kardex', 'articulo_id')) {

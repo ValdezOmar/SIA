@@ -39,7 +39,7 @@ class PreciosRelationManager extends RelationManager
                                 Select::make('lista_precio_id')
                                     ->label('Lista de Precios')
                                     ->options(
-                                        fn() => ListaPrecio::where('activo', true)
+                                        fn () => ListaPrecio::where('activo', true)
                                             ->pluck('nombre', 'id')
                                             ->toArray()
                                     )
@@ -61,8 +61,10 @@ class PreciosRelationManager extends RelationManager
                                                     $set('precio', null);
                                                 }
                                             }
+
                                             return $primera->id;
                                         }
+
                                         return null;
                                     })
                                     ->live()
@@ -84,7 +86,7 @@ class PreciosRelationManager extends RelationManager
 
                                         $lista = $get('lista_precio_id');
 
-                                        if (!$lista) {
+                                        if (! $lista) {
                                             return false;
                                         }
 
@@ -100,7 +102,7 @@ class PreciosRelationManager extends RelationManager
 
                                         $lista = $get('lista_precio_id');
 
-                                        if (!$lista) {
+                                        if (! $lista) {
                                             return true;
                                         }
 
@@ -108,7 +110,7 @@ class PreciosRelationManager extends RelationManager
                                             ->where('articulo_id', $this->getOwnerRecord()->id)
                                             ->where('lista_precio_id', $lista)
                                             ->exists();
-                                    })
+                                    }),
                             ]),
                     ]),
 
@@ -121,12 +123,12 @@ class PreciosRelationManager extends RelationManager
                                     ->label('')
                                     ->content(function ($get) {
                                         $listaId = $get('lista_precio_id');
-                                        if (!$listaId) {
+                                        if (! $listaId) {
                                             return 'Seleccione una lista para ver su información';
                                         }
 
                                         $lista = ListaPrecio::find($listaId);
-                                        if (!$lista) {
+                                        if (! $lista) {
                                             return 'Lista no encontrada';
                                         }
 
@@ -138,9 +140,9 @@ class PreciosRelationManager extends RelationManager
                                                 ->exists();
                                         }
 
-                                        $html = "{$lista->nombre}\n" .
-                                            "Código: {$lista->codigo}\n" .
-                                            "Moneda: " . ($lista->moneda ?? 'BOB');
+                                        $html = "{$lista->nombre}\n".
+                                            "Código: {$lista->codigo}\n".
+                                            'Moneda: '.($lista->moneda ?? 'BOB');
 
                                         if ($tienePrecio) {
                                             $html .= "\n\nEste artículo ya tiene un precio en esta lista";
@@ -175,13 +177,13 @@ class PreciosRelationManager extends RelationManager
                 TextColumn::make('listaPrecio.moneda')
                     ->label('Moneda')
                     ->badge()
-                    ->color(fn($state) => $state === 'BOB' ? 'success' : 'warning')
-                    ->formatStateUsing(fn($state) => $state === 'BOB' ? 'BOB' : 'USD')
+                    ->color(fn ($state) => $state === 'BOB' ? 'success' : 'warning')
+                    ->formatStateUsing(fn ($state) => $state === 'BOB' ? 'BOB' : 'USD')
                     ->toggleable(),
 
                 TextColumn::make('precio')
                     ->label('Precio')
-                    ->money(fn($record) => $record->listaPrecio?->moneda ?? 'BOB')
+                    ->money(fn ($record) => $record->listaPrecio?->moneda ?? 'BOB')
                     ->sortable()
                     ->copyable()
                     ->copyMessage('Precio copiado')
@@ -203,7 +205,7 @@ class PreciosRelationManager extends RelationManager
                 Tables\Filters\SelectFilter::make('lista_precio_id')
                     ->label('Filtrar por Lista')
                     ->options(
-                        fn() => ListaPrecio::where('activo', true)
+                        fn () => ListaPrecio::where('activo', true)
                             ->pluck('nombre', 'id')
                             ->toArray()
                     )
@@ -222,7 +224,7 @@ class PreciosRelationManager extends RelationManager
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['precio_minimo'],
-                            fn(Builder $query, $precio): Builder => $query->where('precio', '>=', $precio)
+                            fn (Builder $query, $precio): Builder => $query->where('precio', '>=', $precio)
                         );
                     }),
 
@@ -238,7 +240,7 @@ class PreciosRelationManager extends RelationManager
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['precio_maximo'],
-                            fn(Builder $query, $precio): Builder => $query->where('precio', '<=', $precio)
+                            fn (Builder $query, $precio): Builder => $query->where('precio', '<=', $precio)
                         );
                     }),
             ])
@@ -250,13 +252,14 @@ class PreciosRelationManager extends RelationManager
                     ->modalWidth('4xl')
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['articulo_id'] = $this->getOwnerRecord()->id;
+
                         return $data;
                     })
                     ->before(function (array $data) {
                         $articuloId = $this->getOwnerRecord()->id;
                         $listaPrecioId = $data['lista_precio_id'] ?? null;
 
-                        if (!$listaPrecioId) {
+                        if (! $listaPrecioId) {
                             throw new \Exception('Debes seleccionar una lista de precios.');
                         }
 
@@ -300,6 +303,7 @@ class PreciosRelationManager extends RelationManager
                         ->modalWidth('4xl')
                         ->mutateFormDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
+
                             return $data;
                         })
                         ->after(function ($record) {
@@ -318,7 +322,7 @@ class PreciosRelationManager extends RelationManager
                             Select::make('lista_precio_id')
                                 ->label('Lista de Precios destino')
                                 ->options(
-                                    fn() => ListaPrecio::where('activo', true)
+                                    fn () => ListaPrecio::where('activo', true)
                                         ->where('id', '!=', function ($query) {
                                             $query->select('lista_precio_id')->from('alm_precios_articulos');
                                         })
@@ -341,6 +345,7 @@ class PreciosRelationManager extends RelationManager
                                     ->body('Este artículo ya tiene un precio en la lista seleccionada')
                                     ->danger()
                                     ->send();
+
                                 return;
                             }
 
@@ -372,48 +377,6 @@ class PreciosRelationManager extends RelationManager
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados')
-                        ->icon('heroicon-o-trash')
-                        ->color('danger')
-                        ->modalHeading('Eliminar Precios')
-                        ->modalSubheading('¿Estás seguro de eliminar los precios seleccionados?'),
-
-                    Tables\Actions\BulkAction::make('update_price')
-                        ->label('Actualizar Precios')
-                        ->icon('heroicon-o-currency-dollar')
-                        ->color('success')
-                        ->form([
-                            TextInput::make('incremento')
-                                ->label('Incremento (%)')
-                                ->numeric()
-                                ->suffix('%')
-                                ->placeholder('0')
-                                ->helperText('Porcentaje a incrementar (ej: 10 para +10%, -5 para -5%)'),
-                        ])
-                        ->action(function (array $data, $records) {
-                            $porcentaje = $data['incremento'] ?? 0;
-                            $factor = 1 + ($porcentaje / 100);
-
-                            foreach ($records as $record) {
-                                $record->update([
-                                    'precio' => round($record->precio * $factor, 6)
-                                ]);
-                            }
-
-                            \Filament\Notifications\Notification::make()
-                                ->title('Precios actualizados')
-                                ->body("Se aplicó un " . ($porcentaje >= 0 ? 'incremento' : 'decremento') . " del {$porcentaje}%")
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Actualizar Precios')
-                        ->modalSubheading('¿Deseas actualizar los precios seleccionados?'),
-                ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar precios...')

@@ -13,7 +13,6 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Schema;
 
 class AtributosRelationManager extends RelationManager
 {
@@ -63,17 +62,17 @@ class AtributosRelationManager extends RelationManager
                             ->label('')
                             ->content(function ($get) {
                                 $atributoId = $get('atributo_id');
-                                if (!$atributoId) {
+                                if (! $atributoId) {
                                     return 'Seleccione un atributo para ver su información.';
                                 }
 
                                 $atributo = Atributo::find($atributoId);
-                                if (!$atributo) {
+                                if (! $atributo) {
                                     return 'Atributo no encontrado.';
                                 }
 
-                                return "{$atributo->nombre}\n" .
-                                       "Código: {$atributo->codigo}\n" .
+                                return "{$atributo->nombre}\n".
+                                       "Código: {$atributo->codigo}\n".
                                        ($atributo->descripcion ? $atributo->descripcion : '');
                             })
                             ->columnSpanFull(),
@@ -156,6 +155,7 @@ class AtributosRelationManager extends RelationManager
                     ->modalWidth('4xl')
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['articulo_id'] = $this->getOwnerRecord()->id;
+
                         return $data;
                     })
                     ->after(function ($record) {
@@ -174,6 +174,7 @@ class AtributosRelationManager extends RelationManager
                         ->modalWidth('4xl')
                         ->mutateFormDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
+
                             return $data;
                         }),
 
@@ -187,16 +188,8 @@ class AtributosRelationManager extends RelationManager
                                 ->send();
                         }),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados')
-                        ->icon('heroicon-o-trash')
-                        ->color('danger'),
-                ]),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar atributos...')

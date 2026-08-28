@@ -99,14 +99,14 @@ class CodigosBarrasRelationManager extends RelationManager
                                     ->content(function ($get) {
                                         $codigo = $get('codigo_barras');
                                         $tipo = $get('tipo');
-                                        
-                                        if (!$codigo) {
+
+                                        if (! $codigo) {
                                             return 'Ingrese un código de barras para verificar su formato.';
                                         }
-                                        
+
                                         $longitud = strlen($codigo);
                                         $tipoSugerido = '';
-                                        
+
                                         if ($longitud === 13) {
                                             $tipoSugerido = ' (EAN-13)';
                                         } elseif ($longitud === 8) {
@@ -114,10 +114,10 @@ class CodigosBarrasRelationManager extends RelationManager
                                         } elseif ($longitud === 12) {
                                             $tipoSugerido = ' (UPC-A)';
                                         }
-                                        
+
                                         return new \Illuminate\Support\HtmlString(
                                             '<div class="text-sm text-gray-500">
-                                                <span class="font-medium">Longitud:</span> ' . $longitud . ' dígitos' . $tipoSugerido . '
+                                                <span class="font-medium">Longitud:</span> '.$longitud.' dígitos'.$tipoSugerido.'
                                             </div>'
                                         );
                                     })
@@ -145,7 +145,7 @@ class CodigosBarrasRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->badge()
-                    ->color(fn ($state) => match($state) {
+                    ->color(fn ($state) => match ($state) {
                         'EAN-13' => 'primary',
                         'EAN-8' => 'info',
                         'UPC-A' => 'success',
@@ -236,6 +236,7 @@ class CodigosBarrasRelationManager extends RelationManager
                         if ($record && $record->codigosBarras()->where('principal', true)->exists()) {
                             return ['principal' => false];
                         }
+
                         return [];
                     })
                     ->after(function ($record) {
@@ -243,17 +244,17 @@ class CodigosBarrasRelationManager extends RelationManager
                         $articulo = $this->getOwnerRecord();
                         if ($articulo && $articulo->codigosBarras()->count() === 1) {
                             $record->update(['principal' => true]);
-                            
+
                             Notification::make()
                                 ->title('Código marcado como principal')
                                 ->body('Por ser el primer código, se ha marcado automáticamente como principal.')
                                 ->info()
                                 ->send();
                         }
-                        
+
                         Notification::make()
                             ->title('Código de barras agregado')
-                            ->body('El código ' . $record->codigo_barras . ' ha sido agregado exitosamente.')
+                            ->body('El código '.$record->codigo_barras.' ha sido agregado exitosamente.')
                             ->success()
                             ->send();
                     }),
@@ -283,29 +284,14 @@ class CodigosBarrasRelationManager extends RelationManager
                             }
                             // Marcar el seleccionado
                             $record->update(['principal' => true]);
-                            
+
                             Notification::make()
                                 ->title('Código marcado como principal')
-                                ->body('El código ' . $record->codigo_barras . ' es ahora el principal.')
+                                ->body('El código '.$record->codigo_barras.' es ahora el principal.')
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn ($record) => !$record->principal),
-
-                    Tables\Actions\Action::make('unset_principal')
-                        ->label('Quitar como Principal')
-                        ->icon('heroicon-o-star')
-                        ->color('gray')
-                        ->action(function ($record) {
-                            $record->update(['principal' => false]);
-                            
-                            Notification::make()
-                                ->title('Código desmarcado como principal')
-                                ->body('El código ya no es el principal.')
-                                ->info()
-                                ->send();
-                        })
-                        ->visible(fn ($record) => $record->principal && $this->getOwnerRecord()->codigosBarras()->count() > 1),
+                        ->visible(fn ($record) => ! $record->principal),
 
                     Tables\Actions\DeleteAction::make()
                         ->before(function ($record) {
@@ -325,15 +311,15 @@ class CodigosBarrasRelationManager extends RelationManager
                                 $nuevoPrincipal = $articulo->codigosBarras()->first();
                                 if ($nuevoPrincipal) {
                                     $nuevoPrincipal->update(['principal' => true]);
-                                    
+
                                     Notification::make()
                                         ->title('Nuevo código principal asignado')
-                                        ->body('El código ' . $nuevoPrincipal->codigo_barras . ' es ahora el principal.')
+                                        ->body('El código '.$nuevoPrincipal->codigo_barras.' es ahora el principal.')
                                         ->info()
                                         ->send();
                                 }
                             }
-                            
+
                             Notification::make()
                                 ->title('Código eliminado')
                                 ->body('El código de barras ha sido eliminado.')
@@ -341,59 +327,14 @@ class CodigosBarrasRelationManager extends RelationManager
                                 ->send();
                         }),
                 ])
-                ->tooltip('Acciones')
-                ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionados')
-                        ->icon('heroicon-o-trash')
-                        ->color('danger')
-                        ->after(function ($records) {
-                            // Asignar nuevo principal si se eliminó el actual
-                            $articulo = $this->getOwnerRecord();
-                            if ($articulo && !$articulo->codigosBarras()->where('principal', true)->exists()) {
-                                $nuevoPrincipal = $articulo->codigosBarras()->first();
-                                if ($nuevoPrincipal) {
-                                    $nuevoPrincipal->update(['principal' => true]);
-                                }
-                            }
-                        }),
-
-                    Tables\Actions\BulkAction::make('set_principal_bulk')
-                        ->label('Marcar como Principal')
-                        ->icon('heroicon-o-star')
-                        ->color('warning')
-                        ->requiresConfirmation()
-                        ->modalHeading('Marcar códigos como principal')
-                        ->modalSubheading('Solo el primer código seleccionado será marcado como principal')
-                        ->action(function ($records) {
-                            // Desmarcar todos los códigos del artículo
-                            $articulo = $this->getOwnerRecord();
-                            if ($articulo) {
-                                $articulo->codigosBarras()->update(['principal' => false]);
-                            }
-                            
-                            // Marcar el primer seleccionado
-                            $primerRegistro = $records->first();
-                            if ($primerRegistro) {
-                                $primerRegistro->update(['principal' => true]);
-                                
-                                Notification::make()
-                                    ->title('Código marcado como principal')
-                                    ->body('El código ' . $primerRegistro->codigo_barras . ' es ahora el principal.')
-                                    ->success()
-                                    ->send();
-                            }
-                        }),
-                ]),
+                    ->tooltip('Acciones')
+                    ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->defaultSort('principal', 'desc')
             ->searchPlaceholder('Buscar código de barras...')
             ->emptyStateHeading('Sin códigos de barras')
             ->emptyStateDescription('Agrega códigos de barras para este artículo')
-            //->emptyStateIcon('heroicon-o-barcode')
+            // ->emptyStateIcon('heroicon-o-barcode')
             ->poll('60s');
     }
 }

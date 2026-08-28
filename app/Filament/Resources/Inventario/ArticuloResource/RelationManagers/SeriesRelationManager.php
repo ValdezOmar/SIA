@@ -16,7 +16,6 @@ use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Schema;
 
 class SeriesRelationManager extends RelationManager
 {
@@ -41,7 +40,8 @@ class SeriesRelationManager extends RelationManager
     {
         // Si no maneja series, es de solo lectura (esto oculta el contenido)
         $record = $this->getOwnerRecord();
-        return !$record || !$record->maneja_series;
+
+        return ! $record || ! $record->maneja_series;
     }
 
     public function form(Form $form): Form
@@ -61,6 +61,7 @@ class SeriesRelationManager extends RelationManager
                                     ->unique(ignoreRecord: true)
                                     ->placeholder('Ej: SN-2024-001')
                                     ->helperText('Número de serie único del artículo')
+                                    ->disabledOn('edit')
                                     ->columnSpan(1),
 
                                 TextInput::make('codigo_qr')
@@ -93,7 +94,7 @@ class SeriesRelationManager extends RelationManager
                                 Select::make('almacen_id')
                                     ->label('Almacén')
                                     ->options(
-                                        fn() => Almacen::where('activo', true)
+                                        fn () => Almacen::where('activo', true)
                                             ->pluck('nombre', 'id')
                                             ->toArray()
                                     )
@@ -101,6 +102,7 @@ class SeriesRelationManager extends RelationManager
                                     ->preload()
                                     ->placeholder('Seleccione un almacén')
                                     ->helperText('Almacén donde se encuentra la serie')
+                                    ->disabled()
                                     ->columnSpan(1),
 
                                 Select::make('estado')
@@ -117,6 +119,7 @@ class SeriesRelationManager extends RelationManager
                                     ->required()
                                     ->searchable()
                                     ->helperText('Estado actual de la serie')
+                                    ->disabled()
                                     ->columnSpan(1),
                             ]),
 
@@ -160,12 +163,12 @@ class SeriesRelationManager extends RelationManager
                             ->label('')
                             ->content(function ($livewire) {
                                 $articulo = $livewire->getOwnerRecord();
-                                if (!$articulo) {
+                                if (! $articulo) {
                                     return 'No hay artículo asociado.';
                                 }
 
-                                return "Artículo: {$articulo->codigo} - {$articulo->descripcion}\n" .
-                                    "Unidad: " . ($articulo->unidadMedida->nombre ?? 'N/A');
+                                return "Artículo: {$articulo->codigo} - {$articulo->descripcion}\n".
+                                    'Unidad: '.($articulo->unidadMedida->nombre ?? 'N/A');
                             })
                             ->columnSpanFull(),
                     ]),
@@ -242,7 +245,7 @@ class SeriesRelationManager extends RelationManager
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable()
-                    ->color(fn($state) => $state && $state < now() ? 'danger' : 'success')
+                    ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success')
                     ->placeholder('-')
                     ->toggleable(isToggledHiddenByDefault: true),
 
@@ -262,7 +265,7 @@ class SeriesRelationManager extends RelationManager
                 Tables\Filters\SelectFilter::make('almacen_id')
                     ->label('Almacén')
                     ->options(
-                        fn() => Almacen::where('activo', true)
+                        fn () => Almacen::where('activo', true)
                             ->pluck('nombre', 'id')
                             ->toArray()
                     )
@@ -292,31 +295,13 @@ class SeriesRelationManager extends RelationManager
                     ->query(function ($query, array $data) {
                         return $query->when(
                             $data['garantia_hasta'],
-                            fn($query, $fecha) => $query->where('fecha_garantia', '<=', $fecha)
+                            fn ($query, $fecha) => $query->where('fecha_garantia', '<=', $fecha)
                         );
                     }),
 
                 Tables\Filters\Filter::make('garantia_vencida')
                     ->label('Garantía Vencida')
-                    ->query(fn($query) => $query->where('fecha_garantia', '<', now())->whereNotNull('fecha_garantia')),
-            ])
-            ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->label('Nueva Serie')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Agregar Serie al Artículo')
-                    ->modalWidth('4xl')
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $data['articulo_id'] = $this->getOwnerRecord()->id;
-                        return $data;
-                    })
-                    ->after(function ($record) {
-                        Notification::make()
-                            ->title('Serie agregada exitosamente')
-                            ->body('La serie ' . $record->numero_serie . ' ha sido registrada.')
-                            ->success()
-                            ->send();
-                    }),
+                    ->query(fn ($query) => $query->where('fecha_garantia', '<', now())->whereNotNull('fecha_garantia')),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
@@ -325,101 +310,25 @@ class SeriesRelationManager extends RelationManager
                         ->modalWidth('4xl')
                         ->mutateFormDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
+
                             return $data;
                         })
                         ->after(function ($record) {
                             Notification::make()
                                 ->title('Serie actualizada')
-                                ->body('La serie ' . $record->numero_serie . ' ha sido actualizada.')
+                                ->body('La serie '.$record->numero_serie.' ha sido actualizada.')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('cambiar_estado')
-                        ->label('Cambiar Estado')
-                        ->icon('heroicon-o-arrow-path')
-                        ->color('warning')
-                        ->form([
-                            Select::make('estado')
-                                ->label('Nuevo Estado')
-                                ->options([
-                                    'disponible' => 'Disponible',
-                                    'reservado' => 'Reservado',
-                                    'vendido' => 'Vendido',
-                                    'baja' => 'Baja',
-                                    'garantia' => 'En Garantía',
-                                    'reparacion' => 'En Reparación',
-                                ])
-                                ->required()
-                                ->default('disponible'),
-                        ])
-                        ->action(function (array $data, $record) {
-                            $record->update(['estado' => $data['estado']]);
-
-                            Notification::make()
-                                ->title('Estado actualizado')
-                                ->body('La serie ahora está en estado: ' . ucfirst($data['estado']))
-                                ->success()
-                                ->send();
-                        }),
-
-                    Tables\Actions\DeleteAction::make()
-                        ->before(function ($record) {
-                            Notification::make()
-                                ->title('Serie eliminada')
-                                ->body('La serie ' . $record->numero_serie . ' ha sido eliminada.')
-                                ->warning()
-                                ->send();
-                        }),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Eliminar seleccionadas')
-                        ->icon('heroicon-o-trash')
-                        ->color('danger'),
-
-                    Tables\Actions\BulkAction::make('cambiar_estado_bulk')
-                        ->label('Cambiar Estado')
-                        ->icon('heroicon-o-arrow-path')
-                        ->color('warning')
-                        ->form([
-                            Select::make('estado')
-                                ->label('Estado')
-                                ->options([
-                                    'disponible' => 'Disponible',
-                                    'reservado' => 'Reservado',
-                                    'vendido' => 'Vendido',
-                                    'baja' => 'Baja',
-                                    'garantia' => 'En Garantía',
-                                    'reparacion' => 'En Reparación',
-                                ])
-                                ->required()
-                                ->default('disponible'),
-                        ])
-                        ->action(function (array $data, $records) {
-                            foreach ($records as $record) {
-                                $record->update(['estado' => $data['estado']]);
-                            }
-
-                            Notification::make()
-                                ->title('Estados actualizados')
-                                ->body('Se actualizaron ' . $records->count() . ' series al estado: ' . ucfirst($data['estado']))
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Cambiar Estado de Series')
-                        ->modalSubheading('¿Deseas cambiar el estado de las series seleccionadas?'),
-                ]),
-            ])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar serie...')
             ->emptyStateHeading('Sin series registradas')
-            ->emptyStateDescription('Agrega números de serie para este artículo')
+            ->emptyStateDescription('Las series se registran automáticamente al recepcionar inventario.')
             ->emptyStateIcon('heroicon-o-identification')
             ->poll('60s');
     }

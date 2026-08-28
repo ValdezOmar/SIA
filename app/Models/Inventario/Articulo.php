@@ -34,7 +34,7 @@ class Articulo extends Model
         'foto_catalogo',
         'documentacion_tecnica',
         'activo',
-        'empresa_id'
+        'empresa_id',
     ];
 
     protected $attributes = [
@@ -100,9 +100,9 @@ class Articulo extends Model
             }
         }
 
-        $prefijo = $codigoGrupo . '-' . $codigoFabricante;
+        $prefijo = $codigoGrupo.'-'.$codigoFabricante;
 
-        $ultimo = self::where('codigo', 'LIKE', $prefijo . '-%')
+        $ultimo = self::where('codigo', 'LIKE', $prefijo.'-%')
             ->orderBy('codigo', 'desc')
             ->first();
 
@@ -114,7 +114,7 @@ class Articulo extends Model
             $correlativo = '001';
         }
 
-        return $prefijo . '-' . $correlativo;
+        return $prefijo.'-'.$correlativo;
     }
 
     public static function previsualizarCodigo($grupoId, $fabricanteId): string
@@ -135,9 +135,9 @@ class Articulo extends Model
             }
         }
 
-        $prefijo = $codigoGrupo . '-' . $codigoFabricante;
+        $prefijo = $codigoGrupo.'-'.$codigoFabricante;
 
-        $ultimo = self::where('codigo', 'LIKE', $prefijo . '-%')
+        $ultimo = self::where('codigo', 'LIKE', $prefijo.'-%')
             ->orderBy('codigo', 'desc')
             ->first();
 
@@ -149,7 +149,7 @@ class Articulo extends Model
             $correlativo = '001';
         }
 
-        return $prefijo . '-' . $correlativo;
+        return $prefijo.'-'.$correlativo;
     }
 
     // ========== STOCK ==========
@@ -206,6 +206,7 @@ class Articulo extends Model
         if (is_array($value)) {
             return $value;
         }
+
         return json_decode($value, true) ?? [];
     }
 
@@ -260,6 +261,7 @@ class Articulo extends Model
         $precio = $this->precios()
             ->where('lista_precio_id', $listaPrecioId)
             ->first();
+
         return $precio?->precio ?? 0;
     }
 
@@ -268,12 +270,12 @@ class Articulo extends Model
         return $this->precios()
             ->with('listaPrecio')
             ->get()
-            ->mapWithKeys(fn($item) => [
+            ->mapWithKeys(fn ($item) => [
                 $item->lista_precio_id => [
                     'nombre' => $item->listaPrecio?->nombre ?? 'Sin lista',
                     'precio' => $item->precio,
                     'moneda' => $item->listaPrecio?->moneda ?? 'BOB',
-                ]
+                ],
             ]);
     }
 
@@ -320,11 +322,6 @@ class Articulo extends Model
     public function movimientos()
     {
         return $this->hasMany(MovimientoInventario::class);
-    }
-
-    public function imagenes()
-    {
-        return $this->hasMany(ArticuloImagen::class);
     }
 
     public function atributos()
@@ -393,6 +390,6 @@ class Articulo extends Model
 
     public function getComisionFormateadaAttribute()
     {
-        return number_format($this->comision, 2) . '%';
+        return number_format($this->comision, 2).'%';
     }
 }
