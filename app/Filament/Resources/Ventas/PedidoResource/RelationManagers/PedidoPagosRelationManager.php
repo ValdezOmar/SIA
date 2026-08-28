@@ -27,6 +27,7 @@ class PedidoPagosRelationManager extends RelationManager
             ->headerActions([])
             ->actions([])
             ->bulkActions([])
+            ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No hay pagos registrados')
             ->emptyStateDescription('Los pagos aparecerán aquí después de registrarlos en la factura asociada.');
     }

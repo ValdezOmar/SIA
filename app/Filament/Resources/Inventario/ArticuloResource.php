@@ -825,7 +825,9 @@ class ArticuloResource extends Resource
                         ->modalHeading('Cambiar estado'),
                 ]),
             ])
-            ->defaultSort('codigo', 'asc')
+            ->defaultSort('created_at', 'desc')
+            ->paginationPageOptions([100, 'all'])
+            ->defaultPaginationPageOption(100)
             // ->searchPlaceholder('Buscar artículo por código, nombre, modelo...')
             ->emptyStateHeading('No hay artículos registrados')
             ->emptyStateDescription('Crea tu primer artículo para comenzar a gestionar tu inventario.')

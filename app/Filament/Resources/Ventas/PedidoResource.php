@@ -39,7 +39,7 @@ class PedidoResource extends Resource
 
     protected static ?string $navigationGroup = 'Ventas';
 
-    protected static ?string $navigationLabel = 'Pedidos';
+    protected static ?string $navigationLabel = 'Pedidos/Reservas';
 
     protected static ?string $modelLabel = 'Pedido';
 
@@ -58,6 +58,23 @@ class PedidoResource extends Resource
     }
 
     // ========== MÉTODOS DE CÁLCULO ==========
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getEloquentQuery()
+            ->where('estado', 'reservado')
+            ->count();
+    }
+
+    public static function getNavigationBadgeColor(): string | array | null
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Pedidos con estado reservado';
+    }
+
     private static function recalcularLinea(callable $set, callable $get): void
     {
         $cantidad = floatval($get('cantidad') ?? 1);

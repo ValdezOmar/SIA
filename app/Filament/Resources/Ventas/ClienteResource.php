@@ -596,7 +596,7 @@ class ClienteResource extends Resource
                         ->modalHeading('Cambiar bloqueo de clientes'),
                 ]),
             ])
-            ->defaultSort('nombre')
+            ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar cliente por nombre, código, NIT, correo...')
             ->emptyStateHeading('No hay clientes registrados')
             ->emptyStateDescription('Crea tu primer cliente para comenzar a gestionar tus ventas.')
