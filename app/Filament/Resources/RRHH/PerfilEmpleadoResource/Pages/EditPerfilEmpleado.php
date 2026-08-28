@@ -3,350 +3,72 @@
 namespace App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
 
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
-use App\Models\RRHH\Empleado;
-use Filament\Actions\Action;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Fieldset;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class EditPerfilEmpleado extends EditRecord
 {
     protected static string $resource = PerfilEmpleadoResource::class;
 
-    protected static ?string $title = 'Mi Perfil';
+    protected static ?string $title = 'Editar mi perfil';
 
     public ?array $ubicacion_gps = null;
 
-    // Funcion para guardar el array de gps
-    public function mutateFormDataBeforeSave(array $data): array
+    public function mount(int|string $record): void
     {
-        if (is_array($this->ubicacion_gps)) {
-            $lat = round(floatval($this->ubicacion_gps['lat'] ?? 0), 6);
-            $lng = round(floatval($this->ubicacion_gps['lng'] ?? 0), 6);
+        parent::mount($record);
 
-            // Si la ubicación es la predeterminada, guarda como null
-            if ($lat == -16.500000 && $lng == -68.150000) {
-                $data['ubicacion_gps'] = null;
-            } else {
-                $data['ubicacion_gps'] = [
-                    'lat' => $lat,
-                    'lng' => $lng,
-                ];
-            }
-        } else {
-            $data['ubicacion_gps'] = null;
+        $this->ubicacion_gps = $this->getRecord()->ubicacion_gps;
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $ubicacion = $this->ubicacion_gps ?? ($data['ubicacion_gps'] ?? null);
+
+        if (is_string($ubicacion)) {
+            $ubicacion = json_decode($ubicacion, true);
         }
+
+        if (! is_array($ubicacion) || ! isset($ubicacion['lat'], $ubicacion['lng'])) {
+            $data['ubicacion_gps'] = null;
+
+            return $data;
+        }
+
+        $latitud = round((float) $ubicacion['lat'], 6);
+        $longitud = round((float) $ubicacion['lng'], 6);
+
+        if ($latitud === -16.5 && $longitud === -68.15) {
+            $data['ubicacion_gps'] = null;
+
+            return $data;
+        }
+
+        $data['ubicacion_gps'] = [
+            'lat' => $latitud,
+            'lng' => $longitud,
+        ];
 
         return $data;
     }
 
-    public function mount(int|string $record): void
-    {
-        $user = Auth::user();
-        $empleado = Empleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
-
-        abort_unless($empleado && $empleado->id == $record, 403);
-
-        parent::mount($record);
-    }
-
-    public static function canAccess(array $parameters = []): bool
-    {
-        $user = Auth::user();
-        $empleado = Empleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
-
-        return $empleado !== null;
-    }
-
-    // formulario de edicion de empleados que es mostrado solamente cuando el usuario tiene el rol empleado, este formulario es distinto al de rrhh
-    public function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-
-                // Sección superior (Card empleado)con foto y datos básicos
-                Grid::make()
-                    ->schema([
-                        FileUpload::make('foto')
-                            ->label('')
-                            ->image()
-                            ->directory('empleados')
-                            ->disk('public')
-                            ->visibility('public')
-                            ->imageEditor()
-                            ->openable()
-                            ->downloadable()
-                            ->loadingIndicatorPosition('center')
-                            ->panelAspectRatio('1:1')
-                            ->removeUploadedFileButtonPosition('upper-center')
-                            ->uploadButtonPosition('right')
-                            ->uploadProgressIndicatorPosition('right')
-                            ->panelLayout('circle')    // Layout especial para avatares
-                            ->extraAttributes([
-                                'style' => '
-                                    width: 280px; 
-                                    height: 280px;
-                                    margin: 0 auto; /* Centrado horizontal */
-                                    display: flex; /* Para centrado vertical si es necesario */
-                                    justify-content: center;
-                                ',
-                                'class' => 'flex flex-col items-center', // Clases de Tailwind para respaldo
-                            ])
-                            ->imageCropAspectRatio('1:1')  // Relación de aspecto cuadrada
-                            ->default(fn ($record) => $record?->foto)
-                            ->alignCenter()
-                            ->getUploadedFileNameForStorageUsing(
-                                function (TemporaryUploadedFile $file, Get $get): string {
-                                    $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'default_'.uniqid();
-
-                                    return $ci.'.'.$file->getClientOriginalExtension();
-                                }
-                            )
-                            ->placeholder(function ($get) {
-                                // Si no hay foto, mostrar iniciales con avatar por defecto
-                                $nombres = $get('nombres') ?? '';
-                                $apellidos = $get('apellidos') ?? '';
-                                $iniciales = substr($nombres, 0, 1).substr($apellidos, 0, 1);
-
-                                return view('filament.forms.components.avatar-placeholder', [
-                                    'iniciales' => $iniciales ?: 'NA',
-                                    'defaultImage' => asset('images/default-avatar.jpg'),
-                                ]);
-                            }),
-
-                        Grid::make()
-                            ->schema([
-                                Placeholder::make('nombre_completo')
-                                    ->label('👤Nombre:')
-                                    ->content(fn ($get) => $get('nombres').' '.$get('apellidos'))
-                                    ->extraAttributes(['class' => 'text-center text-lg font-bold'])
-                                    ->columnSpanFull(),
-
-                                Placeholder::make('ci/dni')
-                                    ->label('🪪CI/DNI:')
-                                    ->content(fn ($get) => ' '.$get('ci'))
-                                    ->extraAttributes(['class' => 'text-center text-lg font-bold'])
-                                    ->columnSpanFull(),
-
-                                Placeholder::make('email')
-                                    ->label('📧Email:')
-                                    ->content(fn (?Empleado $record): string => ' '.($record?->historialActivo?->correo_corporativo ?? 'Sin asignar'))
-                                    ->extraAttributes(['class' => 'text-center text-lg font-bold'])
-                                    ->columnSpanFull(),
-
-                                Placeholder::make('numero_coporativo')
-                                    ->label('📱Teléfono:')
-                                    ->content(fn (?Empleado $record): string => ' '.($record?->historialActivo?->numero_corporativo ?? 'Sin asignar'))
-                                    ->extraAttributes(['class' => 'text-center text-lg font-bold'])
-                                    ->columnSpanFull(),
-
-                            ])
-                            ->columnSpan(['md' => 2, 'lg' => 1])
-                            ->extraAttributes(['class' => 'flex flex-col justify-center']),
-                    ])
-                    ->columns(['md' => 2, 'lg' => 2])
-                    ->columnSpan('full'),
-
-                // Sección de información básica
-                Section::make('Información Básica')
-                    ->schema([
-                        TextInput::make('nombres')
-                            ->required()
-                            ->maxLength(255)
-                            ->hint('Ingrese sus nombres')
-                            ->hintIcon('heroicon-o-user')
-                            ->live(),
-
-                        TextInput::make('apellidos')
-                            ->required()
-                            ->maxLength(255)
-                            ->hint('Ingrese sus apellidos')
-                            ->hintIcon('heroicon-o-user')
-                            ->live(),
-
-                        TextInput::make('ci')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->label('Cédula de Identidad')
-                            ->hint('Número único de identificación ciudadana')
-                            ->hintIcon('heroicon-o-identification'),
-
-                        DatePicker::make('fecha_nacimiento')
-                            ->required()
-                            ->label('Fecha de Nacimiento')
-                            ->hint('Ingrese su fecha de nacimiento')
-                            ->hintIcon('heroicon-o-cake'),
-
-                        Select::make('genero')
-                            ->required()
-                            ->options([
-                                'hombre' => 'Hombre',
-                                'mujer' => 'Mujer',
-                                'otro' => 'Otro',
-                            ])
-
-                            ->hint('Género del empleado')
-                            ->hintIcon('heroicon-o-user-circle'),
-
-                        TextInput::make('nacionalidad')
-                            ->required()
-                            ->default('Boliviana')
-                            ->hint('Ingrese su nacionalidad')
-                            ->hintIcon('heroicon-o-flag'),
-
-                        // croquis
-                        Fieldset::make('Direccion y croquis de domicilio')
-                            ->schema([
-                                TextInput::make('direccion')
-                                    ->required()
-                                    ->maxLength(255)
-                                    ->label('Dirección completa')
-                                    ->hint('Escriba la dirección completa y detallada de su domicilio')
-                                    ->hintIcon('heroicon-o-exclamation-triangle'),
-
-                                // Campo para el mapa (interactivo)
-                                TextInput::make('titulo')
-                                    ->label('Croquis de domicilio')
-                                    ->hintIcon('heroicon-o-exclamation-triangle')
-                                    ->hint('Busque en el mapa la ubicacion de su domicilio')
-                                    ->required()
-                                    ->visible(function ($get, $livewire) {
-                                        // Ocultar cuando ubicacion_gps es null o es la ubicación por defecto
-                                        return empty($livewire->ubicacion_gps) ||
-                                            ($livewire->ubicacion_gps['lat'] == -16.500000 &&
-                                                $livewire->ubicacion_gps['lng'] == -68.150000);
-                                    })
-                                    ->extraAttributes(['class' => 'hidden'])
-                                    ->disabled(true),
-                                Field::make('ubicacion_gps')
-                                    ->live()
-                                    ->view('filament.forms.components.map-picker'),
-
-                            ])
-                            ->columns(1),
-                        // Sección de datos personales adicionales
-                        Section::make('Datos Personales')
-                            ->schema([
-                                Select::make('estado_civil')
-                                    ->options([
-                                        'soltero' => 'Soltero/a',
-                                        'casado' => 'Casado/a',
-                                        'viudo' => 'Viudo/a',
-                                        'divorciado' => 'Divorciado/a',
-                                    ])
-                                    ->label('Estado Civil')
-                                    ->hint('Ingrese su estado civil actual')
-                                    ->required()
-                                    ->hintIcon('heroicon-o-heart'),
-
-                                TextInput::make('cantidad_hijos')
-                                    ->minValue(0)
-                                    ->required()
-                                    ->numeric()
-                                    ->label('Número de Hijos')
-                                    ->hint('Indique la cantidad de hijos (Si los tiene)')
-                                    ->hintIcon('heroicon-o-user-group'),
-
-                                Fieldset::make('Datos adicionales')
-
-                                    ->schema([
-                                        TextInput::make('telefono_personal')
-                                            ->required()
-                                            ->tel()
-                                            ->label('Teléfono Personal')
-                                            ->hint('Ingrese su número de teléfono personal')
-                                            ->hintIcon('heroicon-o-phone'),
-
-                                        TextInput::make('correo_personal')
-                                            ->required()
-                                            ->email()
-                                            ->label('Correo Personal')
-                                            ->hint('Ingrese su correo electrónico personal')
-                                            ->hintIcon('heroicon-o-envelope'),
-
-                                        TextInput::make('nua_cua')
-                                            ->label('Numero NUA/CUA')
-                                            ->required()
-                                            ->hint('Indique su número de afiliación (0 si no tiene)')
-                                            ->hintIcon('heroicon-o-shield-check'),
-                                    ])
-                                    ->columns(3),
-
-                                Fieldset::make('Contacto de Emergencia')
-
-                                    ->schema([
-                                        TextInput::make('persona_contacto')
-                                            ->required()
-                                            ->label('Nombre de contacto')
-                                            ->hint('Persona a contactar en caso de emergencia')
-                                            ->hintIcon('heroicon-o-exclamation-triangle'),
-
-                                        TextInput::make('numero_contacto')
-                                            ->required()
-                                            ->tel()
-                                            ->label('Teléfono de contacto')
-                                            ->hint('Número de la persona de emergencia')
-                                            ->hintIcon('heroicon-o-phone'),
-
-                                        TextInput::make('persona_parentesco')
-                                            ->required()
-                                            ->label('Parentesco de contacto')
-                                            ->hint('Parentesco de la persona de emergencia')
-                                            ->hintIcon('heroicon-o-exclamation-triangle'),
-                                    ])
-                                    ->columns(3),
-                            ])
-                            ->columns(2),
-
-                        // Sección de datos laborales
-                        Section::make('Datos Laborales')
-                            // ->disabled()
-                            ->schema([
-
-                                Fieldset::make('Contacto empresarial')
-                                    ->disabled()
-                                    ->schema([
-                                        Placeholder::make('correo_corporativo_actual')
-                                            ->label('Correo Corporativo')
-                                            ->content(fn (?Empleado $record): string => $record?->historialActivo?->correo_corporativo ?? 'Sin asignar'),
-
-                                        Placeholder::make('numero_corporativo_actual')
-                                            ->label('Teléfono Corporativo')
-                                            ->content(fn (?Empleado $record): string => $record?->historialActivo?->numero_corporativo ?? 'Sin asignar'),
-                                    ])
-                                    ->columns(2),
-
-                            ])
-                            ->columns(2),
-                    ])
-                    ->columns(2),
-
-            ])
-            ->statePath('data');
-    }
-
-    protected function getFormActions(): array
+    protected function getHeaderActions(): array
     {
         return [
-            Action::make('save')
-                ->label('Guardar cambios')
-                ->submit('save'),
+            Actions\ViewAction::make()
+                ->label('Ver perfil'),
         ];
+    }
+
+    protected function getSavedNotificationTitle(): ?string
+    {
+        return 'Perfil actualizado correctamente';
     }
 
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('edit', ['record' => $this->getRecord()->id]);
+        return static::getResource()::getUrl('view', [
+            'record' => $this->getRecord(),
+        ]);
     }
 }

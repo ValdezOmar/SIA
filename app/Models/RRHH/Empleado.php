@@ -40,7 +40,10 @@ class Empleado extends Model
     ];
 
     protected $casts = [
-        'ubicacion_gps' => 'array', // Para almacenar coordenadas como JSON
+        'fecha_nacimiento' => 'date',
+        'ubicacion_gps' => 'array',
+        'cantidad_hijos' => 'integer',
+        'activo' => 'boolean',
     ];
 
     // protected $appends = ['foto_url', 'coordenadas'];

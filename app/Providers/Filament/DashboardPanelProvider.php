@@ -185,7 +185,7 @@ class DashboardPanelProvider extends PanelProvider
             ->first();
 
         return $empleado
-            ? PerfilEmpleadoResource::getUrl('view', ['record' => $empleado->id])
+            ? PerfilEmpleadoResource::getUrl('edit', ['record' => $empleado->id])
             : '#';
     }
 }

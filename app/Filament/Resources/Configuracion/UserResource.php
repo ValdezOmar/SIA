@@ -3,14 +3,22 @@
 namespace App\Filament\Resources\Configuracion;
 
 use App\Filament\Resources\Configuracion\UserResource\Pages;
+use App\Models\RRHH\Empleado;
+use App\Models\RRHH\HistorialLaboral;
+use App\Models\Sistema\Cargo;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
@@ -153,6 +161,167 @@ class UserResource extends Resource
                     ),
             ])
             ->actions([
+                Tables\Actions\Action::make('vincular_empleado')
+                    ->label('Vincular empleado')
+                    ->tooltip('Vincular esta cuenta con un empleado existente')
+                    ->icon('heroicon-o-link')
+                    ->color('info')
+                    ->modalHeading('Vincular empleado existente')
+                    ->modalDescription('Seleccione el empleado que corresponde a esta cuenta. Su correo corporativo se actualizará con el correo del usuario.')
+                    ->modalSubmitActionLabel('Vincular empleado')
+                    ->form([
+                        Forms\Components\Placeholder::make('usuario_vinculo')
+                            ->label('Cuenta de usuario')
+                            ->content(fn (User $record): string => $record->name.' — '.$record->email),
+
+                        Forms\Components\Select::make('empleado_id')
+                            ->label('Empleado existente')
+                            ->options(fn (): array => self::getEmployeeOptions())
+                            ->required()
+                            ->searchable()
+                            ->preload()
+                            ->disableOptionWhen(fn (string $value): bool => self::employeeCannotBeLinked((int) $value))
+                            ->helperText('Los empleados vinculados aparecen en gris y no pueden seleccionarse.'),
+                    ])
+                    ->action(fn (User $record, array $data) => self::linkExistingEmployee($record, (int) $data['empleado_id']))
+                    ->visible(fn (User $record): bool => $record->empleado === null),
+
+                Tables\Actions\Action::make('crear_perfil_empleado')
+                    ->label('Crear perfil')
+                    ->tooltip('Registrar y vincular los datos básicos del empleado')
+                    ->icon('heroicon-o-user-plus')
+                    ->color('success')
+                    ->modalHeading('Crear perfil de empleado')
+                    ->modalDescription('Registre los datos básicos. El perfil quedará vinculado automáticamente mediante el correo corporativo del usuario.')
+                    ->modalSubmitActionLabel('Crear y vincular perfil')
+                    ->modalWidth('4xl')
+                    ->fillForm(fn (User $record): array => self::getInitialEmployeeData($record))
+                    ->form([
+                        Forms\Components\Section::make('Datos personales básicos')
+                            ->description('Información necesaria para identificar al empleado.')
+                            ->icon('heroicon-o-identification')
+                            ->schema([
+                                Forms\Components\TextInput::make('nombres')
+                                    ->label('Nombres')
+                                    ->required()
+                                    ->maxLength(255),
+
+                                Forms\Components\TextInput::make('apellidos')
+                                    ->label('Apellidos')
+                                    ->required()
+                                    ->maxLength(255),
+
+                                Forms\Components\TextInput::make('ci')
+                                    ->label('Cédula de identidad')
+                                    ->required()
+                                    ->unique(table: 'rh_empleados', column: 'ci')
+                                    ->maxLength(50),
+
+                                Forms\Components\DatePicker::make('fecha_nacimiento')
+                                    ->label('Fecha de nacimiento')
+                                    ->native(false)
+                                    ->maxDate(now()),
+
+                                Forms\Components\Select::make('genero')
+                                    ->label('Género')
+                                    ->options([
+                                        'hombre' => 'Hombre',
+                                        'mujer' => 'Mujer',
+                                        'otro' => 'Otro',
+                                    ])
+                                    ->native(false),
+
+                                Forms\Components\TextInput::make('telefono_personal')
+                                    ->label('Teléfono personal')
+                                    ->tel()
+                                    ->maxLength(50),
+                            ])
+                            ->columns(3),
+
+                        Forms\Components\Section::make('Asignación laboral')
+                            ->description('Crea el historial laboral activo que enlaza al empleado con esta cuenta.')
+                            ->icon('heroicon-o-briefcase')
+                            ->schema([
+                                Forms\Components\Placeholder::make('correo_corporativo_info')
+                                    ->label('Correo corporativo')
+                                    ->content(fn (User $record): string => $record->email)
+                                    ->helperText('Este correo se usará para vincular la cuenta y el perfil.'),
+
+                                Forms\Components\Select::make('empresa_id')
+                                    ->label('Empresa')
+                                    ->options(fn (): array => Empresa::query()
+                                        ->where('empresa_activo', true)
+                                        ->orderBy('nombre_comercial')
+                                        ->pluck('nombre_comercial', 'id')
+                                        ->all())
+                                    ->default(fn () => Empresa::query()
+                                        ->where('empresa_activo', true)
+                                        ->orderBy('id')
+                                        ->value('id'))
+                                    ->required()
+                                    ->searchable()
+                                    ->preload()
+                                    ->live()
+                                    ->afterStateUpdated(function (Set $set): void {
+                                        $set('sucursal_id', null);
+                                        $set('cargo_id', null);
+                                    }),
+
+                                Forms\Components\Select::make('sucursal_id')
+                                    ->label('Sucursal')
+                                    ->options(fn (Get $get): array => filled($get('empresa_id'))
+                                        ? Sucursal::query()
+                                            ->where('empresa_id', $get('empresa_id'))
+                                            ->where('activo', true)
+                                            ->orderBy('nombre')
+                                            ->pluck('nombre', 'id')
+                                            ->all()
+                                        : [])
+                                    ->searchable()
+                                    ->preload()
+                                    ->disabled(fn (Get $get): bool => blank($get('empresa_id'))),
+
+                                Forms\Components\Select::make('cargo_id')
+                                    ->label('Cargo')
+                                    ->options(fn (Get $get): array => filled($get('empresa_id'))
+                                        ? Cargo::query()
+                                            ->whereHas('area.empresas', fn (Builder $query) => $query->where('conf_empresas.id', $get('empresa_id')))
+                                            ->orderBy('nombre')
+                                            ->pluck('nombre', 'id')
+                                            ->all()
+                                        : [])
+                                    ->searchable()
+                                    ->preload()
+                                    ->disabled(fn (Get $get): bool => blank($get('empresa_id'))),
+
+                                Forms\Components\DatePicker::make('fecha_inicio')
+                                    ->label('Fecha de ingreso')
+                                    ->default(now()->toDateString())
+                                    ->displayFormat('d/m/Y')
+                                    ->required()
+                                    ->native(false),
+
+                                Forms\Components\Select::make('tipo_contrato')
+                                    ->label('Tipo de contrato')
+                                    ->options([
+                                        'Contrato indefinido' => 'Contrato indefinido',
+                                        'Contrato plazo fijo' => 'Contrato plazo fijo',
+                                        'Contrato por servicios' => 'Contrato por servicios',
+                                        'Contrato por obra' => 'Contrato por obra',
+                                        'Contrato por temporada' => 'Contrato por temporada',
+                                        'Contrato de teletrabajo' => 'Contrato de teletrabajo',
+                                        'Pasante' => 'Pasante',
+                                        'Otro' => 'Otro',
+                                    ])
+                                    ->default('Contrato indefinido')
+                                    ->placeholder('Sin especificar')
+                                    ->native(false),
+                            ])
+                            ->columns(3),
+                    ])
+                    ->action(fn (User $record, array $data) => self::createAndLinkEmployee($record, $data))
+                    ->visible(fn (User $record): bool => $record->empleado === null),
+
                 Tables\Actions\EditAction::make()
                     ->label('Editar')
                     ->tooltip('Editar usuario'),
@@ -216,5 +385,225 @@ class UserResource extends Resource
             null => 'Seleccione un rol para ver el nivel de acceso que se asignará.',
             default => "Acceso definido por el rol {$roleName}.",
         };
+    }
+
+    /**
+     * Separa el nombre de la cuenta para facilitar el llenado inicial del modal.
+     * El administrador puede corregir ambos campos antes de guardar.
+     *
+     * @return array<string, mixed>
+     */
+    private static function getInitialEmployeeData(User $user): array
+    {
+        $partes = preg_split('/\s+/', trim($user->name)) ?: [];
+        $apellido = count($partes) > 1 ? array_pop($partes) : '';
+
+        return [
+            'nombres' => implode(' ', $partes) ?: $user->name,
+            'apellidos' => $apellido,
+            'empresa_id' => Empresa::query()
+                ->where('empresa_activo', true)
+                ->orderBy('id')
+                ->value('id'),
+            'fecha_inicio' => now()->toDateString(),
+            'tipo_contrato' => 'Contrato indefinido',
+        ];
+    }
+
+    /**
+     * Crea los datos personales y laborales en una única transacción.
+     * El correo corporativo constituye el enlace entre User y Empleado.
+     */
+    private static function createAndLinkEmployee(User $user, array $data): void
+    {
+        $correoYaAsignado = HistorialLaboral::query()
+            ->whereRaw('LOWER(correo_corporativo) = ?', [mb_strtolower($user->email)])
+            ->exists();
+
+        if ($correoYaAsignado) {
+            Notification::make()
+                ->title('El correo ya está asociado a un empleado')
+                ->body('Revise el historial laboral existente antes de crear otro perfil.')
+                ->warning()
+                ->persistent()
+                ->send();
+
+            return;
+        }
+
+        DB::transaction(function () use ($user, $data): void {
+            $empleado = Empleado::query()->create([
+                'nombres' => $data['nombres'],
+                'apellidos' => $data['apellidos'],
+                'ci' => $data['ci'],
+                'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
+                'genero' => $data['genero'] ?? null,
+                'telefono_personal' => $data['telefono_personal'] ?? null,
+                'nacionalidad' => 'Boliviana',
+                'activo' => true,
+            ]);
+
+            $empresa = Empresa::query()->find($data['empresa_id']);
+
+            $empleado->historialLaboral()->create([
+                'empresa_id' => $data['empresa_id'],
+                'sucursal_id' => $data['sucursal_id'] ?? null,
+                'cargo_id' => $data['cargo_id'] ?? null,
+                'fecha_inicio' => $data['fecha_inicio'],
+                'tipo_contrato' => $data['tipo_contrato'] ?? null,
+                'seguro_medico' => $empresa?->seguro_medico,
+                'correo_corporativo' => mb_strtolower($user->email),
+                'activo' => true,
+            ]);
+        });
+
+        $user->unsetRelation('empleado');
+
+        Notification::make()
+            ->title('Perfil de empleado creado')
+            ->body('El usuario ya puede acceder a Mi Perfil desde su cuenta.')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Devuelve todos los empleados e identifica en la etiqueta cuáles ya están
+     * vinculados o no tienen un historial laboral activo.
+     *
+     * @return array<int, string>
+     */
+    private static function getEmployeeOptions(): array
+    {
+        $usuariosPorCorreo = User::query()
+            ->whereNotNull('email')
+            ->get(['name', 'email'])
+            ->keyBy(fn (User $user): string => mb_strtolower($user->email));
+
+        return Empleado::query()
+            ->with('historialActivo')
+            ->orderBy('apellidos')
+            ->orderBy('nombres')
+            ->get()
+            ->mapWithKeys(function (Empleado $empleado) use ($usuariosPorCorreo): array {
+                $etiqueta = trim($empleado->nombres.' '.$empleado->apellidos).' — CI: '.$empleado->ci;
+                $historial = $empleado->historialActivo;
+
+                if (! $historial) {
+                    return [$empleado->id => $etiqueta.' — DISPONIBLE (SE CREARÁ HISTORIAL ACTIVO)'];
+                }
+
+                $correo = $historial->correo_corporativo;
+                $usuarioVinculado = filled($correo)
+                    ? $usuariosPorCorreo->get(mb_strtolower($correo))
+                    : null;
+
+                if ($usuarioVinculado) {
+                    return [$empleado->id => $etiqueta.' — VINCULADO A '.$usuarioVinculado->name];
+                }
+
+                return [$empleado->id => $etiqueta.' — DISPONIBLE'];
+            })
+            ->all();
+    }
+
+    /**
+     * Deshabilita únicamente empleados cuyo correo corporativo ya corresponde
+     * a una cuenta. Los empleados sin historial activo pueden seleccionarse.
+     */
+    private static function employeeCannotBeLinked(int $empleadoId): bool
+    {
+        static $empleadosNoDisponibles;
+
+        if ($empleadosNoDisponibles === null) {
+            $correosDeUsuarios = User::query()
+                ->whereNotNull('email')
+                ->pluck('email')
+                ->map(fn (string $email): string => mb_strtolower($email))
+                ->all();
+
+            $empleadosNoDisponibles = Empleado::query()
+                ->with('historialActivo')
+                ->get()
+                ->filter(function (Empleado $empleado) use ($correosDeUsuarios): bool {
+                    $historial = $empleado->historialActivo;
+
+                    return $historial
+                        && filled($historial->correo_corporativo)
+                        && in_array(mb_strtolower($historial->correo_corporativo), $correosDeUsuarios, true);
+                })
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+        }
+
+        return in_array($empleadoId, $empleadosNoDisponibles, true);
+    }
+
+    /**
+     * Vincula un empleado existente reemplazando el correo corporativo de su
+     * historial activo por el correo de la cuenta seleccionada.
+     */
+    private static function linkExistingEmployee(User $user, int $empleadoId): void
+    {
+        $vinculado = DB::transaction(function () use ($user, $empleadoId): bool {
+            $empleado = Empleado::query()
+                ->with('historialActivo')
+                ->lockForUpdate()
+                ->find($empleadoId);
+
+            if (! $empleado) {
+                return false;
+            }
+
+            $historial = $empleado->historialActivo;
+            $correoActual = $historial?->correo_corporativo;
+            $perteneceAOtraCuenta = filled($correoActual)
+                && User::query()
+                    ->whereKeyNot($user->getKey())
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower($correoActual)])
+                    ->exists();
+
+            $correoUsuarioAsignadoAOtroEmpleado = HistorialLaboral::query()
+                ->where('empleado_id', '!=', $empleado->id)
+                ->whereRaw('LOWER(correo_corporativo) = ?', [mb_strtolower($user->email)])
+                ->exists();
+
+            if ($perteneceAOtraCuenta || $correoUsuarioAsignadoAOtroEmpleado) {
+                return false;
+            }
+
+            if (! $historial) {
+                $historial = $empleado->historialLaboral()->create([
+                    'correo_corporativo' => mb_strtolower($user->email),
+                    'fecha_inicio' => now()->toDateString(),
+                    'activo' => true,
+                ]);
+            }
+
+            $historial->update([
+                'correo_corporativo' => mb_strtolower($user->email),
+            ]);
+
+            return true;
+        });
+
+        if (! $vinculado) {
+            Notification::make()
+                ->title('No se pudo vincular el empleado')
+                ->body('El empleado ya está asociado a otra cuenta o el registro dejó de estar disponible.')
+                ->danger()
+                ->persistent()
+                ->send();
+
+            return;
+        }
+
+        $user->unsetRelation('empleado');
+
+        Notification::make()
+            ->title('Empleado vinculado correctamente')
+            ->body('El usuario ya puede acceder a Mi Perfil desde su cuenta.')
+            ->success()
+            ->send();
     }
 }
