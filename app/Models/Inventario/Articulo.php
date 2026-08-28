@@ -63,6 +63,43 @@ class Articulo extends Model
         'documentacion_tecnica' => 'array',
     ];
 
+    // ========== NORMALIZACIÓN DE TEXTO ==========
+
+    /**
+     * Guarda el código del artículo en mayúsculas.
+     */
+    public function setCodigoAttribute(mixed $value): void
+    {
+        $this->attributes['codigo'] = self::toUppercase($value);
+    }
+
+    /**
+     * Guarda el código alterno o modelo en mayúsculas.
+     */
+    public function setCodigoAlternoAttribute(mixed $value): void
+    {
+        $this->attributes['codigo_alterno'] = self::toUppercase($value);
+    }
+
+    /**
+     * Guarda el nombre comercial en mayúsculas.
+     */
+    public function setNombreComercialAttribute(mixed $value): void
+    {
+        $this->attributes['nombre_comercial'] = self::toUppercase($value);
+    }
+
+    /**
+     * Convierte texto a mayúsculas conservando caracteres UTF-8.
+     * Los valores nulos se mantienen sin cambios.
+     */
+    private static function toUppercase(mixed $value): mixed
+    {
+        return is_string($value)
+            ? mb_strtoupper($value, 'UTF-8')
+            : $value;
+    }
+
     // ========== BOOT ==========
 
     protected static function boot()
