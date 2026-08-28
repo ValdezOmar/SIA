@@ -39,7 +39,7 @@ class PreciosRelationManager extends RelationManager
                                 Select::make('lista_precio_id')
                                     ->label('Lista de Precios')
                                     ->options(
-                                        fn () => ListaPrecio::where('activo', true)
+                                        fn() => ListaPrecio::where('activo', true)
                                             ->pluck('nombre', 'id')
                                             ->toArray()
                                     )
@@ -81,20 +81,7 @@ class PreciosRelationManager extends RelationManager
                                         }
                                     }),
 
-                                TextInput::make('precio')
-                                    ->disabled(function ($get) {
-
-                                        $lista = $get('lista_precio_id');
-
-                                        if (! $lista) {
-                                            return false;
-                                        }
-
-                                        return \App\Models\Inventario\PrecioArticulo::query()
-                                            ->where('articulo_id', $this->getOwnerRecord()->id)
-                                            ->where('lista_precio_id', $lista)
-                                            ->exists();
-                                    }),
+                                TextInput::make('precio'),
 
                                 Placeholder::make('precio_existente')
                                     ->label('La lista de precio ya tiene un precio asignado')
@@ -140,9 +127,9 @@ class PreciosRelationManager extends RelationManager
                                                 ->exists();
                                         }
 
-                                        $html = "{$lista->nombre}\n".
-                                            "Código: {$lista->codigo}\n".
-                                            'Moneda: '.($lista->moneda ?? 'BOB');
+                                        $html = "{$lista->nombre}\n" .
+                                            "Código: {$lista->codigo}\n" .
+                                            'Moneda: ' . ($lista->moneda ?? 'BOB');
 
                                         if ($tienePrecio) {
                                             $html .= "\n\nEste artículo ya tiene un precio en esta lista";
@@ -177,13 +164,13 @@ class PreciosRelationManager extends RelationManager
                 TextColumn::make('listaPrecio.moneda')
                     ->label('Moneda')
                     ->badge()
-                    ->color(fn ($state) => $state === 'BOB' ? 'success' : 'warning')
-                    ->formatStateUsing(fn ($state) => $state === 'BOB' ? 'BOB' : 'USD')
+                    ->color(fn($state) => $state === 'BOB' ? 'success' : 'warning')
+                    ->formatStateUsing(fn($state) => $state === 'BOB' ? 'BOB' : 'USD')
                     ->toggleable(),
 
                 TextColumn::make('precio')
                     ->label('Precio')
-                    ->money(fn ($record) => $record->listaPrecio?->moneda ?? 'BOB')
+                    ->money(fn($record) => $record->listaPrecio?->moneda ?? 'BOB')
                     ->sortable()
                     ->copyable()
                     ->copyMessage('Precio copiado')
@@ -205,7 +192,7 @@ class PreciosRelationManager extends RelationManager
                 Tables\Filters\SelectFilter::make('lista_precio_id')
                     ->label('Filtrar por Lista')
                     ->options(
-                        fn () => ListaPrecio::where('activo', true)
+                        fn() => ListaPrecio::where('activo', true)
                             ->pluck('nombre', 'id')
                             ->toArray()
                     )
@@ -224,7 +211,7 @@ class PreciosRelationManager extends RelationManager
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['precio_minimo'],
-                            fn (Builder $query, $precio): Builder => $query->where('precio', '>=', $precio)
+                            fn(Builder $query, $precio): Builder => $query->where('precio', '>=', $precio)
                         );
                     }),
 
@@ -240,7 +227,7 @@ class PreciosRelationManager extends RelationManager
                     ->query(function (Builder $query, array $data): Builder {
                         return $query->when(
                             $data['precio_maximo'],
-                            fn (Builder $query, $precio): Builder => $query->where('precio', '<=', $precio)
+                            fn(Builder $query, $precio): Builder => $query->where('precio', '<=', $precio)
                         );
                     }),
             ])
@@ -313,59 +300,6 @@ class PreciosRelationManager extends RelationManager
                                 ->success()
                                 ->send();
                         }),
-
-                    Tables\Actions\Action::make('duplicate')
-                        ->label('Duplicar a otra lista')
-                        ->icon('heroicon-o-document-duplicate')
-                        ->color('info')
-                        ->form([
-                            Select::make('lista_precio_id')
-                                ->label('Lista de Precios destino')
-                                ->options(
-                                    fn () => ListaPrecio::where('activo', true)
-                                        ->where('id', '!=', function ($query) {
-                                            $query->select('lista_precio_id')->from('alm_precios_articulos');
-                                        })
-                                        ->pluck('nombre', 'id')
-                                        ->toArray()
-                                )
-                                ->required()
-                                ->searchable()
-                                ->preload()
-                                ->helperText('Selecciona la lista donde quieres duplicar este precio'),
-                        ])
-                        ->action(function (array $data, $record) {
-                            $exists = \App\Models\Inventario\PrecioArticulo::where('articulo_id', $record->articulo_id)
-                                ->where('lista_precio_id', $data['lista_precio_id'])
-                                ->exists();
-
-                            if ($exists) {
-                                \Filament\Notifications\Notification::make()
-                                    ->title('Error')
-                                    ->body('Este artículo ya tiene un precio en la lista seleccionada')
-                                    ->danger()
-                                    ->send();
-
-                                return;
-                            }
-
-                            $newRecord = $record->replicate();
-                            $newRecord->lista_precio_id = $data['lista_precio_id'];
-                            $newRecord->created_at = now();
-                            $newRecord->updated_at = now();
-                            $newRecord->save();
-
-                            $lista = ListaPrecio::find($data['lista_precio_id']);
-                            \Filament\Notifications\Notification::make()
-                                ->title('Precio duplicado exitosamente')
-                                ->body("El precio ha sido duplicado a la lista {$lista->nombre}")
-                                ->success()
-                                ->send();
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Duplicar Precio')
-                        ->modalSubheading('Selecciona la lista destino para duplicar este precio'),
-
                     Tables\Actions\DeleteAction::make()
                         ->before(function ($record) {
                             \Filament\Notifications\Notification::make()
