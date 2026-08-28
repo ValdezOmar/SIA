@@ -271,6 +271,8 @@ class ArticuloResource extends Resource
                                                 FileUpload::make('foto_catalogo')
                                                     ->label('Foto de Catálogo')
                                                     ->image()
+                                                    ->openable()
+                                                    ->downloadable()
                                                     ->imageResizeTargetWidth('400')
                                                     ->imageResizeTargetHeight('400')
                                                     ->directory('articulos/catalogo')
