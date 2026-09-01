@@ -4,7 +4,6 @@ namespace App\Providers\Filament;
 
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
 use App\Filament\Widgets\EmpresaMailWidget;
-use App\Models\RRHH\PerfilEmpleado;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -19,7 +18,6 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Nuxtifyts\DashStackTheme\DashStackThemePlugin;
 
@@ -161,6 +159,7 @@ class DashboardPanelProvider extends PanelProvider
             'perfil' => MenuItem::make()
                 ->label('Mi Perfil')
                 ->icon('heroicon-o-user')
+                ->visible(fn (): bool => PerfilEmpleadoResource::getCurrentEmployeeId() !== null)
                 ->url(fn (): string => $this->profileUrl()),
         ];
     }
@@ -168,22 +167,10 @@ class DashboardPanelProvider extends PanelProvider
     private function profileUrl(): string
     {
         // El menú también puede evaluarse durante procesos sin usuario autenticado.
-        $email = Auth::user()?->email;
+        $empleadoId = PerfilEmpleadoResource::getCurrentEmployeeId();
 
-        if (! $email) {
-            return '#';
-        }
-
-        // Relaciona al usuario con su perfil mediante el correo corporativo activo.
-        $empleado = PerfilEmpleado::query()
-            ->whereHas(
-                'historialActivo',
-                fn ($query) => $query->where('correo_corporativo', $email),
-            )
-            ->first();
-
-        return $empleado
-            ? PerfilEmpleadoResource::getUrl('edit', ['record' => $empleado->id])
+        return $empleadoId
+            ? PerfilEmpleadoResource::getUrl('edit', ['record' => $empleadoId])
             : '#';
     }
 }

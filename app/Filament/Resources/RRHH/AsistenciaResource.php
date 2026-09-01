@@ -328,7 +328,8 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->formatStateUsing(function (Empleado $record) {
                     // Obtener empresa del historial laboral activo
                     if ($record->historialActivo && $record->historialActivo->empresa) {
-                        return $record->historialActivo->empresa->razon_social;
+                        return $record->historialActivo->empresa->nombre_comercial
+                            ?: $record->historialActivo->empresa->razon_social;
                     }
 
                     return 'Sin empresa';
@@ -336,7 +337,11 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->searchable(query: function (Builder $query, string $search): Builder {
                     return $query->where(function ($q) use ($search) {
                         $q->whereHas('historialActivo.empresa', function ($subq) use ($search) {
-                            $subq->where('razon_social', 'like', "%{$search}%");
+                            $subq->where(function (Builder $empresaQuery) use ($search) {
+                                $empresaQuery
+                                    ->where('nombre_comercial', 'like', "%{$search}%")
+                                    ->orWhere('razon_social', 'like', "%{$search}%");
+                            });
                         })
                             ->orWhereHas('historialActivo.sucursal', function ($subq) use ($search) {
                                 $subq->where('nombre', 'like', "%{$search}%");
@@ -551,7 +556,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                             ]);
 
                             // Configurar el PDF para mejor visualización
-                            $pdf->setPaper('A4', 'landscape')
+                            $pdf->setPaper('A4', 'portrait')
                                 ->setOption('isHtml5ParserEnabled', true)
                                 ->setOption('isRemoteEnabled', false);
 

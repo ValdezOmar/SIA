@@ -14,6 +14,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -37,8 +38,8 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
     protected static ?int $navigationSort = -1;
 
     /**
-     * El perfil aparece únicamente cuando el correo del usuario está asociado
-     * a un historial laboral activo.
+     * El perfil aparece cuando el correo del usuario está asociado a un
+     * empleado, incluso si actualmente no tiene un historial laboral activo.
      */
     public static function shouldRegisterNavigation(): bool
     {
@@ -96,7 +97,10 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
     {
         return $form
             ->schema([
-                Section::make('Mi perfil')
+                Section::make(fn (Get $get): HtmlString => static::sectionHeading('Mi perfil', $get, [
+                    'foto', 'nombres', 'apellidos',
+                ]))
+                    ->id('resumen-perfil')
                     ->description('Información principal asociada a su cuenta empresarial.')
                     ->icon('heroicon-o-identification')
                     ->schema([
@@ -149,33 +153,42 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
                     ])
                     ->columns(3),
 
-                Section::make('Información personal')
+                Section::make(fn (Get $get): HtmlString => static::sectionHeading('Información personal', $get, [
+                    'nombres', 'apellidos', 'ci', 'fecha_nacimiento', 'genero',
+                    'nacionalidad', 'estado_civil', 'cantidad_hijos',
+                ]))
+                    ->id('informacion-personal')
                     ->description('Datos personales y de identificación.')
                     ->icon('heroicon-o-user')
                     ->schema([
                         TextInput::make('nombres')
                             ->label('Nombres')
+                            ->live(onBlur: true)
                             ->required()
                             ->maxLength(255),
 
                         TextInput::make('apellidos')
                             ->label('Apellidos')
+                            ->live(onBlur: true)
                             ->required()
                             ->maxLength(255),
 
                         TextInput::make('ci')
                             ->label('Cédula de identidad')
+                            ->live(onBlur: true)
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(50),
 
                         DatePicker::make('fecha_nacimiento')
                             ->label('Fecha de nacimiento')
+                            ->live()
                             ->native(false)
                             ->maxDate(now()),
 
                         Select::make('genero')
                             ->label('Género')
+                            ->live()
                             ->options([
                                 'hombre' => 'Hombre',
                                 'mujer' => 'Mujer',
@@ -185,10 +198,12 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
 
                         TextInput::make('nacionalidad')
                             ->label('Nacionalidad')
+                            ->live(onBlur: true)
                             ->maxLength(100),
 
                         Select::make('estado_civil')
                             ->label('Estado civil')
+                            ->live()
                             ->options([
                                 'soltero' => 'Soltero/a',
                                 'casado' => 'Casado/a',
@@ -199,6 +214,7 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
 
                         TextInput::make('cantidad_hijos')
                             ->label('Cantidad de hijos')
+                            ->live(onBlur: true)
                             ->numeric()
                             ->minValue(0),
                     ])
@@ -208,24 +224,30 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
                         'xl' => 4,
                     ]),
 
-                Section::make('Contacto y domicilio')
+                Section::make(fn (Get $get): HtmlString => static::sectionHeading('Contacto y domicilio', $get, [
+                    'telefono_personal', 'correo_personal', 'direccion', 'ubicacion_gps',
+                ]))
+                    ->id('contacto-domicilio')
                     ->description('Información necesaria para comunicarse con usted.')
                     ->icon('heroicon-o-map-pin')
                     ->schema([
                         TextInput::make('telefono_personal')
                             ->label('Teléfono personal')
+                            ->live(onBlur: true)
                             ->tel()
                             ->maxLength(50)
                             ->prefixIcon('heroicon-o-phone'),
 
                         TextInput::make('correo_personal')
                             ->label('Correo personal')
+                            ->live(onBlur: true)
                             ->email()
                             ->maxLength(255)
                             ->prefixIcon('heroicon-o-envelope'),
 
                         TextInput::make('direccion')
                             ->label('Dirección completa')
+                            ->live(onBlur: true)
                             ->maxLength(255)
                             ->columnSpanFull(),
 
@@ -237,33 +259,42 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
                     ])
                     ->columns(2),
 
-                Section::make('Contacto de emergencia')
+                Section::make(fn (Get $get): HtmlString => static::sectionHeading('Contacto de emergencia', $get, [
+                    'persona_contacto', 'numero_contacto', 'persona_parentesco',
+                ]))
+                    ->id('contacto-emergencia')
                     ->description('Persona a quien contactar en caso de emergencia.')
                     ->icon('heroicon-o-exclamation-triangle')
                     ->schema([
                         TextInput::make('persona_contacto')
                             ->label('Nombre del contacto')
+                            ->live(onBlur: true)
                             ->maxLength(255),
 
                         TextInput::make('numero_contacto')
                             ->label('Teléfono del contacto')
+                            ->live(onBlur: true)
                             ->tel()
                             ->maxLength(50),
 
                         TextInput::make('persona_parentesco')
                             ->label('Parentesco')
+                            ->live(onBlur: true)
                             ->maxLength(100),
                     ])
                     ->columns(3)
                     ->collapsed(),
 
-                Section::make('Información laboral vigente')
+                Section::make(fn (?PerfilEmpleado $record): HtmlString => static::laborSectionHeading($record))
+                    ->id('informacion-laboral')
                     ->description('Esta información proviene del historial laboral activo y solo puede modificarla Recursos Humanos.')
                     ->icon('heroicon-o-briefcase')
                     ->schema([
                         Placeholder::make('empresa_actual')
                             ->label('Empresa')
-                            ->content(fn (?PerfilEmpleado $record): string => $record?->historialActivo?->empresa?->razon_social ?? 'Sin asignar'),
+                            ->content(fn (?PerfilEmpleado $record): string => $record?->historialActivo?->empresa?->nombre_comercial
+                                ?: $record?->historialActivo?->empresa?->razon_social
+                                ?: 'Sin asignar'),
 
                         Placeholder::make('sucursal_actual')
                             ->label('Sucursal')
@@ -301,15 +332,20 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
                         'xl' => 4,
                     ]),
 
-                Section::make('Seguridad social')
+                Section::make(fn (Get $get): HtmlString => static::sectionHeading('Seguridad social', $get, [
+                    'afp', 'nua_cua',
+                ]))
+                    ->id('seguridad-social')
                     ->icon('heroicon-o-shield-check')
                     ->schema([
                         TextInput::make('afp')
                             ->label('Gestora / AFP')
+                            ->live(onBlur: true)
                             ->maxLength(255),
 
                         TextInput::make('nua_cua')
                             ->label('Número NUA/CUA')
+                            ->live(onBlur: true)
                             ->maxLength(100),
                     ])
                     ->columns(2)
@@ -318,7 +354,62 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
     }
 
     /**
-     * Obtiene el empleado vinculado al correo corporativo activo del usuario.
+     * Construye el puntero de completitud que permanece visible en el título de
+     * cada sección, incluso cuando la sección se encuentra contraída.
+     *
+     * @param  array<int, string>  $fields
+     */
+    private static function sectionHeading(string $title, Get $get, array $fields): HtmlString
+    {
+        $complete = collect($fields)->every(function (string $field) use ($get): bool {
+            $value = $get($field);
+
+            if (is_array($value)) {
+                return $value !== [];
+            }
+
+            return $value === 0 || $value === '0' || filled($value);
+        });
+
+        return static::headingWithStatus($title, $complete);
+    }
+
+    /**
+     * La sección laboral es informativa y se evalúa desde el historial vigente,
+     * porque sus valores no forman parte directa del formulario del empleado.
+     */
+    private static function laborSectionHeading(?PerfilEmpleado $record): HtmlString
+    {
+        $historial = $record?->historialActivo;
+        $complete = $historial !== null && collect([
+            $historial->empresa_id,
+            $historial->sucursal_id,
+            $historial->cargo_id,
+            $historial->tipo_contrato,
+            $historial->fecha_inicio,
+            $historial->correo_corporativo,
+        ])->every(fn ($value): bool => filled($value));
+
+        return static::headingWithStatus('Información laboral vigente', $complete);
+    }
+
+    private static function headingWithStatus(string $title, bool $complete): HtmlString
+    {
+        $label = $complete ? 'Completa' : 'Incompleta';
+        $color = $complete ? '#16a34a' : '#d97706';
+
+        return new HtmlString(sprintf(
+            '<span>%s <small style="margin-left:8px;color:%s;font-weight:600;white-space:nowrap;">● %s</small></span>',
+            e($title),
+            $color,
+            $label,
+        ));
+    }
+
+    /**
+     * Obtiene el empleado asociado al usuario mediante cualquiera de sus
+     * historiales. La asociación permanece válida aunque el vínculo laboral se
+     * cierre posteriormente.
      */
     public static function getCurrentEmployeeId(): ?int
     {
@@ -330,7 +421,7 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
 
         return PerfilEmpleado::query()
             ->whereHas(
-                'historialActivo',
+                'historialLaboral',
                 fn (Builder $query) => $query->whereRaw(
                     'LOWER(correo_corporativo) = ?',
                     [mb_strtolower($email)],

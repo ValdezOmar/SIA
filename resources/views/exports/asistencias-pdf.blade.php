@@ -5,7 +5,7 @@
     <title>Reporte de Asistencias</title>
     <style>
         @page {
-            size: A4 landscape;
+            size: A4 portrait;
             margin: 8mm;
         }
         body {
@@ -164,7 +164,9 @@
                 });
                 
                 // Obtener datos del historial activo
-                $empresa = $empleado->historialActivo->empresa->razon_social ?? 'N/A';
+                $empresa = $empleado->historialActivo?->empresa?->nombre_comercial
+                    ?: $empleado->historialActivo?->empresa?->razon_social
+                    ?: 'N/A';
                 $sucursal = $empleado->historialActivo->sucursal->nombre ?? 'N/A';
                 $cargo = $empleado->historialActivo->cargo->nombre ?? 'N/A';
             @endphp
