@@ -3,7 +3,13 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
+use App\Filament\Widgets\ContabilidadResumenWidget;
+use App\Filament\Widgets\ContabilidadTendenciaWidget;
 use App\Filament\Widgets\EmpresaMailWidget;
+use App\Filament\Widgets\InventarioResumenWidget;
+use App\Filament\Widgets\InventarioTendenciaWidget;
+use App\Filament\Widgets\VentasResumenWidget;
+use App\Filament\Widgets\VentasTendenciaWidget;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -89,6 +95,12 @@ class DashboardPanelProvider extends PanelProvider
     private function widgets(): array
     {
         return [
+            ContabilidadResumenWidget::class,
+            VentasResumenWidget::class,
+            InventarioResumenWidget::class,
+            VentasTendenciaWidget::class,
+            ContabilidadTendenciaWidget::class,
+            InventarioTendenciaWidget::class,
             EmpresaMailWidget::class,
         ];
     }
