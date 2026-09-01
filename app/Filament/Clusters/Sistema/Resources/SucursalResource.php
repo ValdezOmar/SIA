@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\Sistema\Resources;
 
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\SucursalResource\Pages;
+use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms;
@@ -24,6 +25,12 @@ class SucursalResource extends Resource implements HasShieldPermissions
 
     protected static ?string $pluralModelLabel = 'Sucursales';
 
+    protected static ?string $navigationLabel = 'Sucursales';
+
+    protected static ?string $navigationGroup = 'Estructura empresarial';
+
+    protected static ?int $navigationSort = 2;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -33,11 +40,13 @@ class SucursalResource extends Resource implements HasShieldPermissions
                     ->schema([
                         Forms\Components\Select::make('empresa_id')
                             ->label('Empresa')
-                            ->relationship('empresa', 'razon_social')
+                            ->relationship('empresa', 'nombre_comercial')
+                            ->getOptionLabelFromRecordUsing(fn (Empresa $record): string => $record->nombre_comercial ?: $record->razon_social)
                             ->required()
-                            ->searchable()
+                            ->searchable(['nombre_comercial', 'razon_social', 'nit'])
                             ->preload()
-                            ->helperText('Seleccione la empresa responsable de esta sucursal.'),
+                            ->placeholder('Busque por nombre comercial, razón social o NIT')
+                            ->helperText('La sucursal quedará disponible únicamente para la empresa seleccionada.'),
 
                         Forms\Components\TextInput::make('nombre')
                             ->label('Nombre de la sucursal')
@@ -94,8 +103,10 @@ class SucursalResource extends Resource implements HasShieldPermissions
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('empresa.razon_social')
+                Tables\Columns\TextColumn::make('empresa.nombre_comercial')
                     ->label('Empresa')
+                    ->placeholder('Sin nombre comercial')
+                    ->description(fn (Sucursal $record): string => $record->empresa?->razon_social ?? 'Empresa no disponible')
                     ->sortable()
                     ->searchable(),
 
@@ -123,6 +134,13 @@ class SucursalResource extends Resource implements HasShieldPermissions
                     ->sortable(),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('empresa_id')
+                    ->label('Empresa')
+                    ->relationship('empresa', 'nombre_comercial')
+                    ->getOptionLabelFromRecordUsing(fn (Empresa $record): string => $record->nombre_comercial ?: $record->razon_social)
+                    ->searchable()
+                    ->preload(),
+
                 Tables\Filters\TernaryFilter::make('activo')
                     ->label('Activa')
                     ->trueLabel('Solo activas')
@@ -130,9 +148,6 @@ class SucursalResource extends Resource implements HasShieldPermissions
                     ->placeholder('Todas'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()
-                    ->label('Ver'),
-
                 Tables\Actions\EditAction::make()
                     ->label('Editar'),
 

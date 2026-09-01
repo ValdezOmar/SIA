@@ -16,4 +16,9 @@ class ManageParametro extends EditRecord
         $this->record = Parametro::firstOrCreate([]);
         parent::mount($this->record->getKey());
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

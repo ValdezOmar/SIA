@@ -14,7 +14,6 @@ use Filament\Navigation\MenuItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -92,7 +91,6 @@ class DashboardPanelProvider extends PanelProvider
     private function widgets(): array
     {
         return [
-            AccountWidget::class,
             EmpresaMailWidget::class,
         ];
     }

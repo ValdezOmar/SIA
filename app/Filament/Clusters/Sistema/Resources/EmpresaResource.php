@@ -4,10 +4,12 @@ namespace App\Filament\Clusters\Sistema\Resources;
 
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\EmpresaResource\Pages;
+use App\Filament\Clusters\Sistema\Resources\EmpresaResource\RelationManagers\AreasRelationManager;
+use App\Filament\Clusters\Sistema\Resources\EmpresaResource\RelationManagers\SucursalesRelationManager;
 use App\Models\Sistema\Empresa;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -28,14 +30,18 @@ class EmpresaResource extends Resource implements HasShieldPermissions
 
     protected static ?string $navigationLabel = 'Empresas';
 
+    protected static ?string $navigationGroup = 'Estructura empresarial';
+
     protected static ?string $cluster = Sistema::class;
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Section::make('Identificación')
-                    ->description('Registre los datos legales y las áreas que pertenecen a la empresa.')
+                    ->description('Registre los nombres legal y comercial que identifican a la empresa.')
                     ->schema([
                         TextInput::make('razon_social')
                             ->label('Razón Social')
@@ -52,18 +58,19 @@ class EmpresaResource extends Resource implements HasShieldPermissions
 
                         TextInput::make('nit')
                             ->label('NIT')
-                            ->maxLength(50),
+                            ->maxLength(50)
+                            ->helperText('Número de identificación tributaria de la empresa.'),
 
                         TextInput::make('nro_matricula')
                             ->label('Nro. Matrícula')
-                            ->maxLength(50),
-                        Select::make('areas')
-                            ->label('Áreas de la empresa')
-                            ->multiple()
-                            ->relationship('areas', 'nombre')
-                            ->searchable()
-                            ->preload()
-                            ->helperText('Seleccione las áreas que operan dentro de esta empresa.'),
+                            ->maxLength(50)
+                            ->helperText('Número de matrícula de comercio, si corresponde.'),
+
+                        Placeholder::make('estructura_organizacional')
+                            ->label('Estructura organizacional')
+                            ->content('Después de guardar, use las pestañas Sucursales y Áreas para completar la estructura de esta empresa.')
+                            ->helperText('Las áreas contienen los cargos; las sucursales representan las ubicaciones de la empresa.')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
 
@@ -72,36 +79,43 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                     ->schema([
                         Textarea::make('direccion')
                             ->label('Dirección')
-                            ->rows(2),
+                            ->rows(2)
+                            ->helperText('Dirección legal o principal de la empresa.'),
 
                         TextInput::make('ciudad')
                             ->label('Ciudad')
-                            ->maxLength(150),
+                            ->maxLength(150)
+                            ->helperText('Ciudad de la oficina principal.'),
 
                         TextInput::make('pais')
                             ->label('País')
                             ->default('Bolivia')
-                            ->maxLength(100),
+                            ->maxLength(100)
+                            ->helperText('País donde está registrada la empresa.'),
 
                         TextInput::make('telefono')
                             ->label('Teléfono')
-                            ->maxLength(50),
+                            ->maxLength(50)
+                            ->helperText('Número fijo o central telefónica.'),
 
                         TextInput::make('celular')
                             ->label('Celular')
-                            ->maxLength(50),
+                            ->maxLength(50)
+                            ->helperText('Número móvil principal de contacto.'),
 
                         TextInput::make('email')
                             ->label('Email')
                             ->placeholder('contacto@empresa.com')
                             ->email()
-                            ->maxLength(150),
+                            ->maxLength(150)
+                            ->helperText('Correo general utilizado para comunicaciones empresariales.'),
 
                         TextInput::make('sitio_web')
                             ->label('Sitio Web')
                             ->placeholder('https://empresa.com')
                             ->url()
-                            ->maxLength(150),
+                            ->maxLength(150)
+                            ->helperText('Dirección web pública de la empresa.'),
                         TextInput::make('seguro_medico')
                             ->label('Caja de Salud')
                             ->helperText('Entidad de salud que corresponde a sus empleados.')
@@ -123,15 +137,25 @@ class EmpresaResource extends Resource implements HasShieldPermissions
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('razon_social')
-                    ->label('Razón Social')
+                Tables\Columns\TextColumn::make('nombre_comercial')
+                    ->label('Empresa')
                     ->searchable()
                     ->sortable()
-                    ->description(fn (Empresa $record): string => $record->nit ? "NIT: {$record->nit}" : 'Sin NIT registrado'),
+                    ->weight('bold')
+                    ->placeholder('Sin nombre comercial')
+                    ->description(fn (Empresa $record): string => $record->razon_social),
 
-                Tables\Columns\TextColumn::make('nombre_comercial')
-                    ->label('Nombre Comercial')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('sucursales_count')
+                    ->counts('sucursales')
+                    ->label('Sucursales')
+                    ->badge()
+                    ->color('info'),
+
+                Tables\Columns\TextColumn::make('areas_count')
+                    ->counts('areas')
+                    ->label('Áreas')
+                    ->badge()
+                    ->color('primary'),
 
                 Tables\Columns\TextColumn::make('nit')
                     ->label('NIT')
@@ -150,8 +174,9 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                     ->label('Activa'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()->label('Ver'),
-                Tables\Actions\EditAction::make()->label('Editar'),
+                Tables\Actions\EditAction::make()
+                    ->label('Administrar')
+                    ->tooltip('Editar la empresa y administrar sucursales y áreas'),
                 Tables\Actions\DeleteAction::make()->label('Eliminar'),
             ])
             ->bulkActions([
@@ -159,7 +184,7 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('razon_social')
+            ->defaultSort('nombre_comercial')
             ->emptyStateHeading('Aún no hay empresas')
             ->emptyStateDescription('Registre una empresa antes de crear sus sucursales.')
             ->emptyStateIcon('heroicon-o-building-office-2');
@@ -180,7 +205,8 @@ class EmpresaResource extends Resource implements HasShieldPermissions
     public static function getRelations(): array
     {
         return [
-            // EmpresaAreasRelationManager::class,
+            SucursalesRelationManager::class,
+            AreasRelationManager::class,
         ];
     }
 

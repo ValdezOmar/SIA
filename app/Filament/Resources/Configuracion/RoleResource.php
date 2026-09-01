@@ -85,15 +85,22 @@ class RoleResource extends Resource implements HasShieldPermissions
 
     protected static function getResourcePermissionSectionLabel(array $entity): string
     {
-        return static::shield()->hasLocalizedPermissionLabels()
-            ? FilamentShield::getLocalizedResourceLabel($entity['fqcn'])
-            : $entity['model'];
+        $resource = $entity['fqcn'];
+        $navigationLabel = $resource::getNavigationLabel();
+
+        return filled($navigationLabel)
+            ? $navigationLabel
+            : $resource::getPluralModelLabel();
     }
 
     protected static function makeResourcePermissionSection(array $entity): Forms\Components\Section
     {
-        return Forms\Components\Section::make(static::getResourcePermissionSectionLabel($entity))
-            ->description(fn () => new HtmlString('<span style="word-break: break-word;">'.Utils::showModelPath($entity['fqcn']).'</span>'))
+        $resource = $entity['fqcn'];
+        $label = static::getResourcePermissionSectionLabel($entity);
+
+        return Forms\Components\Section::make($label)
+            ->icon($resource::getNavigationIcon())
+            ->description("Permisos correspondientes a la opción de menú «{$label}».")
             ->compact()
             ->schema([
                 static::getCheckBoxListComponentForResource($entity),

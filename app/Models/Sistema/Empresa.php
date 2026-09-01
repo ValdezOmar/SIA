@@ -10,6 +10,7 @@ class Empresa extends Model
     use SoftDeletes;
 
     protected $table = 'conf_empresas';
+
     protected $fillable = [
         'razon_social',
         'nombre_comercial',
@@ -23,7 +24,7 @@ class Empresa extends Model
         'email',
         'sitio_web',
         'empresa_activo',
-        'seguro_medico'
+        'seguro_medico',
     ];
 
     public function areas()
@@ -35,19 +36,9 @@ class Empresa extends Model
             'area_id'               // FK hacia conf_areas
         );
     }
+
     public function sucursales()
     {
         return $this->hasMany(Sucursal::class, 'empresa_id');
-    }
-    public function cargos()
-    {
-        return $this->hasManyThrough(
-            Cargo::class,
-            Area::class,
-            'id',      // PK en areas
-            'area_id', // FK en cargos
-            'id',      // PK en empresas
-            'id'       // PK en areas
-        );
     }
 }

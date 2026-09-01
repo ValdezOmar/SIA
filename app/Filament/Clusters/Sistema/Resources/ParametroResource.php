@@ -8,6 +8,7 @@ use App\Models\Sistema\Parametro;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\HtmlString;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ParametroResource extends Resource implements HasShieldPermissions
@@ -33,7 +35,9 @@ class ParametroResource extends Resource implements HasShieldPermissions
 
     protected static ?string $pluralModelLabel = 'Parámetros generales';
 
-    protected static ?int $navigationSort = -100;
+    protected static ?string $navigationGroup = 'Configuración general';
+
+    protected static ?int $navigationSort = 6;
 
     public static function form(Form $form): Form
     {
@@ -44,6 +48,12 @@ class ParametroResource extends Resource implements HasShieldPermissions
                     ->columns(3)
                     ->description('Actualice la identidad visual. Use imágenes ligeras de hasta 2 MB.')
                     ->schema([
+                        Placeholder::make('imagenes_actuales')
+                            ->label('Vista previa actual')
+                            ->content(fn (): HtmlString => new HtmlString(self::getCurrentImagesPreview()))
+                            ->helperText('Estas son las imágenes que el sistema utiliza actualmente.')
+                            ->columnSpanFull(),
+
                         FileUpload::make('logo_path')
                             ->label('Logo Principal')
                             ->helperText('PNG o SVG. Se mostrará en la barra lateral.')
@@ -199,6 +209,62 @@ class ParametroResource extends Resource implements HasShieldPermissions
     public static function getRelations(): array
     {
         return [];
+    }
+
+    /**
+     * Construye una vista previa usando directamente los archivos públicos.
+     */
+    private static function getCurrentImagesPreview(): string
+    {
+        $imagenes = [
+            [
+                'titulo' => 'Logo principal',
+                'archivo' => public_path('images/logo.png'),
+                'url' => asset('images/logo.png'),
+                'clase' => 'max-h-24 object-contain',
+            ],
+            [
+                'titulo' => 'Favicon',
+                'archivo' => public_path('images/favicon.ico'),
+                'url' => asset('images/favicon.ico'),
+                'clase' => 'h-16 w-16 object-contain',
+            ],
+            [
+                'titulo' => 'Fondo de inicio de sesión',
+                'archivo' => public_path('images/fondo.jpg'),
+                'url' => asset('images/fondo.jpg'),
+                'clase' => 'h-32 w-full object-cover',
+            ],
+        ];
+
+        $contenido = collect($imagenes)
+            ->map(function (array $imagen): string {
+                $titulo = e($imagen['titulo']);
+
+                if (! file_exists($imagen['archivo'])) {
+                    return <<<HTML
+                        <div class="flex min-h-36 flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 p-4 text-center dark:border-gray-700">
+                            <p class="font-medium text-gray-700 dark:text-gray-300">{$titulo}</p>
+                            <p class="mt-2 text-sm text-gray-500">No hay una imagen cargada</p>
+                        </div>
+                    HTML;
+                }
+
+                $url = e($imagen['url'].'?v='.filemtime($imagen['archivo']));
+                $clase = e($imagen['clase']);
+
+                return <<<HTML
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+                        <p class="mb-3 font-medium text-gray-700 dark:text-gray-300">{$titulo}</p>
+                        <div class="flex min-h-24 items-center justify-center overflow-hidden rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                            <img src="{$url}" alt="{$titulo}" class="{$clase}">
+                        </div>
+                    </div>
+                HTML;
+            })
+            ->implode('');
+
+        return '<div class="grid grid-cols-1 gap-4 md:grid-cols-3">'.$contenido.'</div>';
     }
 
     public static function getPages(): array

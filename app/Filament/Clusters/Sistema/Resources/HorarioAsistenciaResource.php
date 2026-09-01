@@ -23,9 +23,13 @@ class HorarioAsistenciaResource extends Resource implements HasShieldPermissions
 
     protected static ?string $navigationLabel = 'Horarios de asistencia';
 
+    protected static ?string $navigationGroup = 'Personal y asistencia';
+
     protected static ?string $modelLabel = 'Horario de asistencia';
 
     protected static ?string $pluralModelLabel = 'Horarios de asistencia';
+
+    protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form
     {
