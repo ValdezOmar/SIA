@@ -10,17 +10,35 @@ class CreateEmpleado extends CreateRecord
 {
     protected static string $resource = EmpleadoResource::class;
 
-    public ?array $ubicacion_gps;
-    
+    protected static ?string $title = 'Registrar empleado';
+
+    public ?array $ubicacion_gps = null;
+
+    public function getSubheading(): ?string
+    {
+        return 'Complete los datos personales y después agregue su asignación laboral.';
+    }
+
     protected function handleRecordCreation(array $data): Model
     {
-        // 1. Sincronizamos lo que venga desde el form hacia la propiedad
-        $this->ubicacion_gps = $this->ubicacion_gps ?? ($data['ubicacion_gps'] ?? null);        
+        $ubicacion = $this->ubicacion_gps ?? ($data['ubicacion_gps'] ?? null);
 
-        // 2. Sobrescribimos el valor del formulario con la propiedad
-        $data['ubicacion_gps'] = $this->ubicacion_gps;
+        if (is_array($ubicacion) && isset($ubicacion['lat'], $ubicacion['lng'])) {
+            $latitud = round((float) $ubicacion['lat'], 6);
+            $longitud = round((float) $ubicacion['lng'], 6);
 
-        // 3. Guardamos el registro manualmente
+            $data['ubicacion_gps'] = ($latitud === -16.5 && $longitud === -68.15)
+                ? null
+                : ['lat' => $latitud, 'lng' => $longitud];
+        } else {
+            $data['ubicacion_gps'] = null;
+        }
+
         return static::getModel()::create($data);
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('edit', ['record' => $this->getRecord()]);
     }
 }

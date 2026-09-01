@@ -12,6 +12,12 @@ class Empleado extends Model
 
     protected $table = 'rh_empleados';
 
+    /**
+     * Mantiene disponible una fotografía válida en todos los recursos. Cuando
+     * no existe una foto cargada se utiliza el avatar predeterminado del sistema.
+     */
+    protected $appends = ['foto_url'];
+
     protected $fillable = [
         // Información Básica del Empleado
         'nombres',
@@ -46,8 +52,6 @@ class Empleado extends Model
         'activo' => 'boolean',
     ];
 
-    // protected $appends = ['foto_url', 'coordenadas'];
-
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class, 'user_id', 'ci');
@@ -77,7 +81,9 @@ class Empleado extends Model
         }
 
         // Verificar si la foto existe en storage
-        $path = 'empleados/'.basename($this->foto);
+        $path = str_starts_with($this->foto, 'empleados/')
+            ? $this->foto
+            : 'empleados/'.basename($this->foto);
 
         if (Storage::disk('public')->exists($path)) {
             return Storage::disk('public')->url($path);

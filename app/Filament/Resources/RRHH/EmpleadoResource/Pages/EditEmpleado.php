@@ -8,40 +8,41 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class EditEmpleado extends EditRecord
 {
-    protected static string $resource = EmpleadoResource::class;    
+    protected static string $resource = EmpleadoResource::class;
 
-    public ?array $ubicacion_gps;
+    public ?array $ubicacion_gps = null;
 
-    protected function getHeaderActions(): array
+    public function mount(int|string $record): void
     {
-        return [
-            //Actions\DeleteAction::make(),
-        ];
+        parent::mount($record);
+
+        $this->ubicacion_gps = $this->getRecord()->ubicacion_gps;
     }
+
     public function getTitle(): string|Htmlable
     {
-        return ''; // Oculta el título por completo
-    }    
-    
-    //Funcion para guardar el array de gps
+        return 'Ficha de '.$this->getRecord()->full_name;
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Actualice sus datos personales y administre el historial laboral desde la pestaña inferior.';
+    }
+
     public function mutateFormDataBeforeSave(array $data): array
     {
-        if (is_array($this->ubicacion_gps)) {
-            $lat = round(floatval($this->ubicacion_gps['lat'] ?? 0), 6);
-            $lng = round(floatval($this->ubicacion_gps['lng'] ?? 0), 6);
-
-            // Si la ubicación es la predeterminada, guarda como null
-            if ($lat == -16.500000 && $lng == -68.150000) {
-                $data['ubicacion_gps'] = null;
-            } else {
-                $data['ubicacion_gps'] = [
-                    'lat' => $lat,
-                    'lng' => $lng,
-                ];
-            }
-        } else {
+        if (! is_array($this->ubicacion_gps)) {
             $data['ubicacion_gps'] = null;
+
+            return $data;
         }
+
+        $latitud = round((float) ($this->ubicacion_gps['lat'] ?? 0), 6);
+        $longitud = round((float) ($this->ubicacion_gps['lng'] ?? 0), 6);
+
+        $data['ubicacion_gps'] = ($latitud === -16.5 && $longitud === -68.15)
+            ? null
+            : ['lat' => $latitud, 'lng' => $longitud];
 
         return $data;
     }

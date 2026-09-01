@@ -5,8 +5,8 @@
     <title>Reporte de Asistencias</title>
     <style>
         @page {
-            size: A4 portrait;
-            margin: 10mm;
+            size: A4 landscape;
+            margin: 8mm;
         }
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
@@ -39,10 +39,10 @@
             font-size: 11px;
         }
         .empleado-container {
-            page-break-after: always;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+            page-break-inside: auto;
+        }
+        .empleado-container + .empleado-container {
+            page-break-before: always;
         }
         .empleado-table {
             width: 100%;
@@ -60,6 +60,12 @@
             background-color: #f2f2f2;
             font-weight: bold;
             text-align: center;
+        }
+        .empleado-table thead {
+            display: table-header-group;
+        }
+        .empleado-table tr {
+            page-break-inside: avoid;
         }
         .empleado-header {
             background-color: #e6e6e6;
@@ -87,8 +93,10 @@
             font-weight: bold;
             background-color: #f0f0f0;
         }
-        .no-break {
-            page-break-inside: avoid;
+        .logo-reporte {
+            display: block;
+            max-width: 125px;
+            max-height: 48px;
         }
         .tiempo-retraso {
             font-family: 'DejaVu Sans', monospace;
@@ -161,11 +169,24 @@
                 $cargo = $empleado->historialActivo->cargo->nombre ?? 'N/A';
             @endphp
 
-            <div class="empleado-container no-break">
+            <div class="empleado-container">
                 <!-- HEADER GLOBAL DEL REPORTE -->
                 <div class="empleado-header">
-                    <div>
+                    @if (!empty($logoDataUri))
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
+                            <tr>
+                                <td style="width: 140px; border: 0; vertical-align: middle;">
+                                    <img src="{{ $logoDataUri }}" alt="Logo" class="logo-reporte">
+                                </td>
+                                <td style="border: 0; text-align: center; vertical-align: middle; padding-right: 140px;">
+                                    <strong style="font-size: 16px;">REPORTE DE ASISTENCIAS</strong>
+                                </td>
+                            </tr>
+                        </table>
+                    @else
                         <h3 style="text-align: center; margin: 0 0 5px 0;">REPORTE DE ASISTENCIAS</h3>
+                    @endif
+                    <div>
                         <!-- BADGE CENTRADO -->
                         <div style="text-align: center; margin: 10px 0;">
                             <span class="badge-info">{{ $empresa }} &#45; {{ $sucursal }}</span>
@@ -372,7 +393,7 @@
                 
                 <!-- Pie de página -->
                 <div style="text-align: center; margin-top: 10px; font-size: 8px; color: #6c757d;">
-                    Página {{ $loop->iteration }} de {{ $empleados->count() }} 
+                    Empleado {{ $loop->iteration }} de {{ $empleados->count() }}
                     <span class="separator">&#124;</span> 
                     Documento generado el {{ now()->format('d/m/Y H:i:s') }}
                 </div>

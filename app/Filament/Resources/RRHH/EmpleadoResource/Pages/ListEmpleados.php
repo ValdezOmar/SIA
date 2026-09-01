@@ -10,10 +10,19 @@ class ListEmpleados extends ListRecords
 {
     protected static string $resource = EmpleadoResource::class;
 
+    protected static ?string $title = 'Equipo humano';
+
+    public function getSubheading(): ?string
+    {
+        return 'Consulte empleados, asignaciones laborales, contratos y datos de contacto desde una sola vista.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                ->label('Registrar empleado')
+                ->icon('heroicon-o-user-plus'),
         ];
     }
 }

@@ -499,6 +499,16 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                             // Usamos el query de la tabla pero sin paginación
                             $empleados = $livewire->getFilteredTableQuery()->get();
 
+                            if ($empleados->isEmpty()) {
+                                Notification::make()
+                                    ->title('No hay registros para exportar')
+                                    ->body('El período y los filtros seleccionados no contienen empleados.')
+                                    ->warning()
+                                    ->send();
+
+                                return null;
+                            }
+
                             // Obtener las fechas del período (igual que en la tabla)
                             $period = CarbonPeriod::create($periodo['inicio'], $periodo['fin']);
                             $uniqueDates = collect();
@@ -537,14 +547,19 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                                 'filtroSucursal' => $filtroSucursal,
                                 'filtroBusqueda' => $filters['search'] ?? null,
                                 'titulo' => 'Reporte de Asistencias - '.$periodo['label'],
+                                'logoDataUri' => self::getPdfLogoDataUri(),
                             ]);
 
                             // Configurar el PDF para mejor visualización
-                            $pdf->setPaper('A4', 'landscape'); // Cambiar a landscape para mejor visualización de muchas columnas
+                            $pdf->setPaper('A4', 'landscape')
+                                ->setOption('isHtml5ParserEnabled', true)
+                                ->setOption('isRemoteEnabled', false);
 
                             return Response::streamDownload(function () use ($pdf) {
-                                echo $pdf->stream();
-                            }, 'asistencias_'.now()->format('Y-m-d').'.pdf');
+                                echo $pdf->output();
+                            }, 'asistencias_'.$periodo['inicio']->format('Y-m-d').'_'.$periodo['fin']->format('Y-m-d').'.pdf', [
+                                'Content-Type' => 'application/pdf',
+                            ]);
                         } catch (\Exception $e) {
                             Log::error('Error generando PDF de asistencias: '.$e->getMessage(), [
                                 'trace' => $e->getTraceAsString(),
@@ -564,6 +579,28 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
             ->striped();                       // Filas con fondo alternado
 
         return $table;
+    }
+
+    /**
+     * Convierte el logo local en una URI embebida para que DomPDF no dependa de
+     * una URL pública. Si no existe o no es una imagen válida, no se imprime.
+     */
+    private static function getPdfLogoDataUri(): ?string
+    {
+        $logoPath = public_path('images/logo.png');
+
+        if (! is_file($logoPath) || ! is_readable($logoPath)) {
+            return null;
+        }
+
+        $contents = file_get_contents($logoPath);
+        $mimeType = mime_content_type($logoPath);
+
+        if ($contents === false || ! is_string($mimeType) || ! str_starts_with($mimeType, 'image/')) {
+            return null;
+        }
+
+        return 'data:'.$mimeType.';base64,'.base64_encode($contents);
     }
 
     public static function getPermissionPrefixes(): array

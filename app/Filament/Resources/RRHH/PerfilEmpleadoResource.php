@@ -113,6 +113,7 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
                             ->downloadable()
                             ->maxSize(5120)
                             ->helperText('Imagen JPG o PNG de hasta 5 MB.')
+                            ->live()
                             ->getUploadedFileNameForStorageUsing(
                                 function (TemporaryUploadedFile $file, $record): string {
                                     $ci = Str::slug($record?->ci ?? 'empleado');

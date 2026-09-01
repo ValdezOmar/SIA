@@ -1,418 +1,284 @@
 <?php
 
-
 namespace App\Filament\Resources\RRHH\EmpleadoResource\RelationManagers;
 
+use App\Models\RRHH\HistorialLaboral;
 use App\Models\Sistema\Cargo;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
-use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Textarea;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class HistorialLaboralRelationManager extends RelationManager
 {
-    protected static string $relationship = 'historialLaboral'; // relación en el modelo Empleado
-    protected static ?string $title = 'Historia Laboral';
+    protected static string $relationship = 'historialLaboral';
+
+    protected static ?string $title = 'Historial laboral';
+
+    protected static ?string $icon = 'heroicon-o-briefcase';
 
     public function form(Form $form): Form
     {
         return $form->schema([
-            Section::make('Información Laboral')
-                ->description('Datos principales del vínculo laboral del empleado')
-                ->icon('heroicon-o-briefcase')
-                ->columns(2)
+            Section::make('Asignación laboral')
+                ->description('Defina la empresa, sucursal y cargo correspondientes a este vínculo.')
+                ->icon('heroicon-o-building-office-2')
                 ->schema([
                     Select::make('empresa_id')
                         ->label('Empresa')
-                        ->prefixIcon('heroicon-o-building-office-2')
-                        ->required()
-                        ->relationship('empresa', 'nombre_comercial')
-                        ->searchable()
-                        ->preload()
-                        ->live()
-                        ->afterStateUpdated(function ($state, Set $set, Get $get) {
-                            // Limpiar campos dependientes
-                            $set('cargo', null);
+                        ->options(fn (): array => Empresa::query()->where('empresa_activo', true)
+                            ->orderBy('nombre_comercial')->get()
+                            ->mapWithKeys(fn (Empresa $empresa): array => [
+                                $empresa->getKey() => $empresa->nombre_comercial ?: $empresa->razon_social,
+                            ])->all())
+                        ->searchable()->preload()->live()->required()
+                        ->prefixIcon('heroicon-o-building-office')
+                        ->helperText('Al cambiar la empresa se actualizarán sucursales, cargos y seguro médico.')
+                        ->afterStateUpdated(function ($state, Set $set): void {
                             $set('sucursal_id', null);
-
-                            // Actualizar seguro médico
-                            $seguro = Empresa::find($state)?->seguro_medico;
-                            $set('seguro_medico', $seguro);
-
-                            // Limpiar y regenerar correo corporativo
-                            $empleado = $this->getOwnerRecord();
-                            if ($empleado) {
-                                $nuevoCorreo = $this->generarCorreoCorporativoDesdeEmpleado($empleado, $state);
-                                $set('correo_corporativo', $nuevoCorreo);
-                            }
+                            $set('cargo_id', null);
+                            $set('seguro_medico', Empresa::find($state)?->seguro_medico);
+                            $set('correo_corporativo', $this->generarCorreoCorporativo($state));
                         }),
 
                     Select::make('sucursal_id')
                         ->label('Sucursal')
-                        ->prefixIcon('heroicon-o-map-pin')
-                        ->required()
-                        ->options(
-                            fn(Get $get) =>
-                            $get('empresa_id')
-                                ? Sucursal::where('empresa_id', $get('empresa_id'))->pluck('nombre', 'id')->toArray()
-                                : []
-                        )
-                        ->reactive()
-                        ->searchable()
-                        ->placeholder('Seleccione una empresa primero'),
+                        ->options(fn (Get $get): array => filled($get('empresa_id'))
+                            ? Sucursal::query()->where('empresa_id', $get('empresa_id'))
+                                ->orderBy('nombre')->pluck('nombre', 'id')->all()
+                            : [])
+                        ->searchable()->preload()->required()
+                        ->disabled(fn (Get $get): bool => blank($get('empresa_id')))
+                        ->prefixIcon('heroicon-o-map-pin'),
 
                     Select::make('cargo_id')
-                        ->label('Cargo')
-                        ->prefixIcon('heroicon-o-user-circle')
-                        ->required()
-                        ->reactive() // <- recalcula cuando cambie empresa_id
-                        ->options(function (Get $get) {
-                            $empresaId = $get('empresa_id');
+                        ->label('Área y cargo')
+                        ->options(fn (Get $get): array => filled($get('empresa_id'))
+                            ? Cargo::query()
+                                ->whereHas('area.empresas', fn (Builder $query) => $query->whereKey($get('empresa_id')))
+                                ->with('area')->orderBy('nombre')->get()
+                                ->mapWithKeys(fn (Cargo $cargo): array => [
+                                    $cargo->getKey() => collect([$cargo->area?->nombre, $cargo->nombre])->filter()->implode(' — '),
+                                ])->all()
+                            : [])
+                        ->searchable()->preload()->required()
+                        ->disabled(fn (Get $get): bool => blank($get('empresa_id')))
+                        ->prefixIcon('heroicon-o-identification'),
+                ])->columns(['default' => 1, 'md' => 3]),
 
-                            if (!$empresaId) {
-                                return []; // sin empresa, ninguna opción
-                            }
-
-                            // Asegúrate que la relación area.empresas exista correctamente en tu modelo Cargo/Area
-                            return Cargo::whereHas('area.empresas', function ($q) use ($empresaId) {
-                                $q->where('conf_empresas.id', $empresaId);
-                            })
-                                ->orderBy('nombre')
-                                ->pluck('nombre', 'id')
-                                ->toArray(); // devolver siempre array
-                        })
-                        ->searchable()
-                        ->placeholder('Seleccione una empresa primero'),
-
+            Section::make('Condiciones del contrato')
+                ->description('Registre la vigencia y las condiciones económicas del vínculo.')
+                ->icon('heroicon-o-document-text')
+                ->schema([
                     Select::make('tipo_contrato')
-                        ->label('Tipo de Contrato')
-                        ->required()
-                        ->prefixIcon('heroicon-o-document-text')
-                        ->options([
-                            'Contrato indefinido' => 'Contrato indefinido',
-                            'Contrato plazo fijo' => 'Contrato plazo fijo',
-                            'Contrato por servicios' => 'Contrato por servicios',
-                            'Contrato por obra' => 'Contrato por obra',
-                            'Contrato por temporada' => 'Contrato por temporada',
-                            'Contrato de teletrabajo' => 'Contrato de teletrabajo',
-                            'Pasante' => 'Pasante',
-                            'Otro' => 'Otro tipo',
-                        ])
+                        ->label('Tipo de contrato')
+                        ->options(static::contractOptions())
+                        ->default('Contrato indefinido')->native(false)->live()->required(),
 
-                        ->afterStateUpdated(function (Get $get, Set $set, $state) {
-                            if ($state !== 'Otro') {
-                                $set('tipo_contrato_personalizado', null);
-                            }
-                        })
-                        ->default('Contrato plazo fijo')
-                        ->reactive(),
-
-                    TextInput::make('tipo_contrato_personalizado')
-                        ->label('Especificar contrato')
-                        ->visible(fn(Get $get) => $get('tipo_contrato') === 'Otro')
-                        ->required(fn(Get $get) => $get('tipo_contrato') === 'Otro')
-                        ->placeholder('Ej: Contrato eventual por proyecto')
-                        ->dehydrated(fn($state) => filled($state))
-                        ->afterStateHydrated(function (Set $set, Get $get) {
-                            // Detectar si el contrato guardado no está en la lista y mostrarlo como personalizado
-                            $contrato = $get('tipo_contrato');
-                            $predefinidos = [
-                                'Contrato indefinido',
-                                'Contrato plazo fijo',
-                                'Contrato por servicios',
-                                'Contrato por obra',
-                                'Contrato por temporada',
-                                'Contrato de teletrabajo',
-                                'Pasante',
-                                'Otro tipo',
-                            ];
-
-                            if ($contrato && !in_array($contrato, $predefinidos)) {
-                                $set('tipo_contrato', 'Otro');
-                                $set('tipo_contrato_personalizado', $contrato);
-                            }
-                        })
-                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
-                            // Guardar el valor personalizado como tipo_contrato real
-                            if ($get('tipo_contrato') === 'Otro') {
-                                $set('tipo_contrato', $state);
-                            }
-                        }),
+                    TextInput::make('tipo_contrato_otro')
+                        ->label('Especifique el tipo de contrato')
+                        ->placeholder('Ej. Contrato eventual por proyecto')
+                        ->visible(fn (Get $get): bool => $get('tipo_contrato') === 'Otro')
+                        ->required(fn (Get $get): bool => $get('tipo_contrato') === 'Otro')
+                        ->dehydrated(fn (Get $get): bool => $get('tipo_contrato') === 'Otro')->maxLength(255),
 
                     DatePicker::make('fecha_inicio')
-                        ->label('Inicio de contrato')
-                        ->prefixIcon('heroicon-o-calendar')
-                        ->required(),
+                        ->label('Fecha de ingreso')->default(today())
+                        ->displayFormat('d/m/Y')->native(false)->required()->live(),
 
                     DatePicker::make('fecha_fin')
-                        ->label('Fin de contrato')
-                        ->required()
-                        ->prefixIcon('heroicon-o-calendar-days')
-                        ->visible(fn(Get $get) => $get('tipo_contrato') !== 'Contrato indefinido'),
+                        ->label('Fecha de finalización')->displayFormat('d/m/Y')->native(false)
+                        ->minDate(fn (Get $get) => $get('fecha_inicio'))
+                        ->required(fn (Get $get): bool => $get('tipo_contrato') !== 'Contrato indefinido')
+                        ->hidden(fn (Get $get): bool => $get('tipo_contrato') === 'Contrato indefinido')
+                        ->dehydrated(fn (Get $get): bool => $get('tipo_contrato') !== 'Contrato indefinido'),
 
-                    TextInput::make('salario')
-                        ->label('Salario (Bs)')
-                        ->required()
-                        ->numeric()
-                        ->prefix('Bs')
-                        ->step(1.00)
-                        ->placeholder('Ej: 3500.50'),
+                    TextInput::make('salario')->label('Salario mensual')->prefix('Bs')
+                        ->numeric()->minValue(0)->step(0.01)->required(),
 
-                    TextInput::make('seguro_medico')
-                        ->label('Seguro Médico')
-                        ->disabled()
-                        ->dehydrated()
-                        ->prefixIcon('heroicon-o-heart'),
+                    TextInput::make('seguro_medico')->label('Seguro médico')
+                        ->prefixIcon('heroicon-o-heart')->disabled()->dehydrated(),
+                ])->columns(['default' => 1, 'md' => 2, 'xl' => 3]),
 
-                    TextInput::make('correo_corporativo')
-                        ->label('Correo Corporativo')
-                        ->email()
-                        ->prefixIcon('heroicon-o-envelope-open')
-                        ->required()
-                        ->reactive()
-                        ->afterStateHydrated(function (Set $set) {
-                            $empleado = $this->getOwnerRecord();
-                            if ($empleado) {
-                                $set('correo_corporativo', $this->generarCorreoCorporativoDesdeEmpleado($empleado));
-                            }
-                        })
-                        ->afterStateUpdated(function (Get $get, Set $set) {
-                            $empleado = $this->getOwnerRecord();
-                            if ($empleado) {
-                                $set('correo_corporativo', $this->generarCorreoCorporativoDesdeEmpleado($empleado, $get('empresa_id')));
-                            }
-                        }),
-
-                    TextInput::make('numero_corporativo')
-                        ->label('Número Corporativo')
-                        ->prefixIcon('heroicon-o-phone'),
-                ]),
-
-            Section::make('Documento')
-                ->description('Adjunta un PDF del contrato (max 15mb)')
-                ->icon('heroicon-o-document')
-                ->columns(1)
+            Section::make('Contacto corporativo')
+                ->description('Estos datos se mostrarán en el directorio interno.')
+                ->icon('heroicon-o-at-symbol')
                 ->schema([
-                    FileUpload::make('documento')
-                        ->label('Contrato en PDF')
-                        ->directory('contratos')        // Carpeta dentro del disco 'public'
-                        ->disk('public')                // Disco de almacenamiento
-                        //->visibility('public')          // Público
-                        ->openable()                    // Permite abrir en nueva pestaña
-                        //->downloadable()                // Permite descargar
-                        ->loadingIndicatorPosition('center')
-                        ->removeUploadedFileButtonPosition('upper-center')
-                        ->uploadButtonPosition('right')
-                        ->uploadProgressIndicatorPosition('right')
-                        ->acceptedFileTypes(['application/pdf']) // Solo PDF
-                        ->maxSize(15120)                           // 15MB máximo
-                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file, Get $get): string {
-                            $ci = $get('ci') ? preg_replace('/[^a-zA-Z0-9]/', '_', $get('ci')) : 'contrato_' . uniqid();
-                            return $ci . '.' . $file->getClientOriginalExtension();
-                        })
-                ]),
+                    TextInput::make('correo_corporativo')->label('Correo corporativo')
+                        ->prefixIcon('heroicon-o-envelope')->email()->required()->maxLength(255),
+                    TextInput::make('numero_corporativo')->label('Número corporativo')
+                        ->prefixIcon('heroicon-o-phone')->tel()->maxLength(50),
+                ])->columns(2),
 
-            Section::make('Observaciones')
-                ->schema([
-                    Textarea::make('observaciones')
-                        ->label('Observaciones')
+            Grid::make(['default' => 1, 'lg' => 2])->schema([
+                Section::make('Documento de respaldo')
+                    ->description('Contrato firmado en PDF, máximo 15 MB.')
+                    ->icon('heroicon-o-paper-clip')
+                    ->schema([
+                        FileUpload::make('documento')->label('Contrato en PDF')
+                            ->disk('public')->directory('contratos')
+                            ->acceptedFileTypes(['application/pdf'])->maxSize(15360)
+                            ->openable()->downloadable()
+                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                                $ci = Str::slug($this->getOwnerRecord()->ci ?: 'empleado');
 
-                        ->placeholder('Comentarios adicionales, motivos de contrato, condiciones, etc.')
-                        ->columnSpanFull()
-                        ->rows(6),
-                ])->icon('heroicon-o-heart'),
-            Hidden::make('activo')
-                ->default(true) //siempre se crea como activo
-                ->dehydrated(true) // asegura que se envíe al guardar;
+                                return $ci.'-contrato-'.Str::uuid().'.'.Str::lower($file->getClientOriginalExtension());
+                            }),
+                    ]),
+                Section::make('Observaciones')->icon('heroicon-o-chat-bubble-left-ellipsis')
+                    ->schema([
+                        Textarea::make('observaciones')->label('Notas internas')
+                            ->placeholder('Condiciones especiales, antecedentes o aclaraciones del vínculo.')
+                            ->rows(5)->maxLength(2000),
+                    ]),
+            ]),
         ]);
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn($query) => $query->latest('id'))
-            ->recordTitleAttribute('cargo_id')
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                ->with(['empresa', 'sucursal', 'cargo.area'])->latest('fecha_inicio')->latest('id'))
+            ->recordTitleAttribute('tipo_contrato')
             ->columns([
-                TextColumn::make('empresa.razon_social')
-                    ->label('Empresa')
-                    ->searchable(),
-
-                //Cargo desde la relación con la tabla cargos
-                TextColumn::make('cargo.nombre')
-                    ->label('Cargo')
-                    ->searchable()
-                    ->placeholder('-'),
-
-                TextColumn::make('tipo_contrato')
-                    ->label('Contrato')
-                    ->badge()
-                    ->color('info'),
-
-                TextColumn::make('salario')
-                    ->label('Salario')
-                    ->money('BOB', true),
-
-                TextColumn::make('fecha_inicio')
-                    ->label('Inicio contrato')
-                    ->date('d/m/Y'),
-
-                TextColumn::make('fecha_fin')
-                    ->label('Final Contrato')
-                    ->badge()
-                    ->default('Indefinido')
-                    ->getStateUsing(
-                        fn($record) =>
-                        // Primero verificar si el tipo de contrato es indefinido
-                        $record->tipo_contrato === 'Contrato indefinido' ||
-                            stripos($record->tipo_contrato, 'indefinido') !== false
-                            ? 'Indefinido'
-                            : $record->fecha_fin // Usar el campo directo del modelo
-                    )
-                    ->formatStateUsing(function ($state, $record) {
-                        // Si es indefinido
-                        if ($state === 'Indefinido') {
-                            return 'Indefinido';
-                        }
-
-                        // Si no hay fecha de fin
-                        if (!$state) {
-                            return 'Indefinido';
-                        }
-
-                        $fechaFin = Carbon::parse($state);
-                        $fechaFormateada = $fechaFin->format('d/m/Y');
-
-                        if (!$record->activo) {
-                            return $fechaFormateada;
-                        }
-
-                        $diasRestantes = Carbon::today()->diffInDays($fechaFin, false);
-
-                        return match (true) {
-                            $diasRestantes < 0   => "{$fechaFormateada} (Vencido)",
-                            $diasRestantes <= 15 => "{$fechaFormateada} (Faltan {$diasRestantes} días)",
-                            default              => $fechaFormateada,
-                        };
-                    })
-                    ->color(function ($state, $record) {
-                        if ($state === 'Indefinido') {
-                            return 'primary';
-                        }
-
-                        if (!$record->activo) {
-                            return 'success';
-                        }
-
-                        $fechaFin = Carbon::parse($state);
-                        $diasRestantes = Carbon::today()->diffInDays($fechaFin, false);
-
-                        return match (true) {
-                            $diasRestantes < 0   => 'danger',
-                            $diasRestantes <= 15 => 'warning',
-                            $diasRestantes > 15  => 'success',
-                            default              => 'gray',
-                        };
-                    }),
-
-                TextColumn::make('sucursal.nombre')
-                    ->label('Sucursal')
-                    ->badge()
-                    ->color('info'),
-
-                IconColumn::make('activo')
-                    ->label('Estado')
-                    ->icon(fn($state) => match (true) {
-                        $state === true => 'heroicon-o-check-circle',
-                        $state === false => 'heroicon-o-x-circle',
-                        default => 'heroicon-o-minus-circle',
-                    })
-                    ->color(fn($state) => match (true) {
-                        $state === true => 'success',
-                        $state === false => 'danger',
-                        default => 'gray',
-                    })
-                    ->tooltip(fn($state) => match (true) {
-                        $state === true => 'Contrato vigente',
-                        $state === false => 'Contrato inactivo',
-                        default => 'Sin estado',
-                    }),
+                IconColumn::make('activo')->label('Vigente')->boolean()
+                    ->trueColor('success')->falseColor('gray')
+                    ->tooltip(fn (bool $state): string => $state ? 'Vínculo laboral vigente' : 'Registro histórico'),
+                TextColumn::make('empresa.nombre_comercial')->label('Empresa')
+                    ->formatStateUsing(fn (?string $state, HistorialLaboral $record): string => $state ?: $record->empresa?->razon_social ?: 'Sin empresa')
+                    ->description(fn (HistorialLaboral $record): string => $record->sucursal?->nombre ?? 'Sin sucursal')
+                    ->searchable()->wrap(),
+                TextColumn::make('cargo.nombre')->label('Cargo')
+                    ->description(fn (HistorialLaboral $record): string => $record->cargo?->area?->nombre ?? 'Sin área')
+                    ->placeholder('Sin cargo')->searchable()->wrap(),
+                TextColumn::make('tipo_contrato')->label('Contrato')->badge()->color('info')->wrap(),
+                TextColumn::make('fecha_inicio')->label('Periodo')->date('d/m/Y')
+                    ->description(fn (HistorialLaboral $record): string => $record->fecha_fin
+                        ? 'Hasta '.$record->fecha_fin->format('d/m/Y')
+                        : ($record->activo ? 'Actualmente vigente' : 'Sin fecha final'))
+                    ->sortable(),
+                TextColumn::make('salario')->label('Salario')->money('BOB')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('correo_corporativo')->label('Contacto')->icon('heroicon-o-envelope')
+                    ->copyable()->placeholder('Sin correo')
+                    ->description(fn (HistorialLaboral $record): string => $record->numero_corporativo ?: 'Sin número corporativo')
+                    ->toggleable(),
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Agregar Situación Laboral')
-                    ->icon('heroicon-o-folder-plus')
+                    ->label(fn (): string => $this->getOwnerRecord()->historialLaboral()->exists()
+                        ? 'Registrar nuevo vínculo' : 'Registrar vínculo laboral')
+                    ->icon('heroicon-o-plus')->modalHeading('Nuevo vínculo laboral')
+                    ->modalDescription('El nuevo vínculo quedará activo. Si existe otro vigente, será cerrado automáticamente.')
                     ->createAnother(false)
-                    ->visible(function ($livewire) {
-                        $empleado = $livewire->getOwnerRecord(); // obtiene el empleado actual
-                        return $empleado && $empleado->activo == true;
-                    }),
+                    ->visible(fn (): bool => (bool) $this->getOwnerRecord()->activo)
+                    ->mutateFormDataUsing(fn (array $data): array => $this->normalizarDatos($data))
+                    ->before(function (array $data): void {
+                        $fechaFin = Carbon::parse($data['fecha_inicio'])->subDay()->toDateString();
+                        $this->getOwnerRecord()->historialLaboral()->where('activo', true)->get()
+                            ->each(function (HistorialLaboral $historial) use ($fechaFin): void {
+                                $historial->update([
+                                    'activo' => false,
+                                    'fecha_fin' => $historial->fecha_fin ?: $fechaFin,
+                                    'fecha_baja' => $historial->fecha_baja ?: $fechaFin,
+                                ]);
+                            });
+                    })
+                    ->successNotification(Notification::make()->success()->title('Vínculo laboral registrado')),
             ])
             ->actions([
-                ViewAction::make(),
-                EditAction::make()->visible(fn($record) => $record->activo === true),
+                ViewAction::make()->label('Ver'),
+                EditAction::make()->label('Editar')
+                    ->visible(fn (HistorialLaboral $record): bool => $record->activo)
+                    ->mutateRecordDataUsing(function (array $data): array {
+                        if (! array_key_exists($data['tipo_contrato'], static::contractOptions())) {
+                            $data['tipo_contrato_otro'] = $data['tipo_contrato'];
+                            $data['tipo_contrato'] = 'Otro';
+                        }
+
+                        return $data;
+                    })
+                    ->mutateFormDataUsing(fn (array $data): array => $this->normalizarDatos($data)),
             ])
-            ->searchable(false);
+            ->emptyStateHeading('Sin historial laboral')
+            ->emptyStateDescription('Registre la empresa, sucursal, cargo y condiciones del primer vínculo.')
+            ->emptyStateIcon('heroicon-o-briefcase')
+            ->paginated([10, 25, 50]);
     }
 
-    // Obtiene los datos del empleado y genera el correo
-    protected function generarCorreoCorporativoDesdeEmpleado($empleado, $empresaId = null): ?string
+    /** @return array<string, string> */
+    protected static function contractOptions(): array
     {
-        $nombres = $empleado?->nombres ?? '';
-        $apellidos = $empleado?->apellidos ?? '';
+        return [
+            'Contrato indefinido' => 'Contrato indefinido',
+            'Contrato plazo fijo' => 'Contrato a plazo fijo',
+            'Contrato por servicios' => 'Contrato por servicios',
+            'Contrato por obra' => 'Contrato por obra',
+            'Contrato por temporada' => 'Contrato por temporada',
+            'Contrato de teletrabajo' => 'Contrato de teletrabajo',
+            'Pasante' => 'Pasantía',
+            'Otro' => 'Otro tipo de contrato',
+        ];
+    }
 
-        if (empty($nombres) || empty($apellidos)) {
+    /** @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    protected function normalizarDatos(array $data): array
+    {
+        if (($data['tipo_contrato'] ?? null) === 'Otro') {
+            $data['tipo_contrato'] = $data['tipo_contrato_otro'] ?? 'Otro';
+        }
+
+        unset($data['tipo_contrato_otro']);
+
+        if (($data['tipo_contrato'] ?? null) === 'Contrato indefinido') {
+            $data['fecha_fin'] = null;
+        }
+
+        $data['activo'] = true;
+
+        return $data;
+    }
+
+    protected function generarCorreoCorporativo(int|string|null $empresaId): ?string
+    {
+        $empleado = $this->getOwnerRecord();
+        if (blank($empleado->nombres) || blank($empleado->apellidos)) {
             return null;
         }
 
-        $primerNombre = strtolower(strtok($nombres, ' '));
-        $primerApellido = strtolower(strtok($apellidos, ' '));
-
-        // Limpiar acentos y caracteres especiales
-        $primerNombre = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerNombre));
-        $primerApellido = preg_replace('/[^a-z0-9]/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $primerApellido));
-
-        // Si no se pasa un ID, intenta obtenerlo desde el campo empresa_id del historial laboral
-        if (!$empresaId && method_exists($this, 'getMountedTableActionRecord')) {
-            $registro = $this->getMountedTableActionRecord();
-            $empresaId = $registro?->empresa_id;
-        }
-
-        // Si aún no se encuentra el ID, intentamos desde la relación de historial laboral
-        if (!$empresaId && $empleado?->historialLaboral?->isNotEmpty()) {
-            $empresaId = $empleado->historialLaboral->last()?->empresa_id;
-        }
-
-        // Buscar la empresa
+        $nombre = Str::of($empleado->nombres)->before(' ')->ascii()->lower()->replaceMatches('/[^a-z0-9]/', '');
+        $apellido = Str::of($empleado->apellidos)->before(' ')->ascii()->lower()->replaceMatches('/[^a-z0-9]/', '');
         $empresa = $empresaId ? Empresa::find($empresaId) : null;
+        $dominio = Str::of($empresa?->sitio_web ?: 'empresa.com')
+            ->replaceMatches('#^https?://#', '')->before('/')->before('?')->trim();
 
-        // Obtener dominio
-        $dominio = $empresa?->sitio_web ?? 'empresa.com';
-
-        // Limpiar dominio
-        $dominio = preg_replace('#^https?://#', '', trim($dominio));
-        $dominio = rtrim($dominio, '/');
-
-        // Asegurarse de que tenga algo útil
-        if (!str_contains($dominio, '.')) {
+        if (! str_contains((string) $dominio, '.')) {
             $dominio = 'empresa.com';
         }
-        return "{$primerNombre}.{$primerApellido}@{$dominio}";
+
+        return "{$nombre}.{$apellido}@{$dominio}";
     }
 }
