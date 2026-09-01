@@ -95,11 +95,17 @@ class Empleado extends Model
     // Accesor para coordenadas formateadas
     public function getCoordenadasAttribute()
     {
-        return $this->ubicacion_gps ? [
-            'lat' => $this->ubicacion_gps['lat'],
-            'lng' => $this->ubicacion_gps['lng'],
-            'texto' => "Lat: {$this->ubicacion_gps['lat']}, Lng: {$this->ubicacion_gps['lng']}",
-        ] : null;
+        $ubicacion = $this->ubicacion_gps;
+
+        if (! is_array($ubicacion) || ! isset($ubicacion['lat'], $ubicacion['lng'])) {
+            return null;
+        }
+
+        return [
+            'lat' => $ubicacion['lat'],
+            'lng' => $ubicacion['lng'],
+            'texto' => "Lat: {$ubicacion['lat']}, Lng: {$ubicacion['lng']}",
+        ];
     }
 
     // Modelo de comprovaciond de foto

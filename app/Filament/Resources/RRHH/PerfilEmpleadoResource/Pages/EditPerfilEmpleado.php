@@ -18,7 +18,9 @@ class EditPerfilEmpleado extends EditRecord
     {
         parent::mount($record);
 
-        $this->ubicacion_gps = $this->getRecord()->ubicacion_gps;
+        $ubicacion = $this->getRecord()->ubicacion_gps;
+
+        $this->ubicacion_gps = is_array($ubicacion) ? $ubicacion : null;
     }
 
     protected function mutateFormDataBeforeSave(array $data): array
@@ -30,7 +32,8 @@ class EditPerfilEmpleado extends EditRecord
         }
 
         if (! is_array($ubicacion) || ! isset($ubicacion['lat'], $ubicacion['lng'])) {
-            $data['ubicacion_gps'] = null;
+            // Conservar el valor almacenado si solo se editan otros datos.
+            unset($data['ubicacion_gps']);
 
             return $data;
         }

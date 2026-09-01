@@ -16,7 +16,9 @@ class EditEmpleado extends EditRecord
     {
         parent::mount($record);
 
-        $this->ubicacion_gps = $this->getRecord()->ubicacion_gps;
+        $ubicacion = $this->getRecord()->ubicacion_gps;
+
+        $this->ubicacion_gps = is_array($ubicacion) ? $ubicacion : null;
     }
 
     public function getTitle(): string|Htmlable
@@ -32,7 +34,9 @@ class EditEmpleado extends EditRecord
     public function mutateFormDataBeforeSave(array $data): array
     {
         if (! is_array($this->ubicacion_gps)) {
-            $data['ubicacion_gps'] = null;
+            // No sobrescribir datos históricos inválidos al editar otros campos.
+            // Una nueva selección en el mapa llegará como un arreglo válido.
+            unset($data['ubicacion_gps']);
 
             return $data;
         }
