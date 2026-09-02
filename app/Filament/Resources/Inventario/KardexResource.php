@@ -23,6 +23,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class KardexResource extends Resource
 {
@@ -65,6 +66,53 @@ class KardexResource extends Resource
         return self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2);
     }
 
+    private static function getArticuloOptions(?string $search = null): array
+    {
+        return Articulo::query()
+            ->with('fabricante:id,nombre,codigo')
+            ->where('activo', true)
+            ->when(filled($search), function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query
+                        ->where('codigo', 'like', "%{$search}%")
+                        ->orWhere('codigo_alterno', 'like', "%{$search}%")
+                        ->orWhere('nombre_comercial', 'like', "%{$search}%")
+                        ->orWhere('descripcion', 'like', "%{$search}%")
+                        ->orWhereHas('fabricante', fn ($fabricante) => $fabricante
+                            ->where('nombre', 'like', "%{$search}%")
+                            ->orWhere('codigo', 'like', "%{$search}%"));
+                });
+            })
+            ->orderBy('codigo')
+            ->limit(50)
+            ->get()
+            ->mapWithKeys(fn (Articulo $articulo) => [
+                $articulo->getKey() => self::formatArticuloOption($articulo),
+            ])
+            ->all();
+    }
+
+    private static function formatArticuloOption(Articulo $articulo): string
+    {
+        $codigo = e($articulo->codigo);
+        $modelo = e($articulo->codigo_alterno ?? 'Sin modelo');
+        $nombre = e($articulo->nombre_comercial ?? 'Sin nombre comercial');
+        $marca = e($articulo->fabricante?->nombre ?? 'Sin marca');
+
+        $miniatura = filled($articulo->foto_catalogo)
+            ? '<img src="'.e(Storage::disk('public')->url($articulo->foto_catalogo)).'" alt="" class="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-white/10">'
+            : '<span class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-2xl dark:bg-gray-800">&#128230;</span>';
+
+        return '<div class="flex items-center gap-3 py-2">'
+            .$miniatura
+            .'<div class="min-w-0 flex-1 leading-tight">'
+            .'<div class="truncate text-sm font-semibold text-gray-950 dark:text-white">'.$codigo.'</div>'
+            .'<div class="truncate text-xs text-gray-600 dark:text-gray-300">'.$modelo.'</div>'
+            .'<div class="truncate text-xs text-gray-600 dark:text-gray-300">'.$nombre.'</div>'
+            .'<div class="truncate text-xs text-gray-500 dark:text-gray-400">'.$marca.'</div>'
+            .'</div></div>';
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -82,21 +130,20 @@ class KardexResource extends Resource
                                             ->schema([
                                                 Select::make('articulo_id')
                                                     ->label('Artículo')
-                                                    ->options(
-                                                        fn () => Articulo::where('activo', true)
-                                                            ->orderBy('codigo')
-                                                            ->get()
-                                                            ->mapWithKeys(fn ($item) => [
-                                                                $item->id => $item->codigo.' - '.($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción'),
-                                                            ])
-                                                            ->toArray()
-                                                    )
+                                                    ->options(fn () => self::getArticuloOptions())
+                                                    ->getSearchResultsUsing(fn (string $search): array => self::getArticuloOptions($search))
+                                                    ->getOptionLabelUsing(function ($value): ?string {
+                                                        $articulo = Articulo::with('fabricante:id,nombre,codigo')->find($value);
+
+                                                        return $articulo ? self::formatArticuloOption($articulo) : null;
+                                                    })
                                                     ->required()
-                                                    ->searchable(['codigo', 'descripcion', 'nombre_comercial'])
+                                                    ->searchable()
+                                                    ->allowHtml()
                                                     ->preload()
-                                                    ->placeholder('Seleccione un artículo')
+                                                    ->placeholder('Busque por artículo, código o marca')
                                                     ->prefixIcon('heroicon-o-cube')
-                                                    ->helperText('Producto afectado. Verifica código y descripción antes de continuar.')
+                                                    ->helperText('Puede buscar por código, modelo, nombre, descripción o marca.')
                                                     ->reactive()
                                                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                                         if ($state) {
