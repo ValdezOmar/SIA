@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Ventas\ClienteResource\RelationManagers;
 
 use App\Models\Inventario\Articulo;
+use App\Support\ArticuloSelectOptions;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Cotizacion;
 use Filament\Forms\Components\Actions\Action as FormAction;
@@ -562,21 +563,16 @@ class CotizacionesRelationManager extends RelationManager
                                                     ->schema([
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
-                                                            ->options(
-                                                                fn () => Articulo::where('activo', true)
-                                                                    ->where('vendible', true)
-                                                                    ->orderBy('codigo')
-                                                                    ->get()
-                                                                    ->mapWithKeys(fn ($item) => [
-                                                                        $item->id => $item->codigo.' - '.($item->descripcion ?? $item->nombre_comercial ?? 'Sin descripción'),
-                                                                    ])
-                                                                    ->toArray()
-                                                            )
+                                                            ->options(fn () => ArticuloSelectOptions::ventas())
+                                                            ->getSearchResultsUsing(fn (string $search): array => ArticuloSelectOptions::ventas($search))
+                                                            ->getOptionLabelUsing(fn ($value): ?string => ArticuloSelectOptions::label($value))
                                                             ->required()
-                                                            ->searchable(['descripcion', 'codigo'])
+                                                            ->searchable()
+                                                            ->allowHtml()
                                                             ->preload()
-                                                            ->placeholder('Buscar artículo...')
+                                                            ->placeholder('Busque por código, modelo, nombre o marca')
                                                             ->prefixIcon('heroicon-o-cube')
+                                                            ->helperText('La lista muestra foto, código, modelo, nombre comercial y marca.')
                                                             ->columnSpan(6)
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
