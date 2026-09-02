@@ -1,10 +1,10 @@
 @extends('errors.layout')
 @section('code', '429')
 @section('title', 'Vamos un poco más despacio')
-@section('message', 'Recibimos varias solicitudes en muy poco tiempo. Espera unos segundos antes de intentarlo nuevamente.')
-@section('hint', 'Evita presionar varias veces el botón mientras una operación está procesándose.')
+@section('message', 'Recibimos varias solicitudes seguidas. Espera unos segundos antes de continuar.')
+@section('hint', 'No presiones varias veces un botón mientras la operación está procesándose.')
 @section('accent', '#0284c7')
 @section('accent-soft', '#e0f2fe')
 @section('actions')
-    <button type="button" class="button primary" onclick="window.location.reload()">Intentar nuevamente</button>
+    <a class="button primary" href="/dashboard">Ir al panel principal</a>
 @endsection
