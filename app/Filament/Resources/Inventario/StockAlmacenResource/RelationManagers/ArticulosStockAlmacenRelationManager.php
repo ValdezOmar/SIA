@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers;
 
+use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -33,24 +33,12 @@ class ArticulosStockAlmacenRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                ImageColumn::make('articulo.foto_catalogo')
-                    ->label('')
-                    ->square()
-                    ->size(40)
-                    ->defaultImageUrl(fn ($record) => 'https://ui-avatars.com/api/?name='.urlencode($record->articulo?->codigo ?? 'ART').'&color=1D4ED8&background=DBEAFE'),
-                TextColumn::make('articulo.codigo')
-                    ->label('Código')
-                    ->searchable()
-                    ->sortable()
-                    ->copyable()
-                    ->weight('bold'),
-                TextColumn::make('articulo.nombre_comercial')
+                TextColumn::make('articulo_resumen')
                     ->label('Artículo')
-                    ->description(fn ($record) => $record->articulo?->descripcion)
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('Sin nombre comercial')
-                    ->limit(45),
+                    ->getStateUsing(fn ($record): string => $record->articulo
+                        ? ArticuloSelectOptions::format($record->articulo)
+                        : 'Artículo no disponible')
+                    ->html(),
                 TextColumn::make('cantidad_disponible')
                     ->label('Disponible físicamente')
                     ->numeric(2)

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -81,16 +82,12 @@ class KardexPorAlmacenRelationManager extends RelationManager
                     ->sortable()
                     ->width('60px'),
 
-                TextColumn::make('articulo.codigo')
-                    ->label('Código')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('articulo.nombre_comercial')
+                TextColumn::make('articulo_resumen')
                     ->label('Artículo')
-                    ->searchable()
-                    ->sortable()
-                    ->limit(30),
+                    ->getStateUsing(fn ($record): string => $record->articulo
+                        ? ArticuloSelectOptions::format($record->articulo)
+                        : 'Artículo no disponible')
+                    ->html(),
 
                 BadgeColumn::make('tipo_movimiento')
                     ->label('Tipo')

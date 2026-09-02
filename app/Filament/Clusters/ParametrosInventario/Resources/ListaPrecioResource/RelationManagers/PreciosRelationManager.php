@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\RelationManagers;
 
 use App\Models\Inventario\Articulo;
+use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -42,11 +43,12 @@ class PreciosRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                TextColumn::make('articulo.codigo')->label('Código')->searchable()->sortable(),
-                TextColumn::make('articulo.nombre_comercial')->label('Artículo')
-                    ->description(fn ($record) => $record->articulo?->descripcion)
-                    ->searchable()
-                    ->limit(40),
+                TextColumn::make('articulo_resumen')
+                    ->label('Artículo')
+                    ->getStateUsing(fn ($record): string => $record->articulo
+                        ? ArticuloSelectOptions::format($record->articulo)
+                        : 'Artículo no disponible')
+                    ->html(),
                 TextColumn::make('precio')->label('Precio')
                     ->money(fn () => $this->getOwnerRecord()->moneda ?? 'BOB')
                     ->sortable(),
