@@ -2,6 +2,7 @@
 
 namespace App\Models\Contabilidad;
 
+use App\Models\Inventario\Kardex;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;
@@ -74,6 +75,11 @@ class AsientoContable extends Model
     public function periodo()
     {
         return $this->belongsTo(PeriodoContable::class);
+    }
+
+    public function kardex()
+    {
+        return $this->belongsTo(Kardex::class, 'documento_id');
     }
 
     // ========== SCOPES ==========
@@ -375,9 +381,163 @@ class AsientoContable extends Model
     }
 
     /**
+     * Contabiliza el efecto valorizado de un movimiento Kardex.
+     *
+     * Compra/venta documentadas usan sus procesos comerciales; este método cubre
+     * los movimientos que nacen directamente en Kardex. Transferencias internas
+     * y consignaciones de terceros no alteran el patrimonio y, por ello, no crean
+     * asiento. Un despacho se reclasifica a inventario en tránsito hasta la venta.
+     */
+    public static function crearDesdeKardex(Kardex $kardex, bool $permitirAnulado = false): ?self
+    {
+        if ((! $permitirAnulado && $kardex->estado !== 'confirmado') || (float) $kardex->costo_total <= 0) {
+            return null;
+        }
+
+        if (in_array($kardex->tipo_movimiento, ['transferencia_entrada', 'transferencia_salida', 'consignacion'], true)) {
+            return null;
+        }
+
+        $existente = self::query()
+            ->where('documento_tipo', 'kardex')
+            ->where('documento_id', $kardex->id)
+            ->first();
+
+        if ($existente) {
+            return $existente;
+        }
+
+        if ($kardex->movimiento_relacionado_id) {
+            $asientoOriginal = self::query()
+                ->where('documento_tipo', 'kardex')
+                ->where('documento_id', $kardex->movimiento_relacionado_id)
+                ->where('estado', 'confirmado')
+                ->with('detalles')
+                ->first();
+
+            if (! $asientoOriginal) {
+                $movimientoOriginal = Kardex::find($kardex->movimiento_relacionado_id);
+                if ($movimientoOriginal) {
+                    $asientoOriginal = self::crearDesdeKardex($movimientoOriginal, true)?->load('detalles');
+                }
+            }
+
+            if ($asientoOriginal) {
+                return self::crearReversionKardex($kardex, $asientoOriginal);
+            }
+        }
+
+        $cuentas = [
+            'inventario' => ['1.1.5', 'Inventario', 'activo', 'deudora'],
+            'transito' => ['1.1.6', 'Inventario despachado en tránsito', 'activo', 'deudora'],
+            'produccion' => ['1.1.7', 'Producción en proceso', 'activo', 'deudora'],
+            'puente' => ['2.1.9', 'Contrapartida transitoria de inventario', 'pasivo', 'acreedora'],
+            'apertura' => ['3.1.9', 'Contrapartida de inventario inicial', 'patrimonio', 'acreedora'],
+            'ganancia' => ['4.9.1', 'Ganancia por ajuste de inventario', 'ingreso', 'acreedora'],
+            'costo_venta' => ['6.1', 'Costo de Ventas', 'costo', 'deudora'],
+            'perdida' => ['6.2.1', 'Pérdida por ajuste de inventario', 'gasto', 'deudora'],
+            'merma' => ['6.2.2', 'Gasto por merma de inventario', 'gasto', 'deudora'],
+        ];
+
+        $par = match ($kardex->tipo_movimiento) {
+            'compra' => ['inventario', 'puente'],
+            'venta' => ['costo_venta', 'inventario'],
+            'ajuste_incremento' => ['inventario', 'ganancia'],
+            'ajuste_decremento' => ['perdida', 'inventario'],
+            'ajuste_fisico' => $kardex->direccion === 'entrada'
+                ? ['inventario', 'ganancia']
+                : ['perdida', 'inventario'],
+            'devolucion_compra' => ['puente', 'inventario'],
+            'devolucion_venta' => ['inventario', 'costo_venta'],
+            'produccion_salida' => ['produccion', 'inventario'],
+            'produccion_entrada' => ['inventario', 'produccion'],
+            'inventario_inicial' => ['inventario', 'apertura'],
+            'merma' => ['merma', 'inventario'],
+            'despacho' => ['transito', 'inventario'],
+            default => null,
+        };
+
+        if (! $par) {
+            throw new RuntimeException('No existe configuración contable para el movimiento Kardex '.$kardex->tipo_movimiento.'.');
+        }
+
+        [$claveDebe, $claveHaber] = $par;
+        $cuentaDebe = self::obtenerOCrearCuenta(...$cuentas[$claveDebe]);
+        $cuentaHaber = self::obtenerOCrearCuenta(...$cuentas[$claveHaber]);
+        $importe = (float) $kardex->costo_total;
+        $descripcion = $kardex->tipo_movimiento_label.' Kardex #'.$kardex->id;
+
+        $asiento = self::create([
+            'fecha_asiento' => $kardex->fecha_contable ?? $kardex->fecha_movimiento,
+            'fecha_contable' => $kardex->fecha_contable ?? $kardex->fecha_movimiento,
+            'documento_tipo' => 'kardex',
+            'documento_id' => $kardex->id,
+            'documento_codigo' => $kardex->documento_codigo ?? 'KAR-'.$kardex->id,
+            'tipo' => $kardex->tipo_movimiento === 'inventario_inicial' ? 'apertura' : 'inventario',
+            'concepto' => $descripcion,
+            'observaciones' => $kardex->motivo ?: $kardex->observaciones,
+            'empresa_id' => $kardex->empresa_id,
+        ]);
+
+        $baseDetalle = [
+            'empresa_id' => $kardex->empresa_id,
+            'referencia' => $kardex->documento_codigo,
+            'datos_adicionales' => ['kardex_id' => $kardex->id, 'tipo_movimiento' => $kardex->tipo_movimiento],
+        ];
+        $asiento->detalles()->create($baseDetalle + [
+            'linea' => 1, 'cuenta_id' => $cuentaDebe->id, 'debe' => $importe, 'haber' => 0, 'descripcion' => $descripcion,
+        ]);
+        $asiento->detalles()->create($baseDetalle + [
+            'linea' => 2, 'cuenta_id' => $cuentaHaber->id, 'debe' => 0, 'haber' => $importe, 'descripcion' => $descripcion,
+        ]);
+        $asiento->recalcularTotales();
+        $asiento->confirmar();
+
+        return $asiento;
+    }
+
+    private static function crearReversionKardex(Kardex $kardex, self $original): self
+    {
+        $descripcion = 'Reversión '.$original->concepto.' mediante Kardex #'.$kardex->id;
+        $asiento = self::create([
+            'fecha_asiento' => $kardex->fecha_contable ?? $kardex->fecha_movimiento,
+            'fecha_contable' => $kardex->fecha_contable ?? $kardex->fecha_movimiento,
+            'documento_tipo' => 'kardex',
+            'documento_id' => $kardex->id,
+            'documento_codigo' => $kardex->documento_codigo ?? 'KAR-'.$kardex->id,
+            'tipo' => 'inventario',
+            'concepto' => $descripcion,
+            'observaciones' => $kardex->observaciones,
+            'empresa_id' => $kardex->empresa_id,
+        ]);
+
+        foreach ($original->detalles as $detalle) {
+            $asiento->detalles()->create([
+                'linea' => $detalle->linea,
+                'cuenta_id' => $detalle->cuenta_id,
+                'debe' => $detalle->haber,
+                'haber' => $detalle->debe,
+                'descripcion' => $descripcion,
+                'empresa_id' => $kardex->empresa_id,
+                'referencia' => $kardex->documento_codigo,
+                'datos_adicionales' => [
+                    'kardex_id' => $kardex->id,
+                    'asiento_original_id' => $original->id,
+                    'es_reversion' => true,
+                ],
+            ]);
+        }
+
+        $asiento->recalcularTotales();
+        $asiento->confirmar();
+
+        return $asiento;
+    }
+
+    /**
      * Crear asiento desde una venta
      */
-    public static function crearDesdeVenta($venta)
+    public static function crearDesdeVenta($venta, $fechaContable = null)
     {
         $yaExiste = self::where('documento_tipo', 'venta')
             ->where('documento_id', $venta->id)
@@ -399,7 +559,8 @@ class AsientoContable extends Model
         $asiento = self::create([
             'codigo' => self::generarCodigo(),
             'numero_asiento' => null,
-            'fecha_asiento' => now(),
+            'fecha_asiento' => $fechaContable ?? now(),
+            'fecha_contable' => $fechaContable,
             'documento_tipo' => 'venta',
             'documento_id' => $venta->id,
             'documento_codigo' => $documentoCodigo,
@@ -467,7 +628,7 @@ class AsientoContable extends Model
     /**
      * Crear asiento desde una compra
      */
-    public static function crearDesdeCompra($compra)
+    public static function crearDesdeCompra($compra, $fechaContable = null)
     {
         $existente = self::query()
             ->where('documento_tipo', 'compra')
@@ -490,7 +651,8 @@ class AsientoContable extends Model
 
         $asiento = self::create([
             'codigo' => self::generarCodigo(),
-            'fecha_asiento' => now(),
+            'fecha_asiento' => $fechaContable ?? now(),
+            'fecha_contable' => $fechaContable,
             'documento_tipo' => 'compra',
             'documento_id' => $compra->id,
             'documento_codigo' => $compra->codigo,

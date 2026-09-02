@@ -2,6 +2,7 @@
 
 namespace App\Models\Inventario;
 
+use App\Models\Contabilidad\AsientoContable;
 use App\Models\Sistema\Empresa;
 use App\Models\User;
 use App\Services\Inventario\TrazabilidadInventarioService;
@@ -108,6 +109,12 @@ class Kardex extends Model
     public function capaCosto()
     {
         return $this->hasOne(CapaCosto::class);
+    }
+
+    public function asientoContable()
+    {
+        return $this->hasOne(AsientoContable::class, 'documento_id')
+            ->where('documento_tipo', 'kardex');
     }
 
     // ========== SCOPES ==========
@@ -272,6 +279,10 @@ class Kardex extends Model
                 }
             }
 
+            if (empty($data['omitir_contabilizacion'])) {
+                AsientoContable::crearDesdeKardex($kardex);
+            }
+
             return $kardex;
         });
     }
@@ -301,6 +312,10 @@ class Kardex extends Model
             if ($movimiento->estado !== 'confirmado') {
                 return null;
             }
+
+            // Los movimientos históricos pueden preceder a la integración contable.
+            // Contabilizar primero el original garantiza una reversión exacta.
+            AsientoContable::crearDesdeKardex($movimiento);
 
             $reversion = self::where('movimiento_relacionado_id', $movimiento->id)
                 ->where('estado', 'confirmado')
@@ -410,7 +425,10 @@ class Kardex extends Model
             'movimiento_relacionado_id' => $data['movimiento_relacionado_id'] ?? null,
             'usuario_id' => auth()->id(),
             'fecha_movimiento' => $data['fecha_movimiento'] ?? now(),
+            'fecha_contable' => $data['fecha_contable'] ?? $data['fecha_movimiento'] ?? now(),
+            'motivo' => $data['motivo'] ?? null,
             'observaciones' => $data['observaciones'] ?? null,
+            'datos_adicionales' => $data['datos_adicionales'] ?? null,
             'estado' => $data['estado'] ?? 'confirmado',
             'empresa_id' => $data['empresa_id'] ?? auth()->user()?->empresa_id,
         ]);
@@ -621,7 +639,10 @@ class Kardex extends Model
             'movimiento_relacionado_id' => $data['movimiento_relacionado_id'] ?? null,
             'usuario_id' => auth()->id(),
             'fecha_movimiento' => $data['fecha_movimiento'] ?? now(),
+            'fecha_contable' => $data['fecha_contable'] ?? $data['fecha_movimiento'] ?? now(),
+            'motivo' => $data['motivo'] ?? null,
             'observaciones' => $data['observaciones'] ?? null,
+            'datos_adicionales' => $data['datos_adicionales'] ?? null,
             'estado' => $data['estado'] ?? 'confirmado',
             'empresa_id' => $data['empresa_id'] ?? auth()->user()?->empresa_id,
         ]);

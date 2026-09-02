@@ -274,6 +274,13 @@ class KardexResource extends Resource
                                                         $costoUnitario = floatval($get('costo_unitario') ?? 0);
                                                         $set('costo_total', $cantidad * $costoUnitario);
                                                     }),
+
+                                                DatePicker::make('fecha_contable')
+                                                    ->label('Fecha contable')
+                                                    ->default(now())
+                                                    ->native(false)
+                                                    ->helperText('Fecha que usará el asiento automático. Debe pertenecer a un período contable abierto.')
+                                                    ->prefixIcon('heroicon-o-calculator'),
                                             ]),
                                         Grid::make(2)
                                             ->schema([
@@ -630,6 +637,16 @@ class KardexResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->weight('bold'),
+
+                TextColumn::make('asientoContable.codigo')
+                    ->label('Asiento')
+                    ->placeholder('Sin efecto contable')
+                    ->badge()
+                    ->color(fn ($state) => $state ? 'success' : 'gray')
+                    ->tooltip(fn ($record) => $record->asientoContable
+                        ? 'Movimiento contabilizado automáticamente'
+                        : 'Movimiento logístico sin efecto contable')
+                    ->toggleable(),
 
                 TextColumn::make('documento_codigo')
                     ->label('Documento')
