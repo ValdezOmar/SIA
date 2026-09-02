@@ -74,8 +74,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                                 ->disabled(true),
 
                             Forms\Components\Textarea::make('justificacion')
-                                ->label('Justificación del Registro Remoto')
-                                ->required()
+                                ->label('Justificación del Registro Remoto')                                
                                 ->columnSpanFull()
                                 ->maxLength(255)
                                 ->hidden(function ($get, $livewire) {

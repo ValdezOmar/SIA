@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\GoogleAuthController;
-use Laravel\Socialite\Facades\Socialite;
+use App\Http\Controllers\EmpleadoFotoController;
+use Illuminate\Support\Facades\Route;
 
 // Redirige la ruta raíz al dashboard de Filament
 Route::redirect('/', '/dashboard');
@@ -11,6 +11,10 @@ Route::redirect('/', '/dashboard');
 Route::get('/', function () {
     return redirect('/dashboard');
 });
-//Redireccion a los dominios de llamada de google
+// Redirección a los dominios de llamada de Google.
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('google.redirect');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
+
+Route::get('/media/empleados/{empleado}/foto', EmpleadoFotoController::class)
+    ->middleware('auth')
+    ->name('empleados.foto');

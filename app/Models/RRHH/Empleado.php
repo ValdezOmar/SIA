@@ -80,16 +80,24 @@ class Empleado extends Model
             return $this->foto;
         }
 
-        // Verificar si la foto existe en storage
+        if ($this->foto_storage_path && $this->exists) {
+            return url("/media/empleados/{$this->getKey()}/foto?v=".($this->updated_at?->timestamp ?? 0));
+        }
+
+        return asset('images/default-avatar.jpg');
+    }
+
+    public function getFotoStoragePathAttribute(): ?string
+    {
+        if (! is_string($this->foto) || blank($this->foto) || filter_var($this->foto, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
         $path = str_starts_with($this->foto, 'empleados/')
             ? $this->foto
             : 'empleados/'.basename($this->foto);
 
-        if (Storage::disk('public')->exists($path)) {
-            return Storage::disk('public')->url($path);
-        }
-
-        return asset('images/default-avatar.jpg');
+        return Storage::disk('public')->exists($path) ? $path : null;
     }
 
     // Accesor para coordenadas formateadas

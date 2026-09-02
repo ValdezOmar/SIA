@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\RRHH\Empleado;
+use App\Models\RRHH\HistorialLaboral;
 use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -79,6 +81,20 @@ class User extends Authenticatable implements HasAvatar
     // Asociacion de foto de perfil con avatar
     public function getFilamentAvatarUrl(): ?string
     {
-        return $this->empleado?->foto_url ?? asset('images/default-avatar.jpg');
+        $empleado = $this->empleado;
+
+        if (! $empleado && filled($this->email)) {
+            $empleado = HistorialLaboral::query()
+                ->with('empleado')
+                ->whereRaw('LOWER(correo_corporativo) = ?', [mb_strtolower(trim($this->email))])
+                ->orderByDesc('activo')
+                ->latest('id')
+                ->first()
+                ?->empleado;
+        }
+
+        return $empleado instanceof Empleado
+            ? $empleado->foto_url
+            : asset('images/default-avatar.jpg');
     }
 }
