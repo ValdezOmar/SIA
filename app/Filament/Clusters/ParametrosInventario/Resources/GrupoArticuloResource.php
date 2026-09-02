@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
 use App\Filament\Clusters\ParametrosInventario;
+use App\Filament\Concerns\ScopesEmpresa;
 use App\Filament\Clusters\ParametrosInventario\Resources\GrupoArticuloResource\Pages;
 use App\Models\Inventario\GrupoArticulo;
 use Filament\Forms;
@@ -22,6 +23,7 @@ use Filament\Tables\Table;
 
 class GrupoArticuloResource extends Resource
 {
+    use ScopesEmpresa;
     protected static ?string $model = GrupoArticulo::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-folder';
@@ -40,6 +42,7 @@ class GrupoArticuloResource extends Resource
     {
         return $form
             ->schema([
+                self::empresaField(),
                 Tabs::make('Gestión de Grupo')
                     ->tabs([
 
@@ -81,7 +84,8 @@ class GrupoArticuloResource extends Resource
 
                                         Select::make('grupo_padre_id')
                                             ->label('Grupo Padre')
-                                            ->options(fn () => GrupoArticulo::where('activo', true)
+                                            ->options(fn ($get) => GrupoArticulo::where('activo', true)
+                                                ->where('empresa_id', $get('empresa_id') ?? auth()->user()?->empresa_id ?? 0)
                                                 ->whereNull('grupo_padre_id')
                                                 ->pluck('nombre', 'id')
                                                 ->toArray()

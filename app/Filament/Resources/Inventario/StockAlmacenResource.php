@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Inventario;
 
+use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource;
 use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\EditStockAlmacens;
 use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\ListStockAlmacens;
 use App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers\ArticulosStockAlmacenRelationManager;
@@ -15,6 +16,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -38,6 +40,11 @@ class StockAlmacenResource extends Resource
     protected static ?string $pluralModelLabel = 'Stock de Almacenes';
 
     protected static ?int $navigationSort = 2;
+
+    public static function getEloquentQuery(): Builder
+    {
+        return AlmacenResource::getEloquentQuery();
+    }
 
     private static function ubicacionesTieneAlmacenId(): bool
     {

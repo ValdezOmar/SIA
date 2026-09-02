@@ -17,6 +17,7 @@ class GrupoArticulo extends Model
     {
         static::creating(function (self $grupo): void {
             $grupo->codigo ??= self::codigoDosIniciales($grupo->nombre);
+            $grupo->empresa_id ??= auth()->user()?->empresa_id;
         });
     }
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
 use App\Filament\Clusters\ParametrosInventario;
+use App\Filament\Concerns\ScopesEmpresa;
 use App\Filament\Clusters\ParametrosInventario\Resources\FabricanteResource\Pages;
 use App\Models\Inventario\Fabricante;
 use Filament\Forms;
@@ -22,6 +23,7 @@ use Filament\Tables\Table;
 
 class FabricanteResource extends Resource
 {
+    use ScopesEmpresa;
     protected static ?string $model = Fabricante::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
@@ -40,6 +42,7 @@ class FabricanteResource extends Resource
     {
         return $form
             ->schema([
+                self::empresaField(),
                 Tabs::make('Gestión de Fabricante')
                     ->tabs([
 

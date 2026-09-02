@@ -16,6 +16,7 @@ class UnidadMedida extends Model
     protected static function booted(): void
     {
         static::creating(function (self $unidad): void {
+            $unidad->empresa_id ??= auth()->user()?->empresa_id;
             if (empty($unidad->codigo)) {
                 $base = strtoupper(trim($unidad->abreviatura ?: $unidad->nombre));
                 $unidad->codigo = self::query()->where('codigo', $base)->exists()

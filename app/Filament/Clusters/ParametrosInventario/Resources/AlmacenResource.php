@@ -5,6 +5,8 @@ namespace App\Filament\Clusters\ParametrosInventario\Resources;
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource\Pages;
 use App\Models\Inventario\Almacen;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -20,6 +22,8 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
 class AlmacenResource extends Resource
@@ -37,6 +41,70 @@ class AlmacenResource extends Resource
     protected static ?string $pluralModelLabel = 'Almacenes';
 
     protected static ?int $navigationSort = 2;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = Auth::user();
+
+        if (! $user || $user->hasAnyRole(['super_admin', 'admin'])) {
+            return $query;
+        }
+
+        if (! $user->empresa_id) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $query->where('empresa_id', $user->empresa_id);
+
+        if ($user->sucursal_id) {
+            $query->where(fn (Builder $q) => $q
+                ->where('sucursal_id', $user->sucursal_id)
+                ->orWhereNull('sucursal_id'));
+        }
+
+        return $query;
+    }
+
+    public static function empresasDisponibles(): array
+    {
+        $user = Auth::user();
+        $query = Empresa::query()->orderByRaw("CASE WHEN nombre_comercial IS NULL OR nombre_comercial = '' THEN razon_social ELSE nombre_comercial END");
+
+        if ($user && ! $user->hasAnyRole(['super_admin', 'admin'])) {
+            $query->whereKey($user->empresa_id ?? 0);
+        }
+
+        return $query->get()
+            ->mapWithKeys(fn (Empresa $empresa) => [
+                $empresa->id => $empresa->nombre_comercial ?: $empresa->razon_social,
+            ])
+            ->all();
+    }
+
+    public static function empresaPredeterminada(): ?int
+    {
+        if (Auth::user()?->empresa_id) {
+            return (int) Auth::user()->empresa_id;
+        }
+
+        return array_key_first(self::empresasDisponibles());
+    }
+
+    public static function sucursalesDisponibles(?int $empresaId = null): array
+    {
+        $user = Auth::user();
+        $empresaId ??= $user?->empresa_id;
+
+        return Sucursal::query()
+            ->where('activo', true)
+            ->when($empresaId, fn (Builder $q) => $q->where('empresa_id', $empresaId))
+            ->when($user && ! $user->hasAnyRole(['super_admin', 'admin']) && $user->sucursal_id,
+                fn (Builder $q) => $q->whereKey($user->sucursal_id))
+            ->orderBy('nombre')
+            ->pluck('nombre', 'id')
+            ->all();
+    }
 
     /**
      * Verificar si la tabla de ubicaciones tiene la columna almacen_id
@@ -85,70 +153,86 @@ class AlmacenResource extends Resource
                         Tabs\Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
-                                Section::make('Datos Básicos')
-                                    ->icon('heroicon-o-identification')
-                                    ->description('Información principal del almacén')
+                                Section::make('Asignación organizacional')
+                                    ->icon('heroicon-o-building-office')
+                                    ->description('Define a qué empresa y sucursal pertenece el almacén.')
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
-                                                TextInput::make('codigo')
-                                                    ->disabled()
-                                                    ->dehydrated(false)
-                                                    ->required(false)
-                                                    ->placeholder('Se genera automáticamente')
-                                                    ->label('Código')
+                                                Select::make('empresa_id')
+                                                    ->label('Empresa')
+                                                    ->hint('Obligatorio')
+                                                    ->prefixIcon('heroicon-o-building-office-2')
+                                                    ->options(fn () => self::empresasDisponibles())
+                                                    ->default(fn () => self::empresaPredeterminada())
                                                     ->required()
-                                                    ->maxLength(20)
-                                                    ->unique(ignoreRecord: true)
-                                                    ->placeholder('Ej: ALM-001')
-                                                    ->helperText('Código único para identificar el almacén')
-                                                    ->disabledOn('edit')
-                                                    ->columnSpan(1)
-                                                    ->required(false)
-                                                    ->placeholder('Se genera automáticamente')
-                                                    ->disabled(),
-
-                                                TextInput::make('nombre')
-                                                    ->label('Nombre del Almacén')
-                                                    ->required()
-                                                    ->maxLength(255)
-                                                    ->placeholder('Ej: Almacén Central')
-                                                    ->helperText('Nombre descriptivo del almacén')
-                                                    ->columnSpan(1),
-                                            ]),
-
-                                        Grid::make(2)
-                                            ->schema([
-                                                Select::make('sucursal_id')
-                                                    ->label('Sucursal')
-                                                    ->relationship('sucursal', 'nombre')
                                                     ->searchable()
                                                     ->preload()
-                                                    ->placeholder('Seleccione una sucursal')
-                                                    ->helperText('Sucursal a la que pertenece este almacén')
-                                                    ->columnSpan(1)
-                                                    ->visible(fn () => Schema::hasTable('conf_sucursales')),
+                                                    ->live()
+                                                    ->afterStateUpdated(fn ($set) => $set('sucursal_id', null))
+                                                    ->disabled(fn () => Auth::user() && ! Auth::user()->hasAnyRole(['super_admin', 'admin']))
+                                                    ->dehydrated()
+                                                    ->helperText('La empresa controla el aislamiento de stock, ventas y movimientos contables.'),
 
-                                                Textarea::make('direccion')
-                                                    ->label('Dirección')
-                                                    ->rows(3)
-                                                    ->placeholder('Ej: Av. Principal #123, Zona Industrial')
-                                                    ->helperText('Ubicación física del almacén')
-                                                    ->columnSpan(1),
+                                                Select::make('sucursal_id')
+                                                    ->label('Sucursal')
+                                                    ->hint('Opcional')
+                                                    ->prefixIcon('heroicon-o-map-pin')
+                                                    ->options(fn ($get) => self::sucursalesDisponibles($get('empresa_id') ? (int) $get('empresa_id') : null))
+                                                    ->default(fn () => Auth::user()?->sucursal_id)
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->disabled(fn () => Auth::user()?->sucursal_id && ! Auth::user()->hasAnyRole(['super_admin', 'admin']))
+                                                    ->dehydrated()
+                                                    ->placeholder('General para toda la empresa')
+                                                    ->helperText('Seleccione una sucursal para uso exclusivo. Déjelo vacío si estará disponible para todas las sucursales de la empresa.')
+                                                    ->visible(fn () => Schema::hasTable('conf_sucursales')),
                                             ]),
                                     ]),
 
-                                Section::make('Estado')
-                                    ->icon('heroicon-o-check-circle')
+                                Section::make('Identificación del almacén')
+                                    ->icon('heroicon-o-identification')
+                                    ->description('Datos utilizados para reconocer el almacén en formularios y reportes.')
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
-                                                Toggle::make('activo')
-                                                    ->label('Almacén Activo')
-                                                    ->default(true)
-                                                    ->helperText('Desactive para inhabilitar temporalmente este almacén')
-                                                    ->columnSpan(1),
+                                                TextInput::make('nombre')
+                                                    ->label('Nombre del almacén')
+                                                    ->hint('Obligatorio')
+                                                    ->prefixIcon('heroicon-o-building-storefront')
+                                                    ->required()
+                                                    ->maxLength(255)
+                                                    ->placeholder('Ej.: Almacén Central')
+                                                    ->helperText('Use un nombre breve y fácil de distinguir, especialmente si existen varias sucursales.'),
+
+                                                TextInput::make('codigo')
+                                                    ->label('Código')
+                                                    ->prefixIcon('heroicon-o-qr-code')
+                                                    ->disabled()
+                                                    ->dehydrated(false)
+                                                    ->placeholder('Se genera automáticamente')
+                                                    ->helperText('El sistema asignará un código único al guardar el almacén.'),
                                             ]),
+
+                                        Textarea::make('direccion')
+                                            ->label('Dirección física')
+                                            ->hint('Opcional')
+                                            ->rows(2)
+                                            ->maxLength(500)
+                                            ->placeholder('Ej.: Av. Principal N.º 123, Zona Industrial')
+                                            ->helperText('Indique dónde se recibe o despacha la mercadería. Facilita transferencias y documentos logísticos.')
+                                            ->columnSpanFull(),
+                                    ]),
+
+                                Section::make('Disponibilidad operativa')
+                                    ->icon('heroicon-o-check-circle')
+                                    ->description('Controla si el almacén puede utilizarse en ventas, reservas, compras y movimientos de inventario.')
+                                    ->schema([
+                                        Toggle::make('activo')
+                                            ->label('Almacén disponible')
+                                            ->inline(false)
+                                            ->default(true)
+                                            ->helperText('Si lo desactiva, conservará su historial y stock, pero no aparecerá para nuevas operaciones.'),
                                     ]),
                             ]),
 
@@ -261,6 +345,13 @@ class AlmacenResource extends Resource
         $existenciasExiste = self::existenciasTieneAlmacenId();
 
         $columns = [
+            TextColumn::make('empresa.nombre_comercial')
+                ->label('Empresa')
+                ->formatStateUsing(fn ($state, Almacen $record) => $state ?: $record->empresa?->razon_social)
+                ->searchable()
+                ->sortable()
+                ->toggleable(),
+
             TextColumn::make('codigo')
                 ->label('Código')
                 ->searchable()
@@ -347,7 +438,7 @@ class AlmacenResource extends Resource
 
                 Tables\Filters\SelectFilter::make('sucursal_id')
                     ->label('Sucursal')
-                    ->relationship('sucursal', 'nombre')
+                    ->options(fn () => self::sucursalesDisponibles())
                     ->searchable()
                     ->preload()
                     ->visible(fn () => Schema::hasTable('conf_sucursales')),

@@ -16,6 +16,7 @@ class Fabricante extends Model
     protected static function booted(): void
     {
         static::creating(function (self $fabricante): void {
+            $fabricante->empresa_id ??= auth()->user()?->empresa_id;
             if (empty($fabricante->codigo)) {
                 $fabricante->codigo = self::codigoDosIniciales($fabricante->nombre);
             }

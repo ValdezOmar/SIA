@@ -3,8 +3,11 @@
 namespace App\Filament\Resources\Inventario;
 
 use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages;
+use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource;
 use App\Models\Inventario\Articulo;
+use App\Models\Inventario\Almacen;
 use App\Models\Inventario\TransferenciaAlmacen;
+use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -16,7 +19,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class TransferenciaAlmacenResource extends Resource
 {
@@ -33,6 +38,31 @@ class TransferenciaAlmacenResource extends Resource
     protected static ?string $pluralModelLabel = 'Traspasos entre almacenes';
 
     protected static ?int $navigationSort = 3;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $almacenes = AlmacenResource::getEloquentQuery()->select('id');
+
+        return parent::getEloquentQuery()->where(function (Builder $query) use ($almacenes): void {
+            $query->whereIn('almacen_origen_id', clone $almacenes)
+                ->orWhereIn('almacen_destino_id', clone $almacenes);
+        });
+    }
+
+    private static function almacenesOrigen(): array
+    {
+        return AlmacenResource::getEloquentQuery()->activo()->orderBy('nombre')->pluck('nombre', 'id')->all();
+    }
+
+    private static function almacenesDestino(): array
+    {
+        $user = Auth::user();
+
+        return Almacen::query()->activo()
+            ->when($user && ! $user->hasAnyRole(['super_admin', 'admin']),
+                fn (Builder $query) => $query->where('empresa_id', $user->empresa_id ?? 0))
+            ->orderBy('nombre')->pluck('nombre', 'id')->all();
+    }
 
     public static function canDelete(Model $record): bool
     {
@@ -57,14 +87,14 @@ class TransferenciaAlmacenResource extends Resource
                         ->placeholder('Se genera al guardar'),
                     Select::make('almacen_origen_id')
                         ->label('Almacén de origen')
-                        ->relationship('almacenOrigen', 'nombre', fn ($query) => $query->where('activo', true))
+                        ->options(fn () => self::almacenesOrigen())
                         ->searchable()
                         ->preload()
                         ->required()
                         ->helperText('Aquí se descontará el stock al enviar.'),
                     Select::make('almacen_destino_id')
                         ->label('Almacén de destino')
-                        ->relationship('almacenDestino', 'nombre', fn ($query) => $query->where('activo', true))
+                        ->options(fn () => self::almacenesDestino())
                         ->searchable()
                         ->preload()
                         ->required()
@@ -72,7 +102,10 @@ class TransferenciaAlmacenResource extends Resource
                         ->helperText('El stock se incrementará sólo después de la aprobación.'),
                     Select::make('receptor_id')
                         ->label('Receptor responsable')
-                        ->relationship('receptor', 'name')
+                        ->options(fn () => User::query()
+                            ->when(Auth::user() && ! Auth::user()->hasAnyRole(['super_admin', 'admin']),
+                                fn (Builder $query) => $query->where('empresa_id', Auth::user()->empresa_id ?? 0))
+                            ->orderBy('name')->pluck('name', 'id')->all())
                         ->searchable()
                         ->preload()
                         ->required()
@@ -89,7 +122,10 @@ class TransferenciaAlmacenResource extends Resource
                         ->schema([
                             Select::make('articulo_id')
                                 ->label('Artículo')
-                                ->options(fn () => Articulo::query()->where('activo', true)->orderBy('codigo')->get()
+                                ->options(fn () => Articulo::query()->where('activo', true)
+                                    ->when(Auth::user() && ! Auth::user()->hasAnyRole(['super_admin', 'admin']),
+                                        fn (Builder $query) => $query->where('empresa_id', Auth::user()->empresa_id ?? 0))
+                                    ->orderBy('codigo')->get()
                                     ->mapWithKeys(fn (Articulo $articulo) => [$articulo->id => $articulo->codigo.' — '.($articulo->nombre_comercial ?: $articulo->descripcion)])
                                     ->all())
                                 ->searchable()
@@ -150,7 +186,7 @@ class TransferenciaAlmacenResource extends Resource
                 Tables\Filters\SelectFilter::make('estado')->options([
                     'borrador' => 'Borrador', 'en_transito' => 'En tránsito', 'recibida' => 'Recibida', 'rechazada' => 'Rechazada',
                 ]),
-                Tables\Filters\SelectFilter::make('almacen_destino_id')->label('Destino')->relationship('almacenDestino', 'nombre'),
+                Tables\Filters\SelectFilter::make('almacen_destino_id')->label('Destino')->options(fn () => self::almacenesDestino()),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()->label('Abrir'),

@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
 use App\Filament\Clusters\ParametrosInventario;
+use App\Filament\Concerns\ScopesEmpresa;
 use App\Filament\Clusters\ParametrosInventario\Resources\UnidadMedidaResource\Pages;
 use App\Models\Inventario\UnidadMedida;
 use Filament\Forms;
@@ -22,6 +23,7 @@ use Illuminate\Support\Facades\Schema;
 
 class UnidadMedidaResource extends Resource
 {
+    use ScopesEmpresa;
     protected static ?string $model = UnidadMedida::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-scale';
@@ -40,6 +42,7 @@ class UnidadMedidaResource extends Resource
     {
         return $form
             ->schema([
+                self::empresaField(),
                 Tabs::make('Gestión de Unidad')
                     ->tabs([
 

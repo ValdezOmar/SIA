@@ -3,6 +3,7 @@
 namespace App\Models\Inventario;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class Ubicacion extends Model
 {
@@ -20,6 +21,24 @@ class Ubicacion extends Model
     {
         static::creating(function (self $ubicacion): void {
             $ubicacion->codigo ??= self::codigoCorrelativo('UBI');
+        });
+
+        static::saving(function (self $ubicacion): void {
+            $almacen = Almacen::query()->find($ubicacion->almacen_id);
+            $user = auth()->user();
+
+            if (! $almacen) {
+                throw ValidationException::withMessages(['almacen_id' => 'El almacén seleccionado no existe.']);
+            }
+
+            if ($user && ! $user->hasAnyRole(['super_admin', 'admin'])
+                && ((int) $almacen->empresa_id !== (int) $user->empresa_id
+                    || ($user->sucursal_id && $almacen->sucursal_id
+                        && (int) $almacen->sucursal_id !== (int) $user->sucursal_id))) {
+                throw ValidationException::withMessages([
+                    'almacen_id' => 'El almacén no pertenece a su empresa o sucursal.',
+                ]);
+            }
         });
     }
 

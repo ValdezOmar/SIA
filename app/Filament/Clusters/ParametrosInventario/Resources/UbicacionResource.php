@@ -19,6 +19,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class UbicacionResource extends Resource
 {
@@ -36,6 +37,22 @@ class UbicacionResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereHas('almacen', fn (Builder $query) => $query
+                ->whereIn('id', AlmacenResource::getEloquentQuery()->select('id')));
+    }
+
+    private static function almacenesDisponibles(): array
+    {
+        return AlmacenResource::getEloquentQuery()
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->pluck('nombre', 'id')
+            ->all();
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -48,10 +65,7 @@ class UbicacionResource extends Resource
                             ->schema([
                                 Select::make('almacen_id')
                                     ->label('Almacén')
-                                    ->options(fn () => Almacen::where('activo', true)
-                                        ->pluck('nombre', 'id')
-                                        ->toArray()
-                                    )
+                                    ->options(fn () => self::almacenesDisponibles())
                                     ->required()
                                     ->searchable()
                                     ->preload()
@@ -245,10 +259,7 @@ class UbicacionResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('almacen_id')
                     ->label('Almacén')
-                    ->options(fn () => Almacen::where('activo', true)
-                        ->pluck('nombre', 'id')
-                        ->toArray()
-                    )
+                    ->options(fn () => self::almacenesDisponibles())
                     ->searchable()
                     ->preload(),
 

@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
 use App\Filament\Clusters\ParametrosInventario;
+use App\Filament\Concerns\ScopesEmpresa;
 use App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\Pages;
 use App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\RelationManagers\PreciosRelationManager;
 use App\Models\Inventario\ListaPrecio;
@@ -20,6 +21,7 @@ use Filament\Tables\Table;
 
 class ListaPrecioResource extends Resource
 {
+    use ScopesEmpresa;
     protected static ?string $model = ListaPrecio::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
@@ -37,6 +39,7 @@ class ListaPrecioResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
+            self::empresaField(),
             Section::make('Identificación de la lista')
                 ->description('Use una lista por política comercial, tipo de cliente o moneda.')
                 ->icon('heroicon-o-identification')

@@ -17,6 +17,7 @@ class ListaPrecio extends Model
     {
         static::creating(function (self $lista): void {
             $lista->codigo ??= self::codigoCorrelativo('LPR');
+            $lista->empresa_id ??= auth()->user()?->empresa_id;
         });
     }
 

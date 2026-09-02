@@ -21,9 +21,8 @@ return new class extends Migration
                 ->nullOnDelete();
 
             $table->foreignId('empresa_id')
-                ->nullable()
                 ->constrained('conf_empresas')
-                ->nullOnDelete();
+                ->restrictOnDelete();
 
             $table->boolean('activo')->default(true);
             $table->timestamps();
@@ -31,6 +30,7 @@ return new class extends Migration
             // Índices
             $table->index('activo');
             $table->index('sucursal_id');
+            $table->index(['empresa_id', 'sucursal_id', 'activo'], 'alm_almacenes_tenant_estado_idx');
         });
     }
 

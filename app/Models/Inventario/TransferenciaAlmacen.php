@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Illuminate\Validation\ValidationException;
 
 class TransferenciaAlmacen extends Model
 {
@@ -26,6 +27,31 @@ class TransferenciaAlmacen extends Model
         static::creating(function (self $transferencia): void {
             $transferencia->codigo ??= 'TRA-'.now()->format('Ymd-His').'-'.strtoupper(Str::random(4));
             $transferencia->creado_por ??= auth()->id();
+        });
+
+        static::saving(function (self $transferencia): void {
+            $origen = Almacen::query()->find($transferencia->almacen_origen_id);
+            $destino = Almacen::query()->find($transferencia->almacen_destino_id);
+
+            if (! $origen || ! $destino) {
+                throw ValidationException::withMessages([
+                    'almacen_origen_id' => 'Debe seleccionar almacenes válidos para el traspaso.',
+                ]);
+            }
+
+            if ((int) $origen->empresa_id !== (int) $destino->empresa_id) {
+                throw ValidationException::withMessages([
+                    'almacen_destino_id' => 'No se puede transferir inventario entre empresas diferentes.',
+                ]);
+            }
+
+            $user = auth()->user();
+            if ($user && ! $user->hasAnyRole(['super_admin', 'admin'])
+                && (int) $origen->empresa_id !== (int) $user->empresa_id) {
+                throw ValidationException::withMessages([
+                    'almacen_origen_id' => 'El almacén de origen no pertenece a su empresa.',
+                ]);
+            }
         });
     }
 
