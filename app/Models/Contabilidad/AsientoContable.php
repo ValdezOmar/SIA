@@ -6,6 +6,8 @@ use App\Models\Inventario\Kardex;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;
+use App\Models\Ventas\Factura;
+use App\Models\Ventas\Pago;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
@@ -709,6 +711,73 @@ class AsientoContable extends Model
         return $asiento;
     }
 
+    public static function crearDesdePagoCliente(Pago $pago): self
+    {
+        $existente = self::query()->where('documento_tipo', 'pago_cliente')->where('documento_id', $pago->id)->first();
+        if ($existente) {
+            return $existente;
+        }
+
+        $pago->loadMissing('factura');
+        $cuentaFondos = match ($pago->tipo_pago) {
+            'efectivo' => self::obtenerOCrearCuenta('1.1.2.1', 'Caja general', 'activo', 'deudora'),
+            'cheque' => self::obtenerOCrearCuenta('1.1.2.3', 'Cheques por depositar', 'activo', 'deudora'),
+            'otros' => self::obtenerOCrearCuenta('1.1.2.9', 'Fondos por identificar', 'activo', 'deudora'),
+            'nota_credito' => self::obtenerOCrearCuenta('4.1.9', 'Devoluciones y descuentos sobre ventas', 'ingreso', 'deudora'),
+            default => self::obtenerOCrearCuenta('1.1.2.2', 'Bancos y cobros electrónicos', 'activo', 'deudora'),
+        };
+        $cuentaAnticipos = self::obtenerOCrearCuenta('2.1.2', 'Anticipos de clientes', 'pasivo', 'acreedora');
+        $concepto = 'Cobro '.$pago->numero.' de factura '.$pago->factura->numero.' mediante '.$pago->tipo_pago;
+
+        $asiento = self::create([
+            'fecha_asiento' => $pago->fecha_pago,
+            'fecha_contable' => $pago->fecha_pago,
+            'documento_tipo' => 'pago_cliente',
+            'documento_id' => $pago->id,
+            'documento_codigo' => $pago->numero,
+            'tipo' => 'ingreso',
+            'concepto' => $concepto,
+            'empresa_id' => $pago->empresa_id,
+        ]);
+        $asiento->detalles()->create(['linea' => 1, 'cuenta_id' => $cuentaFondos->id, 'debe' => $pago->monto, 'haber' => 0, 'descripcion' => $concepto, 'empresa_id' => $pago->empresa_id]);
+        $asiento->detalles()->create(['linea' => 2, 'cuenta_id' => $cuentaAnticipos->id, 'debe' => 0, 'haber' => $pago->monto, 'descripcion' => 'Anticipo recibido del cliente', 'empresa_id' => $pago->empresa_id]);
+        $asiento->recalcularTotales();
+        $asiento->confirmar();
+
+        return $asiento;
+    }
+
+    public static function aplicarAnticiposCliente(Factura $factura): ?self
+    {
+        $existente = self::query()->where('documento_tipo', 'aplicacion_anticipos_cliente')->where('documento_id', $factura->id)->first();
+        if ($existente) {
+            return $existente;
+        }
+
+        $anticipos = (float) $factura->pagos()->where('estado', 'confirmado')->sum('monto');
+        if ($anticipos <= 0) {
+            return null;
+        }
+
+        $fechaAplicacion = $factura->pagos()->where('estado', 'confirmado')->max('fecha_pago') ?? now();
+
+        $cuentaAnticipos = self::obtenerOCrearCuenta('2.1.2', 'Anticipos de clientes', 'pasivo', 'acreedora');
+        $cuentaClientes = self::obtenerOCrearCuenta('1.1.1', 'Clientes', 'activo', 'deudora');
+        $concepto = 'Aplicación de anticipos a factura '.$factura->numero;
+        $asiento = self::create([
+            'fecha_asiento' => $fechaAplicacion, 'fecha_contable' => $fechaAplicacion,
+            'documento_tipo' => 'aplicacion_anticipos_cliente', 'documento_id' => $factura->id,
+            'documento_codigo' => $factura->numero, 'tipo' => 'diario', 'concepto' => $concepto,
+            'empresa_id' => $factura->empresa_id,
+        ]);
+        $asiento->detalles()->create(['linea' => 1, 'cuenta_id' => $cuentaAnticipos->id, 'debe' => $anticipos, 'haber' => 0, 'descripcion' => $concepto, 'empresa_id' => $factura->empresa_id]);
+        $asiento->detalles()->create(['linea' => 2, 'cuenta_id' => $cuentaClientes->id, 'debe' => 0, 'haber' => $anticipos, 'descripcion' => $concepto, 'empresa_id' => $factura->empresa_id]);
+        $asiento->recalcularTotales();
+        $asiento->confirmar();
+
+        return $asiento;
+    }
+
     public static function crearDesdePagoProveedor($pago)
     {
         $existente = self::query()->where('documento_tipo', 'pago_proveedor')->where('documento_id', $pago->id)->first();
@@ -721,7 +790,7 @@ class AsientoContable extends Model
         $cuentaDestino = $compraContabilizada
             ? self::obtenerOCrearCuenta('2.1.1', 'Proveedores', 'pasivo', 'acreedora')
             : self::obtenerOCrearCuenta('1.1.3', 'Anticipos a proveedores', 'activo', 'deudora');
-        $cuentaBanco = self::obtenerOCrearCuenta('1.1.1', 'Caja y Bancos', 'activo', 'deudora');
+        $cuentaBanco = self::obtenerOCrearCuenta('1.1.2.2', 'Bancos y cobros electrónicos', 'activo', 'deudora');
         $concepto = ($compraContabilizada ? 'Pago de factura ' : 'Anticipo de factura ').$pago->factura->codigo;
 
         $asiento = self::create(['codigo' => self::generarCodigo(), 'fecha_asiento' => $pago->fecha_pago, 'documento_tipo' => 'pago_proveedor', 'documento_id' => $pago->id, 'documento_codigo' => $pago->codigo, 'tipo' => 'egreso', 'concepto' => $concepto, 'empresa_id' => $pago->empresa_id]);

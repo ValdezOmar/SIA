@@ -262,7 +262,17 @@ class Pedido extends Model
                 return;
             }
 
-            $almacen = Almacen::query()->where('activo', true)->first();
+            if (! $this->detalles()->whereNotNull('articulo_id')->where('cantidad', '>', 0)->exists()) {
+                return;
+            }
+
+            $almacen = Almacen::query()
+                ->where('activo', true)
+                ->where('empresa_id', $this->empresa_id)
+                ->when($this->sucursal_id, fn ($query) => $query
+                    ->where(fn ($almacenes) => $almacenes->where('sucursal_id', $this->sucursal_id)->orWhereNull('sucursal_id'))
+                    ->orderByRaw('sucursal_id IS NULL'))
+                ->first();
             if (! $almacen) {
                 throw new \RuntimeException('No existe un almacén activo para reservar los productos del pedido.');
             }
@@ -279,7 +289,7 @@ class Pedido extends Model
                 }
                 $existencia->increment('cantidad_comprometida', $cantidad);
                 MovimientoInventario::create([
-                    'articulo_id' => $detalle->articulo_id, 'almacen_id' => $almacen->id, 'tipo' => 'reserva_pedido', 'cantidad' => 0,
+                    'articulo_id' => $detalle->articulo_id, 'almacen_id' => $almacen->id, 'tipo' => 'reserva_pedido', 'cantidad' => $cantidad,
                     'documento_tipo' => 'pedido_reserva', 'documento_id' => $this->id, 'documento_codigo' => $this->codigo,
                     'fecha' => now(), 'observacion' => 'Reserva de pedido '.$this->codigo, 'estado' => 'confirmado',
                 ]);
@@ -292,7 +302,10 @@ class Pedido extends Model
         DB::transaction(function (): void {
             MovimientoInventario::query()->where('documento_tipo', 'pedido_reserva')->where('documento_id', $this->id)->where('estado', 'confirmado')->lockForUpdate()->get()
                 ->each(function (MovimientoInventario $reserva): void {
-                    $cantidad = (float) ($this->detalles()->where('articulo_id', $reserva->articulo_id)->value('cantidad') ?? 0);
+                    $cantidad = (float) $reserva->cantidad;
+                    if ($cantidad <= 0) {
+                        $cantidad = (float) $this->detalles()->where('articulo_id', $reserva->articulo_id)->sum('cantidad');
+                    }
                     Existencia::query()->where('articulo_id', $reserva->articulo_id)->where('almacen_id', $reserva->almacen_id)->lockForUpdate()->first()?->decrement('cantidad_comprometida', $cantidad);
                     $reserva->update(['estado' => 'cancelado', 'observacion' => $reserva->observacion.'; reserva liberada']);
                 });

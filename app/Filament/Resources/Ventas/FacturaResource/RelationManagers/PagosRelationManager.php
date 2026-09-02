@@ -90,6 +90,7 @@ class PagosRelationManager extends RelationManager
                                     ->label('Tipo de Pago')
                                     ->options([
                                         'efectivo' => 'Efectivo',
+                                        'qr' => 'QR',
                                         'transferencia' => 'Transferencia',
                                         'cheque' => 'Cheque',
                                         'tarjeta' => 'Tarjeta',
@@ -160,7 +161,7 @@ class PagosRelationManager extends RelationManager
                                     ->placeholder('Nombre del banco')
                                     ->helperText('Banco utilizado')
                                     ->prefixIcon('heroicon-o-building-office')
-                                    ->visible(fn ($get) => in_array($get('tipo_pago'), ['transferencia', 'cheque', 'deposito']))
+                                    ->visible(fn ($get) => in_array($get('tipo_pago'), ['qr', 'transferencia', 'cheque', 'tarjeta', 'deposito']))
                                     ->columnSpan(1),
 
                                 TextInput::make('numero_cheque')
@@ -228,6 +229,7 @@ class PagosRelationManager extends RelationManager
                     ->label('Tipo')
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'efectivo' => 'Efectivo',
+                        'qr' => 'QR',
                         'transferencia' => 'Transferencia',
                         'cheque' => 'Cheque',
                         'tarjeta' => 'Tarjeta',
@@ -238,6 +240,7 @@ class PagosRelationManager extends RelationManager
                     })
                     ->colors([
                         'success' => 'efectivo',
+                        'info' => 'qr',
                         'info' => 'transferencia',
                         'warning' => 'cheque',
                         'primary' => 'tarjeta',
@@ -288,6 +291,7 @@ class PagosRelationManager extends RelationManager
                     ->label('Tipo')
                     ->options([
                         'efectivo' => 'Efectivo',
+                        'qr' => 'QR',
                         'transferencia' => 'Transferencia',
                         'cheque' => 'Cheque',
                         'tarjeta' => 'Tarjeta',
@@ -345,13 +349,8 @@ class PagosRelationManager extends RelationManager
 
                         return $data;
                     })
+                    ->using(fn (array $data, $livewire): Pago => $livewire->getOwnerRecord()->registrarPago($data))
                     ->after(function ($record, $livewire) {
-                        $factura = $livewire->getOwnerRecord();
-                        $factura->actualizarSaldo();
-                        if ((float) $factura->monto_pagado > 0 && (float) $factura->saldo > 0) {
-                            $factura->asegurarPedidoReservado();
-                        }
-
                         Notification::make()
                             ->title('Pago registrado exitosamente')
                             ->body('El pago '.$record->numero.' ha sido registrado.')
@@ -370,12 +369,7 @@ class PagosRelationManager extends RelationManager
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->action(function ($record, $livewire) {
-                            $record->update(['estado' => 'confirmado']);
-                            $factura = $livewire->getOwnerRecord();
-                            $factura->actualizarSaldo();
-                            if ((float) $factura->monto_pagado > 0 && (float) $factura->saldo > 0) {
-                                $factura->asegurarPedidoReservado();
-                            }
+                            $record->confirmar();
 
                             Notification::make()
                                 ->title('Pago confirmado')

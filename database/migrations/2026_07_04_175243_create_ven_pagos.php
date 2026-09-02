@@ -19,7 +19,7 @@ return new class extends Migration
 
             // Registro del pago
             $table->date('fecha_pago');
-            $table->enum('tipo_pago', ['efectivo', 'transferencia', 'cheque', 'tarjeta', 'deposito', 'nota_credito', 'otros'])->default('efectivo');
+            $table->enum('tipo_pago', ['efectivo', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito', 'nota_credito', 'otros'])->default('efectivo');
             $table->decimal('monto', 18, 6);
             $table->string('moneda', 3)->default('BOB');
             $table->decimal('tasa_cambio', 18, 6)->default(1);

@@ -2,10 +2,12 @@
 
 namespace App\Models\Ventas;
 
+use App\Models\Contabilidad\AsientoContable;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Pago extends Model
 {
@@ -53,15 +55,47 @@ class Pago extends Model
         return $this->belongsTo(User::class, 'creado_por');
     }
 
+    public function confirmar(): self
+    {
+        return DB::transaction(function (): self {
+            $pago = self::query()->lockForUpdate()->findOrFail($this->id);
+            if ($pago->estado === 'confirmado') {
+                return $pago;
+            }
+            if (in_array($pago->estado, ['rechazado', 'anulado'], true)) {
+                throw new \RuntimeException('No se puede confirmar un pago rechazado o anulado.');
+            }
+
+            $pago->update(['estado' => 'confirmado']);
+            AsientoContable::crearDesdePagoCliente($pago);
+            $factura = $pago->factura;
+            $factura->actualizarSaldo();
+            $factura->refresh();
+            if ((float) $factura->saldo <= 0) {
+                $factura->procesarVentaAutomatica();
+            } else {
+                $factura->asegurarPedidoReservado();
+            }
+
+            return $pago;
+        });
+    }
+
+    public function asientoContable()
+    {
+        return $this->hasOne(AsientoContable::class, 'documento_id')
+            ->where('documento_tipo', 'pago_cliente');
+    }
+
     // ========== MÉTODOS ==========
 
     public static function generarNumero()
     {
         $gestion = date('y');
-        $prefijo = 'PAG-' . $gestion;
+        $prefijo = 'PAG-'.$gestion;
 
         $ultimo = self::withTrashed()
-            ->where('numero', 'LIKE', $prefijo . '%')
+            ->where('numero', 'LIKE', $prefijo.'%')
             ->orderBy('id', 'desc')
             ->first();
 
@@ -71,6 +105,6 @@ class Pago extends Model
             $correlativo = 1;
         }
 
-        return $prefijo . str_pad($correlativo, 4, '0', STR_PAD_LEFT);
+        return $prefijo.str_pad($correlativo, 4, '0', STR_PAD_LEFT);
     }
 }

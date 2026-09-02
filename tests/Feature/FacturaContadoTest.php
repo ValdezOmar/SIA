@@ -75,15 +75,32 @@ class FacturaContadoTest extends TestCase
             'fecha_pago' => now()->toDateString(),
         ]);
 
-        $pago = $factura->crearPagoAutomaticoSiEsContado();
+        $pago = $factura->crearPagoAutomaticoSiEsContado(['tipo_pago' => 'qr', 'referencia' => 'QR-TEST-001']);
 
         $this->assertNotNull($pago);
+        $this->assertSame('pagada', $factura->fresh()->estado);
+        $this->assertSame('qr', $pago->tipo_pago);
         $this->assertSame(now()->toDateString(), $factura->fresh()->fecha_pago->toDateString());
         $this->assertSame(now()->toDateString(), $factura->fresh()->fecha_vencimiento->toDateString());
         $this->assertDatabaseHas('ven_pagos', [
             'factura_id' => $factura->id,
             'cliente_id' => $clienteId,
             'monto' => '113.000000',
+            'estado' => 'confirmado',
+        ]);
+        $this->assertDatabaseHas('con_asientos_contables', [
+            'documento_tipo' => 'pago_cliente',
+            'documento_id' => $pago->id,
+            'estado' => 'confirmado',
+        ]);
+        $this->assertDatabaseHas('con_asientos_contables', [
+            'documento_tipo' => 'venta',
+            'documento_id' => $factura->id,
+            'estado' => 'confirmado',
+        ]);
+        $this->assertDatabaseHas('con_asientos_contables', [
+            'documento_tipo' => 'aplicacion_anticipos_cliente',
+            'documento_id' => $factura->id,
             'estado' => 'confirmado',
         ]);
     }

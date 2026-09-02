@@ -330,6 +330,7 @@ class FacturasRelationManager extends RelationManager
                                 ->label('Tipo de Pago')
                                 ->options([
                                     'efectivo' => 'Efectivo',
+                                    'qr' => 'QR',
                                     'transferencia' => 'Transferencia',
                                     'cheque' => 'Cheque',
                                     'tarjeta' => 'Tarjeta',
@@ -339,6 +340,22 @@ class FacturasRelationManager extends RelationManager
                                 ])
                                 ->required()
                                 ->searchable(),
+
+                            TextInput::make('referencia')
+                                ->label('Referencia')
+                                ->maxLength(100)
+                                ->visible(fn ($get): bool => $get('tipo_pago') !== 'efectivo'),
+
+                            TextInput::make('banco')
+                                ->label('Banco')
+                                ->maxLength(100)
+                                ->visible(fn ($get): bool => in_array($get('tipo_pago'), ['qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
+
+                            TextInput::make('numero_cheque')
+                                ->label('Número de cheque')
+                                ->maxLength(50)
+                                ->required(fn ($get): bool => $get('tipo_pago') === 'cheque')
+                                ->visible(fn ($get): bool => $get('tipo_pago') === 'cheque'),
                         ])
                         ->action(function (array $data, $record) {
                             if ($this->facturaBloqueada($record)) {

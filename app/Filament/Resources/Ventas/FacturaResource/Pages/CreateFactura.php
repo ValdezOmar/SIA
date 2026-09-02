@@ -9,18 +9,23 @@ class CreateFactura extends CreateRecord
 {
     protected static string $resource = FacturaResource::class;
 
+    protected ?bool $hasDatabaseTransactions = true;
+
     protected ?array $pagoInicial = null;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        if (($data['condicion_pago'] ?? null) === 'parcial') {
+        if (in_array($data['condicion_pago'] ?? null, ['contado', 'parcial'], true)) {
             $this->pagoInicial = [
-                'monto' => $data['pago_inicial_monto'] ?? null,
+                'monto' => ($data['condicion_pago'] ?? null) === 'parcial' ? ($data['pago_inicial_monto'] ?? null) : null,
                 'fecha_pago' => $data['fecha_pago'] ?? now()->toDateString(),
-                'tipo_pago' => 'efectivo',
+                'tipo_pago' => $data['pago_inicial_tipo'] ?? 'efectivo',
+                'referencia' => $data['pago_inicial_referencia'] ?? null,
+                'banco' => $data['pago_inicial_banco'] ?? null,
+                'numero_cheque' => $data['pago_inicial_numero_cheque'] ?? null,
             ];
         }
-        unset($data['pago_inicial_monto']);
+        unset($data['pago_inicial_monto'], $data['pago_inicial_tipo'], $data['pago_inicial_referencia'], $data['pago_inicial_banco'], $data['pago_inicial_numero_cheque']);
 
         if (($data['condicion_pago'] ?? null) === 'contado') {
             $data['fecha_vencimiento'] = now()->toDateString();
@@ -49,7 +54,9 @@ class CreateFactura extends CreateRecord
             'monto_restante' => $total,
         ]);
 
-        if ($this->pagoInicial) {
+        if (($this->record->condicion_pago ?? null) === 'contado') {
+            $this->record->crearPagoAutomaticoSiEsContado($this->pagoInicial ?? []);
+        } elseif ($this->pagoInicial) {
             $this->record->registrarPago($this->pagoInicial);
         }
 

@@ -34,6 +34,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
@@ -53,6 +54,17 @@ class FacturaResource extends Resource
     protected static ?string $pluralModelLabel = 'Facturas';
 
     protected static ?int $navigationSort = 4;
+
+    public static function canEdit(Model $record): bool
+    {
+        return ! in_array($record->estado, ['parcial', 'pagada', 'anulada'], true)
+            && ! $record->pagos()->where('estado', 'confirmado')->exists();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return $record->estado === 'borrador' && ! $record->pagos()->exists();
+    }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
@@ -499,7 +511,7 @@ class FacturaResource extends Resource
                                                     ->relationship('vendedor', 'name')
                                                     ->searchable()
                                                     ->preload()
-                                                    ->default(Auth::id())                                                    
+                                                    ->default(Auth::id())
                                                     ->dehydrated()
                                                     ->helperText('Vendedor responsable')
                                                     ->prefixIcon('heroicon-o-user-group')
@@ -537,16 +549,7 @@ class FacturaResource extends Resource
                                                     ->label('Condición Pago')
                                                     ->options([
                                                         'contado' => 'Contado',
-                                                        'qr' => 'QR',
-                                                        'qr_efectivo' => 'QR / Efectivo',
                                                         'parcial' => 'Pago parcial y reserva de stock',
-                                                        'transferencia' => 'Transferencia',
-                                                        'cheque' => 'Cheque',
-                                                        'deposito' => 'Depósito',
-                                                        'tarjeta' => 'Tarjeta',
-                                                        'nota_credito' => 'Nota de Crédito',
-
-                                                        'otros' => 'Otros',
                                                     ])
                                                     ->required()
                                                     ->default('contado')
@@ -597,6 +600,41 @@ class FacturaResource extends Resource
                                                     ->helperText('Registre el abono inicial. El saldo pendiente podrá cobrarse después desde Pagos.')
                                                     ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                                     ->columnSpan(1),
+
+                                                Select::make('pago_inicial_tipo')
+                                                    ->label('Método del pago recibido')
+                                                    ->options([
+                                                        'efectivo' => 'Efectivo',
+                                                        'qr' => 'QR',
+                                                        'transferencia' => 'Transferencia',
+                                                        'cheque' => 'Cheque',
+                                                        'tarjeta' => 'Tarjeta',
+                                                        'deposito' => 'Depósito',
+                                                        'nota_credito' => 'Nota de crédito',
+                                                        'otros' => 'Otros',
+                                                    ])
+                                                    ->default('efectivo')
+                                                    ->required(fn ($get): bool => in_array($get('condicion_pago'), ['contado', 'parcial'], true))
+                                                    ->visible(fn ($get): bool => in_array($get('condicion_pago'), ['contado', 'parcial'], true))
+                                                    ->live()
+                                                    ->native(false)
+                                                    ->helperText('Se guardará en el pago y determinará la cuenta contable receptora.'),
+
+                                                TextInput::make('pago_inicial_referencia')
+                                                    ->label('Referencia del pago')
+                                                    ->maxLength(100)
+                                                    ->visible(fn ($get): bool => in_array($get('pago_inicial_tipo'), ['qr', 'transferencia', 'cheque', 'tarjeta', 'deposito', 'otros'], true)),
+
+                                                TextInput::make('pago_inicial_banco')
+                                                    ->label('Banco')
+                                                    ->maxLength(100)
+                                                    ->visible(fn ($get): bool => in_array($get('pago_inicial_tipo'), ['qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
+
+                                                TextInput::make('pago_inicial_numero_cheque')
+                                                    ->label('Número de cheque')
+                                                    ->maxLength(50)
+                                                    ->required(fn ($get): bool => $get('pago_inicial_tipo') === 'cheque')
+                                                    ->visible(fn ($get): bool => $get('pago_inicial_tipo') === 'cheque'),
                                             ]),
                                     ]),
 
@@ -1357,6 +1395,7 @@ class FacturaResource extends Resource
                                 ->label('Tipo de Pago')
                                 ->options([
                                     'efectivo' => 'Efectivo',
+                                    'qr' => 'QR',
                                     'transferencia' => 'Transferencia',
                                     'cheque' => 'Cheque',
                                     'tarjeta' => 'Tarjeta',
@@ -1372,6 +1411,16 @@ class FacturaResource extends Resource
                                 ->label('Referencia')
                                 ->maxLength(100)
                                 ->placeholder('Número de referencia'),
+                            TextInput::make('banco')
+                                ->label('Banco')
+                                ->maxLength(100)
+                                ->visible(fn ($get): bool => in_array($get('tipo_pago'), ['qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
+
+                            TextInput::make('numero_cheque')
+                                ->label('Número de cheque')
+                                ->maxLength(50)
+                                ->required(fn ($get): bool => $get('tipo_pago') === 'cheque')
+                                ->visible(fn ($get): bool => $get('tipo_pago') === 'cheque'),
                         ])
                         ->action(function (array $data, $record) {
                             $record->registrarPago($data);

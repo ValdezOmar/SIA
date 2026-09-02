@@ -122,90 +122,136 @@ class Factura extends Model
 
     public function registrarPago($data)
     {
-        $monto = (float) ($data['monto'] ?? 0);
-        if ($monto <= 0 || $monto > (float) $this->saldo) {
-            throw ValidationException::withMessages(['monto' => 'El pago debe ser mayor a cero y no puede superar el saldo pendiente.']);
-        }
+        return DB::transaction(function () use ($data): Pago {
+            $factura = self::query()->lockForUpdate()->findOrFail($this->id);
+            if (in_array($factura->estado, ['pagada', 'anulada'], true)) {
+                throw ValidationException::withMessages(['estado' => 'La factura ya está pagada o anulada.']);
+            }
 
-        $pago = Pago::create([
-            'factura_id' => $this->id,
-            'cliente_id' => $this->cliente_id,
-            'numero' => Pago::generarNumero(),
-            'fecha_pago' => $data['fecha_pago'],
-            'tipo_pago' => $data['tipo_pago'],
-            'monto' => $monto,
-            'moneda' => $this->moneda,
-            'tasa_cambio' => $this->tasa_cambio,
-            'referencia' => $data['referencia'] ?? null,
-            'creado_por' => Auth::id(),
-            'empresa_id' => $this->empresa_id,
-            'estado' => 'confirmado',
-        ]);
+            $monto = (float) ($data['monto'] ?? 0);
+            $pagado = (float) $factura->pagos()->where('estado', 'confirmado')->sum('monto');
+            $saldo = max(0, (float) $factura->total - $pagado);
+            if ($monto <= 0 || $monto > $saldo + 0.005) {
+                throw ValidationException::withMessages(['monto' => 'El pago debe ser mayor a cero y no puede superar el saldo pendiente.']);
+            }
 
-        $this->actualizarSaldo();
-        if ((float) $this->monto_pagado > 0 && (float) $this->saldo > 0) {
-            $this->asegurarPedidoReservado();
-        }
+            $pago = Pago::create([
+                'factura_id' => $factura->id,
+                'cliente_id' => $factura->cliente_id,
+                'numero' => $data['numero'] ?? Pago::generarNumero(),
+                'fecha_pago' => $data['fecha_pago'] ?? now()->toDateString(),
+                'tipo_pago' => $data['tipo_pago'],
+                'monto' => $monto,
+                'moneda' => $factura->moneda,
+                'tasa_cambio' => $factura->tasa_cambio,
+                'referencia' => $data['referencia'] ?? null,
+                'banco' => $data['banco'] ?? null,
+                'numero_cheque' => $data['numero_cheque'] ?? null,
+                'fecha_cheque' => $data['fecha_cheque'] ?? null,
+                'observaciones' => $data['observaciones'] ?? null,
+                'creado_por' => Auth::id(),
+                'empresa_id' => $factura->empresa_id,
+                'estado' => 'confirmado',
+            ]);
 
-        return $pago;
+            AsientoContable::crearDesdePagoCliente($pago);
+            $factura->actualizarSaldo();
+            $factura->refresh();
+
+            if ((float) $factura->saldo <= 0) {
+                $factura->procesarVentaAutomatica();
+            } else {
+                $factura->asegurarPedidoReservado();
+                $factura->actualizarSaldo();
+            }
+
+            return $pago;
+        });
     }
 
-    public function crearPagoAutomaticoSiEsContado(): ?Pago
+    public function crearPagoAutomaticoSiEsContado(array $datosPago = []): ?Pago
     {
-        if (($this->condicion_pago ?? null) !== 'contado') {
-            return null;
-        }
+        return DB::transaction(function () use ($datosPago): ?Pago {
+            if (($this->condicion_pago ?? null) !== 'contado') {
+                return null;
+            }
 
-        $pagoExistente = $this->pagos()
-            ->whereIn('estado', ['pendiente', 'confirmado'])
-            ->first();
+            $pagoExistente = $this->pagos()
+                ->whereIn('estado', ['pendiente', 'confirmado'])
+                ->first();
 
-        if ($pagoExistente) {
-            return $pagoExistente;
-        }
+            if ($pagoExistente) {
+                if ($pagoExistente->estado === 'pendiente') {
+                    $pagoExistente->confirmar();
+                } else {
+                    AsientoContable::crearDesdePagoCliente($pagoExistente);
+                }
+                $this->actualizarSaldo();
+                $this->refresh();
 
-        $totalFactura = (float) ($this->total ?? 0);
-        if ($totalFactura <= 0) {
-            $totalFactura = (float) $this->detalles()->sum('total');
-        }
+                if ((float) $this->saldo > 0) {
+                    return $this->registrarPago($datosPago + [
+                        'monto' => (float) $this->saldo,
+                        'fecha_pago' => $datosPago['fecha_pago'] ?? now()->toDateString(),
+                        'tipo_pago' => $datosPago['tipo_pago'] ?? 'efectivo',
+                    ]);
+                }
 
-        if ($totalFactura <= 0) {
-            $totalFactura = (float) $this->detalles()->sum('subtotal');
-        }
+                if (! Kardex::query()->where('documento_tipo', 'venta')->where('documento_id', $this->id)->exists()) {
+                    $this->procesarVentaAutomatica();
+                }
 
-        $fechaPago = $this->fecha_pago ?: now()->toDateString();
-        $montoPago = $totalFactura;
+                return $pagoExistente;
+            }
 
-        $this->subtotal = $this->subtotal ?? 0;
-        $this->descuento = $this->descuento ?? 0;
-        $this->impuesto = $this->impuesto ?? 0;
-        $this->total = $totalFactura;
-        $this->saldo = $totalFactura;
-        $this->monto_pagado = 0;
-        $this->monto_restante = $totalFactura;
-        $this->fecha_pago = $fechaPago;
-        $this->fecha_vencimiento = $this->fecha_vencimiento ?: $fechaPago;
-        $this->save();
+            $totalFactura = (float) ($this->total ?? 0);
+            if ($totalFactura <= 0) {
+                $totalFactura = (float) $this->detalles()->sum('total');
+            }
 
-        $pago = Pago::create([
-            'factura_id' => $this->id,
-            'cliente_id' => $this->cliente_id,
-            'numero' => Pago::generarNumero(),
-            'fecha_pago' => $fechaPago,
-            'tipo_pago' => 'efectivo',
-            'monto' => $montoPago,
-            'moneda' => $this->moneda ?? 'BOB',
-            'tasa_cambio' => $this->tasa_cambio ?? 1,
-            'referencia' => 'PAGO AUTOMÁTICO CONTADO',
-            'observaciones' => 'Pago generado automáticamente al guardar la factura en condición de contado.',
-            'creado_por' => Auth::id(),
-            'empresa_id' => $this->empresa_id,
-            'estado' => 'confirmado',
-        ]);
+            if ($totalFactura <= 0) {
+                $totalFactura = (float) $this->detalles()->sum('subtotal');
+            }
 
-        $this->actualizarSaldo();
+            $fechaPago = $this->fecha_pago ?: now()->toDateString();
+            $montoPago = $totalFactura;
 
-        return $pago;
+            $this->subtotal = $this->subtotal ?? 0;
+            $this->descuento = $this->descuento ?? 0;
+            $this->impuesto = $this->impuesto ?? 0;
+            $this->total = $totalFactura;
+            $this->saldo = $totalFactura;
+            $this->monto_pagado = 0;
+            $this->monto_restante = $totalFactura;
+            $this->fecha_pago = $fechaPago;
+            $this->fecha_vencimiento = $this->fecha_vencimiento ?: $fechaPago;
+            $this->save();
+
+            $pago = Pago::create([
+                'factura_id' => $this->id,
+                'cliente_id' => $this->cliente_id,
+                'numero' => Pago::generarNumero(),
+                'fecha_pago' => $fechaPago,
+                'tipo_pago' => $datosPago['tipo_pago'] ?? 'efectivo',
+                'monto' => $montoPago,
+                'moneda' => $this->moneda ?? 'BOB',
+                'tasa_cambio' => $this->tasa_cambio ?? 1,
+                'observaciones' => 'Pago generado automáticamente al guardar la factura en condición de contado.',
+                'banco' => $datosPago['banco'] ?? null,
+                'numero_cheque' => $datosPago['numero_cheque'] ?? null,
+                'fecha_cheque' => $datosPago['fecha_cheque'] ?? null,
+                'referencia' => $datosPago['referencia'] ?? 'PAGO AUTOMÁTICO CONTADO',
+                'creado_por' => Auth::id(),
+                'empresa_id' => $this->empresa_id,
+                'estado' => 'confirmado',
+            ]);
+
+            AsientoContable::crearDesdePagoCliente($pago);
+            $this->actualizarSaldo();
+            $this->procesarVentaAutomatica();
+
+            return $pago;
+        });
     }
 
     public function actualizarSaldo()
@@ -250,6 +296,9 @@ class Factura extends Model
                 $factura->updateQuietly(['pedido_id' => $pedido->id, 'numero_pedido' => $pedido->codigo]);
             }
             $pedido->reservarInventario();
+            if (! in_array($pedido->estado, ['entregado', 'cancelado'], true)) {
+                $pedido->update(['estado' => 'reservado']);
+            }
 
             return $pedido;
         });
@@ -266,7 +315,17 @@ class Factura extends Model
                 return;
             }
 
-            $almacen = Almacen::where('activo', true)->first();
+            if (! $this->detalles()->whereNotNull('articulo_id')->where('cantidad', '>', 0)->exists()) {
+                return;
+            }
+
+            $almacen = Almacen::query()
+                ->where('activo', true)
+                ->where('empresa_id', $this->empresa_id)
+                ->when($this->sucursal_id, fn ($query) => $query
+                    ->where(fn ($almacenes) => $almacenes->where('sucursal_id', $this->sucursal_id)->orWhereNull('sucursal_id'))
+                    ->orderByRaw('sucursal_id IS NULL'))
+                ->first();
             if (! $almacen) {
                 throw new \RuntimeException('No existe un almacén activo para reservar los productos.');
             }
@@ -290,7 +349,7 @@ class Factura extends Model
                 $existencia->increment('cantidad_comprometida', $cantidad);
                 MovimientoInventario::create([
                     'articulo_id' => $detalle->articulo_id, 'almacen_id' => $almacen->id,
-                    'tipo' => 'reserva_venta', 'cantidad' => 0, 'documento_tipo' => 'venta_reserva',
+                    'tipo' => 'reserva_venta', 'cantidad' => $cantidad, 'documento_tipo' => 'venta_reserva',
                     'documento_id' => $this->id, 'documento_codigo' => $this->numero, 'fecha' => now(),
                     'observacion' => 'Reserva por pago parcial de venta '.$this->numero, 'estado' => 'confirmado',
                 ]);
@@ -308,7 +367,10 @@ class Factura extends Model
                 ->lockForUpdate()
                 ->get();
             foreach ($reservas as $reserva) {
-                $cantidad = (float) ($this->detalles()->where('articulo_id', $reserva->articulo_id)->value('cantidad') ?? 0);
+                $cantidad = (float) $reserva->cantidad;
+                if ($cantidad <= 0) {
+                    $cantidad = (float) $this->detalles()->where('articulo_id', $reserva->articulo_id)->sum('cantidad');
+                }
                 Existencia::query()->where('articulo_id', $reserva->articulo_id)->where('almacen_id', $reserva->almacen_id)
                     ->lockForUpdate()->first()?->decrement('cantidad_comprometida', $cantidad);
                 $reserva->update(['estado' => 'cancelado', 'observacion' => $reserva->observacion.'; reserva liberada']);
@@ -318,111 +380,125 @@ class Factura extends Model
 
     public function procesarVentaAutomatica(): array
     {
-        $this->refresh();
+        return DB::transaction(function (): array {
+            $this->refresh();
 
-        if ((float) $this->saldo > 0) {
-            throw new \RuntimeException('La entrega solo puede confirmarse cuando el pago total de la venta esté verificado.');
-        }
+            if ((float) $this->saldo > 0) {
+                throw new \RuntimeException('La entrega solo puede confirmarse cuando el pago total de la venta esté verificado.');
+            }
 
-        $this->asegurarPedidoReservado();
+            $requiereInventario = $this->detalles()->whereNotNull('articulo_id')->where('cantidad', '>', 0)->exists();
+            if ($requiereInventario) {
+                $this->asegurarPedidoReservado();
+                $this->liberarReservaInventario();
+                $this->loadMissing('pedido');
+                $this->pedido?->liberarReservaInventario();
+            }
 
-        $this->liberarReservaInventario();
-        $this->loadMissing('pedido');
-        $this->pedido?->liberarReservaInventario();
+            $yaExisteKardex = Kardex::where('documento_tipo', 'venta')
+                ->where('documento_id', $this->id)
+                ->exists();
 
-        $yaExisteKardex = Kardex::where('documento_tipo', 'venta')
-            ->where('documento_id', $this->id)
-            ->exists();
+            $yaExisteAsiento = AsientoContable::where('documento_tipo', 'venta')
+                ->where('documento_id', $this->id)
+                ->exists();
 
-        $yaExisteAsiento = AsientoContable::where('documento_tipo', 'venta')
-            ->where('documento_id', $this->id)
-            ->exists();
+            $almacen = $requiereInventario
+                ? Almacen::query()
+                    ->where('activo', true)
+                    ->where('empresa_id', $this->empresa_id)
+                    ->when($this->sucursal_id, fn ($query) => $query
+                        ->where(fn ($almacenes) => $almacenes->where('sucursal_id', $this->sucursal_id)->orWhereNull('sucursal_id'))
+                        ->orderByRaw('sucursal_id IS NULL'))
+                    ->first()
+                : null;
 
-        $almacen = Almacen::where('activo', true)->first();
+            if ($requiereInventario && ! $almacen) {
+                throw new \RuntimeException('No existe un almacén activo para registrar la salida de inventario.');
+            }
 
-        if (! $almacen) {
-            throw new \RuntimeException('No existe un almacén activo para registrar la salida de inventario.');
-        }
+            if (! $yaExisteKardex) {
+                foreach ($this->detalles as $detalle) {
+                    if (! ($detalle->articulo_id ?? null) || ! ($detalle->cantidad ?? 0)) {
+                        continue;
+                    }
 
-        if (! $yaExisteKardex) {
-            foreach ($this->detalles as $detalle) {
-                if (! ($detalle->articulo_id ?? null) || ! ($detalle->cantidad ?? 0)) {
-                    continue;
+                    $cantidad = (float) $detalle->cantidad;
+                    $existencia = Existencia::where('articulo_id', $detalle->articulo_id)
+                        ->where('almacen_id', $almacen->id)
+                        ->first();
+
+                    if (! $existencia) {
+                        throw new \RuntimeException('No existe stock del artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).' en el almacén activo.');
+                    }
+
+                    if ((float) $existencia->cantidad_disponible < $cantidad) {
+                        throw new \RuntimeException('Stock insuficiente para el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
+                    }
+
+                    $kardex = Kardex::registrarSalida([
+                        'articulo_id' => $detalle->articulo_id,
+                        'almacen_id' => $almacen->id,
+                        'tipo_movimiento' => 'venta',
+                        'cantidad' => $cantidad,
+                        'documento_tipo' => 'venta',
+                        'documento_id' => $this->id,
+                        'documento_codigo' => $this->numero,
+                        'documento_detalle_id' => $detalle->id,
+                        // Kardex aplica FIFO: consume automáticamente las capas más antiguas disponibles.
+                        'capa_costo_id' => null,
+                        'observaciones' => 'Salida por venta '.$this->numero,
+                        'empresa_id' => $this->empresa_id ?? Auth::user()?->empresa_id,
+                        'fecha_movimiento' => now(),
+                        'estado' => 'confirmado',
+                    ]);
+
+                    $movimiento = MovimientoInventario::create([
+                        'articulo_id' => $detalle->articulo_id,
+                        'almacen_id' => $almacen->id,
+                        'tipo' => 'salida_venta',
+                        'cantidad' => -$cantidad,
+                        'costo_unitario' => $kardex->costo_unitario ?? 0,
+                        'costo_total' => $kardex->costo_total ?? 0,
+                        'documento_tipo' => 'venta',
+                        'documento_id' => $this->id,
+                        'documento_codigo' => $this->numero,
+                        'fecha' => now(),
+                        'observacion' => 'Salida por venta '.$this->numero,
+                        'estado' => 'confirmado',
+                        'kardex_id' => $kardex->id,
+                    ]);
+
+                    app(TrazabilidadInventarioService::class)->registrarSalida($movimiento, $detalle->articulo, [
+                        'cantidad' => $cantidad,
+                        'series' => $detalle->series,
+                        'lotes' => $detalle->lotes,
+                        'cliente_id' => $this->cliente_id,
+                    ]);
                 }
+            }
 
-                $cantidad = (float) $detalle->cantidad;
-                $existencia = Existencia::where('articulo_id', $detalle->articulo_id)
-                    ->where('almacen_id', $almacen->id)
-                    ->first();
+            if (! $yaExisteAsiento) {
+                $asiento = AsientoContable::crearDesdeVenta($this);
+            } else {
+                $asiento = AsientoContable::where('documento_tipo', 'venta')->where('documento_id', $this->id)->first();
+            }
 
-                if (! $existencia) {
-                    throw new \RuntimeException('No existe stock del artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).' en el almacén activo.');
-                }
+            AsientoContable::aplicarAnticiposCliente($this);
 
-                if ((float) $existencia->cantidad_disponible < $cantidad) {
-                    throw new \RuntimeException('Stock insuficiente para el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
-                }
-
-                $kardex = Kardex::registrarSalida([
-                    'articulo_id' => $detalle->articulo_id,
-                    'almacen_id' => $almacen->id,
-                    'tipo_movimiento' => 'venta',
-                    'cantidad' => $cantidad,
-                    'documento_tipo' => 'venta',
-                    'documento_id' => $this->id,
-                    'documento_codigo' => $this->numero,
-                    'documento_detalle_id' => $detalle->id,
-                    // Kardex aplica FIFO: consume automáticamente las capas más antiguas disponibles.
-                    'capa_costo_id' => null,
-                    'observaciones' => 'Salida por venta '.$this->numero,
-                    'empresa_id' => $this->empresa_id ?? Auth::user()?->empresa_id,
-                    'fecha_movimiento' => now(),
-                    'estado' => 'confirmado',
-                ]);
-
-                $movimiento = MovimientoInventario::create([
-                    'articulo_id' => $detalle->articulo_id,
-                    'almacen_id' => $almacen->id,
-                    'tipo' => 'salida_venta',
-                    'cantidad' => -$cantidad,
-                    'costo_unitario' => $kardex->costo_unitario ?? 0,
-                    'costo_total' => $kardex->costo_total ?? 0,
-                    'documento_tipo' => 'venta',
-                    'documento_id' => $this->id,
-                    'documento_codigo' => $this->numero,
-                    'fecha' => now(),
-                    'observacion' => 'Salida por venta '.$this->numero,
-                    'estado' => 'confirmado',
-                    'kardex_id' => $kardex->id,
-                ]);
-
-                app(TrazabilidadInventarioService::class)->registrarSalida($movimiento, $detalle->articulo, [
-                    'cantidad' => $cantidad,
-                    'series' => $detalle->series,
-                    'lotes' => $detalle->lotes,
-                    'cliente_id' => $this->cliente_id,
+            if ($this->pedido && $this->pedido->estado !== 'cancelado') {
+                $this->pedido->update([
+                    'estado' => 'entregado',
+                    'fecha_entrega_real' => now()->toDateString(),
                 ]);
             }
-        }
+            $this->actualizarSaldo();
 
-        if (! $yaExisteAsiento) {
-            $asiento = AsientoContable::crearDesdeVenta($this);
-        } else {
-            $asiento = AsientoContable::where('documento_tipo', 'venta')->where('documento_id', $this->id)->first();
-        }
-
-        if ($this->pedido && $this->pedido->estado !== 'cancelado') {
-            $this->pedido->update([
-                'estado' => 'entregado',
-                'fecha_entrega_real' => now()->toDateString(),
-            ]);
-        }
-        $this->actualizarSaldo();
-
-        return [
-            'kardex' => Kardex::where('documento_tipo', 'venta')->where('documento_id', $this->id)->get(),
-            'asiento' => $asiento,
-        ];
+            return [
+                'kardex' => Kardex::where('documento_tipo', 'venta')->where('documento_id', $this->id)->get(),
+                'asiento' => $asiento,
+            ];
+        });
     }
 
     public function anular(?string $motivo = null): self
@@ -465,6 +541,18 @@ class Factura extends Model
             $factura->pagos()
                 ->whereIn('estado', ['pendiente', 'confirmado'])
                 ->update(['estado' => 'anulado']);
+
+            $idsPagos = $factura->pagos()->withTrashed()->pluck('id');
+            AsientoContable::query()
+                ->where(function ($query) use ($factura, $idsPagos): void {
+                    $query->where(function ($pagos) use ($idsPagos): void {
+                        $pagos->where('documento_tipo', 'pago_cliente')->whereIn('documento_id', $idsPagos);
+                    })->orWhere(function ($aplicacion) use ($factura): void {
+                        $aplicacion->where('documento_tipo', 'aplicacion_anticipos_cliente')->where('documento_id', $factura->id);
+                    });
+                })
+                ->where('estado', 'confirmado')
+                ->each(fn (AsientoContable $asientoPago) => $asientoPago->anular($motivo));
 
             $asiento = AsientoContable::where('documento_tipo', 'venta')
                 ->where('documento_id', $factura->id)
