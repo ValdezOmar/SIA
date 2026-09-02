@@ -786,7 +786,7 @@ class KardexResource extends Resource
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
 
-            ->defaultSort('fecha_movimiento', 'desc')
+            ->defaultSort('id', 'desc')
             ->searchPlaceholder('Buscar en kardex...')
             ->emptyStateHeading('No hay movimientos registrados')
             ->emptyStateDescription('Registra movimientos de inventario para mantener el kardex actualizado.')
