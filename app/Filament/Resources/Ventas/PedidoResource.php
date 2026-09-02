@@ -402,15 +402,15 @@ class PedidoResource extends Resource
                                                                         Select::make('ciudad')
                                                                             ->label('Departamento')
                                                                             ->options([
-                                                                                'Beni' => 'Beni',
-                                                                                'Chuquisaca' => 'Chuquisaca',
-                                                                                'Cochabamba' => 'Cochabamba',
-                                                                                'La Paz' => 'La Paz',
-                                                                                'Oruro' => 'Oruro',
-                                                                                'Pando' => 'Pando',
-                                                                                'Potosí' => 'Potosí',
-                                                                                'Santa Cruz' => 'Santa Cruz',
-                                                                                'Tarija' => 'Tarija',
+                                                                                'BENI' => 'Beni',
+                                                                                'CHUQUISACA' => 'Chuquisaca',
+                                                                                'COCHABAMBA' => 'Cochabamba',
+                                                                                'LA PAZ' => 'La Paz',
+                                                                                'ORURO' => 'Oruro',
+                                                                                'PANDO' => 'Pando',
+                                                                                'POTOSÍ' => 'Potosí',
+                                                                                'SANTA CRUZ' => 'Santa Cruz',
+                                                                                'TARIJA' => 'Tarija',
                                                                             ])
                                                                             ->searchable()
                                                                             ->preload()

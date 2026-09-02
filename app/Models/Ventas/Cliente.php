@@ -113,6 +113,23 @@ class Cliente extends Model
         });
 
         static::saving(function ($model): void {
+            foreach ([
+                'codigo',
+                'nombre',
+                'razon_social',
+                'ci/nit',
+                'condicion_pago',
+                'direccion',
+                'ciudad',
+                'zona',
+                'contacto_nombre',
+                'motivo_bloqueo',
+            ] as $campo) {
+                if (is_string($model->{$campo})) {
+                    $model->{$campo} = mb_strtoupper(trim($model->{$campo}), 'UTF-8');
+                }
+            }
+
             $celular = static::normalizarCelular($model->celular);
 
             if (! $celular || ! $model->empresa_id) {
@@ -272,17 +289,26 @@ class Cliente extends Model
 
     public function setNombreAttribute($value)
     {
-        $this->attributes['nombre'] = ucwords(strtolower($value));
+        $this->attributes['nombre'] = is_string($value)
+            ? mb_strtoupper(trim($value), 'UTF-8')
+            : $value;
     }
 
     public function setRazonSocialAttribute($value)
     {
-        $this->attributes['razon_social'] = $value ? ucwords(strtolower($value)) : null;
+        $this->attributes['razon_social'] = is_string($value) && filled($value)
+            ? mb_strtoupper(trim($value), 'UTF-8')
+            : null;
     }
 
     public function setCorreoAttribute($value)
     {
         $this->attributes['correo'] = $value ? strtolower($value) : null;
+    }
+
+    public function setContactoCorreoAttribute($value)
+    {
+        $this->attributes['contacto_correo'] = $value ? strtolower($value) : null;
     }
 
     // ========== MÉTODOS ==========
