@@ -337,7 +337,7 @@ class PagosRelationManager extends RelationManager
                         $data['factura_id'] = $factura->id;
                         $data['cliente_id'] = $factura->cliente_id;
                         $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
+                        $data['empresa_id'] = $factura->empresa_id;
 
                         if (empty($data['numero'])) {
                             $data['numero'] = Pago::generarNumero();

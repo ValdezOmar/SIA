@@ -8,6 +8,7 @@ use App\Models\Inventario\MovimientoInventario;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;
+use App\Models\Ventas\Concerns\ValidaContextoVenta;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 class Pedido extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, ValidaContextoVenta;
 
     protected $table = 'ven_pedidos';
 

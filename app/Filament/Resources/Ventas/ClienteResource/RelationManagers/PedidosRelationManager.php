@@ -896,7 +896,7 @@ class PedidosRelationManager extends RelationManager
                         $data['cliente_id'] = $livewire->getOwnerRecord()->id;
                         $data['codigo'] = Pedido::generarCodigo();
                         $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
+                        $data['empresa_id'] = $livewire->getOwnerRecord()->empresa_id;
 
                         $pedido = Pedido::create($data);
 

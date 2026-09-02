@@ -7,8 +7,10 @@ use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Existencia;
 use App\Models\Inventario\Kardex;
 use App\Models\Inventario\MovimientoInventario;
+use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;
+use App\Models\Ventas\Concerns\ValidaContextoVenta;
 use App\Services\Inventario\TrazabilidadInventarioService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Prunable;
@@ -19,7 +21,7 @@ use Illuminate\Validation\ValidationException;
 
 class Factura extends Model
 {
-    use Prunable, SoftDeletes;
+    use Prunable, SoftDeletes, ValidaContextoVenta;
 
     protected $table = 'ven_facturas';  // Nombre correcto
 
@@ -79,6 +81,11 @@ class Factura extends Model
     public function sucursal()
     {
         return $this->belongsTo(Sucursal::class);
+    }
+
+    public function empresa()
+    {
+        return $this->belongsTo(Empresa::class);
     }
 
     public function detalles()

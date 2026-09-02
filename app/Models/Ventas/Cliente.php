@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Cliente extends Model
 {
@@ -26,6 +27,67 @@ class Cliente extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    /**
+     * Crea un cliente o recupera el registro previo que tenga el mismo celular.
+     *
+     * @return array{cliente: self, reutilizado: bool}
+     */
+    public static function crearOReutilizarPorCelular(array $data): array
+    {
+        return DB::transaction(function () use ($data): array {
+            $celularNormalizado = static::normalizarCelular($data['celular'] ?? null);
+            $cliente = $celularNormalizado
+                ? static::buscarPorCelularNormalizado($celularNormalizado, $data['empresa_id'] ?? null)
+                : null;
+
+            if ($cliente) {
+                if ($cliente->trashed()) {
+                    $cliente->restore();
+                }
+
+                if (! $cliente->activo) {
+                    $cliente->update(['activo' => true]);
+                }
+
+                return ['cliente' => $cliente, 'reutilizado' => true];
+            }
+
+            if ($celularNormalizado) {
+                $data['celular'] = $celularNormalizado;
+            } elseif (array_key_exists('celular', $data)) {
+                $data['celular'] = null;
+            }
+
+            return ['cliente' => static::create($data), 'reutilizado' => false];
+        });
+    }
+
+    public static function normalizarCelular(mixed $celular): ?string
+    {
+        if (! is_scalar($celular)) {
+            return null;
+        }
+
+        $celular = preg_replace('/\D+/', '', (string) $celular);
+
+        return filled($celular) ? $celular : null;
+    }
+
+    public static function buscarPorCelularNormalizado(string $celular, ?int $empresaId = null): ?self
+    {
+        $expresion = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(celular, ' ', ''), '-', ''), '(', ''), ')', ''), '+', ''), '.', '')";
+
+        return static::withTrashed()
+            ->whereRaw("{$expresion} = ?", [$celular])
+            ->when($empresaId, fn ($query) => $query->where('empresa_id', $empresaId))
+            ->first();
+    }
+
+    public function setCelularAttribute(mixed $celular): void
+    {
+        $this->attributes['celular'] = static::normalizarCelular($celular);
+    }
 
     /**
      * Boot del modelo
@@ -47,6 +109,22 @@ class Cliente extends Model
         static::updating(function ($model) {
             if (Auth::check()) {
                 $model->actualizado_por = Auth::id();
+            }
+        });
+
+        static::saving(function ($model): void {
+            $celular = static::normalizarCelular($model->celular);
+
+            if (! $celular || ! $model->empresa_id) {
+                return;
+            }
+
+            $duplicado = static::buscarPorCelularNormalizado($celular, (int) $model->empresa_id);
+
+            if ($duplicado && ! $duplicado->is($model)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'celular' => "Este celular ya pertenece al cliente {$duplicado->nombre} ({$duplicado->codigo}).",
+                ]);
             }
         });
     }

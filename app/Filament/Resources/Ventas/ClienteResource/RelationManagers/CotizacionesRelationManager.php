@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Ventas\ClienteResource\RelationManagers;
 use App\Models\Inventario\Articulo;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Cotizacion;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
@@ -271,6 +272,7 @@ class CotizacionesRelationManager extends RelationManager
                                                     ->label('Cliente')
                                                     ->options(
                                                         fn () => Cliente::where('activo', true)
+                                                            ->where('empresa_id', $this->getOwnerRecord()->empresa_id)
                                                             ->orderBy('nombre')
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
@@ -345,6 +347,7 @@ class CotizacionesRelationManager extends RelationManager
                                                                             ->columnSpan(1),
                                                                         TextInput::make('celular')
                                                                             ->label('Celular')
+                                                                            ->required()
                                                                             ->maxLength(50)
                                                                             ->placeholder('Ej: (591) 7-1234567')
                                                                             ->prefixIcon('heroicon-o-device-phone-mobile')
@@ -401,13 +404,27 @@ class CotizacionesRelationManager extends RelationManager
                                                                     ->columnSpanFull(),
                                                             ]),
                                                     ])
+                                                    ->createOptionAction(fn (FormAction $action): FormAction => $action
+                                                        ->modalHeading('Registrar o reutilizar cliente')
+                                                        ->modalDescription('Si el celular ya pertenece a un cliente, se usará ese registro y no se creará un duplicado.')
+                                                        ->modalSubmitActionLabel('Continuar con este cliente'))
                                                     ->createOptionUsing(function (array $data): int {
                                                         $data['codigo'] = $data['codigo'] ?? Cliente::generarCodigo();
                                                         $data['activo'] = $data['activo'] ?? true;
                                                         $data['categoria'] = 'regular';
                                                         $data['creado_por'] = Auth::id();
-                                                        $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
-                                                        $cliente = Cliente::create($data);
+                                                        $data['empresa_id'] = $this->getOwnerRecord()->empresa_id;
+                                                        $resultado = Cliente::crearOReutilizarPorCelular($data);
+                                                        $cliente = $resultado['cliente'];
+
+                                                        if ($resultado['reutilizado']) {
+                                                            Notification::make()
+                                                                ->title('Cliente existente seleccionado')
+                                                                ->body("Se usará {$cliente->nombre} ({$cliente->codigo}) porque el celular ya estaba registrado.")
+                                                                ->info()
+                                                                ->persistent()
+                                                                ->send();
+                                                        }
 
                                                         return $cliente->id;
                                                     }),
@@ -967,7 +984,7 @@ class CotizacionesRelationManager extends RelationManager
                         $data['cliente_id'] = $livewire->getOwnerRecord()->id;
                         $data['codigo'] = Cotizacion::generarCodigo();
                         $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
+                        $data['empresa_id'] = $livewire->getOwnerRecord()->empresa_id;
 
                         // Crear la cotización
                         $cotizacion = Cotizacion::create($data);

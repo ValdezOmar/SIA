@@ -9,6 +9,7 @@ use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Pedido;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
@@ -20,6 +21,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -27,6 +29,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
@@ -65,7 +68,7 @@ class PedidoResource extends Resource
             ->count();
     }
 
-    public static function getNavigationBadgeColor(): string | array | null
+    public static function getNavigationBadgeColor(): string|array|null
     {
         return 'warning';
     }
@@ -217,7 +220,17 @@ class PedidoResource extends Resource
                     ->description('El empleado no tiene una asignación laboral activa. Indique dónde se registrará este pedido.')
                     ->visible(fn (): bool => blank(Auth::user()?->empresa_id) || blank(Auth::user()?->sucursal_id))
                     ->schema([
-                        Select::make('empresa_id')->label('Empresa')->options(fn (): array => Empresa::query()->where('empresa_activo', true)->orderByRaw('COALESCE(nombre_comercial, razon_social)')->pluck('nombre_comercial', 'id')->all())->default(fn (): ?int => Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))->required()->searchable()->preload()->live()->afterStateUpdated(fn (callable $set) => $set('sucursal_id', null)),
+                        Select::make('empresa_id')
+                            ->label('Empresa')
+                            ->options(fn (): array => Empresa::query()
+                                ->where('empresa_activo', true)
+                                ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->whereKey($empresaId))
+                                ->orderByRaw('COALESCE(nombre_comercial, razon_social)')
+                                ->pluck('nombre_comercial', 'id')
+                                ->all())
+                            ->default(fn (): ?int => Auth::user()?->empresa_id ?? Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))
+                            ->required()->searchable()->preload()->live()
+                            ->afterStateUpdated(fn (callable $set) => $set('sucursal_id', null)),
                         Select::make('sucursal_id')->label('Sucursal')->options(fn (callable $get): array => filled($get('empresa_id')) ? Sucursal::query()->where('empresa_id', $get('empresa_id'))->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all() : [])->required()->searchable()->preload()->disabled(fn (callable $get): bool => blank($get('empresa_id'))),
                     ])->columns(2),
                 Tabs::make('Gestión de Pedido')
@@ -290,8 +303,8 @@ class PedidoResource extends Resource
                                                 Select::make('cliente_id')
                                                     ->label('Cliente')
                                                     ->options(
-                                                        fn () => Cliente::where('activo', true)
-                                                            ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
+                                                        fn (Get $get) => Cliente::where('activo', true)
+                                                            ->when($get('empresa_id') ?? Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
                                                             ->orderBy('nombre')
                                                             ->pluck('nombre', 'id')
                                                             ->toArray()
@@ -366,6 +379,7 @@ class PedidoResource extends Resource
                                                                             ->columnSpan(1),
                                                                         TextInput::make('celular')
                                                                             ->label('Celular')
+                                                                            ->required()
                                                                             ->maxLength(50)
                                                                             ->placeholder('Ej: (591) 7-1234567')
                                                                             ->prefixIcon('heroicon-o-device-phone-mobile')
@@ -422,13 +436,27 @@ class PedidoResource extends Resource
                                                                     ->columnSpanFull(),
                                                             ]),
                                                     ])
-                                                    ->createOptionUsing(function (array $data): int {
+                                                    ->createOptionAction(fn (FormAction $action): FormAction => $action
+                                                        ->modalHeading('Registrar o reutilizar cliente')
+                                                        ->modalDescription('Si el celular ya pertenece a un cliente, se usará ese registro y no se creará un duplicado.')
+                                                        ->modalSubmitActionLabel('Continuar con este cliente'))
+                                                    ->createOptionUsing(function (array $data, Get $get): int {
                                                         $data['codigo'] = $data['codigo'] ?? Cliente::generarCodigo();
                                                         $data['activo'] = $data['activo'] ?? true;
                                                         $data['categoria'] = 'regular';
                                                         $data['creado_por'] = Auth::id();
-                                                        $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
-                                                        $cliente = Cliente::create($data);
+                                                        $data['empresa_id'] = $get('empresa_id') ?? Auth::user()?->empresa_id;
+                                                        $resultado = Cliente::crearOReutilizarPorCelular($data);
+                                                        $cliente = $resultado['cliente'];
+
+                                                        if ($resultado['reutilizado']) {
+                                                            Notification::make()
+                                                                ->title('Cliente existente seleccionado')
+                                                                ->body("Se usará {$cliente->nombre} ({$cliente->codigo}) porque el celular ya estaba registrado.")
+                                                                ->info()
+                                                                ->persistent()
+                                                                ->send();
+                                                        }
 
                                                         return $cliente->id;
                                                     }),
@@ -985,6 +1013,22 @@ class PedidoResource extends Resource
                     ->toggleable()
                     ->weight('medium'),
 
+                TextColumn::make('empresa.nombre_comercial')
+                    ->label('Empresa')
+                    ->badge()
+                    ->color('primary')
+                    ->placeholder('Sin empresa')
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('sucursal.nombre')
+                    ->label('Sucursal')
+                    ->badge()
+                    ->color('info')
+                    ->placeholder('Sin sucursal')
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('fecha_pedido')
                     ->label('Fecha')
                     ->date('d/m/Y')
@@ -1102,6 +1146,23 @@ class PedidoResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('empresa_id')
+                    ->label('Empresa')
+                    ->options(fn (): array => Empresa::query()
+                        ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->whereKey($empresaId))
+                        ->orderBy('nombre_comercial')->pluck('nombre_comercial', 'id')->all())
+                    ->searchable()
+                    ->preload(),
+
+                SelectFilter::make('sucursal_id')
+                    ->label('Sucursal')
+                    ->options(fn (): array => Sucursal::query()
+                        ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
+                        ->when(Auth::user()?->sucursal_id, fn ($query, $sucursalId) => $query->whereKey($sucursalId))
+                        ->orderBy('nombre')->pluck('nombre', 'id')->all())
+                    ->searchable()
+                    ->preload(),
+
                 SelectFilter::make('estado')
                     ->label('Estado')
                     ->options([
@@ -1149,6 +1210,10 @@ class PedidoResource extends Resource
                         false: fn ($query) => $query->where('fecha_entrega_estimada', '>=', now()->toDateString())
                             ->orWhereNull('fecha_entrega_estimada'),
                     ),
+            ])
+            ->groups([
+                Group::make('empresa.nombre_comercial')->label('Empresa')->collapsible(),
+                Group::make('sucursal.nombre')->label('Sucursal')->collapsible(),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([

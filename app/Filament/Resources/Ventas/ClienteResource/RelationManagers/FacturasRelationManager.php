@@ -285,7 +285,7 @@ class FacturasRelationManager extends RelationManager
                         $data['cliente_id'] = $livewire->getOwnerRecord()->id;
                         $data['numero'] = Factura::generarNumero();
                         $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = Auth::user()?->empresa_id ?? 1;
+                        $data['empresa_id'] = $livewire->getOwnerRecord()->empresa_id;
                         $data['monto_pagado'] = 0;
                         $data['saldo'] = $data['total'] ?? 0;
 

@@ -7,6 +7,7 @@ use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\CotizacionesR
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\FacturasRelationManager;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\PedidosRelationManager;
 use App\Models\Inventario\ListaPrecio;
+use App\Models\Sistema\Empresa;
 use App\Models\Ventas\Cliente;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
@@ -24,6 +25,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
@@ -55,6 +57,22 @@ class ClienteResource extends Resource
     {
         return $form
             ->schema([
+                Section::make('Empresa responsable')
+                    ->description('Define a qué empresa pertenece la cartera de este cliente.')
+                    ->icon('heroicon-o-building-office-2')
+                    ->visible(fn (): bool => blank(Auth::user()?->empresa_id))
+                    ->schema([
+                        Select::make('empresa_id')
+                            ->label('Empresa')
+                            ->options(fn (): array => Empresa::query()
+                                ->where('empresa_activo', true)
+                                ->orderByRaw('COALESCE(nombre_comercial, razon_social)')
+                                ->pluck('nombre_comercial', 'id')->all())
+                            ->default(fn (): ?int => Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))
+                            ->required()
+                            ->searchable()
+                            ->preload(),
+                    ]),
                 Tabs::make('Gestión de Cliente')
                     ->tabs([
 
@@ -174,6 +192,9 @@ class ClienteResource extends Resource
                                             ->schema([
                                                 TextInput::make('celular')
                                                     ->label('Celular')
+                                                    ->required()
+                                                    ->live(onBlur: true)
+                                                    ->afterStateUpdated(fn (mixed $state, callable $set) => $set('celular', Cliente::normalizarCelular($state)))
                                                     ->maxLength(50)
                                                     ->placeholder('Ej: (591) 7-1234567')
                                                     ->helperText('Teléfono móvil')
@@ -451,6 +472,14 @@ class ClienteResource extends Resource
                     ->toggleable()
                     ->weight('medium'),
 
+                TextColumn::make('empresa.nombre_comercial')
+                    ->label('Empresa')
+                    ->badge()
+                    ->color('primary')
+                    ->placeholder('Sin empresa')
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('razon_social')
                     ->label('Razón Social')
                     ->searchable()
@@ -502,6 +531,15 @@ class ClienteResource extends Resource
                     ->placeholder('-')
                     ->icon('heroicon-o-phone'),
 
+                TextColumn::make('celular')
+                    ->label('Celular')
+                    ->searchable()
+                    ->copyable()
+                    ->badge()
+                    ->color('success')
+                    ->placeholder('-')
+                    ->icon('heroicon-o-device-phone-mobile'),
+
                 TextColumn::make('correo')
                     ->label('Correo')
                     ->searchable()
@@ -527,6 +565,15 @@ class ClienteResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('empresa_id')
+                    ->label('Empresa')
+                    ->options(fn (): array => Empresa::query()
+                        ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->whereKey($empresaId))
+                        ->orderBy('nombre_comercial')
+                        ->pluck('nombre_comercial', 'id')->all())
+                    ->searchable()
+                    ->preload(),
+
                 SelectFilter::make('tipo_cliente')
                     ->label('Tipo')
                     ->options([
@@ -563,6 +610,9 @@ class ClienteResource extends Resource
                     ->trueLabel('Bloqueados')
                     ->falseLabel('No bloqueados')
                     ->placeholder('Todos'),
+            ])
+            ->groups([
+                Group::make('empresa.nombre_comercial')->label('Empresa')->collapsible(),
             ])
             ->actions([
                 Tables\Actions\ActionGroup::make([
