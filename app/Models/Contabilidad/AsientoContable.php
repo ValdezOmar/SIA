@@ -545,15 +545,41 @@ class AsientoContable extends Model
             ->where('documento_id', $venta->id)
             ->first();
 
-        if ($yaExiste) {
+        if ($yaExiste?->estado === 'confirmado') {
             return $yaExiste;
+        }
+
+        if ($yaExiste) {
+            $yaExiste->detalles()->delete();
+            $yaExiste->delete();
         }
 
         $documentoCodigo = $venta->numero ?? $venta->codigo ?? 'VENTA-'.$venta->id;
         $clienteNombre = $venta->cliente?->nombre ?? $venta->cliente?->nombre_comercial ?? 'Cliente';
-        $subtotal = (float) ($venta->subtotal ?? $venta->detalles()->sum('subtotal'));
-        $impuesto = (float) ($venta->impuesto ?? $venta->detalles()->sum('impuesto'));
-        $total = (float) ($venta->total ?? $venta->detalles()->sum('total'));
+        $subtotalDeclarado = round((float) ($venta->subtotal ?? $venta->detalles()->sum('subtotal')), 6);
+        $impuestoDeclarado = round((float) ($venta->impuesto ?? $venta->detalles()->sum('impuesto')), 6);
+        $total = round((float) ($venta->total ?? $venta->detalles()->sum('total')), 6);
+
+        if ($total <= 0) {
+            throw new RuntimeException('La venta debe tener un total mayor a cero antes de generar su asiento contable.');
+        }
+
+        // El total de la factura es el importe exigible al cliente y, por tanto,
+        // la fuente de verdad del asiento. El ingreso neto se deriva descontando
+        // el impuesto para garantizar Debe = Haber incluso en documentos antiguos
+        // cuyos campos subtotal/impuesto quedaron calculados con criterios distintos.
+        $impuesto = min(max($impuestoDeclarado, 0), $total);
+        $subtotal = round($total - $impuesto, 6);
+
+        if (abs(($subtotalDeclarado + $impuestoDeclarado) - $total) > 0.005) {
+            \Illuminate\Support\Facades\Log::warning('Se normalizaron importes al contabilizar una venta desbalanceada.', [
+                'factura_id' => $venta->id,
+                'subtotal_declarado' => $subtotalDeclarado,
+                'impuesto_declarado' => $impuestoDeclarado,
+                'total' => $total,
+                'ingreso_neto_contabilizado' => $subtotal,
+            ]);
+        }
         $costoTotal = (float) \App\Models\Inventario\Kardex::where('documento_tipo', 'venta')
             ->where('documento_id', $venta->id)
             ->sum('costo_total');
@@ -569,6 +595,7 @@ class AsientoContable extends Model
             'tipo' => 'venta',
             'concepto' => 'Venta '.$documentoCodigo.' - Cliente: '.$clienteNombre,
             'empresa_id' => $venta->empresa_id ?? Auth::user()?->empresa_id,
+            'sucursal_id' => $venta->sucursal_id ?? Auth::user()?->sucursal_id,
         ]);
 
         $cuentaClientes = self::obtenerOCrearCuenta('1.1.1', 'Clientes', 'activo', 'deudora');

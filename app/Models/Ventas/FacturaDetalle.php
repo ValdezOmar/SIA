@@ -62,18 +62,20 @@ class FacturaDetalle extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            // Asegurar cálculos automáticos
-            if ($model->subtotal == 0 && $model->cantidad > 0 && $model->precio_unitario > 0) {
-                $model->subtotal = ($model->precio_unitario * $model->cantidad) - ($model->descuento ?? 0);
-            }
+            // Mantener consistentes subtotal, impuesto y total. Anteriormente se
+            // agregaba 13 % aun cuando aplicar_iva era falso y el total quedaba
+            // sin ese impuesto, generando asientos de venta desbalanceados.
+            $cantidad = (float) ($model->cantidad ?? 0);
+            $precio = (float) ($model->precio_unitario ?? 0);
+            $descuento = (float) ($model->descuento ?? 0);
+            $subtotal = round(max(0, ($cantidad * $precio) - $descuento), 6);
+            $aplicarIva = (bool) ($model->aplicar_iva ?? false);
+            $tasaImpuesto = (float) ($model->tasa_impuesto ?? 13);
+            $impuesto = $aplicarIva ? round($subtotal * ($tasaImpuesto / 100), 6) : 0;
 
-            if ($model->impuesto == 0 && $model->subtotal > 0) {
-                $model->impuesto = $model->subtotal * (13 / 100);
-            }
-
-            if ($model->total == 0 && $model->subtotal > 0) {
-                $model->total = $model->subtotal + ($model->impuesto ?? 0);
-            }
+            $model->subtotal = $subtotal;
+            $model->impuesto = $impuesto;
+            $model->total = round($subtotal + $impuesto, 6);
         });
     }
 
