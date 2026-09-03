@@ -560,10 +560,6 @@ class AsientoContable extends Model
         $impuestoDeclarado = round((float) ($venta->impuesto ?? $venta->detalles()->sum('impuesto')), 6);
         $total = round((float) ($venta->total ?? $venta->detalles()->sum('total')), 6);
 
-        if ($total <= 0) {
-            throw new RuntimeException('La venta debe tener un total mayor a cero antes de generar su asiento contable.');
-        }
-
         // El total de la factura es el importe exigible al cliente y, por tanto,
         // la fuente de verdad del asiento. El ingreso neto se deriva descontando
         // el impuesto para garantizar Debe = Haber incluso en documentos antiguos
@@ -583,6 +579,12 @@ class AsientoContable extends Model
         $costoTotal = (float) \App\Models\Inventario\Kardex::where('documento_tipo', 'venta')
             ->where('documento_id', $venta->id)
             ->sum('costo_total');
+
+        // Una venta bonificada al 100 % no genera cuenta por cobrar, ingreso ni
+        // IVA. Si tampoco existe costo de inventario, no hay hecho contable.
+        if ($total <= 0 && $costoTotal <= 0) {
+            return null;
+        }
 
         $asiento = self::create([
             'codigo' => self::generarCodigo(),
@@ -604,21 +606,23 @@ class AsientoContable extends Model
         $cuentaInventario = self::obtenerOCrearCuenta('1.1.5', 'Inventario', 'activo', 'deudora');
         $cuentaCostoVenta = self::obtenerOCrearCuenta('6.1', 'Costo de Ventas', 'costo', 'deudora');
 
-        $asiento->detalles()->create([
-            'linea' => 1,
-            'cuenta_id' => $cuentaClientes?->id,
-            'debe' => $total,
-            'haber' => 0,
-            'descripcion' => 'Venta '.$documentoCodigo,
-        ]);
+        if ($total > 0) {
+            $asiento->detalles()->create([
+                'linea' => 1,
+                'cuenta_id' => $cuentaClientes?->id,
+                'debe' => $total,
+                'haber' => 0,
+                'descripcion' => 'Venta '.$documentoCodigo,
+            ]);
 
-        $asiento->detalles()->create([
-            'linea' => 2,
-            'cuenta_id' => $cuentaVentas?->id,
-            'debe' => 0,
-            'haber' => $subtotal,
-            'descripcion' => 'Ingreso por venta '.$documentoCodigo,
-        ]);
+            $asiento->detalles()->create([
+                'linea' => 2,
+                'cuenta_id' => $cuentaVentas?->id,
+                'debe' => 0,
+                'haber' => $subtotal,
+                'descripcion' => 'Ingreso por venta '.$documentoCodigo,
+            ]);
+        }
 
         if ($impuesto > 0 && $cuentaIva) {
             $asiento->detalles()->create([

@@ -878,14 +878,18 @@ class FacturaResource extends Resource
                                                         TextInput::make('descuento_porcentaje')
                                                             ->label('Descuento %')
                                                             ->numeric()
+                                                            ->type('text')
                                                             ->minValue(0)
                                                             ->maxValue(100)
                                                             ->step(0.01)
+                                                            ->inputMode('decimal')
+                                                            ->extraInputAttributes([
+                                                                'class' => '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                                                            ])
                                                             ->default(0)
                                                             ->suffix('%')
                                                             ->prefixIcon('heroicon-o-percent-badge')
-                                                            ->live()
-                                                            ->formatStateUsing(fn ($state) => $state !== null ? round(floatval($state), 2) : 0)
+                                                            ->live(onBlur: true)
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -902,18 +906,27 @@ class FacturaResource extends Resource
                                                         TextInput::make('descuento')
                                                             ->label('Descuento')
                                                             ->numeric()
+                                                            ->type('text')
                                                             ->minValue(0)
+                                                            ->maxValue(fn ($get) => round(
+                                                                floatval($get('cantidad') ?? 0) * floatval($get('precio_unitario') ?? 0),
+                                                                2
+                                                            ))
                                                             ->step(0.01)
+                                                            ->inputMode('decimal')
+                                                            ->extraInputAttributes([
+                                                                'class' => '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                                                            ])
                                                             ->default(0)
                                                             ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')
-                                                            ->live()
-                                                            ->formatStateUsing(fn ($state) => number_format($state ?? 0, 2, '.', ''))
+                                                            ->live(onBlur: true)
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
                                                                 $subtotalBase = round($cantidad * $precio, 2);
-                                                                $descuento = round(floatval($state), 2);
+                                                                $descuento = min(round(floatval($state), 2), $subtotalBase);
+                                                                $set('descuento', $descuento);
                                                                 $subtotal = round($subtotalBase - $descuento, 2);
                                                                 // Redondear a 2 decimales el porcentaje
                                                                 $descuentoPorcentaje = $subtotalBase > 0 ? round(($descuento / $subtotalBase) * 100, 2) : 0;

@@ -197,9 +197,9 @@ class Factura extends Model
                     ]);
                 }
 
-                if (! Kardex::query()->where('documento_tipo', 'venta')->where('documento_id', $this->id)->exists()) {
-                    $this->procesarVentaAutomatica();
-                }
+                // Es idempotente: también corrige ventas antiguas cuya salida ya
+                // existe pero cuyo pedido quedó indebidamente como reservado.
+                $this->procesarVentaAutomatica();
 
                 return $pagoExistente;
             }
@@ -226,6 +226,18 @@ class Factura extends Model
             $this->fecha_pago = $fechaPago;
             $this->fecha_vencimiento = $this->fecha_vencimiento ?: $fechaPago;
             $this->save();
+
+            if ($montoPago <= 0) {
+                $this->update([
+                    'estado' => 'pagada',
+                    'saldo' => 0,
+                    'monto_pagado' => 0,
+                    'monto_restante' => 0,
+                ]);
+                $this->procesarVentaAutomatica();
+
+                return null;
+            }
 
             $pago = Pago::create([
                 'factura_id' => $this->id,
@@ -261,7 +273,11 @@ class Factura extends Model
         $this->saldo = ($this->total ?? 0) - $totalPagado;
         $this->monto_restante = $this->saldo;
 
-        if ((float) $this->monto_pagado <= 0) {
+        if ((float) $this->total <= 0) {
+            $this->estado = 'pagada';
+            $this->saldo = 0;
+            $this->monto_restante = 0;
+        } elseif ((float) $this->monto_pagado <= 0) {
             $this->estado = 'borrador';
         } elseif ($this->saldo <= 0) {
             $this->estado = 'pagada';
@@ -277,9 +293,9 @@ class Factura extends Model
         return static::query()->where('estado', 'borrador')->where('created_at', '<=', now()->subDays(30));
     }
 
-    public function asegurarPedidoReservado(): Pedido
+    public function asegurarPedidoReservado(bool $reservarStock = true): Pedido
     {
-        return DB::transaction(function (): Pedido {
+        return DB::transaction(function () use ($reservarStock): Pedido {
             $factura = self::query()->with('pedido')->lockForUpdate()->findOrFail($this->id);
             $pedido = $factura->pedido;
             if (! $pedido) {
@@ -287,7 +303,8 @@ class Factura extends Model
                     'cliente_id' => $factura->cliente_id, 'fecha_pedido' => now()->toDateString(),
                     'condicion_pago' => $factura->condicion_pago, 'moneda' => $factura->moneda,
                     'tasa_cambio' => $factura->tasa_cambio, 'vendedor_id' => $factura->vendedor_id,
-                    'empresa_id' => $factura->empresa_id, 'sucursal_id' => $factura->sucursal_id, 'estado' => 'reservado',
+                    'empresa_id' => $factura->empresa_id, 'sucursal_id' => $factura->sucursal_id,
+                    'estado' => $reservarStock ? 'reservado' : 'pendiente',
                     'observaciones' => 'Pedido generado desde la factura '.$factura->numero.' por pago recibido.',
                 ]);
                 foreach ($factura->detalles as $detalle) {
@@ -295,9 +312,11 @@ class Factura extends Model
                 }
                 $factura->updateQuietly(['pedido_id' => $pedido->id, 'numero_pedido' => $pedido->codigo]);
             }
-            $pedido->reservarInventario();
-            if (! in_array($pedido->estado, ['entregado', 'cancelado'], true)) {
-                $pedido->update(['estado' => 'reservado']);
+            if ($reservarStock) {
+                $pedido->reservarInventario();
+                if (! in_array($pedido->estado, ['entregado', 'cancelado'], true)) {
+                    $pedido->update(['estado' => 'reservado']);
+                }
             }
 
             return $pedido;
@@ -388,11 +407,15 @@ class Factura extends Model
             }
 
             $requiereInventario = $this->detalles()->whereNotNull('articulo_id')->where('cantidad', '>', 0)->exists();
+            $pedidoEntrega = null;
             if ($requiereInventario) {
-                $this->asegurarPedidoReservado();
+                // Una venta totalmente pagada se entrega directamente. La reserva
+                // se usa únicamente mientras exista saldo pendiente.
+                $pedidoEntrega = $this->asegurarPedidoReservado(false);
+                $this->pedido_id = $pedidoEntrega->id;
+                $this->numero_pedido = $pedidoEntrega->codigo;
                 $this->liberarReservaInventario();
-                $this->loadMissing('pedido');
-                $this->pedido?->liberarReservaInventario();
+                $pedidoEntrega->liberarReservaInventario();
             }
 
             $yaExisteKardex = Kardex::where('documento_tipo', 'venta')
@@ -486,8 +509,9 @@ class Factura extends Model
 
             AsientoContable::aplicarAnticiposCliente($this);
 
-            if ($this->pedido && $this->pedido->estado !== 'cancelado') {
-                $this->pedido->update([
+            $pedidoEntrega ??= $this->pedido()->first();
+            if ($pedidoEntrega && $pedidoEntrega->estado !== 'cancelado') {
+                $pedidoEntrega->update([
                     'estado' => 'entregado',
                     'fecha_entrega_real' => now()->toDateString(),
                 ]);
