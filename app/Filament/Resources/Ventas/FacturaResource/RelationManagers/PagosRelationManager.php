@@ -81,7 +81,7 @@ class PagosRelationManager extends RelationManager
                                     ->displayFormat('d/m/Y')
                                     ->required()
                                     ->default(now())
-                                    ->native(false)
+                                    ->native()
                                     ->helperText('Fecha del pago')
                                     ->prefixIcon('heroicon-o-calendar')
                                     ->columnSpan(1),
@@ -177,7 +177,7 @@ class PagosRelationManager extends RelationManager
                         DatePicker::make('fecha_cheque')
                             ->label('Fecha Cheque')
                             ->displayFormat('d/m/Y')
-                            ->native(false)
+                            ->native()
                             ->helperText('Fecha del cheque')
                             ->prefixIcon('heroicon-o-calendar')
                             ->visible(fn ($get) => $get('tipo_pago') === 'cheque')

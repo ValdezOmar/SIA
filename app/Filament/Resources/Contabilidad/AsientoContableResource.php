@@ -194,7 +194,7 @@ class AsientoContableResource extends Resource
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha del asiento')
                                                     ->prefixIcon('heroicon-o-calendar')
                                                     ->columnSpan(1),

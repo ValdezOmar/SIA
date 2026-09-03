@@ -66,7 +66,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
                                 DatePicker::make('fecha_movimiento')
                                     ->label('Fecha Movimiento')
                                     ->displayFormat('d/m/Y')
-                                    ->native(false),
+                                    ->native(),
                             ]),
                     ]),
             ]);

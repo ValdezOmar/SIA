@@ -93,7 +93,7 @@ class HistorialLaboralRelationManager extends RelationManager
                     Select::make('tipo_contrato')
                         ->label('Tipo de contrato')
                         ->options(static::contractOptions())
-                        ->default('Contrato indefinido')->native(false)->live()->required(),
+                        ->default('Contrato indefinido')->native()->live()->required(),
 
                     TextInput::make('tipo_contrato_otro')
                         ->label('Especifique el tipo de contrato')
@@ -104,10 +104,10 @@ class HistorialLaboralRelationManager extends RelationManager
 
                     DatePicker::make('fecha_inicio')
                         ->label('Fecha de ingreso')->default(today())
-                        ->displayFormat('d/m/Y')->native(false)->required()->live(),
+                        ->displayFormat('d/m/Y')->native()->required()->live(),
 
                     DatePicker::make('fecha_fin')
-                        ->label('Fecha de finalización')->displayFormat('d/m/Y')->native(false)
+                        ->label('Fecha de finalización')->displayFormat('d/m/Y')->native()
                         ->minDate(fn (Get $get) => $get('fecha_inicio'))
                         ->required(fn (Get $get): bool => $get('tipo_contrato') !== 'Contrato indefinido')
                         ->hidden(fn (Get $get): bool => $get('tipo_contrato') === 'Contrato indefinido')

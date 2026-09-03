@@ -126,7 +126,7 @@ class SolicitudCompraResource extends Resource
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha de la solicitud')
                                                     ->prefixIcon('heroicon-o-calendar')
                                                     ->columnSpan(1),
@@ -135,7 +135,7 @@ class SolicitudCompraResource extends Resource
                                                     ->label('Fecha Requerida')
                                                     ->displayFormat('d/m/Y')
                                                     ->default(now()->addDays(7))
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha en que se requiere el material')
                                                     ->prefixIcon('heroicon-o-calendar-days')
                                                     ->columnSpan(1),

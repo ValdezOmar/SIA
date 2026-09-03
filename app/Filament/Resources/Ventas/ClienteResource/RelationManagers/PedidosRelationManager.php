@@ -204,7 +204,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha de creación del pedido')
                                                     ->prefixIcon('heroicon-o-calendar')
                                                     ->columnSpan(1),
@@ -213,7 +213,7 @@ class PedidosRelationManager extends RelationManager
                                                     ->label('Fecha Entrega Estimada')
                                                     ->displayFormat('d/m/Y')
                                                     ->default(now()->addDays(7))
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha estimada de entrega')
                                                     ->prefixIcon('heroicon-o-truck')
                                                     ->columnSpan(1),

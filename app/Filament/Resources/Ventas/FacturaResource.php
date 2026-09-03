@@ -256,7 +256,7 @@ class FacturaResource extends Resource
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha de emisión')
                                                     ->prefixIcon('heroicon-o-calendar')
                                                     ->columnSpan(1),
@@ -578,7 +578,7 @@ class FacturaResource extends Resource
                                                     ->label('Fecha de entrega')
                                                     ->displayFormat('d/m/Y')
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha de entrega de equipos')
                                                     ->prefixIcon('heroicon-o-calendar-days')
                                                     ->columnSpan(1),
@@ -587,7 +587,7 @@ class FacturaResource extends Resource
                                                     ->label('Fecha Pago')
                                                     ->displayFormat('d/m/Y')
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha en que se realizó el pago')
                                                     ->prefixIcon('heroicon-o-check-circle')
                                                     ->columnSpan(1),
@@ -618,7 +618,7 @@ class FacturaResource extends Resource
                                                     ->required(fn ($get): bool => in_array($get('condicion_pago'), ['contado', 'parcial'], true))
                                                     ->visible(fn ($get): bool => in_array($get('condicion_pago'), ['contado', 'parcial'], true))
                                                     ->live()
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Se guardará en el pago y determinará la cuenta contable receptora.'),
 
                                                 TextInput::make('pago_inicial_referencia')
@@ -844,15 +844,19 @@ class FacturaResource extends Resource
                                                         TextInput::make('precio_unitario')
                                                             ->label('Precio Unit.')
                                                             ->numeric()
+                                                            ->type('text')
                                                             ->required()
                                                             ->minValue(0.01)
                                                             ->maxValue(999999.99)
-                                                            ->step(1.00)
+                                                            ->step(0.01)
+                                                            ->inputMode('decimal')
+                                                            ->extraInputAttributes([
+                                                                'class' => '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                                                            ])
                                                             ->default(0)
                                                             ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
-                                                            ->formatStateUsing(fn ($state) => self::formatearNumero($state, 2))
-                                                            ->live()
+                                                            ->live(onBlur: true)
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 self::recalcularLinea($set, $get);
                                                             })
@@ -1385,7 +1389,7 @@ class FacturaResource extends Resource
                                 ->displayFormat('d/m/Y')
                                 ->required()
                                 ->default(now())
-                                ->native(false),
+                                ->native(),
 
                             Select::make('tipo_pago')
                                 ->label('Tipo de Pago')

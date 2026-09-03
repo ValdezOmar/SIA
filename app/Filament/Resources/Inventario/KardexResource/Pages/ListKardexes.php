@@ -29,12 +29,13 @@ class ListKardexes extends ListRecords
                         ->label('Fecha contable de regularización')
                         ->default(now())
                         ->required()
-                        ->native(false)
-                        ->helperText('Los nuevos asientos se registrarán en esta fecha. El período debe estar abierto.'),
+                        ->native()
+                        ->extraInputAttributes(['lang' => 'es-BO'])
+                        ->helperText('Puede escribir, pegar o elegir la fecha en el calendario. El período debe estar abierto.'),
                 ])
                 ->action(function (array $data): void {
                     $resultado = app(RegularizacionKardexService::class)->ejecutar(
-                        Carbon::parse($data['fecha_contable']),
+                        Carbon::parse($data['fecha_contable'])->startOfDay(),
                         auth()->user()?->empresa_id,
                     );
 

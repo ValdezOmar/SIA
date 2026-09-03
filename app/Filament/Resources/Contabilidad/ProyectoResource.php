@@ -171,14 +171,14 @@ class ProyectoResource extends Resource
                                 DatePicker::make('fecha_inicio')
                                     ->label('Fecha Inicio')
                                     ->displayFormat('d/m/Y')
-                                    ->native(false)
+                                    ->native()
                                     ->helperText('Fecha de inicio del proyecto')
                                     ->prefixIcon('heroicon-o-calendar'),
 
                                 DatePicker::make('fecha_fin')
                                     ->label('Fecha Fin')
                                     ->displayFormat('d/m/Y')
-                                    ->native(false)
+                                    ->native()
                                     ->helperText('Fecha de finalización del proyecto')
                                     ->prefixIcon('heroicon-o-calendar-days'),
                             ]),

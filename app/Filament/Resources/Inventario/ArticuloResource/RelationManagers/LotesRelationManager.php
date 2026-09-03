@@ -66,7 +66,7 @@ class LotesRelationManager extends RelationManager
 
                                 DatePicker::make('fecha_fabricacion')
                                     ->label('Fecha de Fabricación')
-                                    ->native(false)
+                                    ->native()
                                     ->helperText('Fecha de fabricación del lote')
                                     ->columnSpan(1),
                             ]),
@@ -75,7 +75,7 @@ class LotesRelationManager extends RelationManager
                             ->schema([
                                 DatePicker::make('fecha_vencimiento')
                                     ->label('Fecha de Vencimiento')
-                                    ->native(false)
+                                    ->native()
                                     ->helperText('Fecha de vencimiento del lote')
                                     ->columnSpan(1),
 
@@ -234,7 +234,7 @@ class LotesRelationManager extends RelationManager
                     ->form([
                         DatePicker::make('vencimiento_hasta')
                             ->label('Vencimiento hasta')
-                            ->native(false),
+                            ->native(),
                     ])
                     ->query(function ($query, array $data) {
                         return $query->when(

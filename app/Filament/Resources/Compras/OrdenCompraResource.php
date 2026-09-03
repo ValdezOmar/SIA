@@ -99,7 +99,7 @@ class OrdenCompraResource extends Resource
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha de la orden')
                                                     ->prefixIcon('heroicon-o-calendar')
                                                     ->columnSpan(1),
@@ -108,7 +108,7 @@ class OrdenCompraResource extends Resource
                                                     ->label('Entrega Estimada')
                                                     ->displayFormat('d/m/Y')
                                                     ->default(now()->addDays(15))
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha estimada de entrega')
                                                     ->prefixIcon('heroicon-o-calendar-days')
                                                     ->columnSpan(1),

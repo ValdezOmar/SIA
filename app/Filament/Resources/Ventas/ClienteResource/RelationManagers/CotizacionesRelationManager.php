@@ -215,7 +215,7 @@ class CotizacionesRelationManager extends RelationManager
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha de emisión')
                                                     ->prefixIcon('heroicon-o-calendar')
                                                     ->columnSpan(1),
@@ -224,7 +224,7 @@ class CotizacionesRelationManager extends RelationManager
                                                     ->label('Fecha Validez')
                                                     ->default(now()->addDays(7))
                                                     ->displayFormat('d/m/Y')
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText(function ($get) {
                                                         $fecha = $get('fecha_validez');
                                                         if (! $fecha) {
@@ -445,7 +445,7 @@ class CotizacionesRelationManager extends RelationManager
                                                 DatePicker::make('fecha_entrega_estimada')
                                                     ->label('Fecha Entrega')
                                                     ->displayFormat('d/m/Y')
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha estimada de entrega')
                                                     ->prefixIcon('heroicon-o-truck')
                                                     ->columnSpan(1),
@@ -654,15 +654,19 @@ class CotizacionesRelationManager extends RelationManager
                                                         TextInput::make('precio_unitario')
                                                             ->label('Precio Unit.')
                                                             ->numeric()
+                                                            ->type('text')
                                                             ->required()
                                                             ->minValue(0.01)
                                                             ->maxValue(999999.99)
-                                                            ->step(1.00)
+                                                            ->step(0.01)
+                                                            ->inputMode('decimal')
+                                                            ->extraInputAttributes([
+                                                                'class' => '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                                                            ])
                                                             ->default(0)
                                                             ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
-                                                            ->formatStateUsing(fn ($state) => self::formatearNumero($state, 2))
-                                                            ->live()
+                                                            ->live(onBlur: true)
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 self::recalcularLinea($set, $get);
                                                             })

@@ -127,14 +127,14 @@ class SeriesRelationManager extends RelationManager
                             ->schema([
                                 DatePicker::make('fecha_garantia')
                                     ->label('Fecha de Garantía')
-                                    ->native(false)
+                                    ->native()
                                     ->disabled()
                                     ->helperText('Fecha de vencimiento de la garantía')
                                     ->columnSpan(1),
 
                                 DatePicker::make('fecha_venta')
                                     ->label('Fecha de Venta')
-                                    ->native(false)
+                                    ->native()
                                     ->disabled()
                                     ->helperText('Fecha en que fue vendida la serie')
                                     ->columnSpan(1),
@@ -144,7 +144,7 @@ class SeriesRelationManager extends RelationManager
                             ->schema([
                                 DatePicker::make('fecha_instalacion')
                                     ->label('Fecha de Instalación')
-                                    ->native(false)
+                                    ->native()
                                     ->disabled()
                                     ->helperText('Fecha de instalación (si aplica)')
                                     ->columnSpan(1),
@@ -290,7 +290,7 @@ class SeriesRelationManager extends RelationManager
                     ->form([
                         DatePicker::make('garantia_hasta')
                             ->label('Garantía hasta')
-                            ->native(false),
+                            ->native(),
                     ])
                     ->query(function ($query, array $data) {
                         return $query->when(

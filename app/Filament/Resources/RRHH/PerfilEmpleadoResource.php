@@ -183,7 +183,7 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
                         DatePicker::make('fecha_nacimiento')
                             ->label('Fecha de nacimiento')
                             ->live()
-                            ->native(false)
+                            ->native()
                             ->maxDate(now()),
 
                         Select::make('genero')
@@ -194,7 +194,7 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
                                 'mujer' => 'Mujer',
                                 'otro' => 'Otro',
                             ])
-                            ->native(false),
+                            ->native(),
 
                         TextInput::make('nacionalidad')
                             ->label('Nacionalidad')
@@ -210,7 +210,7 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
                                 'viudo' => 'Viudo/a',
                                 'divorciado' => 'Divorciado/a',
                             ])
-                            ->native(false),
+                            ->native(),
 
                         TextInput::make('cantidad_hijos')
                             ->label('Cantidad de hijos')

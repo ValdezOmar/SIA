@@ -171,11 +171,11 @@ class KardexResource extends Resource
 
                                                 DatePicker::make('fecha_movimiento')
                                                     ->label('Fecha Movimiento')
-                                                    ->displayFormat('d/m/Y H:i')
                                                     ->required()
                                                     ->default(now())
-                                                    ->native(false)
-                                                    ->helperText('Fecha efectiva del movimiento. Se usa para ordenar el Kardex y el costo FIFO.')
+                                                    ->native()
+                                                    ->extraInputAttributes(['lang' => 'es-BO'])
+                                                    ->helperText('Puede escribir, pegar o elegir la fecha en el calendario. Se usa para ordenar el Kardex y el costo FIFO.')
                                                     ->prefixIcon('heroicon-o-calendar'),
 
                                                 Select::make('tipo_movimiento')
@@ -262,13 +262,18 @@ class KardexResource extends Resource
                                                 TextInput::make('cantidad')
                                                     ->label('Cantidad')
                                                     ->numeric()
+                                                    ->type('text')
                                                     ->required()
                                                     ->minValue(0.01)
-                                                    ->step(1.00)
+                                                    ->step(0.000001)
+                                                    ->inputMode('decimal')
+                                                    ->extraInputAttributes([
+                                                        'class' => '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                                                    ])
                                                     ->placeholder('0.00')
                                                     ->helperText('Cantidad física afectada. Nunca uses valores negativos; la dirección define el efecto.')
                                                     ->prefixIcon('heroicon-o-numbered-list')
-                                                    ->reactive()
+                                                    ->live(onBlur: true)
                                                     ->afterStateUpdated(function ($state, callable $set, $get) {
                                                         $cantidad = floatval($state);
                                                         $costoUnitario = floatval($get('costo_unitario') ?? 0);
@@ -278,8 +283,9 @@ class KardexResource extends Resource
                                                 DatePicker::make('fecha_contable')
                                                     ->label('Fecha contable')
                                                     ->default(now())
-                                                    ->native(false)
-                                                    ->helperText('Fecha que usará el asiento automático. Debe pertenecer a un período contable abierto.')
+                                                    ->native()
+                                                    ->extraInputAttributes(['lang' => 'es-BO'])
+                                                    ->helperText('Puede escribir, pegar o elegir la fecha en el calendario. Debe pertenecer a un período contable abierto.')
                                                     ->prefixIcon('heroicon-o-calculator'),
                                             ]),
                                         Grid::make(2)
@@ -287,13 +293,18 @@ class KardexResource extends Resource
                                                 TextInput::make('costo_unitario')
                                                     ->label('Costo Unitario')
                                                     ->numeric()
+                                                    ->type('text')
                                                     ->required()
                                                     ->minValue(0)
                                                     ->step(0.000001)
+                                                    ->inputMode('decimal')
+                                                    ->extraInputAttributes([
+                                                        'class' => '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                                                    ])
                                                     ->placeholder('0.00')
                                                     ->prefix(fn ($get) => self::getSimboloMoneda('BOB'))
                                                     ->helperText('Costo por unidad. En entradas alimenta FIFO; en salidas se usa para valorar la operación.')
-                                                    ->reactive()
+                                                    ->live(onBlur: true)
                                                     ->afterStateUpdated(function ($state, callable $set, $get) {
                                                         $cantidad = floatval($get('cantidad') ?? 0);
                                                         $costoUnitario = floatval($state);
@@ -758,12 +769,12 @@ class KardexResource extends Resource
                     ->form([
                         DatePicker::make('fecha_desde')
                             ->label('Desde')
-                            ->displayFormat('d/m/Y')
-                            ->native(false),
+                            ->native()
+                            ->extraInputAttributes(['lang' => 'es-BO']),
                         DatePicker::make('fecha_hasta')
                             ->label('Hasta')
-                            ->displayFormat('d/m/Y')
-                            ->native(false),
+                            ->native()
+                            ->extraInputAttributes(['lang' => 'es-BO']),
                     ])
                     ->query(function ($query, array $data) {
                         return $query

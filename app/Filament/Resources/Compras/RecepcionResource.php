@@ -86,7 +86,7 @@ class RecepcionResource extends Resource
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha de recepción')
                                                     ->prefixIcon('heroicon-o-calendar')
                                                     ->columnSpan(1),

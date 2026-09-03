@@ -236,7 +236,7 @@ class UserResource extends Resource
 
                                 Forms\Components\DatePicker::make('fecha_nacimiento')
                                     ->label('Fecha de nacimiento')
-                                    ->native(false)
+                                    ->native()
                                     ->maxDate(now()),
 
                                 Forms\Components\Select::make('genero')
@@ -246,7 +246,7 @@ class UserResource extends Resource
                                         'mujer' => 'Mujer',
                                         'otro' => 'Otro',
                                     ])
-                                    ->native(false),
+                                    ->native(),
 
                                 Forms\Components\TextInput::make('telefono_personal')
                                     ->label('Teléfono personal')
@@ -316,7 +316,7 @@ class UserResource extends Resource
                                     ->default(now()->toDateString())
                                     ->displayFormat('d/m/Y')
                                     ->required()
-                                    ->native(false),
+                                    ->native(),
 
                                 Forms\Components\Select::make('tipo_contrato')
                                     ->label('Tipo de contrato')
@@ -332,7 +332,7 @@ class UserResource extends Resource
                                     ])
                                     ->default('Contrato indefinido')
                                     ->placeholder('Sin especificar')
-                                    ->native(false),
+                                    ->native(),
                             ])
                             ->columns(3),
                     ])

@@ -110,7 +110,7 @@ class FacturaCompraResource extends Resource
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha de emisión de la factura')
                                                     ->prefixIcon('heroicon-o-calendar')
                                                     ->columnSpan(1),
@@ -214,7 +214,7 @@ class FacturaCompraResource extends Resource
                                                     ->label('Fecha Vencimiento')
                                                     ->displayFormat('d/m/Y')
                                                     ->default(now()->addDays(30))
-                                                    ->native(false)
+                                                    ->native()
                                                     ->helperText('Fecha de vencimiento de la factura')
                                                     ->prefixIcon('heroicon-o-calendar-days')
                                                     ->columnSpan(1),
@@ -752,7 +752,7 @@ class FacturaCompraResource extends Resource
                                 ->displayFormat('d/m/Y')
                                 ->required()
                                 ->default(now())
-                                ->native(false),
+                                ->native(),
 
                             Select::make('tipo_pago')
                                 ->label('Tipo de Pago')

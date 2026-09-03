@@ -82,7 +82,7 @@ class FacturasRelationManager extends RelationManager
                                     ->displayFormat('d/m/Y')
                                     ->required()
                                     ->default(now())
-                                    ->native(false)
+                                    ->native()
                                     ->helperText('Fecha de emisión')
                                     ->prefixIcon('heroicon-o-calendar')
                                     ->columnSpan(1),
@@ -127,7 +127,7 @@ class FacturasRelationManager extends RelationManager
                                     ->label('Fecha Vencimiento')
                                     ->displayFormat('d/m/Y')
                                     ->default(now()->addDays(30))
-                                    ->native(false)
+                                    ->native()
                                     ->helperText('Fecha de vencimiento')
                                     ->prefixIcon('heroicon-o-calendar-days')
                                     ->columnSpan(1),
@@ -324,7 +324,7 @@ class FacturasRelationManager extends RelationManager
                                 ->displayFormat('d/m/Y')
                                 ->required()
                                 ->default(now())
-                                ->native(false),
+                                ->native(),
 
                             Select::make('tipo_pago')
                                 ->label('Tipo de Pago')

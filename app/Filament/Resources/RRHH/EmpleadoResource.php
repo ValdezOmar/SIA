@@ -204,7 +204,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                                     ->label('Fecha de nacimiento')
                                                     ->prefixIcon('heroicon-o-cake')
                                                     ->displayFormat('d/m/Y')
-                                                    ->native(false)
+                                                    ->native()
                                                     ->maxDate(now()),
 
                                                 Select::make('genero')
@@ -215,7 +215,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                                         'mujer' => 'Mujer',
                                                         'otro' => 'Otro',
                                                     ])
-                                                    ->native(false),
+                                                    ->native(),
 
                                                 TextInput::make('nacionalidad')
                                                     ->label('Nacionalidad')
@@ -240,7 +240,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                                                         'viudo' => 'Viudo/a',
                                                         'divorciado' => 'Divorciado/a',
                                                     ])
-                                                    ->native(false),
+                                                    ->native(),
 
                                                 TextInput::make('cantidad_hijos')
                                                     ->label('Cantidad de hijos')
