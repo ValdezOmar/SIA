@@ -3,770 +3,174 @@
 namespace App\Filament\Resources\Almacen;
 
 use App\Filament\Resources\Almacen\InventarioResource\Pages;
-use App\Models\Almacen\Inventario;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Section;
-use DesignTheBox\BarcodeField\Forms\Components\BarcodeInput;
-use Filament\Tables\Filters\SelectFilter;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Cache;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Set;
-use Filament\Forms\Components\View;
+use App\Filament\Resources\Almacen\InventarioResource\RelationManagers;
+use App\Models\Inventario\Almacen;
+use App\Models\Inventario\InventarioFisico;
+use App\Models\Sistema\Empresa;
+use App\Models\Sistema\Sucursal;
+use App\Models\User;
+use App\Services\Inventario\InventarioFisicoService as Servicio;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
-use Filament\Tables\Actions\ExportAction;
-use App\Filament\Exports\InventarioExporter;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Blade;
-use Filament\Tables\Actions\Action;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class InventarioResource extends Resource implements HasShieldPermissions
 {
-    protected static ?string $model = Inventario::class;
+    protected static ?string $model = InventarioFisico::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
-    protected static ?string $modelLabel = 'Inventario';
-    protected static ?string $pluralModelLabel = 'Listado del inventario actual';
-    protected static ?string $navigationLabel = 'Inventario';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+
     protected static ?string $navigationGroup = 'Almacenes';
+
+    protected static ?string $navigationLabel = 'Inventarios físicos';
+
+    protected static ?string $modelLabel = 'Inventario físico';
+
+    protected static ?string $pluralModelLabel = 'Inventarios físicos';
+
     protected static ?int $navigationSort = 2;
 
-    public static function form(Form $form): Form
+    public static function canViewAny(): bool
     {
-        return $form
-            ->schema([
-
-                View::make('filament.forms.components.inventario-card')
-                    ->columnSpanFull(),
-
-                Section::make('Datos Correctos')
-                    ->description('Ingrese los datos correctos en caso de encontrar discrepancias para una posterior actualizacion y corrección en sistema')
-                    ->schema([
-                        TextInput::make('codigo_correcto')
-                            ->label('Código')
-                            ->prefixIcon('heroicon-o-table-cells')
-                            ->afterStateUpdated(fn($state, Set $set) => $set('codigo_correcto', strtoupper($state))),
-
-                        TextInput::make('descripcion_correcto')
-                            ->label('Descripción')
-                            ->prefixIcon('heroicon-o-document-text')
-                            ->afterStateUpdated(fn($state, Set $set) => $set('descripcion_correcto', strtoupper($state))),
-
-                        TextInput::make('presentacion_correcto')
-                            ->label('Presentación')
-                            ->prefixIcon('heroicon-o-cube')
-                            ->afterStateUpdated(fn($state, Set $set) => $set('presentacion_correcto', strtoupper($state))),
-
-                        TextInput::make('unidad_correcto')
-                            ->label('Unidad de medida')
-                            ->prefixIcon('heroicon-o-scale')
-                            ->afterStateUpdated(fn($state, Set $set) => $set('unidad_correcto', strtoupper($state))),
-
-                        TextInput::make('codigo_alterno_correcto')
-                            ->label('Código alterno')
-                            ->prefixIcon('heroicon-o-qr-code')
-                            ->afterStateUpdated(fn($state, Set $set) => $set('codigo_alterno_correcto', strtoupper($state))),
-
-                        TextInput::make('cod_almacen_correcto')
-                            ->label('Código de almacén')
-                            ->prefixIcon('heroicon-o-home-modern')
-                            ->afterStateUpdated(fn($state, Set $set) => $set('cod_almacen_correcto', strtoupper($state))),
-
-                        TextInput::make('nombre_almacen_correcto')
-                            ->label('Nombre del almacén')
-                            ->prefixIcon('heroicon-o-building-storefront')
-                            ->afterStateUpdated(fn($state, Set $set) => $set('nombre_almacen_correcto', strtoupper($state))),
-
-                        TextInput::make('lote_correcto')
-                            ->label('Lote')
-                            ->prefixIcon('heroicon-o-tag')
-                            ->afterStateUpdated(fn($state, Set $set) => $set('lote_correcto', strtoupper($state))),
-
-                        DatePicker::make('fecha_ven_correcto')
-                            ->label('Fecha de vencimiento')
-                            ->prefixIcon('heroicon-o-calendar'),
-
-                        Select::make('empresa_correcto')
-                            ->label('Empresa')
-                            ->prefixIcon('heroicon-o-building-office')
-                            ->options([
-                                'Novanexa' => 'Novanexa',
-                                'Requilab' => 'Requilab',
-                                'Ireilab' => 'Ireilab',
-                            ])
-                            ->searchable()
-                    ])
-                    ->columns(3),
-
-                Section::make('Conteo de Inventario Físico')
-                    ->description('Registro de la comparación entre el sistema y el conteo físico')
-                    ->schema([
-                        TextInput::make('saldo_actual')
-                            ->label('Saldo en sistema')
-                            ->prefixIcon('heroicon-o-circle-stack') // Icono para datos del sistema
-                            ->disabled()
-                            ->columnSpan(1)
-                            ->extraInputAttributes(['class' => 'font-mono text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700']),
-
-                        TextInput::make('saldo_contado')
-                            ->label('Saldo contado físicamente')
-                            ->prefixIcon('heroicon-o-clipboard-document-check') // Icono de verificación
-                            ->required()
-                            ->numeric()
-                            ->columnSpan(1)
-                            ->hint('Ingrese solo números')
-                            ->extraInputAttributes(['class' => 'font-bold text-primary-600 dark:text-primary-400']),
-
-                        BarcodeInput::make('sn_qr_correcto')
-                            ->label('Registrar QR')
-                            ->live()
-                            ->required(false)
-                            ->dehydrated(fn($state) => filled($state)) // Solo guardar si tiene valor
-                            ->afterStateUpdated(fn($state, $set) => $set('sn_qr_correcto', $state))
-                    ])
-                    ->columns(3),
-                Forms\Components\Textarea::make('observacion')
-                    ->label('Observaciones')
-                    ->hint('Ingrese todas las observaciones adicionales encontradas para este ítem')
-                    // ->icon('heroicon-o-clipboard-document-list') // Icono intuitivo
-                    ->rows(5) // Más espacio para escribir
-                    ->maxLength(255) // Más capacidad
-                    ->columnSpanFull(255)
-                    ->extraAttributes([
-                        'class' => 'custom-textarea', // Clase para estilos personalizados
-                    ]),
-            ]);
+        return auth()->user()?->can(Servicio::VER) ?? false;
     }
 
-    public static function table(Table $table): Table
+    public static function canCreate(): bool
     {
-        return $table
-            ->columns([
-                TextColumn::make('codigo')
-                    ->label('Item Almacén')
-                    ->html()
-                    ->getStateUsing(function ($record) {
-                        $qrBadge = '';
+        return static::canViewAny() && auth()->user()->can(Servicio::PROGRAMAR);
+    }
 
-                        if (!is_null($record->sn_qr_correcto)) {
-                            $qrBadge = "
-                <span style='
-                    display: inline-block;
-                    background-color: #16a34a;
-                    color: white;
-                    border-radius: 5px;
-                    padding: 0.1rem 0.3rem;
-                    font-size: 0.70rem;
-                    font-weight: bold;
-                    margin-top: 0.1rem;
-                '>QR Registrado</span>
-            ";
-                        } elseif (!is_null($record->saldo_contado)) {
-                            $qrBadge = "
-                <span style='
-                    display: inline-block;
-                    background-color: #dc2626;
-                    color: white;
-                    border-radius: 5px;
-                    padding: 0.1rem 0.3rem;
-                    font-size: 0.70rem;
-                    font-weight: bold;
-                    margin-top: 0.1rem;
-                '>QR No registrado</span>
-            ";
-                        }
+    public static function canView(Model $record): bool
+    {
+        return static::canViewAny() && static::getEloquentQuery()->whereKey($record->id)->exists();
+    }
 
-                        return "
-            <div>
-                <strong>{$record->descripcion}</strong><br>
-                <small>
-                    Codigo: <strong style='color:rgb(32, 115, 211); font-size: 0.80rem'>{$record->codigo}</strong><br>
-                    Cod. Alterno: <strong>{$record->codigo_alterno}</strong><br>
-                    {$qrBadge}
-                </small>
-            </div>
-        ";
-                    })
-                    ->searchable(['descripcion', 'codigo', 'codigo_alterno']),
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
 
-                TextColumn::make('saldo_actual')
-                    ->label('Conteo')
-                    ->html()
-                    ->getStateUsing(function ($record) {
-                        $diferencia = $record->saldo_contado - $record->saldo_actual;
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
 
-                        $color = match (true) {
-                            $diferencia === 0 => '#16a34a',   // Verde
-                            $diferencia > 0 => '#f97316',     // Naranja
-                            default => '#dc2626',             // Rojo
-                        };
-
-                        return "
-                            <div style='text-align: left;'>          
-                                <span style='font-size: 0.7rem; color: #6b7280;'>Almacén:</span>
-                                <span style='font-size: 0.9rem; font-weight: 800;'>{$record->saldo_actual}</span> <br> 
-                                " . ($record->saldo_contado !== null ? "                               
-                                    <span style='font-size: 0.7rem; color: #6b7280;'>Conteo :</span>
-                                    <span style='font-size: 0.9rem; font-weight: 800;'>{$record->saldo_contado}</span><br>     
-                                    <span style='font-size: 0.7rem; color: #6b7280;'>Diferencia:</span>
-                                    <span style='font-size: 0.9rem; font-weight: 800; color: {$color};'>
-                                        " . ($diferencia > 0 ? '+' : '') . "{$diferencia}
-                                    </span><br>
-                                    <span style='
-                                        background-color: #16a34a;
-                                        color: white;
-                                        padding: 0.25rem 0.5rem;
-                                        border-radius: 0.25rem;
-                                        font-size: 0.75rem;
-                                        font-weight: 500;
-                                    '>Verificado</span>                                
-                                " : "                                
-                                    <span style='
-                                        background-color: #dc2626;
-                                        color: white;
-                                        padding: 0.25rem 0.5rem;
-                                        border-radius: 0.25rem;
-                                        font-size: 0.75rem;
-                                        font-weight: 500;
-                                    '>Sin verificar</span>                                
-                                ") . "
-                            </div>
-                        ";
-                    })
-                    ->sortable(),
-
-                TextColumn::make('lote')
-                    ->label('Lote')
-                    ->html()
-                    ->getStateUsing(fn($record) => "
-                        <div>
-                            <strong>{$record->lote}</strong><br>
-                            <small>Presentacion: {$record->presentacion}</small><br>
-                            <small>Unidad: {$record->unidad}</small>
-                        </div>
-                    ")
-                    ->sortable()
-                    ->searchable(['lote']),
-
-                TextColumn::make('nombre_almacen')
-                    ->label('Ubicación en Almacén')
-                    ->html()
-                    ->getStateUsing(function ($record) {
-                        $sucursal = match (true) {
-                            $record->cod_almacen >= 100 && $record->cod_almacen <= 199 => 'La Paz',
-                            $record->cod_almacen >= 200 && $record->cod_almacen <= 299 => 'Cochabamba',
-                            $record->cod_almacen >= 300 && $record->cod_almacen <= 399 => 'Santa Cruz',
-                            $record->cod_almacen >= 400 && $record->cod_almacen <= 499 => 'Sucre',
-                            $record->cod_almacen >= 500 && $record->cod_almacen <= 599 => 'Tarija',
-                            default => 'Sucursal desconocida',
-                        };
-
-                        return "
-                            <div>
-                                <strong>{$record->nombre_almacen}</strong><br>
-                                <small>Cod. Almacén: <strong style='font-size: 0.85rem'>{$record->cod_almacen}</strong></small><br>
-                                <small><strong style='text-align: center; font-size: 0.85rem'>{$record->empresa}</strong></small><br>
-                                <small style='color: gray; font-size: 0.8rem'><strong>{$sucursal}</strong></small>
-                            </div>
-                        ";
-                    })
-                    ->searchable(['nombre_almacen', 'cod_almacen', 'empresa']),
-
-                TextColumn::make('fecha_ven')
-                    ->label('Vencimiento')
-                    ->html()
-                    ->getStateUsing(function ($record) {
-                        if (!$record->fecha_ven) {
-                            return <<<HTML
-                                <div>Sin fecha</div>
-                                <div style="color: rgb(111, 107, 128); font-size: 0.75rem">Sin registro</div>
-                            HTML;
-                        }
-
-                        $fechaFormateada = \Carbon\Carbon::parse($record->fecha_ven)->format('d/m/Y');
-                        $hoy = \Carbon\Carbon::now();
-                        $mesesRestantes = (int)$hoy->floatDiffInMonths($record->fecha_ven, false);
-
-                        // Definimos el texto y color según los meses restantes (enteros)
-                        $estado = match (true) {
-                            $mesesRestantes <= 0 => [  // Cambiado de < 0 a <= 0 para incluir el mes actual
-                                'texto' => 'VENCIDO',
-                                'color' => '#dc2626' // Rojo
-                            ],
-                            $mesesRestantes <= 4 => [
-                                'texto' => "VENCE EN {$mesesRestantes} " . ($mesesRestantes == 1 ? 'MES' : 'MESES'),
-                                'color' => '#ea580c' // Naranja
-                            ],
-                            $mesesRestantes <= 8 => [
-                                'texto' => "VENCE EN {$mesesRestantes} MESES",
-                                'color' => '#d97706' // Amarillo
-                            ],
-                            default => [
-                                'texto' => "VENCE EN {$mesesRestantes} MESES",
-                                'color' => '#16a34a' // Verde
-                            ]
-                        };
-
-                        return <<<HTML
-                            <div>{$fechaFormateada}</div>
-                            <div style="color: {$estado['color']}; font-size: 0.75rem; font-weight: 500">
-                                {$estado['texto']}
-                            </div>
-                        HTML;
-                    })
-                    ->sortable(),
-
-
-            ])
-            ->filters([
-                //Filtro de estado de conteo
-                SelectFilter::make('estado_conteo')
-                    ->label('Estado de conteo')
-                    ->options([
-                        'verificado' => 'Verificados',
-                        'sin_contar' => 'Sin contar',
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        if ($data['value'] === 'verificado') {
-                            return $query->whereNotNull('saldo_contado');
-                        }
-                        if ($data['value'] === 'sin_contar') {
-                            return $query->whereNull('saldo_contado');
-                        }
-                        return $query;
-                    }),
-                //Filtro de busqueda de Empresas
-                SelectFilter::make('empresas')
-                    ->label('Filtrar por Empresa')
-                    ->multiple()
-                    ->options(function () {
-                        return Inventario::query()
-                            ->select('empresa')
-                            ->whereNotNull('empresa')
-                            ->distinct()
-                            ->orderBy('empresa')
-                            ->pluck('empresa', 'empresa')
-                            ->toArray();
-                    })
-                    ->query(function (Builder $query, array $state) {
-                        if (!empty($state['values'])) {
-                            $query->whereIn('empresa', $state['values']);
-                        }
-                    })
-                    ->searchable(),
-                SelectFilter::make('estado_vencimiento')
-                    ->label('Estado de Vencimiento')
-                    ->options([
-                        'vencido' => 'Vencido',
-                        'menos_4_meses' => 'Vence en ≤4 meses',
-                        'menos_8_meses' => 'Vence en ≤8 meses',
-                        'mas_8_meses' => 'Vence en >8 meses',
-                        'sin_fecha' => 'Sin fecha',
-                    ])
-                    ->query(function (Builder $query, array $state) {
-                        // Filtramos por saldo_actual > 0 O cod_almacen = 0
-                        //$query->where('saldo_actual', '>', 0); //solo los items mayores a 0
-                        $query->where(function ($q) {
-                            $q->where('saldo_actual', '>', 0)
-                                ->orWhere('cod_almacen', 0);
-                        });
-
-                        if (!empty($state['value'])) {
-                            $hoy = now();
-
-                            match ($state['value']) {
-                                'vencido' => $query->whereDate('fecha_ven', '<', $hoy),
-                                'menos_4_meses' => $query->whereBetween('fecha_ven', [
-                                    $hoy,
-                                    $hoy->copy()->addMonths(4)
-                                ]),
-                                'menos_8_meses' => $query->whereBetween('fecha_ven', [
-                                    $hoy->copy()->addMonths(4),
-                                    $hoy->copy()->addMonths(8)
-                                ]),
-                                'mas_8_meses' => $query->whereDate('fecha_ven', '>', $hoy->copy()->addMonths(8)),
-                                'sin_fecha' => $query->whereNull('fecha_ven'),
-                            };
-                        }
-                    }),
-                // Filtro de almacenes
-                SelectFilter::make('almacenes')
-                    ->label('Filtrar Almacenes')
-                    ->multiple()
-                    ->options(function () {
-                        $almacenesPermitidos = [0, 101, 102, 107, 202, 207, 210, 302, 307, 402, 407, 502, 507];
-
-                        return Inventario::query()
-                            ->select('cod_almacen', 'nombre_almacen')
-                            ->whereNotNull('cod_almacen')
-                            ->whereIn('cod_almacen', $almacenesPermitidos)
-                            ->distinct()
-                            ->orderBy('cod_almacen')
-                            ->get()
-                            ->mapWithKeys(function ($item) {
-                                return [
-                                    $item->cod_almacen => "{$item->cod_almacen} - {$item->nombre_almacen}"
-                                ];
-                            })
-                            ->toArray();
-                    })
-                    ->query(function (Builder $query, array $state) {
-                        if (!empty($state['values'])) {
-                            $query->whereIn('cod_almacen', $state['values']);
-                        }
-                    })
-                    ->searchable(),
-            ])
-            ->headerActions([
-                ExportAction::make()
-                    ->exporter(InventarioExporter::class)
-                    ->columnMapping(false)    // Ocultar selección de columnas 
-                    ->chunkSize(10000)
-                    ->fileDisk('local')
-                    ->label('Exportar a Excel')
-                    ->icon('heroicon-o-document-arrow-down')
-                    ->color('success')
-                    ->button()
-                    ->fileDisk('local'),
-
-                //Exportador a PDF
-                Action::make('InventarioExporter')
-                    ->label('1. Reporte conteo')
-                    ->icon('heroicon-o-document-text')
-                    ->color('danger')
-                    ->action(function ($livewire) {
-                        try {
-                            ini_set('memory_limit', '2048M');
-                            $records = $livewire->getFilteredTableQuery()->get();
-
-                            if ($records->isEmpty()) {
-                                Notification::make()
-                                    ->title('No hay registros para exportar')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
-
-                            $columns = [
-                                [
-                                    'name' => 'numero_fila',
-                                    'label' => 'No.',
-                                    'format' => fn($record, $index) => $index + 1
-                                ],
-                                [
-                                    'name' => 'codigo',
-                                    'label' => 'Código',
-                                    'format' => fn($record) => $record->codigo ?? ''
-                                ],
-                                [
-                                    'name' => 'codigo_alterno',
-                                    'label' => 'Código Alterno',
-                                    'format' => fn($record) => $record->codigo_alterno ?? ''
-                                ],
-                                [
-                                    'name' => 'descripcion',
-                                    'label' => 'Descripción',
-                                    'format' => fn($record) => $record->descripcion ?? ''
-                                ],
-                                [
-                                    'name' => 'presentacion',
-                                    'label' => 'Presentación',
-                                    'format' => fn($record) => $record->presentacion ?? ''
-                                ],
-                                [
-                                    'name' => 'unidad',
-                                    'label' => 'Unidad',
-                                    'format' => fn($record) => $record->unidad ?? ''
-                                ],
-                                [
-                                    'name' => 'cod_almacen',
-                                    'label' => 'Almacén',
-                                    'format' => fn($record) => $record->cod_almacen ?? ''
-                                ],
-                                [
-                                    'name' => 'nombre_almacen',
-                                    'label' => 'Nombre Almacén',
-                                    'format' => fn($record) => $record->nombre_almacen ?? ''
-                                ],
-                                [
-                                    'name' => 'lote',
-                                    'label' => 'Lote',
-                                    'format' => fn($record) => $record->lote ?? ''
-                                ],
-                                [
-                                    'name' => 'fecha_ven',
-                                    'label' => 'Fecha Vencimiento',
-                                    'format' => fn($record) => $record->fecha_ven ? $record->fecha_ven->format('d/m/Y') : ''
-                                ],
-                                [
-                                    'name' => 'saldo_actual',
-                                    'label' => 'Saldo Actual',
-                                    'format' => fn($record) => $record->saldo_actual ?? ''
-                                ],
-                                [
-                                    'name' => 'saldo_contado',
-                                    'label' => 'Saldo Contado',
-                                    'format' => fn($record) => $record->saldo_contado ?? 'Sin verificar'
-                                ],
-                                [
-                                    'name' => 'diferencia_calc',
-                                    'label' => 'Diferencia',
-                                    'format' => function ($record) {
-                                        if ($record->saldo_contado === null) {
-                                            return 'Sin verificar';
-                                        }
-                                        return number_format($record->saldo_contado - $record->saldo_actual, 2);
-                                    }
-                                ],
-                                [
-                                    'name' => 'qr',
-                                    'label' => 'QR',
-                                    'format' => fn($record) => $record->sn_qr_correcto ? 'SI' : 'NO',
-                                ],
-                                [
-                                    'name' => 'observacion',
-                                    'label' => 'Observación',
-                                    'format' => function ($record) {
-                                        $lines = [];
-
-                                        // Línea original de observación si existe
-                                        if (!empty($record->observacion)) {
-                                            $lines[] = "" . $record->observacion;
-                                        }
-
-                                        // Campos correctos (rectificados)
-                                        $camposCorrectos = [
-                                            'codigo_correcto' => 'Código correcto',
-                                            'descripcion_correcto' => 'Descripción correcta',
-                                            'presentacion_correcto' => 'Presentación correcta',
-                                            'unidad_correcto' => 'Unidad correcta: ',
-                                            'codigo_alterno_correcto' => 'Código alterno correcto',
-                                            'cod_almacen_correcto' => 'Cod. almacén correcto',
-                                            'nombre_almacen_correcto' => 'Nombre almacén correcto',
-                                            'lote_correcto' => 'Lote correcto: ',
-                                            'fecha_ven_correcto' => 'Fecha vencimiento correcto',
-                                            'empresa_correcto' => 'Empresa correcta',
-                                        ];
-
-                                        foreach ($camposCorrectos as $campo => $etiqueta) {
-                                            $valor = $record->{$campo};
-                                            if (!is_null($valor) && $valor !== '') {
-                                                if ($campo === 'fecha_ven_correcto') {
-                                                    $valor = \Carbon\Carbon::parse($valor)->format('d/m/Y');
-                                                }
-                                                $lines[] = "->$etiqueta: $valor";
-                                            }
-                                        }
-
-                                        return implode("<br>", $lines) ?: 'Ninguno';
-                                    }
-                                ],
-                                [
-                                    'name' => 'usuario',
-                                    'label' => 'Usuario de Registro',
-                                    'format' => fn($record) => $record->usuario ?? 'Ninguno'
-                                ]
-                            ];
-
-                            $html = Blade::render('exports.inventario-pdf', [
-                                'records' => $records,
-                                'columns' => $columns,
-                                'title' => 'Reporte de Inventario',
-                                'date' => now()->format('d/m/Y H:i:s'),
-                                'user' => Auth::user()->name
-                            ]);
-
-                            $pdf = PDF::loadHTML($html)
-                                ->setPaper('a4', 'landscape')
-                                ->setOption('defaultFont', 'Arial')
-                                ->setOption('isHtml5ParserEnabled', true)
-                                ->setOption('isPhpEnabled', true)
-                                ->setOption('enable_css_float', true)
-                                ->setOption('isRemoteEnabled', true);
-
-                            return response()->streamDownload(
-                                fn() => print($pdf->stream()),
-                                'inventario_' . now()->format('Y-m-d_His') . '.pdf'
-                            );
-                        } catch (\Exception $e) {
-                            Notification::make()
-                                ->title('Error al generar PDF')
-                                ->body($e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
-                    }),
-
-                //Exportador de ajujstes a PDF
-                Action::make('AjustesInvetarioExport')
-                    ->label('2. Reporte Ajustes')
-                    ->icon('heroicon-o-document-text')
-                    ->color('danger')
-                    ->action(function ($livewire) {
-                        try {
-                            ini_set('memory_limit', '2048M');
-                            $records = $livewire->getFilteredTableQuery()->get();
-
-                            if ($records->isEmpty()) {
-                                Notification::make()
-                                    ->title('No hay registros para exportar')
-                                    ->danger()
-                                    ->send();
-                                return;
-                            }
-
-                            $columns = [
-                                [
-                                    'name' => 'numero_fila',
-                                    'label' => 'No.',
-                                    'format' => fn($record, $index) => $index + 1
-                                ],
-                                [
-                                    'name' => 'codigo',
-                                    'label' => 'Código',
-                                    'format' => fn($record) => $record->codigo ?? ''
-                                ],
-                                [
-                                    'name' => 'codigo_alterno',
-                                    'label' => 'Código Alterno',
-                                    'format' => fn($record) => $record->codigo_alterno ?? ''
-                                ],
-                                [
-                                    'name' => 'descripcion',
-                                    'label' => 'Descripción',
-                                    'format' => fn($record) => $record->descripcion ?? ''
-                                ],
-                                [
-                                    'name' => 'presentacion',
-                                    'label' => 'Presentación',
-                                    'format' => fn($record) => $record->presentacion ?? ''
-                                ],
-                                [
-                                    'name' => 'unidad',
-                                    'label' => 'Unidad',
-                                    'format' => fn($record) => $record->unidad ?? ''
-                                ],
-                                [
-                                    'name' => 'cod_almacen',
-                                    'label' => 'Almacén',
-                                    'format' => fn($record) => $record->cod_almacen ?? ''
-                                ],
-                                [
-                                    'name' => 'nombre_almacen',
-                                    'label' => 'Nombre Almacén',
-                                    'format' => fn($record) => $record->nombre_almacen ?? ''
-                                ],
-                                [
-                                    'name' => 'lote',
-                                    'label' => 'Lote',
-                                    'format' => fn($record) => $record->lote ?? ''
-                                ],
-                                [
-                                    'name' => 'fecha_ven',
-                                    'label' => 'Fecha Vencimiento',
-                                    'format' => fn($record) => $record->fecha_ven ? $record->fecha_ven->format('d/m/Y') : ''
-                                ],
-                                [
-                                    'name' => 'saldo_actual',
-                                    'label' => 'Saldo Inicial',
-                                    'format' => fn($record) => $record->saldo_actual ?? ''
-                                ],
-                                [
-                                    'name' => 'saldo_contado',
-                                    'label' => 'Saldo Contado',
-                                    'format' => fn($record) => $record->saldo_contado ?? 'Sin verificar'
-                                ],
-                                [
-                                    'name' => 'diferencia_calc',
-                                    'label' => 'Diferencia',
-                                    'format' => function ($record) {
-                                        if ($record->saldo_contado === null) {
-                                            return 'Sin verificar';
-                                        }
-                                        return number_format($record->saldo_contado - $record->saldo_actual, 2);
-                                    }
-                                ]
-                            ];
-
-                            $html = Blade::render('exports.ajustes-inventario-pdf', [
-                                'records' => $records,
-                                'columns' => $columns,
-                                'title' => 'Reporte de ajustes de inventario',
-                                'date' => now()->format('d/m/Y H:i:s'),
-                                'user' => Auth::user()->name
-                            ]);
-
-                            $pdf = PDF::loadHTML($html)
-                                ->setPaper('a4', 'landscape')
-                                ->setOption('defaultFont', 'Arial')
-                                ->setOption('isHtml5ParserEnabled', true)
-                                ->setOption('isPhpEnabled', true)
-                                ->setOption('enable_css_float', true)
-                                ->setOption('isRemoteEnabled', true);
-
-                            return response()->streamDownload(
-                                fn() => print($pdf->stream()),
-                                'ajustes_' . now()->format('Y-m-d_His') . '.pdf'
-                            );
-                        } catch (\Exception $e) {
-                            Notification::make()
-                                ->title('Error al generar PDF')
-                                ->body($e->getMessage())
-                                ->danger()
-                                ->send();
-                        }
-                    })
-
-            ])
-            ->actions([])
-            ->bulkActions([])
-            ->defaultPaginationPageOption(50)
-            ->paginated([10, 25, 50, 100]);
+    public static function canDeleteAny(): bool
+    {
+        return false;
     }
 
     public static function getEloquentQuery(): Builder
     {
-        $almacenesPermitidos = [0, 101, 102, 107, 202, 207, 210, 302, 307, 402, 407, 502, 507];
-
-        return parent::getEloquentQuery()
-            ->where('activo', true)
-            ->whereIn('cod_almacen', $almacenesPermitidos);
+        return parent::getEloquentQuery()->delUsuario(auth()->user())->conProgreso()->with(['empresa', 'sucursal', 'almacen', 'responsable']);
     }
 
-    public static function getPermissionPrefixes(): array
+    public static function form(Form $form): Form
     {
-        return [
-            'view_any',    // los permisos del Shield usuales
-            //'view',
-            //'create',
-            'update',
-            //'delete',
-            'programar_inventario',
+        return $form->schema([
+            Select::make('empresa_id')->label('Empresa')->required()->searchable()->preload()->live()
+                ->default(fn () => auth()->user()->empresa_id)
+                ->options(fn () => Empresa::query()->when(auth()->user()->empresa_id, fn ($q, $id) => $q->whereKey($id))->pluck('nombre_comercial', 'id'))
+                ->afterStateUpdated(function (Set $set) {
+                    $set('sucursal_id', null);
+                    $set('almacen_id', null);
+                    $set('responsable_id', null);
+                }),
+            Select::make('sucursal_id')->label('Sucursal')->required()->searchable()->preload()->live()
+                ->default(fn () => auth()->user()->sucursal_id)
+                ->options(fn (Get $get) => Sucursal::where('empresa_id', $get('empresa_id'))->when(auth()->user()->sucursal_id, fn ($q, $id) => $q->whereKey($id))->pluck('nombre', 'id'))
+                ->afterStateUpdated(function (Set $set) {
+                    $set('almacen_id', null);
+                    $set('responsable_id', null);
+                }),
+            Select::make('almacen_id')->label('Almacén')->required()->searchable()->preload()
+                ->options(fn (Get $get) => Almacen::where('empresa_id', $get('empresa_id'))->where('sucursal_id', $get('sucursal_id'))->where('activo', true)->pluck('nombre', 'id')),
+            DatePicker::make('fecha_programada')->label('Fecha del conteo')->required()->default(today())->minDate(today()),
+            Select::make('responsable_id')->label('Responsable')->required()->searchable()->preload()
+                ->options(fn (Get $get) => User::with('empleado.historialActivo')->get()->filter(fn ($user) => $user->can(Servicio::CONTAR) && $user->can(Servicio::VER)
+                    && (! $user->empresa_id || (int) $user->empresa_id === (int) $get('empresa_id'))
+                    && (! $user->sucursal_id || (int) $user->sucursal_id === (int) $get('sucursal_id')))->pluck('name', 'id')),
+            Textarea::make('observaciones')->label('Alcance e instrucciones')->maxLength(4000)->rows(3)->columnSpanFull()
+                ->helperText('Al iniciar se incluyen todos los artículos inventariables activos de la empresa y los que tengan existencias en este almacén. Coordine una pausa de movimientos durante el conteo; el sistema no los bloquea.'),
+        ])->columns(2);
+    }
 
-        ];
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            TextEntry::make('codigo')->label('Inventario')->copyable(),
+            TextEntry::make('estado')->label('Estado')->badge()->formatStateUsing(fn ($state) => InventarioFisico::ESTADOS[$state]),
+            TextEntry::make('empresa.nombre_comercial')->label('Empresa'),
+            TextEntry::make('sucursal.nombre')->label('Sucursal'),
+            TextEntry::make('almacen.nombre')->label('Almacén'),
+            TextEntry::make('responsable.name')->label('Responsable'),
+            TextEntry::make('fecha_programada')->label('Fecha programada')->date('d/m/Y'),
+            TextEntry::make('progreso')->label('Avance del conteo')->suffix('%')
+                ->extraAttributes(['wire:poll.30s' => 'actualizar'])
+                ->helperText(fn ($record) => $record->contados_count.' de '.$record->conteos_count.' artículos contados. '.$record->revisados_count.' revisados; '.$record->diferencias_count.' con diferencias.'),
+            TextEntry::make('iniciado_at')->label('Stock de referencia tomado el')->dateTime('d/m/Y H:i')->placeholder('Aún no iniciado'),
+            TextEntry::make('cerrado_at')->label('Finalizado el')->dateTime('d/m/Y H:i')->placeholder('Abierto'),
+            TextEntry::make('observaciones')->label('Instrucciones')->placeholder('Sin observaciones')->columnSpanFull(),
+        ])->columns(3);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table->columns([
+            TextColumn::make('codigo')->label('Inventario')->searchable()->sortable()->copyable(),
+            TextColumn::make('empresa.nombre_comercial')->label('Empresa')->searchable(),
+            TextColumn::make('sucursal.nombre')->label('Sucursal')->searchable(),
+            TextColumn::make('almacen.nombre')->label('Almacén')->searchable(),
+            TextColumn::make('fecha_programada')->label('Programado para')->date('d/m/Y')->sortable(),
+            TextColumn::make('estado')->label('Estado')->badge()->formatStateUsing(fn ($state) => InventarioFisico::ESTADOS[$state])
+                ->color(fn ($state) => match ($state) {
+                    'cerrado' => 'success', 'cancelado' => 'danger', 'en_revision' => 'warning', default => 'info'
+                }),
+            TextColumn::make('progreso')->label('Conteo')->suffix('%')->description(fn ($record) => $record->contados_count.' / '.$record->conteos_count.' artículos'),
+            TextColumn::make('revisados_count')->label('Revisados'),
+            TextColumn::make('diferencias_count')->label('Diferencias')->color('warning'),
+            TextColumn::make('responsable.name')->label('Responsable')->searchable()->toggleable(isToggledHiddenByDefault: true),
+        ])->filters([
+            Tables\Filters\SelectFilter::make('empresa_id')->label('Empresa')->searchable()
+                ->options(fn () => Empresa::query()->when(auth()->user()->empresa_id, fn ($q, $id) => $q->whereKey($id))->pluck('nombre_comercial', 'id')),
+            Tables\Filters\SelectFilter::make('sucursal_id')->label('Sucursal')->searchable()
+                ->options(fn () => Sucursal::query()->when(auth()->user()->empresa_id, fn ($q, $id) => $q->where('empresa_id', $id))
+                    ->when(auth()->user()->sucursal_id, fn ($q, $id) => $q->whereKey($id))->pluck('nombre', 'id')),
+            Tables\Filters\SelectFilter::make('estado')->label('Estado')->multiple()->options(InventarioFisico::ESTADOS),
+            Tables\Filters\Filter::make('abiertos')->label('Solo abiertos')->query(fn (Builder $query) => $query->whereIn('estado', ['programado', 'en_conteo', 'en_revision'])),
+            Tables\Filters\Filter::make('fechas')->form([
+                DatePicker::make('desde')->label('Desde'), DatePicker::make('hasta')->label('Hasta'),
+            ])->query(fn (Builder $query, array $data) => $query->when($data['desde'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha_programada', '>=', $fecha))
+                ->when($data['hasta'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha_programada', '<=', $fecha))),
+        ])->actions([Tables\Actions\ViewAction::make()->label('Abrir')])->bulkActions([])
+            ->defaultSort('fecha_programada', 'desc')->poll('30s')
+            ->emptyStateHeading('No hay inventarios programados')->emptyStateDescription('Programe un inventario por empresa, sucursal y almacén.');
     }
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [RelationManagers\ConteosRelationManager::class, RelationManagers\EventosRelationManager::class];
+    }
+
+    public static function getPermissionPrefixes(): array
+    {
+        return ['view_any', 'update', 'programar_inventario'];
     }
 
     public static function getPages(): array
     {
-        return [
-            'index' => Pages\ListInventarios::route('/'),
-            'edit' => Pages\EditInventario::route('/{record}/edit'),
-        ];
+        return ['index' => Pages\ListInventarios::route('/'), 'create' => Pages\CreateInventario::route('/create'), 'view' => Pages\ViewInventario::route('/{record}')];
     }
 }
