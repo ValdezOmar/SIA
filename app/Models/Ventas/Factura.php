@@ -192,7 +192,7 @@ class Factura extends Model
                 if ((float) $this->saldo > 0) {
                     return $this->registrarPago($datosPago + [
                         'monto' => (float) $this->saldo,
-                        'fecha_pago' => $datosPago['fecha_pago'] ?? now()->toDateString(),
+                        'fecha_pago' => $datosPago['fecha_pago'] ?? $this->fecha_pago ?? $this->fecha_emision ?? now()->toDateString(),
                         'tipo_pago' => $datosPago['tipo_pago'] ?? 'efectivo',
                     ]);
                 }
@@ -213,7 +213,7 @@ class Factura extends Model
                 $totalFactura = (float) $this->detalles()->sum('subtotal');
             }
 
-            $fechaPago = $datosPago['fecha_pago'] ?? $this->fecha_pago ?? now()->toDateString();
+            $fechaPago = $datosPago['fecha_pago'] ?? $this->fecha_pago ?? $this->fecha_emision ?? now()->toDateString();
             $montoPago = $totalFactura;
 
             $this->subtotal = $this->subtotal ?? 0;
@@ -300,7 +300,7 @@ class Factura extends Model
             $pedido = $factura->pedido;
             if (! $pedido) {
                 $pedido = Pedido::create([
-                    'cliente_id' => $factura->cliente_id, 'fecha_pedido' => $factura->fecha_vencimiento ?? now()->toDateString(),
+                    'cliente_id' => $factura->cliente_id, 'fecha_pedido' => $factura->fecha_vencimiento ?? $factura->fecha_emision ?? now()->toDateString(),
                     'condicion_pago' => $factura->condicion_pago, 'moneda' => $factura->moneda,
                     'tasa_cambio' => $factura->tasa_cambio, 'vendedor_id' => $factura->vendedor_id,
                     'empresa_id' => $factura->empresa_id, 'sucursal_id' => $factura->sucursal_id,
@@ -310,10 +310,11 @@ class Factura extends Model
                 foreach ($factura->detalles as $detalle) {
                     $pedido->detalles()->create($detalle->only(['linea', 'articulo_id', 'lista_precio', 'codigo_articulo', 'descripcion_articulo', 'unidad_medida', 'cantidad', 'precio_unitario', 'precio_original', 'descuento', 'descuento_porcentaje', 'subtotal', 'tipo_impuesto', 'tasa_impuesto', 'impuesto', 'total', 'observaciones']));
                 }
+                $pedido->unsetRelation('detalles');
                 $factura->updateQuietly(['pedido_id' => $pedido->id, 'numero_pedido' => $pedido->codigo]);
             }
             if ($reservarStock) {
-                $pedido->reservarInventario();
+                $pedido->reservarInventario($factura->pagos()->where('estado', 'confirmado')->min('fecha_pago') ?? $factura->fecha_emision);
                 if (! in_array($pedido->estado, ['entregado', 'cancelado'], true)) {
                     $pedido->update(['estado' => 'reservado']);
                 }
@@ -369,7 +370,7 @@ class Factura extends Model
                 MovimientoInventario::create([
                     'articulo_id' => $detalle->articulo_id, 'almacen_id' => $almacen->id,
                     'tipo' => 'reserva_venta', 'cantidad' => $cantidad, 'documento_tipo' => 'venta_reserva',
-                    'documento_id' => $this->id, 'documento_codigo' => $this->numero, 'fecha' => now(),
+                    'documento_id' => $this->id, 'documento_codigo' => $this->numero, 'fecha' => $this->fecha_pago ?? $this->fecha_emision ?? now(),
                     'observacion' => 'Reserva por pago parcial de venta '.$this->numero, 'estado' => 'confirmado',
                 ]);
             }
@@ -401,6 +402,8 @@ class Factura extends Model
     {
         return DB::transaction(function (): array {
             $this->refresh();
+            $fechaVenta = $this->fecha_emision ?? now();
+            $fechaEntrega = $this->fecha_vencimiento ?? $fechaVenta;
 
             if ((float) $this->saldo > 0) {
                 throw new \RuntimeException('La entrega solo puede confirmarse cuando el pago total de la venta esté verificado.');
@@ -472,7 +475,8 @@ class Factura extends Model
                         'capa_costo_id' => null,
                         'observaciones' => 'Salida por venta '.$this->numero,
                         'empresa_id' => $this->empresa_id ?? Auth::user()?->empresa_id,
-                        'fecha_movimiento' => now(),
+                        'fecha_movimiento' => $fechaEntrega,
+                        'fecha_contable' => $fechaVenta,
                         'estado' => 'confirmado',
                     ]);
 
@@ -486,7 +490,7 @@ class Factura extends Model
                         'documento_tipo' => 'venta',
                         'documento_id' => $this->id,
                         'documento_codigo' => $this->numero,
-                        'fecha' => now(),
+                        'fecha' => $fechaEntrega,
                         'observacion' => 'Salida por venta '.$this->numero,
                         'estado' => 'confirmado',
                         'kardex_id' => $kardex->id,
@@ -497,6 +501,7 @@ class Factura extends Model
                         'series' => $detalle->series,
                         'lotes' => $detalle->lotes,
                         'cliente_id' => $this->cliente_id,
+                        'fecha_venta' => $fechaVenta,
                     ]);
                 }
             }
@@ -513,7 +518,7 @@ class Factura extends Model
             if ($pedidoEntrega && $pedidoEntrega->estado !== 'cancelado') {
                 $pedidoEntrega->update([
                     'estado' => 'entregado',
-                    'fecha_entrega_real' => now()->toDateString(),
+                    'fecha_entrega_real' => $pedidoEntrega->fecha_entrega_real ?? $fechaEntrega,
                 ]);
             }
             $this->actualizarSaldo();

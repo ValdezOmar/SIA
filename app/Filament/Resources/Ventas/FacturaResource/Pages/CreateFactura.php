@@ -25,7 +25,7 @@ class CreateFactura extends CreateRecord
             }
             $pedido = $cotizacion->convertirPedido();
             $pedido->update([
-                'fecha_pedido' => $data['fecha_vencimiento'] ?? now()->toDateString(),
+                'fecha_pedido' => $data['fecha_vencimiento'] ?? $data['fecha_emision'] ?? now()->toDateString(),
                 'condicion_pago' => $data['condicion_pago'],
                 'vendedor_id' => $data['vendedor_id'] ?? $cotizacion->vendedor_id,
             ]);
@@ -37,7 +37,7 @@ class CreateFactura extends CreateRecord
         if (in_array($data['condicion_pago'] ?? null, ['contado', 'parcial'], true)) {
             $this->pagoInicial = [
                 'monto' => ($data['condicion_pago'] ?? null) === 'parcial' ? ($data['pago_inicial_monto'] ?? null) : null,
-                'fecha_pago' => $data['fecha_pago'] ?? now()->toDateString(),
+                'fecha_pago' => $data['fecha_pago'] ?? $data['fecha_emision'] ?? now()->toDateString(),
                 'tipo_pago' => $data['pago_inicial_tipo'] ?? 'efectivo',
                 'referencia' => $data['pago_inicial_referencia'] ?? null,
                 'banco' => $data['pago_inicial_banco'] ?? null,
@@ -47,8 +47,8 @@ class CreateFactura extends CreateRecord
         unset($data['pago_inicial_monto'], $data['pago_inicial_tipo'], $data['pago_inicial_referencia'], $data['pago_inicial_banco'], $data['pago_inicial_numero_cheque']);
 
         if (($data['condicion_pago'] ?? null) === 'contado') {
-            $data['fecha_vencimiento'] ??= now()->toDateString();
-            $data['fecha_pago'] ??= now()->toDateString();
+            $data['fecha_vencimiento'] ??= $data['fecha_emision'] ?? now()->toDateString();
+            $data['fecha_pago'] ??= $data['fecha_emision'] ?? now()->toDateString();
         }
 
         return $data;

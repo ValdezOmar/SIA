@@ -255,9 +255,9 @@ class Pedido extends Model
         return $this;
     }
 
-    public function reservarInventario(): void
+    public function reservarInventario($fechaReserva = null): void
     {
-        DB::transaction(function (): void {
+        DB::transaction(function () use ($fechaReserva): void {
             if (MovimientoInventario::query()->where('documento_tipo', 'pedido_reserva')->where('documento_id', $this->id)->where('estado', 'confirmado')->exists()) {
                 return;
             }
@@ -291,7 +291,7 @@ class Pedido extends Model
                 MovimientoInventario::create([
                     'articulo_id' => $detalle->articulo_id, 'almacen_id' => $almacen->id, 'tipo' => 'reserva_pedido', 'cantidad' => $cantidad,
                     'documento_tipo' => 'pedido_reserva', 'documento_id' => $this->id, 'documento_codigo' => $this->codigo,
-                    'fecha' => now(), 'observacion' => 'Reserva de pedido '.$this->codigo, 'estado' => 'confirmado',
+                    'fecha' => $fechaReserva ?? now(), 'observacion' => 'Reserva de pedido '.$this->codigo, 'estado' => 'confirmado',
                 ]);
             }
         });

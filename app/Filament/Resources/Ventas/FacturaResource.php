@@ -614,16 +614,7 @@ class FacturaResource extends Resource
                                                     ->helperText('Seleccione “Pago parcial y reserva de stock” si recibió un abono y entregará los productos más adelante. El inventario quedará comprometido, no descontado.')
                                                     ->prefixIcon('heroicon-o-credit-card')
                                                     ->columnSpan(1)
-                                                    ->live()
-                                                    ->afterStateUpdated(function ($state, callable $set) {
-                                                        if ($state === 'contado') {
-                                                            $set('fecha_vencimiento', now()->toDateString());
-                                                            $set('fecha_pago', now()->toDateString());
-                                                        } elseif (str_starts_with($state, 'credito_')) {
-                                                            $dias = intval(str_replace('credito_', '', $state));
-                                                            $set('fecha_vencimiento', now()->addDays($dias)->toDateString());
-                                                        }
-                                                    }),
+                                                    ->live(),
                                             ]),
 
                                         Grid::make(2)

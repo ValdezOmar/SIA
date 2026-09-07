@@ -651,7 +651,9 @@ class Kardex extends Model
         $existencia->cantidad_disponible = $cantidadPosterior;
         $existencia->costo_promedio = $nuevoCostoPromedio;
         $existencia->costo_acumulado = $kardex->costo_acumulado;
-        $existencia->ultima_salida = now();
+        $existencia->ultima_salida = self::where('articulo_id', $data['articulo_id'])
+            ->where('almacen_id', $data['almacen_id'])->where('direccion', 'salida')
+            ->where('estado', 'confirmado')->max('fecha_movimiento');
         $existencia->save();
 
         return $kardex;

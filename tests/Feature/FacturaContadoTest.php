@@ -83,7 +83,8 @@ class FacturaContadoTest extends TestCase
         $this->assertSame('2026-08-15', $factura->fresh()->fecha_pago->toDateString());
         $this->assertSame('2026-08-20', $factura->fresh()->fecha_vencimiento->toDateString());
         $this->assertSame('2026-08-15', $pago->fresh()->fecha_pago->toDateString());
-        $this->assertSame('2026-08-20', $factura->fresh()->pedido->fecha_pedido->toDateString());
+        // Una factura sin artículos no genera un pedido ni movimientos de stock.
+        $this->assertNull($factura->fresh()->pedido);
         $this->assertDatabaseHas('ven_pagos', [
             'factura_id' => $factura->id,
             'cliente_id' => $clienteId,

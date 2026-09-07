@@ -114,7 +114,7 @@ class TrazabilidadInventarioService
                         'estado' => 'vendido',
                         'estado_actual' => 'vendido',
                         'cliente_id' => $data['cliente_id'] ?? null,
-                        'fecha_venta' => now()->toDateString(),
+                        'fecha_venta' => \Illuminate\Support\Carbon::parse($data['fecha_venta'] ?? $movimiento->fecha ?? now())->toDateString(),
                     ]);
                     MovimientoSerie::create([
                         'serie_id' => $serie->id,

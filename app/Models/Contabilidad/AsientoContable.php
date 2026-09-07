@@ -541,6 +541,7 @@ class AsientoContable extends Model
      */
     public static function crearDesdeVenta($venta, $fechaContable = null)
     {
+        $fechaContable ??= $venta->fecha_emision ?? now();
         $yaExiste = self::where('documento_tipo', 'venta')
             ->where('documento_id', $venta->id)
             ->first();
@@ -589,7 +590,7 @@ class AsientoContable extends Model
         $asiento = self::create([
             'codigo' => self::generarCodigo(),
             'numero_asiento' => null,
-            'fecha_asiento' => $fechaContable ?? now(),
+            'fecha_asiento' => $fechaContable,
             'fecha_contable' => $fechaContable,
             'documento_tipo' => 'venta',
             'documento_id' => $venta->id,
@@ -790,7 +791,11 @@ class AsientoContable extends Model
             return null;
         }
 
-        $fechaAplicacion = $factura->pagos()->where('estado', 'confirmado')->max('fecha_pago') ?? now();
+        // La aplicación no puede preceder ni a la venta ni al último cobro aplicado.
+        $fechaAplicacion = max(
+            $factura->fecha_emision?->toDateString() ?? '',
+            $factura->pagos()->where('estado', 'confirmado')->max('fecha_pago') ?? '',
+        ) ?: now()->toDateString();
 
         $cuentaAnticipos = self::obtenerOCrearCuenta('2.1.2', 'Anticipos de clientes', 'pasivo', 'acreedora');
         $cuentaClientes = self::obtenerOCrearCuenta('1.1.1', 'Clientes', 'activo', 'deudora');

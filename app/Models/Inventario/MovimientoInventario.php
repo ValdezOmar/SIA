@@ -41,7 +41,7 @@ class MovimientoInventario extends Model
 
     public function lotes()
     {
-        return $this->hasMany(MovimientoLote::class);
+        return $this->hasMany(MovimientoLote::class, 'movimiento_id');
     }
 
     // ========== SCOPES ==========

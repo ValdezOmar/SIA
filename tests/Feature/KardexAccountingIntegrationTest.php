@@ -29,7 +29,9 @@ class KardexAccountingIntegrationTest extends TestCase
             'razon_social' => 'Empresa de prueba', 'nombre_comercial' => 'Empresa Test',
             'pais' => 'Bolivia', 'empresa_activo' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
-        $this->user = User::factory()->create(['empresa_id' => $this->empresaId]);
+        $this->user = User::factory()->create();
+        $this->user->setRelation('empleado', (new \App\Models\RRHH\Empleado)->setRelation('historialActivo',
+            (new \App\Models\RRHH\HistorialLaboral)->forceFill(['empresa_id' => $this->empresaId])));
         $this->actingAs($this->user);
         $this->almacenId = DB::table('alm_almacenes')->insertGetId([
             'codigo' => 'ALM-001', 'nombre' => 'Almacén principal', 'direccion' => 'Calle 1',
