@@ -41,6 +41,8 @@ En Facturas, el selector **Pedido asociado** ofrece únicamente pedidos pendient
 
 ## Facturas y pagos
 
+Los artículos identificados como **Servicio · sin stock** se facturan y cobran sin requerir existencias ni almacén. En documentos mixtos, solo los productos inventariables reservan y descuentan stock; los servicios mantienen su importe y su contabilización de venta. Ver [configuración de productos y servicios](inventario.md#productos-y-servicios).
+
 ### Venta al contado
 
 1. Seleccionar cliente, artículos, precios, cantidades y las fechas de venta, pago y entrega.

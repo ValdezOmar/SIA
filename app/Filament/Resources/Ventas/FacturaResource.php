@@ -747,7 +747,11 @@ class FacturaResource extends Resource
                                                             ->rows(2)
                                                             ->placeholder('SERIE-001, SERIE-002')
                                                             ->helperText('Una serie por unidad, separadas por coma. Obligatorio si el artículo lo requiere.')
-                                                            ->visible(fn ($get) => (bool) (($get('articulo_id') ? Articulo::find($get('articulo_id')) : null)?->maneja_series))
+                                                            ->visible(function ($get): bool {
+                                                                $articulo = $get('articulo_id') ? Articulo::find($get('articulo_id')) : null;
+
+                                                                return $articulo?->inventariable && $articulo->maneja_series;
+                                                            })
                                                             ->columnSpan(8),
 
                                                         Textarea::make('lotes')
@@ -755,7 +759,11 @@ class FacturaResource extends Resource
                                                             ->rows(2)
                                                             ->placeholder('LOTE-A:2, LOTE-B:1')
                                                             ->helperText('Formato NUMERO_LOTE:CANTIDAD. La suma debe coincidir con la cantidad vendida.')
-                                                            ->visible(fn ($get) => (bool) (($get('articulo_id') ? Articulo::find($get('articulo_id')) : null)?->maneja_lotes))
+                                                            ->visible(function ($get): bool {
+                                                                $articulo = $get('articulo_id') ? Articulo::find($get('articulo_id')) : null;
+
+                                                                return $articulo?->inventariable && $articulo->maneja_lotes;
+                                                            })
                                                             ->columnSpan(8),
 
                                                         TextInput::make('cantidad')
@@ -1384,11 +1392,11 @@ class FacturaResource extends Resource
                         ->icon('heroicon-o-truck')
                         ->color('primary')
                         ->requiresConfirmation()
-                        ->modalHeading('Confirmar entrega y descontar stock')
+                        ->modalHeading('Confirmar entrega o prestación del servicio')
                         ->modalDescription('Convertirá la reserva en salida definitiva de inventario. Úselo únicamente cuando los productos se entreguen al cliente.')
                         ->action(function ($record): void {
                             $record->procesarVentaAutomatica();
-                            Notification::make()->title('Entrega confirmada')->body('La reserva fue liberada y el stock fue descontado.')->success()->send();
+                            Notification::make()->title('Entrega confirmada')->body('Operación completada. Solo los productos inventariables generan salidas de stock.')->success()->send();
                         })
                         ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'parcial', 'pagada'], true)
                             && MovimientoInventario::query()->where('documento_tipo', 'venta_reserva')->where('documento_id', $record->id)->where('estado', 'confirmado')->exists()

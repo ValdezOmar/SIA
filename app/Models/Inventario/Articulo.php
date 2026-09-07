@@ -106,6 +106,16 @@ class Articulo extends Model
     {
         parent::boot();
 
+        static::saving(function (self $articulo): void {
+            if (! $articulo->inventariable) {
+                $articulo->maneja_lotes = false;
+                $articulo->maneja_series = false;
+                $articulo->requiere_serie_en_salida = false;
+            } elseif (! $articulo->maneja_series) {
+                $articulo->requiere_serie_en_salida = false;
+            }
+        });
+
         static::creating(function ($articulo) {
             if (empty($articulo->codigo)) {
                 $articulo->codigo = self::generarCodigo($articulo);

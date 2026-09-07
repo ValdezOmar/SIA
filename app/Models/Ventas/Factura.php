@@ -335,7 +335,7 @@ class Factura extends Model
                 return;
             }
 
-            if (! $this->detalles()->whereNotNull('articulo_id')->where('cantidad', '>', 0)->exists()) {
+            if (! $this->detalles()->whereHas('articulo', fn ($query) => $query->where('inventariable', true))->where('cantidad', '>', 0)->exists()) {
                 return;
             }
 
@@ -352,7 +352,7 @@ class Factura extends Model
 
             foreach ($this->detalles as $detalle) {
                 $cantidad = (float) ($detalle->cantidad ?? 0);
-                if (! $detalle->articulo_id || $cantidad <= 0) {
+                if (! $detalle->articulo_id || ! $detalle->articulo?->inventariable || $cantidad <= 0) {
                     continue;
                 }
 
@@ -409,7 +409,7 @@ class Factura extends Model
                 throw new \RuntimeException('La entrega solo puede confirmarse cuando el pago total de la venta esté verificado.');
             }
 
-            $requiereInventario = $this->detalles()->whereNotNull('articulo_id')->where('cantidad', '>', 0)->exists();
+            $requiereInventario = $this->detalles()->whereHas('articulo', fn ($query) => $query->where('inventariable', true))->where('cantidad', '>', 0)->exists();
             $pedidoEntrega = null;
             if ($requiereInventario) {
                 // Una venta totalmente pagada se entrega directamente. La reserva
@@ -417,9 +417,11 @@ class Factura extends Model
                 $pedidoEntrega = $this->asegurarPedidoReservado(false);
                 $this->pedido_id = $pedidoEntrega->id;
                 $this->numero_pedido = $pedidoEntrega->codigo;
-                $this->liberarReservaInventario();
-                $pedidoEntrega->liberarReservaInventario();
             }
+
+            // Liberar también reservas anteriores si el artículo ahora es un servicio.
+            $this->liberarReservaInventario();
+            ($pedidoEntrega ?? $this->pedido()->first())?->liberarReservaInventario();
 
             $yaExisteKardex = Kardex::where('documento_tipo', 'venta')
                 ->where('documento_id', $this->id)
@@ -445,7 +447,7 @@ class Factura extends Model
 
             if (! $yaExisteKardex) {
                 foreach ($this->detalles as $detalle) {
-                    if (! ($detalle->articulo_id ?? null) || ! ($detalle->cantidad ?? 0)) {
+                    if (! ($detalle->articulo_id ?? null) || ! $detalle->articulo?->inventariable || ! ($detalle->cantidad ?? 0)) {
                         continue;
                     }
 

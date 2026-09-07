@@ -57,6 +57,7 @@ class ArticuloSelectOptions
             .'<div class="truncate text-sm font-semibold text-gray-950 dark:text-white">'.$codigo.'</div>'
             .'<div class="truncate text-xs text-gray-600 dark:text-gray-300">Modelo: '.$modelo.'</div>'
             .'<div class="truncate text-xs text-gray-600 dark:text-gray-300">'.$nombre.'</div>'
+            .'<div class="text-xs font-medium">'.($articulo->inventariable ? 'Producto con stock' : 'Servicio · sin stock').'</div>'
             .'<div class="truncate text-xs text-gray-500 dark:text-gray-400">Marca: '.$marca.'</div>'
             .'</div></div>';
     }

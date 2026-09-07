@@ -262,7 +262,7 @@ class Pedido extends Model
                 return;
             }
 
-            if (! $this->detalles()->whereNotNull('articulo_id')->where('cantidad', '>', 0)->exists()) {
+            if (! $this->detalles()->whereHas('articulo', fn ($query) => $query->where('inventariable', true))->where('cantidad', '>', 0)->exists()) {
                 return;
             }
 
@@ -279,7 +279,7 @@ class Pedido extends Model
 
             foreach ($this->detalles as $detalle) {
                 $cantidad = (float) ($detalle->cantidad ?? 0);
-                if (! $detalle->articulo_id || $cantidad <= 0) {
+                if (! $detalle->articulo_id || ! $detalle->articulo?->inventariable || $cantidad <= 0) {
                     continue;
                 }
                 $existencia = Existencia::query()->where('articulo_id', $detalle->articulo_id)->where('almacen_id', $almacen->id)->lockForUpdate()->first();

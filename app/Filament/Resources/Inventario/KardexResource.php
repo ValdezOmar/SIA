@@ -71,6 +71,7 @@ class KardexResource extends Resource
         return Articulo::query()
             ->with('fabricante:id,nombre,codigo')
             ->where('activo', true)
+            ->where('inventariable', true)
             ->when(filled($search), function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query

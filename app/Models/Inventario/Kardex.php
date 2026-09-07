@@ -393,6 +393,7 @@ class Kardex extends Model
     public static function registrarEntrada($data)
     {
         $articulo = Articulo::find($data['articulo_id']);
+        self::validarArticuloInventariable($articulo, $data);
         $existencia = Existencia::where('articulo_id', $data['articulo_id'])
             ->where('almacen_id', $data['almacen_id'])
             ->lockForUpdate()
@@ -539,6 +540,7 @@ class Kardex extends Model
     public static function registrarSalida($data)
     {
         $articulo = Articulo::find($data['articulo_id']);
+        self::validarArticuloInventariable($articulo, $data);
         $existencia = Existencia::where('articulo_id', $data['articulo_id'])
             ->where('almacen_id', $data['almacen_id'])
             ->lockForUpdate()
@@ -673,6 +675,26 @@ class Kardex extends Model
             ->first();
 
         return $ultimoMovimiento ? $ultimoMovimiento->cantidad_posterior : 0;
+    }
+
+    private static function validarArticuloInventariable(?Articulo $articulo, array $data): void
+    {
+        if (! $articulo || $articulo->inventariable) {
+            return;
+        }
+
+        // Permitir anular un movimiento histórico aunque cambie la parametrización.
+        if (! empty($data['movimiento_relacionado_id']) && self::query()
+            ->whereKey($data['movimiento_relacionado_id'])
+            ->where('articulo_id', $articulo->id)
+            ->where('almacen_id', $data['almacen_id'])
+            ->where('estado', 'confirmado')->exists()) {
+            return;
+        }
+
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'articulo_id' => 'Este artículo es un servicio y no admite entradas ni salidas de almacén. Registre su operación en el documento comercial.',
+        ]);
     }
 
     /**

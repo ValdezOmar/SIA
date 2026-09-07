@@ -19,6 +19,21 @@ SIA separa el catálogo de artículos, las existencias por almacén, el libro de
 
 Registrar la empresa, el código y nombre del producto, su unidad, grupo, fabricante y modelo. Definir si está activo, es inventariable, comprable o vendible. Completar foto y características para facilitar la consulta comercial.
 
+### Productos y servicios
+
+En la pestaña **Inventario**, la opción **Controlar stock (producto físico)** guarda el campo `inventariable`:
+
+| Configuración | Comportamiento |
+| --- | --- |
+| Activada: producto con stock | Necesita existencias para reservar o entregar; registra movimientos, costos y trazabilidad configurada. |
+| Desactivada: servicio | Se vende y cobra sin exigir almacén ni existencias. No reserva, descuenta stock ni genera costo de inventario. |
+
+Para registrar un servicio, desactivar el control de stock, mantener **Disponible para venta** y asignar un precio. Series, lotes y obligatoriedad de serie se desactivan al guardar; las opciones de costeo y stock se ocultan. **Disponible para compra** y **Disponible para venta** son opciones independientes del control de stock.
+
+Una factura puede mezclar productos y servicios: el ingreso comercial incluye ambos, pero solo los productos generan reservas y salidas de Kardex. Los pagos parciales de servicios conservan su seguimiento comercial sin comprometer existencias. La recepción de compras tampoco ingresa servicios al almacén. El Kardex manual permite elegir productos inventariables y rechaza movimientos nuevos de servicios.
+
+Cambiar un artículo existente a servicio no elimina ni corrige sus existencias o movimientos anteriores. Las reservas previas se liberan al completar o cancelar la operación; las anulaciones de movimientos históricos conservan su mecanismo de reversión. Revisar los saldos anteriores antes de cambiar la clasificación de un producto que todavía tenga stock.
+
 Asignar precios en las listas correspondientes; la consulta de stock muestra precios de listas activas y su moneda. Registrar los códigos de barras usados en las etiquetas. Si se usan series o lotes, configurar sus controles antes de registrar las operaciones que requieren esa información.
 
 La valoración de salidas contempla costo promedio, estándar, LIFO y consumo de capas. Para costo estándar se exige un valor positivo. En la rama de capas, LIFO consume las más recientes; una capa específica indicada se utiliza cuando corresponde y, en los demás casos, se priorizan las más antiguas. No todos los movimientos equivalen a FIFO: depende de la configuración y los datos enviados.

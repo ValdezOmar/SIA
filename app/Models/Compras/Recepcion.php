@@ -155,7 +155,10 @@ class Recepcion extends Model
 
             $almacen = $this->almacen;
 
-            if (! $almacen?->activo) {
+            $requiereInventario = $this->detalles()->where('cantidad_aceptada', '>', 0)
+                ->whereHas('articulo', fn ($query) => $query->where('inventariable', true))->exists();
+
+            if ($requiereInventario && ! $almacen?->activo) {
                 throw new RuntimeException('Seleccione un almacén activo antes de procesar el ingreso.');
             }
 
@@ -169,6 +172,15 @@ class Recepcion extends Model
                 }
 
                 $articulo = $detalle->articulo;
+
+                if (! $articulo->inventariable) {
+                    if ($ordenDetalle = $detalle->ordenDetalle) {
+                        $ordenDetalle->cantidad_recibida += $detalle->cantidad_aceptada;
+                        $ordenDetalle->save();
+                    }
+
+                    continue;
+                }
 
                 // Registrar entrada en kardex
                 $kardex = Kardex::registrarEntrada([

@@ -351,23 +351,35 @@ class ArticuloResource extends Resource
                             ->schema([
                                 Section::make('Configuración de Inventario')
                                     ->icon('heroicon-o-cog-6-tooth')
-                                    ->description('Control de inventario para este artículo')
+                                    ->description('Elija si vende un producto físico con stock o un servicio sin movimientos de almacén.')
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
                                                 Toggle::make('inventariable')
-                                                    ->label('¿Es inventariable?')
+                                                    ->label('Controlar stock (producto físico)')
                                                     ->default(true)
-                                                    ->helperText('Controla el stock en inventario')
+                                                    ->helperText('Activado: reserva y descuenta existencias. Desactivado: servicio; se factura y cobra sin requerir almacén ni descontar stock.')
                                                     ->live()
+                                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                                        if (! $state) {
+                                                            $set('maneja_lotes', false);
+                                                            $set('maneja_series', false);
+                                                            $set('requiere_serie_en_salida', false);
+                                                        }
+                                                    })
                                                     ->columnSpan(1),
+                                                Placeholder::make('tipo_operacion')
+                                                    ->label('Cómo funcionará')
+                                                    ->content(fn (Forms\Get $get) => $get('inventariable')
+                                                        ? 'Producto físico: necesita existencias para reservar y entregar. Configure lotes o series solo si necesita identificar cada lote o unidad.'
+                                                        : 'Servicio: no exige existencias, series ni lotes. Mantenga «Disponible para venta» activado y configure su precio. Cambiar esta opción no borra movimientos ni existencias anteriores.'),
                                             ]),
 
                                         Grid::make(3)
                                             ->schema([
                                                 Toggle::make('maneja_lotes')
                                                     ->label('Maneja Lotes')
-                                                    ->helperText('Control por número de lote')
+                                                    ->helperText('Agrupa varias unidades por lote, por ejemplo una partida de fabricación. Al activarlo se deshabilita el control por serie.')
                                                     ->visible(fn (Forms\Get $get) => $get('inventariable'))
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, Forms\Set $set) {
@@ -380,7 +392,7 @@ class ArticuloResource extends Resource
 
                                                 Toggle::make('maneja_series')
                                                     ->label('Maneja Series')
-                                                    ->helperText('Control por número de serie')
+                                                    ->helperText('Identifica cada unidad, por ejemplo un equipo. Al activarlo se deshabilita el control por lote.')
                                                     ->visible(fn (Forms\Get $get) => $get('inventariable'))
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, Forms\Set $set) {
@@ -393,13 +405,14 @@ class ArticuloResource extends Resource
                                                 Toggle::make('requiere_serie_en_salida')
                                                     ->label('Requerir Serie en Salida')
                                                     ->helperText('Obligatorio registrar serie al vender')
-                                                    ->visible(fn (Forms\Get $get) => $get('maneja_series'))
+                                                    ->visible(fn (Forms\Get $get) => $get('inventariable') && $get('maneja_series'))
                                                     ->columnSpan(1),
                                             ]),
 
                                         Grid::make(1)
                                             ->schema([
                                                 Select::make('metodo_costo')
+                                                    ->visible(fn (Forms\Get $get) => $get('inventariable'))
                                                     ->label('Método de Costeo')
                                                     ->options([
                                                         'promedio' => 'Costo Promedio',
@@ -422,13 +435,14 @@ class ArticuloResource extends Resource
                                                     ->step(0.000001)
                                                     ->prefix('Bs')
                                                     ->helperText('Se usa solo con Costo Estándar. Define el valor contable unitario de referencia.')
-                                                    ->visible(fn (Forms\Get $get) => $get('metodo_costo') === 'estandar')
-                                                    ->required(fn (Forms\Get $get) => $get('metodo_costo') === 'estandar')
+                                                    ->visible(fn (Forms\Get $get) => $get('inventariable') && $get('metodo_costo') === 'estandar')
+                                                    ->required(fn (Forms\Get $get) => $get('inventariable') && $get('metodo_costo') === 'estandar')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
 
                                 Section::make('Gestión de Stock')
+                                    ->visible(fn (Forms\Get $get) => $get('inventariable'))
                                     ->icon('heroicon-o-chart-bar')
                                     ->schema([
                                         Placeholder::make('stock_info')
@@ -461,7 +475,7 @@ class ArticuloResource extends Resource
                                         Grid::make(1)
                                             ->schema([
                                                 Toggle::make('comprable')
-                                                    ->label('¿Es comprable?')
+                                                    ->label('Disponible para compra')
                                                     ->default(true)
                                                     ->helperText('Permite comprar este artículo')
                                                     ->live()
@@ -539,9 +553,9 @@ class ArticuloResource extends Resource
                                         Grid::make(2)
                                             ->schema([
                                                 Toggle::make('vendible')
-                                                    ->label('¿Es vendible?')
+                                                    ->label('Disponible para venta')
                                                     ->default(true)
-                                                    ->helperText('Permite vender este artículo')
+                                                    ->helperText('Permite seleccionar este producto o servicio en Ventas. Es independiente del control de stock.')
                                                     ->live()
                                                     ->columnSpan(1),
 
@@ -667,14 +681,12 @@ class ArticuloResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->tooltip(fn ($record) => $record->descripcion ?? ''),
 
-                IconColumn::make('inventariable')
-                    ->label('Stock')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('gray')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('inventariable')
+                    ->label('Tipo')
+                    ->formatStateUsing(fn ($state) => $state ? 'Producto con stock' : 'Servicio')
+                    ->badge()
+                    ->color(fn ($state) => $state ? 'success' : 'info')
+                    ->toggleable(),
 
                 IconColumn::make('maneja_lotes')
                     ->label('Lotes')
