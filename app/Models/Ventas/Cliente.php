@@ -106,12 +106,6 @@ class Cliente extends Model
             }
         });
 
-        static::updating(function ($model) {
-            if (Auth::check()) {
-                $model->actualizado_por = Auth::id();
-            }
-        });
-
         static::saving(function ($model): void {
             foreach ([
                 'codigo',
