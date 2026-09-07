@@ -445,7 +445,7 @@ class FacturaResource extends Resource
                                                 Select::make('pedido_id')
                                                     ->label('Pedido Asociado')
                                                     ->options(
-                                                        fn (Get $get) => Pedido::where('estado', '!=', 'cancelado')
+                                                        fn (Get $get) => Pedido::whereIn('estado', ['pendiente', 'reservado'])
                                                             ->when($get('empresa_id') ?? Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
                                                             ->when($get('sucursal_id') ?? Auth::user()?->sucursal_id, fn ($query, $sucursalId) => $query->where('sucursal_id', $sucursalId))
                                                             ->whereHas('detalles')
@@ -465,6 +465,7 @@ class FacturaResource extends Resource
                                                     ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                                         if ($state) {
                                                             $pedido = Pedido::with(['detalles.articulo'])
+                                                                ->whereIn('estado', ['pendiente', 'reservado'])
                                                                 ->when($get('empresa_id') ?? Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
                                                                 ->when($get('sucursal_id') ?? Auth::user()?->sucursal_id, fn ($query, $sucursalId) => $query->where('sucursal_id', $sucursalId))
                                                                 ->find($state);
