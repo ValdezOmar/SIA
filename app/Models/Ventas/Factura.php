@@ -213,7 +213,7 @@ class Factura extends Model
                 $totalFactura = (float) $this->detalles()->sum('subtotal');
             }
 
-            $fechaPago = $this->fecha_pago ?: now()->toDateString();
+            $fechaPago = $datosPago['fecha_pago'] ?? $this->fecha_pago ?? now()->toDateString();
             $montoPago = $totalFactura;
 
             $this->subtotal = $this->subtotal ?? 0;
@@ -300,7 +300,7 @@ class Factura extends Model
             $pedido = $factura->pedido;
             if (! $pedido) {
                 $pedido = Pedido::create([
-                    'cliente_id' => $factura->cliente_id, 'fecha_pedido' => now()->toDateString(),
+                    'cliente_id' => $factura->cliente_id, 'fecha_pedido' => $factura->fecha_vencimiento ?? now()->toDateString(),
                     'condicion_pago' => $factura->condicion_pago, 'moneda' => $factura->moneda,
                     'tasa_cambio' => $factura->tasa_cambio, 'vendedor_id' => $factura->vendedor_id,
                     'empresa_id' => $factura->empresa_id, 'sucursal_id' => $factura->sucursal_id,

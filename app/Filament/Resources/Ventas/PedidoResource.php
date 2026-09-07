@@ -1161,6 +1161,8 @@ class PedidoResource extends Resource
 
                 SelectFilter::make('estado')
                     ->label('Estado')
+                    ->multiple()
+                    ->default(['pendiente', 'reservado'])
                     ->options([
                         'reservado' => 'Reservado',
                         'pendiente' => 'Pendiente',

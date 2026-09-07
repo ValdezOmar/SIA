@@ -71,8 +71,8 @@ class FacturaContadoTest extends TestCase
         ]);
 
         $factura->update([
-            'fecha_vencimiento' => now()->toDateString(),
-            'fecha_pago' => now()->toDateString(),
+            'fecha_vencimiento' => '2026-08-20',
+            'fecha_pago' => '2026-08-15',
         ]);
 
         $pago = $factura->crearPagoAutomaticoSiEsContado(['tipo_pago' => 'qr', 'referencia' => 'QR-TEST-001']);
@@ -80,8 +80,10 @@ class FacturaContadoTest extends TestCase
         $this->assertNotNull($pago);
         $this->assertSame('pagada', $factura->fresh()->estado);
         $this->assertSame('qr', $pago->tipo_pago);
-        $this->assertSame(now()->toDateString(), $factura->fresh()->fecha_pago->toDateString());
-        $this->assertSame(now()->toDateString(), $factura->fresh()->fecha_vencimiento->toDateString());
+        $this->assertSame('2026-08-15', $factura->fresh()->fecha_pago->toDateString());
+        $this->assertSame('2026-08-20', $factura->fresh()->fecha_vencimiento->toDateString());
+        $this->assertSame('2026-08-15', $pago->fresh()->fecha_pago->toDateString());
+        $this->assertSame('2026-08-20', $factura->fresh()->pedido->fecha_pedido->toDateString());
         $this->assertDatabaseHas('ven_pagos', [
             'factura_id' => $factura->id,
             'cliente_id' => $clienteId,

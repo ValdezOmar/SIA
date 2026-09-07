@@ -55,8 +55,8 @@ class EditFactura extends EditRecord
         unset($data['pago_inicial_monto'], $data['pago_inicial_tipo'], $data['pago_inicial_referencia'], $data['pago_inicial_banco'], $data['pago_inicial_numero_cheque']);
 
         if (($data['condicion_pago'] ?? null) === 'contado') {
-            $data['fecha_vencimiento'] = now()->toDateString();
-            $data['fecha_pago'] = now()->toDateString();
+            $data['fecha_vencimiento'] ??= now()->toDateString();
+            $data['fecha_pago'] ??= now()->toDateString();
         }
 
         return $data;
