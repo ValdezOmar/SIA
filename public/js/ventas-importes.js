@@ -25,13 +25,16 @@
             fila._descuento_tipo = campo === 'descuento' ? 'importe' : 'porcentaje';
         }
         // false conserva los cambios en el navegador hasta el siguiente envío explícito.
-        wire.$set(ruta, calcular(fila), false);
+        const calculada = calcular(fila);
+        // Conservar el texto que se está escribiendo, incluidos "1." y "0.0".
+        if (campo !== undefined) calculada[campo] = valor;
+        wire.$set(ruta, calculada, false);
     };
     const sumar = (filas, campo, envio = 0, pagado = 0) => {
         let suma = 0;
         for (const fila of Object.values(filas || {})) {
             if (!fila || typeof fila !== 'object') continue;
-            const valor = fila[campo === 'saldo' ? 'total' : campo];
+            const valor = calcular(fila)[campo === 'saldo' ? 'total' : campo];
             if (valor === null) return null;
             suma += numero(valor);
         }

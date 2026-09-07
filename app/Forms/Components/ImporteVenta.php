@@ -3,6 +3,7 @@
 namespace App\Forms\Components;
 
 use Filament\Forms\Components\Placeholder;
+use Illuminate\View\ComponentAttributeBag;
 
 class ImporteVenta extends Placeholder
 {
@@ -12,7 +13,7 @@ class ImporteVenta extends Placeholder
         $campo = $this->getName();
         $mapa = ['subtotal_linea' => 'subtotal', 'impuesto_linea' => 'impuesto', 'total_con_iva' => 'total'];
         if (isset($mapa[$campo])) {
-            $valor = '$wire.$get('.json_encode($ruta.'.'.$mapa[$campo]).')';
+            $valor = 'window.siaVentasImportes.calcular($wire.$get('.json_encode($ruta).') || {})['.json_encode($mapa[$campo]).']';
             $raiz = preg_replace('/\.detalles\.[^.]+$/', '', $ruta);
         } else {
             $raiz = $ruta;
@@ -20,8 +21,8 @@ class ImporteVenta extends Placeholder
                 .json_encode($campo).', $wire.$get('.json_encode($raiz.'.costo_envio').'), $wire.$get('.json_encode($raiz.'.monto_pagado').'))';
         }
 
-        return array_merge(parent::getExtraAttributes(), [
+        return (new ComponentAttributeBag(parent::getExtraAttributes()))->merge([
             'x-text' => 'window.siaVentasImportes.formato('.$valor.', $wire.$get('.json_encode($raiz.'.moneda').') || "BOB")',
-        ]);
+        ])->getAttributes();
     }
 }

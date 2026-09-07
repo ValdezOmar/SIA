@@ -6,6 +6,7 @@ use App\Filament\Resources\Ventas\CotizacionResource;
 use App\Filament\Resources\Ventas\FacturaResource;
 use App\Filament\Resources\Ventas\PedidoResource;
 use App\Models\Inventario\Articulo;
+use App\Models\Inventario\ListaPrecio;
 use App\Models\User;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Cotizacion;
@@ -24,6 +25,44 @@ use Tests\TestCase;
 class VentasFormularioRealTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_seleccionar_articulo_y_lista_actualiza_precio_e_importes(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $empresa = DB::table('conf_empresas')->insertGetId(['razon_social' => 'Prueba', 'nombre_comercial' => 'Prueba', 'pais' => 'Bolivia', 'empresa_activo' => true]);
+        $listas = collect(['Normal', 'Mayorista'])->map(fn ($nombre) => ListaPrecio::create(['nombre' => $nombre, 'moneda' => 'BOB', 'empresa_id' => $empresa]));
+        $articulos = collect([100, 200, 0])->map(function ($precio) use ($empresa, $listas) {
+            $articulo = Articulo::create(['codigo' => 'SRV-'.$precio, 'nombre_comercial' => 'Servicio '.$precio, 'inventariable' => false, 'empresa_id' => $empresa]);
+            if ($precio) {
+                foreach ($listas as $i => $lista) {
+                    $articulo->precios()->create(['lista_precio_id' => $lista->id, 'precio' => $precio - $i * 20]);
+                }
+            }
+            return $articulo;
+        });
+        foreach ([FacturaResource::class => Factura::class, PedidoResource::class => Pedido::class, CotizacionResource::class => Cotizacion::class] as $recurso => $modelo) {
+            $test = Livewire::test(FormularioVentasReal::class, ['record' => new $modelo, 'recurso' => $recurso])
+                ->set('data.detalles', ['nueva' => ['cantidad' => 2, 'descuento' => 0, 'aplicar_iva' => false]])
+                ->set('data.detalles.nueva.articulo_id', $articulos[0]->id)
+                ->assertSet('data.detalles.nueva.lista_precio', $listas[0]->id)
+                ->assertSet('data.detalles.nueva.precio_unitario', 100.0)
+                ->assertSet('data.detalles.nueva.total', 200.0)
+                ->set('data.detalles.nueva.lista_precio', $listas[1]->id)
+                ->assertSet('data.detalles.nueva.precio_unitario', 80.0)
+                ->assertSet('data.detalles.nueva.total', 160.0)
+                ->set('data.detalles.nueva.articulo_id', $articulos[1]->id)
+                ->assertSet('data.detalles.nueva.precio_unitario', 200.0)
+                ->assertSet('data.detalles.nueva.total', 400.0);
+            $fields = $test->instance()->form->getComponent('data.detalles')->getChildComponentContainers()['nueva']->getFlatFields();
+            $this->assertTrue($fields['lista_precio']->isNative());
+            $this->assertTrue($fields['articulo_id']->isLive());
+            $this->assertStringContainsString('200', $fields['lista_precio']->getOptions()[$listas[0]->id]);
+            $test->set('data.detalles.nueva.articulo_id', $articulos[2]->id)
+                ->assertSet('data.detalles.nueva.lista_precio', null)
+                ->assertSet('data.detalles.nueva.precio_unitario', 0.0)
+                ->assertSet('data.detalles.nueva.total', 0.0);
+        }
+    }
 
     public function test_formularios_reales_calculan_y_muestran_subtotal_y_total(): void
     {
@@ -49,11 +88,11 @@ class VentasFormularioRealTest extends TestCase
             $total = collect($components)->first(fn ($c) => $c->getStatePath() === $path.'.total_con_iva');
             $this->assertStringContainsString('270.00', (string) $subtotal->getContent(), $recurso);
             $this->assertStringContainsString('305.10', (string) $total->getContent(), $recurso);
-            $this->assertStringContainsString($path.'.subtotal', $subtotal->getExtraAttributes()['x-text']);
-            $this->assertStringContainsString($path.'.total', $total->getExtraAttributes()['x-text']);
+            $this->assertStringContainsString($path, $subtotal->getExtraAttributes()['x-text']);
+            $this->assertStringContainsString('["total"]', html_entity_decode($total->getExtraAttributes()['x-text'], ENT_QUOTES));
             $repeater = $test->instance()->form->getComponent('data.detalles');
             $fields = $repeater->getChildComponentContainers()[$key]->getFlatFields();
-            $this->assertStringContainsString('siaVentasImportes.actualizar', $fields['cantidad']->getExtraInputAttributes()['x-on:change']);
+            $this->assertStringContainsString('siaVentasImportes.actualizar', $fields['cantidad']->getExtraInputAttributes()['x-on:input']);
             $this->assertFalse($fields['cantidad']->isLive());
             $this->assertArrayNotHasKey('x-on:click', $fields['aplicar_iva']->getExtraAttributes());
         }
@@ -70,6 +109,13 @@ class VentasFormularioRealTest extends TestCase
         $total = collect($test->instance()->form->getFlatComponents(withHidden: true))
             ->first(fn ($c) => $c->getStatePath() === 'data.detalles.nueva.total_con_iva');
         $this->assertStringContainsString('225.00', (string) $total->getContent());
+        $dom = new \DOMDocument;
+        $previous = libxml_use_internal_errors(true);
+        $dom->loadHTML($test->html());
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        $expressions = collect((new \DOMXPath($dom))->query('//*[@x-text]'))->map(fn ($element) => $element->getAttribute('x-text'))->all();
+        $this->assertContains(html_entity_decode($total->getExtraAttributes()['x-text'], ENT_QUOTES), $expressions);
     }
 }
 

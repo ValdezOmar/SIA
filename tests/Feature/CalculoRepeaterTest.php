@@ -26,7 +26,7 @@ class CalculoRepeaterTest extends TestCase
         $this->assertFalse($repeater->isLive());
         $this->assertFalse($fields['cantidad']->isLive());
         $this->assertFalse($fields['precio_unitario']->isLive());
-        $this->assertStringContainsString('false)', $fields['descuento_porcentaje']->getExtraInputAttributes()['x-on:input']);
+        $this->assertStringContainsString('siaVentasImportes.actualizar', $fields['descuento_porcentaje']->getExtraInputAttributes()['x-on:input']);
         $test->set($path.'.cantidad', '123')
             ->set($path.'.precio_unitario', '12.50')
             ->set($path.'.descuento_porcentaje', '10')

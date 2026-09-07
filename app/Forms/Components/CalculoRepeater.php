@@ -3,10 +3,12 @@
 namespace App\Forms\Components;
 
 use App\Support\CalculoDetalle;
+use App\Models\Inventario\Articulo;
 use Closure;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -31,7 +33,7 @@ class CalculoRepeater extends Repeater
         $this->tipoCalculo = $tipo;
         if ($tipo) {
             $this->helperText($tipo === 'venta'
-                ? 'Al salir de cantidades, precios o descuentos se actualizan los importes sin esperar al servidor. También puede pulsar «Calcular totales». Al guardar se validan nuevamente.'
+                ? 'Cantidades, precios y descuentos actualizan los importes mientras escribe, sin esperar al servidor. Al guardar se validan nuevamente.'
                 : 'Escriba sin esperar. Pulse «Calcular totales» para actualizar los importes. Al guardar se recalculan nuevamente.');
         }
 
@@ -67,21 +69,23 @@ class CalculoRepeater extends Repeater
                 }
 
                 if ($this->tipoCalculo === 'venta' && $field instanceof TextInput && in_array($field->getName(), ['descuento', 'descuento_porcentaje'], true)) {
-                    $modo = $field->getName() === 'descuento' ? 'importe' : 'porcentaje';
-                    $path = $container->getStatePath().'._descuento_tipo';
-                    $field->extraInputAttributes([
-                        'x-on:input' => '$wire.$set('.json_encode($path).', '.json_encode($modo).', false)',
-                    ], merge: true);
                     // Se valida el descuento efectivo al calcular, no un importe anterior.
-                    if ($modo === 'importe') {
+                    if ($field->getName() === 'descuento') {
                         $field->maxValue(null);
                     }
                 }
 
                 if ($this->tipoCalculo === 'venta' && $field instanceof TextInput && in_array($field->getName(), ['cantidad', 'precio_unitario', 'descuento', 'descuento_porcentaje'], true)) {
                     $field->extraInputAttributes([
-                        'x-on:change' => 'window.siaVentasImportes.actualizar($wire, '.json_encode($container->getStatePath()).', '.json_encode($field->getName()).', $event.target.value)',
+                        'x-on:input' => 'window.siaVentasImportes.actualizar($wire, '.json_encode($container->getStatePath()).', '.json_encode($field->getName()).', $event.target.value)',
                     ], merge: true);
+                }
+                if ($this->tipoCalculo === 'venta' && $field instanceof Select && in_array($field->getName(), ['articulo_id', 'lista_precio'], true)) {
+                    $field->live()->clearAfterStateUpdatedHooks()
+                        ->afterStateUpdated(fn (Select $component) => $this->seleccionarPrecio($component));
+                    if ($field->getName() === 'lista_precio') {
+                        $field->native()->searchable(false)->preload(false);
+                    }
                 }
                 if ($this->tipoCalculo === 'venta' && $field instanceof Toggle && $field->getName() === 'aplicar_iva') {
                     $field->extraAlpineAttributes([
@@ -92,6 +96,27 @@ class CalculoRepeater extends Repeater
         }
 
         return $containers;
+    }
+
+    private function seleccionarPrecio(Select $component): void
+    {
+        $get = $component->getGetCallback();
+        $set = $component->getSetCallback();
+        $articulo = Articulo::find($get('articulo_id'));
+        $precios = $articulo?->getPreciosConListas() ?? collect();
+        if ($component->getName() === 'articulo_id') {
+            $set('lista_precio', $precios->keys()->first());
+            $set('descuento', 0);
+            $set('descuento_porcentaje', 0);
+            $set('_descuento_tipo', 'importe');
+        }
+        $precio = (float) ($precios->get($get('lista_precio'))['precio'] ?? 0);
+        $set('precio_unitario', $precio);
+        $set('precio_original', $precio);
+        $fila = data_get($component->getLivewire(), $component->getContainer()->getStatePath()) ?? [];
+        foreach (CalculoDetalle::calcular($fila, 'venta', $component->getContainer()->getStatePath()) as $campo => $valor) {
+            $set($campo, $valor);
+        }
     }
 
     public function calcular(): void
