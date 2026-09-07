@@ -893,6 +893,12 @@ class CotizacionesRelationManager extends RelationManager
                     ->toggleable()
                     ->width('120px'),
 
+                TextColumn::make('cliente.nombre')
+                    ->label('Cliente')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('fecha_emision')
                     ->label('Fecha Emisión')
                     ->date('d/m/Y')
@@ -903,7 +909,7 @@ class CotizacionesRelationManager extends RelationManager
                     ->label('Validez')
                     ->date('d/m/Y')
                     ->sortable()
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success'),
 
                 BadgeColumn::make('estado')

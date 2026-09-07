@@ -943,7 +943,7 @@ class CotizacionResource extends Resource
                     ->color('primary')
                     ->placeholder('Sin empresa')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('sucursal.nombre')
                     ->label('Sucursal')
@@ -951,7 +951,7 @@ class CotizacionResource extends Resource
                     ->color('info')
                     ->placeholder('Sin sucursal')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('fecha_emision')
                     ->label('Fecha')
@@ -963,7 +963,7 @@ class CotizacionResource extends Resource
                     ->label('Validez')
                     ->date('d/m/Y')
                     ->sortable()
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success'),
 
                 BadgeColumn::make('estado')
@@ -994,7 +994,7 @@ class CotizacionResource extends Resource
                     ->badge()
                     ->color('info')
                     ->sortable()
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->width('80px'),
 
                 TextColumn::make('total')

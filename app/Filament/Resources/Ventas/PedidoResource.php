@@ -1015,7 +1015,7 @@ class PedidoResource extends Resource
                     ->color('primary')
                     ->placeholder('Sin empresa')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('sucursal.nombre')
                     ->label('Sucursal')
@@ -1023,7 +1023,7 @@ class PedidoResource extends Resource
                     ->color('info')
                     ->placeholder('Sin sucursal')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('fecha_pedido')
                     ->label('Fecha')
@@ -1075,7 +1075,7 @@ class PedidoResource extends Resource
                         'warning' => 'alta',
                         'danger' => 'urgente',
                     ])
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('total_items')
                     ->label('Items')
@@ -1083,7 +1083,7 @@ class PedidoResource extends Resource
                     ->badge()
                     ->color('info')
                     ->sortable()
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->width('60px'),
 
                 TextColumn::make('total')
@@ -1113,7 +1113,7 @@ class PedidoResource extends Resource
                         return $simbolo.' '.number_format($state ?? 0, 2);
                     })
                     ->color('success')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('saldo_pendiente')
                     ->label('Saldo')

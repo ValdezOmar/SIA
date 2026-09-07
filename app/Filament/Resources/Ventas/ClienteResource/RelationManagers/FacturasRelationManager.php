@@ -185,6 +185,12 @@ class FacturasRelationManager extends RelationManager
                     ->weight('bold')
                     ->color('primary'),
 
+                TextColumn::make('cliente.nombre')
+                    ->label('Cliente')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('fecha_emision')
                     ->label('Fecha')
                     ->date('d/m/Y')
@@ -195,7 +201,7 @@ class FacturasRelationManager extends RelationManager
                     ->label('Vencimiento')
                     ->date('d/m/Y')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 // ->color(fn($state, $record) => {
                 //     if ($record?->estado === 'pagada') return 'success';
                 //     if ($state && $state < now()) return 'danger';

@@ -786,6 +786,12 @@ class PedidosRelationManager extends RelationManager
                     ->weight('bold')
                     ->color('primary'),
 
+                TextColumn::make('cliente.nombre')
+                    ->label('Cliente')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
                 TextColumn::make('fecha_pedido')
                     ->label('Fecha')
                     ->date('d/m/Y')
@@ -836,12 +842,19 @@ class PedidosRelationManager extends RelationManager
                         'warning' => 'alta',
                         'danger' => 'urgente',
                     ])
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('total')
                     ->label('Total')
                     ->money(fn ($record) => $record->moneda ?? 'BOB')
                     ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('saldo_pendiente')
+                    ->label('Saldo')
+                    ->getStateUsing(fn ($record) => (float) $record->total - (float) $record->pagos()->where('ven_pagos.estado', 'confirmado')->sum('monto'))
+                    ->money(fn ($record) => $record->moneda ?? 'BOB')
+                    ->color(fn ($state) => (float) $state <= 0 ? 'success' : 'warning')
                     ->toggleable(),
 
                 TextColumn::make('vendedor.name')

@@ -478,7 +478,7 @@ class ClienteResource extends Resource
                     ->color('primary')
                     ->placeholder('Sin empresa')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('razon_social')
                     ->label('Razón Social')
@@ -522,12 +522,12 @@ class ClienteResource extends Resource
                         'warning' => 'vip',
                         'primary' => 'revendedor',
                     ])
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('telefono')
                     ->label('Teléfono')
                     ->searchable()
-                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->placeholder('-')
                     ->icon('heroicon-o-phone'),
 

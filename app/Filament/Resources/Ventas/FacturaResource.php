@@ -11,6 +11,7 @@ use App\Models\Inventario\MovimientoInventario;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\Ventas\Cliente;
+use App\Models\Ventas\Cotizacion;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\Pedido;
 use Filament\Forms\Components\Actions\Action as FormAction;
@@ -196,6 +197,20 @@ class FacturaResource extends Resource
         }
 
         return number_format($valor, $decimales, '.', '');
+    }
+
+    public static function cotizacionesAbiertas($empresaId = null, $sucursalId = null): \Illuminate\Database\Eloquent\Builder
+    {
+        return Cotizacion::query()
+            ->whereIn('estado', ['borrador', 'enviada', 'aprobada'])
+            ->where(fn ($query) => $query->whereNull('fecha_validez')->orWhereDate('fecha_validez', '>=', now()->toDateString()))
+            ->when(Auth::user()?->empresa_id, fn ($query, $id) => $query->where('empresa_id', $id))
+            ->when(Auth::user()?->sucursal_id, fn ($query, $id) => $query->where('sucursal_id', $id))
+            ->when($empresaId, fn ($query, $id) => $query->where('empresa_id', $id))
+            ->when($sucursalId, fn ($query, $id) => $query->where('sucursal_id', $id))
+            ->whereDoesntHave('pedido')
+            ->whereHas('detalles')
+            ->whereDoesntHave('detalles', fn ($query) => $query->whereDoesntHave('articulo'));
     }
 
     public static function form(Form $form): Form
@@ -470,6 +485,7 @@ class FacturaResource extends Resource
                                                                 ->when($get('sucursal_id') ?? Auth::user()?->sucursal_id, fn ($query, $sucursalId) => $query->where('sucursal_id', $sucursalId))
                                                                 ->find($state);
                                                             if ($pedido) {
+                                                                $set('cotizacion_origen_id', null);
                                                                 // Datos del pedido
                                                                 $set('cliente_id', $pedido->cliente_id);
                                                                 $set('condicion_pago', $pedido->condicion_pago);
@@ -508,19 +524,47 @@ class FacturaResource extends Resource
                                                         }
                                                     }),
 
-                                                Select::make('vendedor_id')
-                                                    ->label('Vendedor')
-                                                    ->relationship('vendedor', 'name')
+                                                Select::make('cotizacion_origen_id')
+                                                    ->label('Cotización abierta')
+                                                    ->options(fn (Get $get) => self::cotizacionesAbiertas($get('empresa_id'), $get('sucursal_id'))
+                                                        ->orderBy('codigo')->pluck('codigo', 'id'))
                                                     ->searchable()
                                                     ->preload()
-                                                    ->default(Auth::id())
-                                                    ->dehydrated()
-                                                    ->helperText('Vendedor responsable')
-                                                    ->prefixIcon('heroicon-o-user-group')
-                                                    ->columnSpan(1),
+                                                    ->placeholder('Seleccione una cotización')
+                                                    ->helperText('Carga el cliente y los artículos. Al guardar se convierte en pedido asociado.')
+                                                    ->hiddenOn('edit')
+                                                    ->live()
+                                                    ->afterStateUpdated(function ($state, callable $set, Get $get): void {
+                                                        if (! $state) {
+                                                            return;
+                                                        }
+                                                        $cotizacion = self::cotizacionesAbiertas($get('empresa_id'), $get('sucursal_id'))
+                                                            ->with('detalles')->find($state);
+                                                        if (! $cotizacion) {
+                                                            return;
+                                                        }
+                                                        $set('pedido_id', null);
+                                                        $set('numero_pedido', null);
+                                                        foreach (['cliente_id', 'vendedor_id', 'moneda', 'tasa_cambio'] as $campo) {
+                                                            $set($campo, $cotizacion->{$campo});
+                                                        }
+                                                        $set('condicion_pago', in_array($cotizacion->condicion_pago, ['contado', 'parcial'], true) ? $cotizacion->condicion_pago : 'parcial');
+                                                        if ($cotizacion->fecha_entrega_estimada) {
+                                                            $set('fecha_vencimiento', $cotizacion->fecha_entrega_estimada->toDateString());
+                                                        }
+                                                        $set('detalles', $cotizacion->detalles->map(fn ($detalle) => $detalle->only([
+                                                            'articulo_id', 'lista_precio', 'codigo_articulo', 'descripcion_articulo', 'unidad_medida',
+                                                            'cantidad', 'precio_unitario', 'precio_original', 'descuento', 'descuento_porcentaje',
+                                                            'subtotal', 'tipo_impuesto', 'tasa_impuesto', 'impuesto', 'total', 'observaciones',
+                                                        ]))->all());
+                                                        $totales = self::calcularTotales($get);
+                                                        foreach (['subtotal', 'descuento', 'impuesto', 'total'] as $campo) {
+                                                            $set($campo, $totales[$campo]);
+                                                        }
+                                                    }),
                                             ]),
 
-                                        Grid::make(3)
+                                        Grid::make(4)
                                             ->schema([
                                                 Select::make('moneda')
                                                     ->label('Moneda')
@@ -546,6 +590,15 @@ class FacturaResource extends Resource
                                                     ->prefixIcon('heroicon-o-arrow-path')
                                                     ->visible(fn ($get) => $get('moneda') !== 'BOB')
                                                     ->columnSpan(1),
+
+                                                Select::make('vendedor_id')
+                                                    ->label('Vendedor')
+                                                    ->relationship('vendedor', 'name')
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->default(Auth::id())
+                                                    ->helperText('Vendedor responsable')
+                                                    ->prefixIcon('heroicon-o-user-group'),
 
                                                 Select::make('condicion_pago')
                                                     ->label('Condición Pago')
@@ -1209,7 +1262,7 @@ class FacturaResource extends Resource
                     ->color('primary')
                     ->placeholder('Sin empresa')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('sucursal.nombre')
                     ->label('Sucursal')
@@ -1217,7 +1270,7 @@ class FacturaResource extends Resource
                     ->color('info')
                     ->placeholder('Sin sucursal')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('fecha_emision')
                     ->label('Fecha')
@@ -1229,7 +1282,7 @@ class FacturaResource extends Resource
                     ->label('Vencimiento')
                     ->date('d/m/Y')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 BadgeColumn::make('estado')
                     ->label('Estado')

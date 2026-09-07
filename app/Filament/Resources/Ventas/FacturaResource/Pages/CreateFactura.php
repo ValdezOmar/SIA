@@ -15,6 +15,25 @@ class CreateFactura extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        if (! empty($data['cotizacion_origen_id'])) {
+            $cotizacion = FacturaResource::cotizacionesAbiertas($data['empresa_id'] ?? null, $data['sucursal_id'] ?? null)
+                ->lockForUpdate()->find($data['cotizacion_origen_id']);
+            if (! $cotizacion || (int) $cotizacion->cliente_id !== (int) ($data['cliente_id'] ?? 0)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'data.cotizacion_origen_id' => 'La cotización ya no está abierta o no corresponde al cliente seleccionado.',
+                ]);
+            }
+            $pedido = $cotizacion->convertirPedido();
+            $pedido->update([
+                'fecha_pedido' => $data['fecha_vencimiento'] ?? now()->toDateString(),
+                'condicion_pago' => $data['condicion_pago'],
+                'vendedor_id' => $data['vendedor_id'] ?? $cotizacion->vendedor_id,
+            ]);
+            $data['pedido_id'] = $pedido->id;
+            $data['numero_pedido'] = $pedido->codigo;
+        }
+        unset($data['cotizacion_origen_id']);
+
         if (in_array($data['condicion_pago'] ?? null, ['contado', 'parcial'], true)) {
             $this->pagoInicial = [
                 'monto' => ($data['condicion_pago'] ?? null) === 'parcial' ? ($data['pago_inicial_monto'] ?? null) : null,
