@@ -1,0 +1,94 @@
+# Ventas
+
+[Índice de módulos](README.md) · Revisión: 7 de septiembre de 2026.
+
+## Preparación
+
+El cliente debe pertenecer a la empresa de la venta y la sucursal debe corresponder a esa empresa. Para entregar artículos se necesita un almacén activo, existencias suficientes y una valoración de costos válida. Los artículos con control de series o lotes requieren su trazabilidad.
+
+## Clientes
+
+Registrar código, nombre, documento, celular y datos comerciales. El sistema normaliza los textos principales a mayúsculas y el celular a dígitos. La creación puede reutilizar un cliente con el mismo celular dentro de la empresa; no se debe crear otra ficha para el mismo contacto. Al editar, un celular que pertenece a otro cliente de esa empresa se rechaza.
+
+Las pestañas del cliente aparecen como **Facturas → Pedidos → Cotizaciones**. En la pestaña Pedidos está activo por defecto el filtro **Pendiente**; quitarlo permite revisar otros estados. La modificación de clientes conserva `updated_at`; no utiliza una columna `actualizado_por`.
+
+### Contactos para el teléfono
+
+1. Filtrar el listado de clientes que se desea exportar y pulsar **Descargar contactos**.
+2. En la primera descarga, dejar vacíos los archivos anteriores.
+3. Importar el archivo VCF en la aplicación de contactos del teléfono.
+4. En futuras descargas, adjuntar todos los VCF previamente importados en ese teléfono o un VCF exportado desde sus contactos. El sistema excluirá los números contenidos en ellos.
+
+El nombre tiene el formato **26001 JUAN QUISPE**. Se exportan celulares válidos sin repetir; los números locales de ocho dígitos reciben `+591`. No se exporta una ficha sin celular válido. El archivo tiene identificadores estables, pero reimportar el mismo VCF puede producir duplicados según la aplicación móvil. La descarga no sincroniza ni actualiza por sí sola los contactos del teléfono o WhatsApp.
+
+## Cotizaciones
+
+Registrar cliente, artículos, cantidades, precios, descuentos e impuestos aplicables. El listado ofrece acciones para marcar la cotización como enviada, aprobarla, rechazarla, duplicarla y convertirla en pedido según su estado. **Enviar** cambia el estado del documento; no debe interpretarse como confirmación de entrega de un correo.
+
+Una cotización convertida debe continuarse mediante su pedido/factura asociados. Al usar una cotización de origen desde Facturas se comprueba que siga abierta y corresponda al cliente seleccionado.
+
+## Pedidos y reservas
+
+El listado general de Pedidos muestra **Pendiente y Reservado** por defecto. Este filtro es distinto del filtro de la pestaña del cliente, que muestra solamente **Pendiente**. Ambos se pueden cambiar.
+
+**Reservar stock** compromete unidades, sin descontarlas del stock físico. **Preparar entrega** cambia un pedido reservado a pendiente. **Confirmar entrega** usa la factura asociada y exige que esté totalmente pagada. Cancelar un pedido desde el flujo de cancelación libera su reserva y registra el motivo.
+
+En Facturas, el selector **Pedido asociado** ofrece únicamente pedidos pendientes o reservados del contexto permitido, con detalles válidos. Un pedido entregado o cancelado no aparece como nueva opción.
+
+## Facturas y pagos
+
+### Venta al contado
+
+1. Seleccionar cliente, artículos, precios, cantidades y las fechas de venta, pago y entrega.
+2. Elegir **Contado** y completar el medio de pago y las referencias necesarias.
+3. Guardar. Se recalculan los totales, se registra el pago automático y se procesa la venta.
+4. Comprobar pago, pedido entregado cuando hay artículos, salida en Kardex y asientos asociados.
+
+El flujo actual procesa la entrega al quedar la venta totalmente pagada. La fecha de entrega seleccionada se usa para fechar los registros; no constituye una tarea automática que espere hasta ese día para descontar stock.
+
+### Pago parcial
+
+Registrar el abono inicial y seleccionar **Pago parcial y reserva de stock**. Los pagos confirmados disminuyen el saldo y la existencia queda comprometida. Los abonos posteriores se registran con su propia fecha y medio de pago. Al completar el importe se procesa la salida y se liberan las reservas.
+
+El pago debe ser mayor que cero y no superar el saldo. Una factura pagada o anulada no admite otro pago por el flujo de registro. Una factura sin artículos puede generar contabilidad sin generar un pedido o movimiento de almacén.
+
+## Fechas de la operación
+
+| Dato seleccionado / origen | Registros afectados |
+| --- | --- |
+| Fecha de venta (`fecha_emision`) | Fecha del asiento de venta y fecha contable de su Kardex; fecha de venta de las series. |
+| Fecha de pago | Pago y asiento del cobro. Cada abono conserva su fecha. |
+| Fecha de entrega (`fecha_vencimiento` en la tabla actual) | Fecha del pedido generado, salida física en Kardex, movimiento de inventario y entrega real del pedido. |
+| Primer pago confirmado | Fecha de la reserva del pedido generado desde la factura. |
+| Fecha posterior entre venta y último pago confirmado | Aplicación contable de anticipos del cliente. |
+| Momento real de guardado/autorización | Campos de auditoría; no reemplazan las fechas anteriores. |
+
+Ejemplo: venta del **20/12/2025**, pago del **18/12/2025**, entrega del **23/12/2025**, registrada en septiembre de 2026. El asiento de venta corresponde al 20/12, el cobro al 18/12, la aplicación al 20/12 y la salida física al 23/12. Los saldos contables se imputan al período correspondiente, no al mes de captura.
+
+Cambiar entre contado y parcial no reemplaza las fechas elegidas por hoy. Si se omiten fechas en el flujo de pago automático, se usan las fechas disponibles de la factura como respaldo. La regularización contable puede indicar una fecha contable explícita: consultar [Contabilidad](contabilidad.md).
+
+## Consultas, anulación y errores frecuentes
+
+Facturas y Pedidos muestran por defecto código/número, cliente, fecha, estado, total y saldo. Cotizaciones muestra código, cliente, fecha, estado y total. Las demás columnas se activan desde el selector; una cotización no tiene saldo de cobros.
+
+La acción **Anular** de la factura solicita un motivo y ejecuta el flujo de reversión de inventario, pagos y contabilidad. No equivale a borrar filas. Los estados históricos se consultan quitando los filtros del listado.
+
+| Situación | Qué revisar |
+| --- | --- |
+| No aparece un pedido | Estado, empresa/sucursal y validez de sus detalles. |
+| Stock insuficiente | Almacén utilizado, físico menos reservado y cantidades de la venta. |
+| No se puede valorar una salida | Método de costo y capas disponibles del artículo. |
+| Serie o lote rechazado | Artículo, almacén, disponibilidad y cantidades indicadas. |
+| Período cerrado o bloqueado | Fecha efectiva del asiento y estado del período; no cambiar la fecha para eludirlo. |
+| Asiento antiguo conserva una fecha incorrecta | Los cambios de fechas no reprocesan automáticamente asientos ya confirmados. |
+
+## Referencias y pruebas
+
+- [FacturaResource](../app/Filament/Resources/Ventas/FacturaResource.php), [creación de facturas](../app/Filament/Resources/Ventas/FacturaResource/Pages/CreateFactura.php).
+- [Modelo Factura](../app/Models/Ventas/Factura.php), [Pedido](../app/Models/Ventas/Pedido.php), [Cliente](../app/Models/Ventas/Cliente.php).
+- [Exportación de contactos](../app/Services/Ventas/ExportarContactosService.php).
+- [Pruebas de fechas](../tests/Feature/VentaFechasTest.php) y [contado](../tests/Feature/FacturaContadoTest.php).
+
+```sh
+php -d extension=pdo_sqlite -d extension=sqlite3 vendor/phpunit/phpunit/phpunit --filter="VentaFechasTest|FacturaContadoTest|ExportarContactosServiceTest"
+```

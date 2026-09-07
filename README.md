@@ -2,6 +2,19 @@ https://web.archive.org/web/20240828000332/http://novanexasrl.com.bo/
 
 # Documentación del Sistema SIA (Sistema Integral de Administración)
 # Entrega de documentacion
+
+## Guías vigentes por módulo
+
+La documentación operativa y técnica actual está en [docs/README.md](docs/README.md):
+
+- [Ventas](docs/ventas.md).
+- [Contabilidad](docs/contabilidad.md).
+- [Inventario y stock](docs/inventario.md).
+- [Inventarios físicos](docs/inventarios-fisicos.md).
+- [Recursos Humanos](docs/rrhh.md).
+
+Estas guías, revisadas el 7 de septiembre de 2026, describen el flujo implementado y sus limitaciones. Las notas y diagramas iniciales que siguen en este README se conservan como referencia; para operar los módulos se deben consultar las guías enlazadas.
+
 ## Stack Tecnológico
 
 ### Backend

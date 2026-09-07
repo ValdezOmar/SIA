@@ -1,5 +1,7 @@
 # Inventarios físicos
 
+[Índice de módulos](README.md) · [Artículos, stock y Kardex](inventario.md) · Revisión: 7 de septiembre de 2026.
+
 El recurso de Almacenes ahora administra sesiones por empresa, sucursal y almacén. Usa `alm_articulos`, sus códigos de barras/series y `alm_existencias`. Los datos del módulo anterior se conservan en `alm_inventarios` y se consultan desde **Registros del módulo anterior**, sin edición.
 
 ## Activación
