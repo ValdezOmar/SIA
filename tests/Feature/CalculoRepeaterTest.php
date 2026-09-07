@@ -57,6 +57,23 @@ class CalculoRepeaterTest extends TestCase
         $this->assertSame(12.5, CalculoDetalle::calcular(['cantidad_aceptada' => 5, 'costo_unitario' => 2.5], 'recepcion')['costo_total']);
         $this->assertSame(7.5, CalculoDetalle::calcular(['cantidad' => 3, 'precio_estimado' => 2.5], 'solicitud')['subtotal']);
     }
+
+    public function test_cambios_sucesivos_de_porcentaje_importe_y_cantidad_no_duplican_descuentos(): void
+    {
+        $test = Livewire::test(FormularioCalculoPrueba::class);
+        $path = 'data.detalles.'.array_key_first($test->get('data.detalles'));
+        $test->set($path.'.cantidad', 2)->set($path.'.precio_unitario', 100)
+            ->set($path.'.descuento_porcentaje', 10)->set($path.'._descuento_tipo', 'porcentaje')
+            ->call('mountFormComponentAction', 'detalles', 'calcular')
+            ->assertSet($path.'.total', 180.0)
+            ->set($path.'.cantidad', 3)
+            ->call('mountFormComponentAction', 'detalles', 'calcular')
+            ->assertSet($path.'.descuento', 30.0)->assertSet($path.'.total', 270.0)
+            ->set($path.'.descuento', 15)->set($path.'._descuento_tipo', 'importe')
+            ->call('mountFormComponentAction', 'detalles', 'calcular')
+            ->assertSet($path.'.descuento_porcentaje', 5.0)->assertSet($path.'.total', 285.0)
+            ->assertSet('data.total', 285.0);
+    }
 }
 
 class FormularioCalculoPrueba extends Component implements HasForms
@@ -64,6 +81,7 @@ class FormularioCalculoPrueba extends Component implements HasForms
     use InteractsWithForms;
 
     public array $data = [];
+
     public array $guardado = [];
 
     public function mount(): void

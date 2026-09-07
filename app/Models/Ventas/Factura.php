@@ -181,6 +181,8 @@ class Factura extends Model
     public function crearPagoAutomaticoSiEsContado(array $datosPago = []): ?Pago
     {
         return DB::transaction(function () use ($datosPago): ?Pago {
+            self::query()->whereKey($this->id)->lockForUpdate()->firstOrFail();
+            $this->refresh();
             if (($this->condicion_pago ?? null) !== 'contado') {
                 return null;
             }

@@ -6,6 +6,33 @@ use Illuminate\Validation\ValidationException;
 
 class CalculoDetalle
 {
+    public static function totales(iterable $filas, ?string $tipo = 'venta'): array
+    {
+        if ($tipo === 'contabilidad') {
+            $totales = ['total_debe' => 0.0, 'total_haber' => 0.0];
+            foreach ($filas as $fila) {
+                $totales['total_debe'] += (float) data_get($fila, 'debe', 0);
+                $totales['total_haber'] += (float) data_get($fila, 'haber', 0);
+            }
+
+            return array_map(fn ($monto) => round($monto, 6), $totales);
+        }
+
+        $totales = ['subtotal' => 0.0, 'descuento' => 0.0, 'impuesto' => 0.0, 'total' => 0.0];
+        foreach ($filas as $fila) {
+            foreach (array_keys($totales) as $campo) {
+                $totales[$campo] += (float) data_get($fila, $campo, 0);
+            }
+        }
+        if ($tipo === 'solicitud') {
+            unset($totales['descuento']);
+            $totales['impuesto'] = round($totales['subtotal'] * 0.13, 6);
+            $totales['total'] = $totales['subtotal'] + $totales['impuesto'];
+        }
+
+        return array_map(fn ($monto) => round($monto, 6), $totales);
+    }
+
     public static function calcular(array $fila, ?string $tipo, string $ruta = 'detalles'): array
     {
         if ($tipo === 'contabilidad') {

@@ -97,47 +97,13 @@ class FacturaResource extends Resource
 
     private static function calcularTotales($get, $record = null): array
     {
-        $subtotal = 0;
-        $descuento = 0;
-        $impuesto = 0;
-        $total = 0;
-
-        if ($record && $record->exists) {
-            if ($record->subtotal > 0 || $record->total > 0) {
-                return [
-                    'subtotal' => floatval($record->subtotal ?? 0),
-                    'descuento' => floatval($record->descuento ?? 0),
-                    'impuesto' => floatval($record->impuesto ?? 0),
-                    'total' => floatval($record->total ?? 0),
-                ];
-            }
-
-            $detallesBD = $record->detalles()->get();
-            if ($detallesBD->isNotEmpty()) {
-                foreach ($detallesBD as $detalle) {
-                    $subtotal += floatval($detalle->subtotal ?? 0);
-                    $descuento += floatval($detalle->descuento ?? 0);
-                    $impuesto += floatval($detalle->impuesto ?? 0);
-                    $total += floatval($detalle->total ?? 0);
-                }
-
-                return compact('subtotal', 'descuento', 'impuesto', 'total');
-            }
+        // El formulario es la fuente actual; un arreglo vacío significa que se eliminaron las filas.
+        $detalles = $get('detalles');
+        if ($detalles === null) {
+            $detalles = $record?->detalles()->get() ?? [];
         }
 
-        $detalles = $get('detalles') ?? [];
-        if (is_array($detalles) && ! empty($detalles)) {
-            foreach ($detalles as $detalle) {
-                if (is_array($detalle)) {
-                    $subtotal += floatval($detalle['subtotal'] ?? 0);
-                    $descuento += floatval($detalle['descuento'] ?? 0);
-                    $impuesto += floatval($detalle['impuesto'] ?? 0);
-                    $total += floatval($detalle['total'] ?? 0);
-                }
-            }
-        }
-
-        return compact('subtotal', 'descuento', 'impuesto', 'total');
+        return \App\Support\CalculoDetalle::totales($detalles);
     }
 
     private static function getSimboloMoneda($moneda): string
@@ -591,7 +557,7 @@ class FacturaResource extends Resource
                                         Grid::make(6)
                                             ->schema([
                                                 Placeholder::make('subtotal')
-                                                    ->label('Subtotal')
+                                                    ->label('Subtotal neto')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
@@ -644,7 +610,7 @@ class FacturaResource extends Resource
                                                     ->label('Saldo')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
-                                                        $total = floatval($record?->total ?? 0);
+                                                        $total = self::calcularTotales($get, $record)['total'];
                                                         $pagado = floatval($record?->monto_pagado ?? 0);
                                                         $saldo = $total - $pagado;
                                                         $color = $saldo <= 0 ? 'text-success-600' : 'text-danger-600';
@@ -816,7 +782,7 @@ class FacturaResource extends Resource
                                                             ->columnSpan(2),
 
                                                         Placeholder::make('subtotal_linea')
-                                                            ->label('Subtotal')
+                                                            ->label('Subtotal neto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
 

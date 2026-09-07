@@ -90,6 +90,42 @@ class CalculoRepeater extends Repeater
             }
         }
         $this->state($filas);
+
+        if (in_array($this->tipoCalculo, ['venta', 'compra', 'solicitud', 'contabilidad'], true)) {
+            $totales = CalculoDetalle::totales($filas, $this->tipoCalculo);
+            if ($this->tipoCalculo === 'venta') {
+                $totales['total'] += (float) ($this->getGetCallback()('costo_envio') ?? 0);
+            }
+            foreach ($totales as $campo => $valor) {
+                $this->getSetCallback()($campo, $valor);
+            }
+        }
+    }
+
+    public function saveRelationships(): void
+    {
+        parent::saveRelationships();
+        $record = $this->getRecord();
+        if (! $record?->exists || ! $this->hasRelationship()
+            || ($this->isDisabled() && ! $this->shouldSaveRelationshipsWhenDisabled())
+            || ($this->isHidden() && ! $this->shouldSaveRelationshipsWhenHidden())
+            || ! in_array($this->tipoCalculo, ['venta', 'compra', 'solicitud', 'contabilidad'], true)) {
+            return;
+        }
+
+        // Calcular después de insertar, editar y eliminar todas las filas.
+        $totales = CalculoDetalle::totales($this->getRelationship()->get(), $this->tipoCalculo);
+        if ($record instanceof \App\Models\Ventas\Pedido) {
+            $totales['total'] += (float) ($record->costo_envio ?? 0);
+        }
+        if ($record instanceof \App\Models\Ventas\Factura || $record instanceof \App\Models\Compras\FacturaCompra) {
+            $totales['saldo'] = max(0, $totales['total'] - (float) ($record->monto_pagado ?? 0));
+            if ($record instanceof \App\Models\Ventas\Factura) {
+                $totales['monto_restante'] = $totales['saldo'];
+            }
+        }
+        $record->forceFill($totales)->saveQuietly();
+        $record->unsetRelation($this->getRelationshipName());
     }
 
     public function mutateRelationshipDataBeforeCreate(array $data): ?array

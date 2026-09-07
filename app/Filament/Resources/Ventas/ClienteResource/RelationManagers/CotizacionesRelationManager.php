@@ -12,7 +12,6 @@ use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs;
@@ -88,57 +87,15 @@ class CotizacionesRelationManager extends RelationManager
 
     private static function calcularTotales($get, $record = null): array
     {
-        $subtotal = 0;
-        $descuento = 0;
-        $impuesto = 0;
-        $total = 0;
-
-        if ($record && $record->exists) {
-            if ($record->subtotal > 0 || $record->total > 0 || $record->impuesto > 0) {
-                return [
-                    'subtotal' => floatval($record->subtotal ?? 0),
-                    'descuento' => floatval($record->descuento ?? 0),
-                    'impuesto' => floatval($record->impuesto ?? 0),
-                    'total' => floatval($record->total ?? 0),
-                ];
-            }
-
-            $detallesBD = $record->detalles()->get();
-            if ($detallesBD->isNotEmpty()) {
-                foreach ($detallesBD as $detalle) {
-                    $subtotal += floatval($detalle->subtotal ?? 0);
-                    $descuento += floatval($detalle->descuento ?? 0);
-                    $impuesto += floatval($detalle->impuesto ?? 0);
-                    $total += floatval($detalle->total ?? 0);
-                }
-
-                return compact('subtotal', 'descuento', 'impuesto', 'total');
-            }
+        // El formulario es la fuente actual; un arreglo vacío significa que se eliminaron las filas.
+        $detalles = $get('detalles');
+        if ($detalles === null) {
+            $detalles = $record?->detalles()->get() ?? [];
         }
 
-        $detalles = $get('detalles') ?? [];
-        if (is_array($detalles) && ! empty($detalles)) {
-            foreach ($detalles as $detalle) {
-                if (is_array($detalle)) {
-                    $subtotal += floatval($detalle['subtotal'] ?? 0);
-                    $descuento += floatval($detalle['descuento'] ?? 0);
-                    $impuesto += floatval($detalle['impuesto'] ?? 0);
-                    $total += floatval($detalle['total'] ?? 0);
-                } elseif (is_object($detalle)) {
-                    $subtotal += floatval($detalle->subtotal ?? 0);
-                    $descuento += floatval($detalle->descuento ?? 0);
-                    $impuesto += floatval($detalle->impuesto ?? 0);
-                    $total += floatval($detalle->total ?? 0);
-                }
-            }
-        }
-
-        return compact('subtotal', 'descuento', 'impuesto', 'total');
+        return \App\Support\CalculoDetalle::totales($detalles);
     }
 
-    /**
-     * Formatear número para mostrar (sin decimales si es 0, 2 decimales si tiene)
-     */
     private static function formatearNumero($valor, $decimales = 2): string
     {
         if ($valor === null || $valor === '') {
@@ -386,7 +343,7 @@ class CotizacionesRelationManager extends RelationManager
                                         Grid::make(4)
                                             ->schema([
                                                 Placeholder::make('subtotal')
-                                                    ->label('Subtotal')
+                                                    ->label('Subtotal neto')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
@@ -563,7 +520,7 @@ class CotizacionesRelationManager extends RelationManager
                                                             ->columnSpan(2),
 
                                                         Placeholder::make('subtotal_linea')
-                                                            ->label('Subtotal')
+                                                            ->label('Subtotal neto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
 

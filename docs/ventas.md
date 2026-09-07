@@ -58,6 +58,20 @@ Registrar el abono inicial y seleccionar **Pago parcial y reserva de stock**. Lo
 
 El pago debe ser mayor que cero y no superar el saldo. Una factura pagada o anulada no admite otro pago por el flujo de registro. Una factura sin artículos puede generar contabilidad sin generar un pedido o movimiento de almacén.
 
+### Pago mixto: Efectivo + QR
+
+En el pago inicial o en **Registrar pago**, elegir **Mixto: Efectivo + QR** e introducir ambos importes. Los dos deben ser positivos. En contado, la suma debe cubrir el saldo completo; en un abono parcial, la suma es el importe recibido y no puede superar el saldo.
+
+El sistema guarda dos pagos con la misma fecha, uno por cada medio. El banco y la referencia corresponden a la parte QR. Cada parte genera su asiento en la cuenta receptora correspondiente; la entrega se procesa una sola vez. Si falla la operación, se revierten ambas partes y sus asientos.
+
+### Captura y cálculo de los detalles
+
+Las cantidades, precios y descuentos se escriben sin solicitar recálculos al servidor por cada pulsación. Pulsar **Calcular totales** para actualizar las filas y el resumen. Guardar vuelve a calcular con los datos actuales, aunque no se haya pulsado el botón. La selección de artículos y listas de precios sigue consultando los datos necesarios.
+
+Si se modifica el porcentaje o el importe del descuento, se usa el último de esos campos editado. **Subtotal neto** significa cantidad × precio menos descuento. El impuesto se calcula sobre ese subtotal y el total suma subtotal neto e impuesto; el descuento no se resta otra vez. En pedidos, el envío se agrega una sola vez al total del documento.
+
+Ejemplo: 3 unidades × 100, descuento del 10 % → descuento 30, subtotal neto 270. Con IVA del 13 %, impuesto 35,10 y total 305,10. Los resúmenes usan las filas actuales del formulario; las cabeceras se actualizan después de guardar todas las filas, incluidas sus eliminaciones.
+
 ## Fechas de la operación
 
 | Dato seleccionado / origen | Registros afectados |

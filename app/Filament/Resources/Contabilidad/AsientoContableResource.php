@@ -13,7 +13,6 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs;
@@ -277,7 +276,7 @@ class AsientoContableResource extends Resource
                                                 Placeholder::make('total_debe')
                                                     ->label('Total Debe')
                                                     ->content(function ($get, $record) {
-                                                        $total = $record?->total_debe ?? 0;
+                                                        $total = \App\Support\CalculoDetalle::totales($get('detalles') ?? [], 'contabilidad')['total_debe'];
 
                                                         return self::formatearMonto($total);
                                                     }),
@@ -285,7 +284,7 @@ class AsientoContableResource extends Resource
                                                 Placeholder::make('total_haber')
                                                     ->label('Total Haber')
                                                     ->content(function ($get, $record) {
-                                                        $total = $record?->total_haber ?? 0;
+                                                        $total = \App\Support\CalculoDetalle::totales($get('detalles') ?? [], 'contabilidad')['total_haber'];
 
                                                         return self::formatearMonto($total);
                                                     }),
@@ -293,8 +292,9 @@ class AsientoContableResource extends Resource
                                                 Placeholder::make('balance')
                                                     ->label('Balance')
                                                     ->content(function ($get, $record) {
-                                                        $debe = $record?->total_debe ?? 0;
-                                                        $haber = $record?->total_haber ?? 0;
+                                                        $totales = \App\Support\CalculoDetalle::totales($get('detalles') ?? [], 'contabilidad');
+                                                        $debe = $totales['total_debe'];
+                                                        $haber = $totales['total_haber'];
                                                         $diferencia = $debe - $haber;
                                                         $color = abs($diferencia) < 0.01 ? 'text-success-600' : 'text-danger-600';
 

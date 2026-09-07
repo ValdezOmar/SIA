@@ -18,6 +18,8 @@ Esta guía describe las reglas implementadas en SIA y su integración con los do
 
 Al crear un asiento, revisar empresa/sucursal, fecha, tipo, concepto y documento de origen. En las partidas seleccionar las cuentas y distribuir los importes en Debe o Haber. Recalcular los totales antes de confirmar.
 
+La captura de importes no recalcula por cada pulsación. **Calcular totales** actualiza Debe, Haber y balance a partir de las partidas actuales. Al guardar se comprueban nuevamente; una partida con ambos lados positivos se rechaza sin borrar silenciosamente ninguno de los importes.
+
 La confirmación exige al menos dos partidas, cuentas activas que permitan movimiento, importes en un solo lado por partida y un asiento balanceado con total positivo. Un período encontrado como cerrado o bloqueado impide confirmar. La fecha de autorización conserva el momento real de esa acción.
 
 Al confirmar se acumulan los movimientos en el mes y año de `fecha_asiento`. La anulación utiliza la lógica de reversión de saldos. Para documentos originados en Ventas o Kardex debe usarse su flujo de anulación, de modo que no queden inventario y contabilidad desconectados.
@@ -29,6 +31,8 @@ Al confirmar se acumulan los movimientos en el mes y año de `fecha_asiento`. La
 | Cobro confirmado | Fondos según el medio de pago contra anticipos de clientes. |
 | Venta procesada | Cliente, ingreso e impuesto aplicable; costo de venta e inventario cuando existe costo. |
 | Aplicación de anticipos | Cancelación del anticipo contra la cuenta del cliente. |
+
+El pago mixto Efectivo/QR genera dos pagos y dos asientos de cobro, con importes y cuentas receptoras separados. Ambas partes conservan la fecha seleccionada y se registran dentro de una misma transacción.
 
 El total exigible de la factura es la referencia para construir el asiento. Una venta bonificada al 100 % sin costo de inventario no genera un hecho contable; con costo puede generar su asiento correspondiente.
 

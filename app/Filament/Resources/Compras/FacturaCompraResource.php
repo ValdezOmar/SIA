@@ -14,7 +14,6 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs;
@@ -235,7 +234,7 @@ class FacturaCompraResource extends Resource
                                         Grid::make(6)
                                             ->schema([
                                                 Placeholder::make('subtotal')
-                                                    ->label('Subtotal')
+                                                    ->label('Subtotal neto')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
                                                         $totales = self::calcularTotales($get, $record);
@@ -287,7 +286,7 @@ class FacturaCompraResource extends Resource
                                                     ->label('Saldo')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
-                                                        $total = floatval($record?->total ?? 0);
+                                                        $total = self::calcularTotales($get, $record)['total'];
                                                         $pagado = floatval($record?->monto_pagado ?? 0);
                                                         $saldo = $total - $pagado;
                                                         $color = $saldo <= 0 ? 'text-success-600' : 'text-danger-600';
@@ -430,7 +429,7 @@ class FacturaCompraResource extends Resource
                                                             ->columnSpan(2),
 
                                                         Placeholder::make('subtotal_linea')
-                                                            ->label('Subtotal')
+                                                            ->label('Subtotal neto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
                                                                 $cantidad = floatval($get('cantidad') ?? 0);
@@ -531,47 +530,13 @@ class FacturaCompraResource extends Resource
 
     private static function calcularTotales($get, $record = null): array
     {
-        $subtotal = 0;
-        $descuento = 0;
-        $impuesto = 0;
-        $total = 0;
-
-        if ($record && $record->exists) {
-            if ($record->subtotal > 0 || $record->total > 0) {
-                return [
-                    'subtotal' => floatval($record->subtotal ?? 0),
-                    'descuento' => floatval($record->descuento ?? 0),
-                    'impuesto' => floatval($record->impuesto ?? 0),
-                    'total' => floatval($record->total ?? 0),
-                ];
-            }
-
-            $detallesBD = $record->detalles()->get();
-            foreach ($detallesBD as $detalle) {
-                $subtotal += floatval($detalle->subtotal ?? 0);
-                $descuento += floatval($detalle->descuento ?? 0);
-                $impuesto += floatval($detalle->impuesto ?? 0);
-                $total += floatval($detalle->total ?? 0);
-            }
-
-            return compact('subtotal', 'descuento', 'impuesto', 'total');
+        // El formulario es la fuente actual; un arreglo vacío significa que se eliminaron las filas.
+        $detalles = $get('detalles');
+        if ($detalles === null) {
+            $detalles = $record?->detalles()->get() ?? [];
         }
 
-        $detalles = $get('detalles') ?? [];
-        foreach ($detalles as $detalle) {
-            if (is_array($detalle)) {
-                $cantidad = floatval($detalle['cantidad'] ?? 0);
-                $precio = floatval($detalle['precio_unitario'] ?? 0);
-                $descuentoItem = floatval($detalle['descuento'] ?? 0);
-                $subtotal += ($cantidad * $precio) - $descuentoItem;
-                $descuento += $descuentoItem;
-            }
-        }
-
-        $impuesto = $subtotal * 0.13;
-        $total = $subtotal + $impuesto;
-
-        return compact('subtotal', 'descuento', 'impuesto', 'total');
+        return \App\Support\CalculoDetalle::totales($detalles);
     }
 
     private static function recalcularTotales(callable $set, callable $get): void
