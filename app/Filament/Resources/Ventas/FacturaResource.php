@@ -76,8 +76,8 @@ class FacturaResource extends Resource
         $usuario = Auth::user();
 
         return $query
-            ->when($usuario?->empresa_id, fn ($builder, $empresaId) => $builder->where('empresa_id', $empresaId))
-            ->when($usuario?->sucursal_id, fn ($builder, $sucursalId) => $builder->where('sucursal_id', $sucursalId));
+            ->when($usuario?->empresa_id, fn($builder, $empresaId) => $builder->where('empresa_id', $empresaId))
+            ->when($usuario?->sucursal_id, fn($builder, $sucursalId) => $builder->where('sucursal_id', $sucursalId));
     }
 
     // ========== MÉTODOS DE CÁLCULO ==========
@@ -120,7 +120,7 @@ class FacturaResource extends Resource
     {
         $simbolo = self::getSimboloMoneda($moneda);
 
-        return $simbolo.' '.number_format($monto ?? 0, 2);
+        return $simbolo . ' ' . number_format($monto ?? 0, 2);
     }
 
     private static function formatearMontoHtml($monto, $moneda, $clase = ''): HtmlString
@@ -128,8 +128,8 @@ class FacturaResource extends Resource
         $simbolo = self::getSimboloMoneda($moneda);
 
         return new HtmlString(
-            '<span class="'.$clase.'">'.
-                $simbolo.' '.number_format($monto ?? 0, 2).
+            '<span class="' . $clase . '">' .
+                $simbolo . ' ' . number_format($monto ?? 0, 2) .
                 '</span>'
         );
     }
@@ -171,14 +171,14 @@ class FacturaResource extends Resource
     {
         return Cotizacion::query()
             ->whereIn('estado', ['borrador', 'enviada', 'aprobada'])
-            ->where(fn ($query) => $query->whereNull('fecha_validez')->orWhereDate('fecha_validez', '>=', now()->toDateString()))
-            ->when(Auth::user()?->empresa_id, fn ($query, $id) => $query->where('empresa_id', $id))
-            ->when(Auth::user()?->sucursal_id, fn ($query, $id) => $query->where('sucursal_id', $id))
-            ->when($empresaId, fn ($query, $id) => $query->where('empresa_id', $id))
-            ->when($sucursalId, fn ($query, $id) => $query->where('sucursal_id', $id))
+            ->where(fn($query) => $query->whereNull('fecha_validez')->orWhereDate('fecha_validez', '>=', now()->toDateString()))
+            ->when(Auth::user()?->empresa_id, fn($query, $id) => $query->where('empresa_id', $id))
+            ->when(Auth::user()?->sucursal_id, fn($query, $id) => $query->where('sucursal_id', $id))
+            ->when($empresaId, fn($query, $id) => $query->where('empresa_id', $id))
+            ->when($sucursalId, fn($query, $id) => $query->where('sucursal_id', $id))
             ->whereDoesntHave('pedido')
             ->whereHas('detalles')
-            ->whereDoesntHave('detalles', fn ($query) => $query->whereDoesntHave('articulo'));
+            ->whereDoesntHave('detalles', fn($query) => $query->whereDoesntHave('articulo'));
     }
 
     public static function form(Form $form): Form
@@ -187,20 +187,20 @@ class FacturaResource extends Resource
             ->schema([
                 Section::make('Empresa y sucursal')
                     ->description('El empleado no tiene una asignación laboral activa. Indique dónde se registrará esta venta.')
-                    ->visible(fn (): bool => blank(Auth::user()?->empresa_id) || blank(Auth::user()?->sucursal_id))
+                    ->visible(fn(): bool => blank(Auth::user()?->empresa_id) || blank(Auth::user()?->sucursal_id))
                     ->schema([
                         Select::make('empresa_id')
                             ->label('Empresa')
-                            ->options(fn (): array => Empresa::query()
+                            ->options(fn(): array => Empresa::query()
                                 ->where('empresa_activo', true)
-                                ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->whereKey($empresaId))
+                                ->when(Auth::user()?->empresa_id, fn($query, $empresaId) => $query->whereKey($empresaId))
                                 ->orderByRaw('COALESCE(nombre_comercial, razon_social)')
                                 ->pluck('nombre_comercial', 'id')
                                 ->all())
-                            ->default(fn (): ?int => Auth::user()?->empresa_id ?? Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))
+                            ->default(fn(): ?int => Auth::user()?->empresa_id ?? Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))
                             ->required()->searchable()->preload()->live()
-                            ->afterStateUpdated(fn (callable $set) => $set('sucursal_id', null)),
-                        Select::make('sucursal_id')->label('Sucursal')->options(fn (callable $get): array => filled($get('empresa_id')) ? Sucursal::query()->where('empresa_id', $get('empresa_id'))->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all() : [])->required()->searchable()->preload()->disabled(fn (callable $get): bool => blank($get('empresa_id'))),
+                            ->afterStateUpdated(fn(callable $set) => $set('sucursal_id', null)),
+                        Select::make('sucursal_id')->label('Sucursal')->options(fn(callable $get): array => filled($get('empresa_id')) ? Sucursal::query()->where('empresa_id', $get('empresa_id'))->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all() : [])->required()->searchable()->preload()->disabled(fn(callable $get): bool => blank($get('empresa_id'))),
                     ])->columns(2),
                 Tabs::make('Gestión de Factura')
                     ->tabs([
@@ -222,7 +222,7 @@ class FacturaResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('FAC-000001')
                                                     ->helperText('Número único de la factura')
-                                                    ->default(fn () => Factura::generarNumero())
+                                                    ->default(fn() => Factura::generarNumero())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -266,9 +266,9 @@ class FacturaResource extends Resource
                                             ->schema([
                                                 Select::make('cliente_id')
                                                     ->label('Cliente')
-                                                    ->options(fn (Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id))
-                                                    ->getSearchResultsUsing(fn (string $search, Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id, $search))
-                                                    ->getOptionLabelUsing(fn ($value, Get $get) => ClienteSelectOptions::seleccionado($value, $get('empresa_id') ?? Auth::user()?->empresa_id))
+                                                    ->options(fn(Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id))
+                                                    ->getSearchResultsUsing(fn(string $search, Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id, $search))
+                                                    ->getOptionLabelUsing(fn($value, Get $get) => ClienteSelectOptions::seleccionado($value, $get('empresa_id') ?? Auth::user()?->empresa_id))
                                                     ->required()
                                                     ->searchable()
                                                     ->preload()
@@ -287,7 +287,7 @@ class FacturaResource extends Resource
                                                         }
                                                     })
                                                     ->createOptionForm(ClienteRegistroForm::schema())
-                                                    ->createOptionAction(fn (FormAction $action): FormAction => $action
+                                                    ->createOptionAction(fn(FormAction $action): FormAction => $action
                                                         ->modalHeading('Registrar o reutilizar cliente')
                                                         ->modalDescription('Si el celular ya pertenece a un cliente, se usará ese registro y no se creará un duplicado.')
                                                         ->modalSubmitActionLabel('Continuar con este cliente'))
@@ -315,11 +315,11 @@ class FacturaResource extends Resource
                                                 Select::make('pedido_id')
                                                     ->label('Pedido Asociado')
                                                     ->options(
-                                                        fn (Get $get) => Pedido::whereIn('estado', ['pendiente', 'reservado'])
-                                                            ->when($get('empresa_id') ?? Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
-                                                            ->when($get('sucursal_id') ?? Auth::user()?->sucursal_id, fn ($query, $sucursalId) => $query->where('sucursal_id', $sucursalId))
+                                                        fn(Get $get) => Pedido::whereIn('estado', ['pendiente', 'reservado'])
+                                                            ->when($get('empresa_id') ?? Auth::user()?->empresa_id, fn($query, $empresaId) => $query->where('empresa_id', $empresaId))
+                                                            ->when($get('sucursal_id') ?? Auth::user()?->sucursal_id, fn($query, $sucursalId) => $query->where('sucursal_id', $sucursalId))
                                                             ->whereHas('detalles')
-                                                            ->whereDoesntHave('detalles', fn ($query) => $query->whereDoesntHave('articulo'))
+                                                            ->whereDoesntHave('detalles', fn($query) => $query->whereDoesntHave('articulo'))
                                                             ->orderBy('codigo')
                                                             ->pluck('codigo', 'id')
                                                             ->toArray()
@@ -336,8 +336,8 @@ class FacturaResource extends Resource
                                                         if ($state) {
                                                             $pedido = Pedido::with(['detalles.articulo'])
                                                                 ->whereIn('estado', ['pendiente', 'reservado'])
-                                                                ->when($get('empresa_id') ?? Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
-                                                                ->when($get('sucursal_id') ?? Auth::user()?->sucursal_id, fn ($query, $sucursalId) => $query->where('sucursal_id', $sucursalId))
+                                                                ->when($get('empresa_id') ?? Auth::user()?->empresa_id, fn($query, $empresaId) => $query->where('empresa_id', $empresaId))
+                                                                ->when($get('sucursal_id') ?? Auth::user()?->sucursal_id, fn($query, $sucursalId) => $query->where('sucursal_id', $sucursalId))
                                                                 ->find($state);
                                                             if ($pedido) {
                                                                 $set('cotizacion_origen_id', null);
@@ -381,7 +381,7 @@ class FacturaResource extends Resource
 
                                                 Select::make('cotizacion_origen_id')
                                                     ->label('Cotización abierta')
-                                                    ->options(fn (Get $get) => self::cotizacionesAbiertas($get('empresa_id'), $get('sucursal_id'))
+                                                    ->options(fn(Get $get) => self::cotizacionesAbiertas($get('empresa_id'), $get('sucursal_id'))
                                                         ->orderBy('codigo')->pluck('codigo', 'id'))
                                                     ->searchable()
                                                     ->preload()
@@ -407,10 +407,23 @@ class FacturaResource extends Resource
                                                         if ($cotizacion->fecha_entrega_estimada) {
                                                             $set('fecha_vencimiento', $cotizacion->fecha_entrega_estimada->toDateString());
                                                         }
-                                                        $set('detalles', $cotizacion->detalles->map(fn ($detalle) => $detalle->only([
-                                                            'articulo_id', 'lista_precio', 'codigo_articulo', 'descripcion_articulo', 'unidad_medida',
-                                                            'cantidad', 'precio_unitario', 'precio_original', 'descuento', 'descuento_porcentaje',
-                                                            'subtotal', 'tipo_impuesto', 'tasa_impuesto', 'impuesto', 'total', 'observaciones',
+                                                        $set('detalles', $cotizacion->detalles->map(fn($detalle) => $detalle->only([
+                                                            'articulo_id',
+                                                            'lista_precio',
+                                                            'codigo_articulo',
+                                                            'descripcion_articulo',
+                                                            'unidad_medida',
+                                                            'cantidad',
+                                                            'precio_unitario',
+                                                            'precio_original',
+                                                            'descuento',
+                                                            'descuento_porcentaje',
+                                                            'subtotal',
+                                                            'tipo_impuesto',
+                                                            'tasa_impuesto',
+                                                            'impuesto',
+                                                            'total',
+                                                            'observaciones',
                                                         ]))->all());
                                                         $totales = self::calcularTotales($get);
                                                         foreach (['subtotal', 'descuento', 'impuesto', 'total'] as $campo) {
@@ -443,7 +456,7 @@ class FacturaResource extends Resource
                                                     ->step(0.000001)
                                                     ->helperText('Tasa de cambio aplicada')
                                                     ->prefixIcon('heroicon-o-arrow-path')
-                                                    ->visible(fn ($get) => $get('moneda') !== 'BOB')
+                                                    ->visible(fn($get) => $get('moneda') !== 'BOB')
                                                     ->columnSpan(1),
 
                                                 Select::make('vendedor_id')
@@ -496,10 +509,10 @@ class FacturaResource extends Resource
                                                     ->label('Monto recibido ahora')
                                                     ->numeric()
                                                     ->minValue(0.01)
-                                                    ->required(fn ($get): bool => $get('condicion_pago') === 'parcial' && $get('pago_inicial_tipo') !== 'mixto')
-                                                    ->visible(fn ($get): bool => $get('condicion_pago') === 'parcial' && $get('pago_inicial_tipo') !== 'mixto')
+                                                    ->required(fn($get): bool => $get('condicion_pago') === 'parcial' && $get('pago_inicial_tipo') !== 'mixto')
+                                                    ->visible(fn($get): bool => $get('condicion_pago') === 'parcial' && $get('pago_inicial_tipo') !== 'mixto')
                                                     ->helperText('Registre el abono inicial. El saldo pendiente podrá cobrarse después desde Pagos.')
-                                                    ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
+                                                    ->prefix(fn($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                                     ->columnSpan(1),
 
                                                 Select::make('pago_inicial_tipo')
@@ -516,37 +529,37 @@ class FacturaResource extends Resource
                                                         'otros' => 'Otros',
                                                     ])
                                                     ->default('efectivo')
-                                                    ->required(fn ($get): bool => in_array($get('condicion_pago'), ['contado', 'parcial'], true))
-                                                    ->visible(fn ($get): bool => in_array($get('condicion_pago'), ['contado', 'parcial'], true))
+                                                    ->required(fn($get): bool => in_array($get('condicion_pago'), ['contado', 'parcial'], true))
+                                                    ->visible(fn($get): bool => in_array($get('condicion_pago'), ['contado', 'parcial'], true))
                                                     ->live()
                                                     ->native()
                                                     ->helperText('Se guardará en el pago y determinará la cuenta contable receptora.'),
 
                                                 TextInput::make('pago_inicial_efectivo')
                                                     ->label('Importe en efectivo')->numeric()->minValue(0.01)
-                                                    ->required(fn ($get) => $get('pago_inicial_tipo') === 'mixto')
-                                                    ->visible(fn ($get) => $get('pago_inicial_tipo') === 'mixto')
+                                                    ->required(fn($get) => $get('pago_inicial_tipo') === 'mixto')
+                                                    ->visible(fn($get) => $get('pago_inicial_tipo') === 'mixto')
                                                     ->helperText('En contado, efectivo + QR debe cubrir el total pendiente. En parcial, la suma será el abono.'),
                                                 TextInput::make('pago_inicial_qr')
                                                     ->label('Importe por QR')->numeric()->minValue(0.01)
-                                                    ->required(fn ($get) => $get('pago_inicial_tipo') === 'mixto')
-                                                    ->visible(fn ($get) => $get('pago_inicial_tipo') === 'mixto'),
+                                                    ->required(fn($get) => $get('pago_inicial_tipo') === 'mixto')
+                                                    ->visible(fn($get) => $get('pago_inicial_tipo') === 'mixto'),
 
                                                 TextInput::make('pago_inicial_referencia')
                                                     ->label('Referencia del pago')
                                                     ->maxLength(100)
-                                                    ->visible(fn ($get): bool => in_array($get('pago_inicial_tipo'), ['mixto', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito', 'otros'], true)),
+                                                    ->visible(fn($get): bool => in_array($get('pago_inicial_tipo'), ['mixto', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito', 'otros'], true)),
 
                                                 TextInput::make('pago_inicial_banco')
                                                     ->label('Banco')
                                                     ->maxLength(100)
-                                                    ->visible(fn ($get): bool => in_array($get('pago_inicial_tipo'), ['mixto', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
+                                                    ->visible(fn($get): bool => in_array($get('pago_inicial_tipo'), ['mixto', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
 
                                                 TextInput::make('pago_inicial_numero_cheque')
                                                     ->label('Número de cheque')
                                                     ->maxLength(50)
-                                                    ->required(fn ($get): bool => $get('pago_inicial_tipo') === 'cheque')
-                                                    ->visible(fn ($get): bool => $get('pago_inicial_tipo') === 'cheque'),
+                                                    ->required(fn($get): bool => $get('pago_inicial_tipo') === 'cheque')
+                                                    ->visible(fn($get): bool => $get('pago_inicial_tipo') === 'cheque'),
                                             ]),
                                     ]),
 
@@ -618,7 +631,7 @@ class FacturaResource extends Resource
                                                         return self::formatearMontoHtml(
                                                             $saldo,
                                                             $moneda,
-                                                            'font-bold text-lg '.$color
+                                                            'font-bold text-lg ' . $color
                                                         );
                                                     })
                                                     ->extraAttributes(['class' => 'font-bold text-lg']),
@@ -650,9 +663,9 @@ class FacturaResource extends Resource
                                                     ->schema([
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
-                                                            ->options(fn () => ArticuloSelectOptions::ventas())
-                                                            ->getSearchResultsUsing(fn (string $search): array => ArticuloSelectOptions::ventas($search))
-                                                            ->getOptionLabelUsing(fn ($value): ?string => ArticuloSelectOptions::label($value))
+                                                            ->options(fn() => ArticuloSelectOptions::ventas())
+                                                            ->getSearchResultsUsing(fn(string $search): array => ArticuloSelectOptions::ventas($search))
+                                                            ->getOptionLabelUsing(fn($value): ?string => ArticuloSelectOptions::label($value))
                                                             ->required()
                                                             ->exists('alm_articulos', 'id')
                                                             ->searchable()
@@ -697,8 +710,8 @@ class FacturaResource extends Resource
                                                                     return [];
                                                                 }
 
-                                                                return $precios->mapWithKeys(fn ($item, $key) => [
-                                                                    $key => $item['nombre'].' - '.number_format($item['precio'], 2).' '.$item['moneda'],
+                                                                return $precios->mapWithKeys(fn($item, $key) => [
+                                                                    $key => $item['nombre'] . ' - ' . number_format($item['precio'], 2) . ' ' . $item['moneda'],
                                                                 ])->toArray();
                                                             })
                                                             ->searchable()
@@ -751,7 +764,7 @@ class FacturaResource extends Resource
                                                             ->maxValue(999999)
                                                             ->step(1.00)
                                                             ->default(1)
-                                                            ->formatStateUsing(fn ($state) => (int) $state)
+                                                            ->formatStateUsing(fn($state) => (int) $state)
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $state = intval($state);
@@ -773,7 +786,7 @@ class FacturaResource extends Resource
                                                                 'class' => '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
                                                             ])
                                                             ->default(0)
-                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
                                                             ->live(onBlur: true)
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
@@ -827,7 +840,7 @@ class FacturaResource extends Resource
                                                             ->numeric()
                                                             ->type('text')
                                                             ->minValue(0)
-                                                            ->maxValue(fn ($get) => round(
+                                                            ->maxValue(fn($get) => round(
                                                                 floatval($get('cantidad') ?? 0) * floatval($get('precio_unitario') ?? 0),
                                                                 2
                                                             ))
@@ -837,7 +850,7 @@ class FacturaResource extends Resource
                                                                 'class' => '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
                                                             ])
                                                             ->default(0)
-                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')
                                                             ->live(onBlur: true)
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
@@ -907,8 +920,8 @@ class FacturaResource extends Resource
                                                                 $total = floatval($get('total') ?? 0);
 
                                                                 return new HtmlString(
-                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">'.
-                                                                        self::formatearMonto($total, $moneda).
+                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">' .
+                                                                        self::formatearMonto($total, $moneda) .
                                                                         '</span>'
                                                                 );
                                                             })
@@ -1020,26 +1033,153 @@ class FacturaResource extends Resource
                                             ->label('')
                                             ->content(function ($record) {
                                                 if (! $record) {
-                                                    return '<div class="text-sm text-gray-500">Guardar la factura para gestionar pagos.</div>';
+                                                    return new HtmlString(
+                                                        '<div class="text-sm text-gray-500">
+                    Guarde la factura para consultar sus movimientos de pago.
+                </div>'
+                                                    );
                                                 }
 
-                                                $totalPagos = $record->pagos()->count();
-                                                $totalMonto = $record->pagos()->sum('monto');
+                                                $moneda = $record->moneda ?? 'BOB';
+                                                $pagos = $record->pagos()
+                                                    ->latest('fecha_pago')
+                                                    ->latest('id')
+                                                    ->get();
+
+                                                $totalPagado = $pagos
+                                                    ->where('estado', '!=', 'anulado')
+                                                    ->sum('monto');
+
+                                                $saldo = max(0, (float) ($record->total ?? 0) - (float) $totalPagado);
+
+                                                $tipos = [
+                                                    'efectivo' => 'Efectivo',
+                                                    'qr' => 'QR',
+                                                    'mixto' => 'Efectivo + QR',
+                                                    'transferencia' => 'Transferencia',
+                                                    'cheque' => 'Cheque',
+                                                    'tarjeta' => 'Tarjeta',
+                                                    'deposito' => 'Depósito',
+                                                    'nota_credito' => 'Nota de crédito',
+                                                    'otros' => 'Otros',
+                                                ];
+
+                                                $filas = $pagos->map(function ($pago) use ($moneda, $tipos) {
+                                                    $fecha = $pago->fecha_pago
+                                                        ? \Illuminate\Support\Carbon::parse($pago->fecha_pago)->format('d/m/Y')
+                                                        : 'Sin fecha';
+
+                                                    $tipo = $tipos[$pago->tipo_pago] ?? ucfirst($pago->tipo_pago ?? 'No especificado');
+                                                    $estado = ucfirst($pago->estado ?? 'confirmado');
+
+                                                    $detalle = [];
+
+                                                    if (filled($pago->referencia)) {
+                                                        $detalle[] = 'Ref.: ' . e($pago->referencia);
+                                                    }
+
+                                                    if (filled($pago->banco)) {
+                                                        $detalle[] = 'Banco: ' . e($pago->banco);
+                                                    }
+
+                                                    if (filled($pago->numero_cheque)) {
+                                                        $detalle[] = 'Cheque: ' . e($pago->numero_cheque);
+                                                    }
+
+                                                    if (filled(data_get($pago, 'monto_efectivo'))) {
+                                                        $detalle[] = 'Efectivo: ' . e(
+                                                            self::formatearMonto(data_get($pago, 'monto_efectivo'), $moneda)
+                                                        );
+                                                    }
+
+                                                    if (filled(data_get($pago, 'monto_qr'))) {
+                                                        $detalle[] = 'QR: ' . e(
+                                                            self::formatearMonto(data_get($pago, 'monto_qr'), $moneda)
+                                                        );
+                                                    }
+
+                                                    $detalleTexto = $detalle
+                                                        ? implode(' · ', $detalle)
+                                                        : 'Sin información adicional';
+
+                                                    $estadoClase = in_array($pago->estado, ['anulado', 'cancelado'], true)
+                                                        ? 'bg-red-100 text-red-700'
+                                                        : 'bg-green-100 text-green-700';
+
+                                                    return '
+                <tr class="border-t border-gray-200 dark:border-gray-700">
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        ' . e($fecha) . '
+                    </td>
+                    <td class="px-3 py-3">
+                        <div class="font-semibold">' . e($tipo) . '</div>
+                        <div class="mt-1 text-xs text-gray-500">
+                            ' . $detalleTexto . '
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 text-right whitespace-nowrap font-bold text-green-600 dark:text-green-400">
+                        ' . e(self::formatearMonto($pago->monto, $moneda)) . '
+                    </td>
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        <span class="rounded-md px-2 py-1 text-xs font-medium ' . $estadoClase . '">
+                            ' . e($estado) . '
+                        </span>
+                    </td>
+                </tr>';
+                                                })->implode('');
+
+                                                $detalle = $pagos->isEmpty()
+                                                    ? '<div class="mt-5 rounded-lg bg-gray-50 p-4 text-sm text-gray-500 dark:bg-gray-800">
+                    No existen movimientos de pago registrados.
+               </div>'
+                                                    : '
+                <div class="mt-5 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th class="px-3 py-3 text-left">Fecha</th>
+                                <th class="px-3 py-3 text-left">Movimiento y detalle</th>
+                                <th class="px-3 py-3 text-right">Importe</th>
+                                <th class="px-3 py-3 text-left">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>' . $filas . '</tbody>
+                    </table>
+                </div>';
 
                                                 return new HtmlString(
-                                                    '<div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                                        <div class="grid grid-cols-2 gap-4">
-                                                            <div class="text-center">
-                                                                <p class="text-sm text-gray-600 dark:text-gray-400">Total Pagos</p>
-                                                                <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">'.$totalPagos.'</p>
-                                                            </div>
-                                                            <div class="text-center">
-                                                                <p class="text-sm text-gray-600 dark:text-gray-400">Monto Pagado</p>
-                                                                <p class="text-2xl font-bold text-green-600 dark:text-green-400">'.self::formatearMonto($totalMonto, $record->moneda ?? 'BOB').'</p>
-                                                            </div>
-                                                        </div>
-                                                        <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">Gestiona los pagos en la pestaña "Pagos" en relaciones.</p>
-                                                    </div>'
+                                                    '<div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div class="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-800">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Movimientos</p>
+                        <p class="text-2xl font-bold">' . e($pagos->count()) . '</p>
+                    </div>
+
+                    <div class="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-800">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Monto pagado</p>
+                        <p class="text-2xl font-bold text-green-600">
+                            ' . e(self::formatearMonto($totalPagado, $moneda)) . '
+                        </p>
+                    </div>
+
+                    <div class="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-800">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Saldo pendiente</p>
+                        <p class="text-2xl font-bold ' . ($saldo > 0 ? 'text-red-600' : 'text-green-600') . '">
+                            ' . e(self::formatearMonto($saldo, $moneda)) . '
+                        </p>
+                    </div>
+                </div>
+
+                <h3 class="mt-6 text-base font-semibold text-gray-900 dark:text-gray-100">
+                    Detalle de movimientos de pago
+                </h3>
+
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Cada fila representa un pago realizado para esta factura.
+                </p>
+
+                ' . $detalle . '
+            </div>'
                                                 );
                                             })
                                             ->columnSpanFull(),
@@ -1079,17 +1219,17 @@ class FacturaResource extends Resource
                                             ->schema([
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
-                                                    ->content(fn ($record) => $record?->creador?->name ?? 'N/A')
+                                                    ->content(fn($record) => $record?->creador?->name ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('created_at')
                                                     ->label('Fecha creación')
-                                                    ->content(fn ($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
+                                                    ->content(fn($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('cobrador_id')
                                                     ->label('Cobrador')
-                                                    ->content(fn ($record) => $record?->cobrador?->name ?? 'N/A')
+                                                    ->content(fn($record) => $record?->cobrador?->name ?? 'N/A')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -1151,7 +1291,7 @@ class FacturaResource extends Resource
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn ($state) => match ($state) {
+                    ->formatStateUsing(fn($state) => match ($state) {
                         'borrador' => 'Borrador',
                         'emitida' => 'Emitida',
                         'pagada' => '✅ Pagada',
@@ -1182,7 +1322,7 @@ class FacturaResource extends Resource
                             default => $moneda,
                         };
 
-                        return $simbolo.' '.number_format($state ?? 0, 2);
+                        return $simbolo . ' ' . number_format($state ?? 0, 2);
                     })
                     ->sortable()
                     ->toggleable(),
@@ -1199,7 +1339,7 @@ class FacturaResource extends Resource
                         };
                         $saldo = ($record->total ?? 0) - ($record->monto_pagado ?? 0);
 
-                        return $simbolo.' '.number_format($saldo, 2);
+                        return $simbolo . ' ' . number_format($saldo, 2);
                     })
                     ->sortable()
                     ->toggleable(),
@@ -1220,17 +1360,17 @@ class FacturaResource extends Resource
             ->filters([
                 SelectFilter::make('empresa_id')
                     ->label('Empresa')
-                    ->options(fn (): array => Empresa::query()
-                        ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->whereKey($empresaId))
+                    ->options(fn(): array => Empresa::query()
+                        ->when(Auth::user()?->empresa_id, fn($query, $empresaId) => $query->whereKey($empresaId))
                         ->orderBy('nombre_comercial')->pluck('nombre_comercial', 'id')->all())
                     ->searchable()
                     ->preload(),
 
                 SelectFilter::make('sucursal_id')
                     ->label('Sucursal')
-                    ->options(fn (): array => Sucursal::query()
-                        ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
-                        ->when(Auth::user()?->sucursal_id, fn ($query, $sucursalId) => $query->whereKey($sucursalId))
+                    ->options(fn(): array => Sucursal::query()
+                        ->when(Auth::user()?->empresa_id, fn($query, $empresaId) => $query->where('empresa_id', $empresaId))
+                        ->when(Auth::user()?->sucursal_id, fn($query, $sucursalId) => $query->whereKey($sucursalId))
                         ->orderBy('nombre')->pluck('nombre', 'id')->all())
                     ->searchable()
                     ->preload(),
@@ -1261,8 +1401,8 @@ class FacturaResource extends Resource
                     ->trueLabel('Facturas pagadas')
                     ->falseLabel('Facturas pendientes')
                     ->queries(
-                        true: fn ($query) => $query->where('estado', 'pagada'),
-                        false: fn ($query) => $query->whereIn('estado', ['emitida', 'parcial', 'reservado', 'vencida']),
+                        true: fn($query) => $query->where('estado', 'pagada'),
+                        false: fn($query) => $query->whereIn('estado', ['emitida', 'parcial', 'reservado', 'vencida']),
                     ),
             ])
             ->groups([
@@ -1299,7 +1439,7 @@ class FacturaResource extends Resource
                                         ->success()
                                         ->send();
                                 })
-                                ->visible(fn ($record) => $record->estado !== 'anulada'),
+                                ->visible(fn($record) => $record->estado !== 'anulada'),
                         ]),
 
                     Tables\Actions\Action::make('registrar_pago')
@@ -1310,12 +1450,12 @@ class FacturaResource extends Resource
                             TextInput::make('monto')
                                 ->label('Monto a Pagar')
                                 ->numeric()
-                                ->required(fn ($get) => $get('tipo_pago') !== 'mixto')
-                                ->visible(fn ($get) => $get('tipo_pago') !== 'mixto')
+                                ->required(fn($get) => $get('tipo_pago') !== 'mixto')
+                                ->visible(fn($get) => $get('tipo_pago') !== 'mixto')
                                 ->minValue(0.01)
-                                ->maxValue(fn ($record) => ($record->total ?? 0) - ($record->monto_pagado ?? 0))
-                                ->prefix(fn ($get, $record) => self::getSimboloMoneda($record->moneda ?? 'BOB'))
-                                ->helperText(fn ($record) => 'Saldo pendiente: '.self::formatearMonto(($record->total ?? 0) - ($record->monto_pagado ?? 0), $record->moneda ?? 'BOB')),
+                                ->maxValue(fn($record) => ($record->total ?? 0) - ($record->monto_pagado ?? 0))
+                                ->prefix(fn($get, $record) => self::getSimboloMoneda($record->moneda ?? 'BOB'))
+                                ->helperText(fn($record) => 'Saldo pendiente: ' . self::formatearMonto(($record->total ?? 0) - ($record->monto_pagado ?? 0), $record->moneda ?? 'BOB')),
 
                             DatePicker::make('fecha_pago')
                                 ->label('Fecha Pago')
@@ -1343,12 +1483,12 @@ class FacturaResource extends Resource
                                 ->prefixIcon('heroicon-o-credit-card'),
 
                             TextInput::make('monto_efectivo')->label('Importe en efectivo')->numeric()->minValue(0.01)
-                                ->required(fn ($get) => $get('tipo_pago') === 'mixto')
-                                ->visible(fn ($get) => $get('tipo_pago') === 'mixto')
+                                ->required(fn($get) => $get('tipo_pago') === 'mixto')
+                                ->visible(fn($get) => $get('tipo_pago') === 'mixto')
                                 ->helperText('Efectivo + QR no puede superar el saldo pendiente.'),
                             TextInput::make('monto_qr')->label('Importe por QR')->numeric()->minValue(0.01)
-                                ->required(fn ($get) => $get('tipo_pago') === 'mixto')
-                                ->visible(fn ($get) => $get('tipo_pago') === 'mixto'),
+                                ->required(fn($get) => $get('tipo_pago') === 'mixto')
+                                ->visible(fn($get) => $get('tipo_pago') === 'mixto'),
 
                             TextInput::make('referencia')
                                 ->label('Referencia')
@@ -1357,23 +1497,23 @@ class FacturaResource extends Resource
                             TextInput::make('banco')
                                 ->label('Banco')
                                 ->maxLength(100)
-                                ->visible(fn ($get): bool => in_array($get('tipo_pago'), ['mixto', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
+                                ->visible(fn($get): bool => in_array($get('tipo_pago'), ['mixto', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
 
                             TextInput::make('numero_cheque')
                                 ->label('Número de cheque')
                                 ->maxLength(50)
-                                ->required(fn ($get): bool => $get('tipo_pago') === 'cheque')
-                                ->visible(fn ($get): bool => $get('tipo_pago') === 'cheque'),
+                                ->required(fn($get): bool => $get('tipo_pago') === 'cheque')
+                                ->visible(fn($get): bool => $get('tipo_pago') === 'cheque'),
                         ])
                         ->action(function (array $data, $record) {
                             $record->registrarPago($data);
                             Notification::make()
                                 ->title('Pago registrado exitosamente')
-                                ->body('Se ha registrado el pago de '.(($data['tipo_pago'] ?? null) === 'mixto' ? (float) $data['monto_efectivo'] + (float) $data['monto_qr'] : $data['monto']).' '.$record->moneda)
+                                ->body('Se ha registrado el pago de ' . (($data['tipo_pago'] ?? null) === 'mixto' ? (float) $data['monto_efectivo'] + (float) $data['monto_qr'] : $data['monto']) . ' ' . $record->moneda)
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn ($record) => ! in_array($record->estado, ['pagada', 'anulada'])),
+                        ->visible(fn($record) => ! in_array($record->estado, ['pagada', 'anulada'])),
 
                     Tables\Actions\Action::make('confirmar_entrega')
                         ->label('Confirmar entrega')
@@ -1386,7 +1526,7 @@ class FacturaResource extends Resource
                             $record->procesarVentaAutomatica();
                             Notification::make()->title('Entrega confirmada')->body('Operación completada. Solo los productos inventariables generan salidas de stock.')->success()->send();
                         })
-                        ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'parcial', 'pagada'], true)
+                        ->visible(fn($record): bool => in_array($record->estado, ['reservado', 'parcial', 'pagada'], true)
                             && MovimientoInventario::query()->where('documento_tipo', 'venta_reserva')->where('documento_id', $record->id)->where('estado', 'confirmado')->exists()
                             && ! Kardex::query()->where('documento_tipo', 'venta')->where('documento_id', $record->id)->exists()),
 
@@ -1410,10 +1550,10 @@ class FacturaResource extends Resource
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn ($record) => $record->estado !== 'anulada'),
+                        ->visible(fn($record) => $record->estado !== 'anulada'),
 
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn ($record) => $record->estado === 'borrador'),
+                        ->visible(fn($record) => $record->estado === 'borrador'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
