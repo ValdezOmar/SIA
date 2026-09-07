@@ -5,7 +5,6 @@ namespace App\Providers\Filament;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
 use App\Filament\Widgets\ContabilidadResumenWidget;
 use App\Filament\Widgets\ContabilidadTendenciaWidget;
-use App\Filament\Widgets\EmpresaMailWidget;
 use App\Filament\Widgets\InventarioResumenWidget;
 use App\Filament\Widgets\InventarioTendenciaWidget;
 use App\Filament\Widgets\VentasResumenWidget;
@@ -19,6 +18,7 @@ use Filament\Navigation\MenuItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -71,6 +71,7 @@ class DashboardPanelProvider extends PanelProvider
             // Notificaciones, extensiones y menú del usuario.
             ->databaseNotifications() // Habilita notificaciones almacenadas en la base de datos.
             ->databaseNotificationsPolling('30s') // Consulta nuevas notificaciones cada 30 segundos.
+            ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_AFTER, fn () => view('filament.components.empresa-mail-link'))
             ->plugins($this->plugins()) // Activa permisos y el tema visual del sistema.
             ->userMenuItems($this->userMenuItems()); // Configura las opciones del menú del avatar.
     }
@@ -101,7 +102,6 @@ class DashboardPanelProvider extends PanelProvider
             VentasTendenciaWidget::class,
             ContabilidadTendenciaWidget::class,
             InventarioTendenciaWidget::class,
-            EmpresaMailWidget::class,
         ];
     }
 
