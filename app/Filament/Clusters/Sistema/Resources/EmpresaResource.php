@@ -8,6 +8,7 @@ use App\Filament\Clusters\Sistema\Resources\EmpresaResource\RelationManagers\Are
 use App\Filament\Clusters\Sistema\Resources\EmpresaResource\RelationManagers\SucursalesRelationManager;
 use App\Models\Sistema\Empresa;
 use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Textarea;
@@ -60,6 +61,15 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                             ->label('NIT')
                             ->maxLength(50)
                             ->helperText('Número de identificación tributaria de la empresa.'),
+
+                        FileUpload::make('logo_path')
+                            ->label('Logo de la empresa')
+                            ->image()
+                            ->acceptedFileTypes(['image/png', 'image/jpeg'])
+                            ->disk('public')
+                            ->directory('empresas/logos')
+                            ->maxSize(2048)
+                            ->helperText('PNG o JPG, máximo 2 MB. Se utiliza en los reportes PDF de inventario.'),
 
                         TextInput::make('nro_matricula')
                             ->label('Nro. Matrícula')

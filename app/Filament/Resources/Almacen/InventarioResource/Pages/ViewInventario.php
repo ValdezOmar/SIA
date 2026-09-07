@@ -29,6 +29,8 @@ class ViewInventario extends ViewRecord
     {
         $programador = fn () => auth()->user()->can(Servicio::PROGRAMAR);
         $acciones = [
+            Action::make('exportarPdf')->label('Descargar PDF')->icon('heroicon-o-document-arrow-down')
+                ->action(fn () => app(\App\Services\Inventario\InventarioPdfService::class)->descargar($this->record)),
             Action::make('iniciar')->label('Iniciar conteo')->icon('heroicon-o-play')->requiresConfirmation()
                 ->modalDescription('Se guardará el stock de referencia de este almacén. Coordine la pausa de movimientos durante el conteo.')
                 ->visible(fn () => $programador() && $this->record->estado === 'programado')

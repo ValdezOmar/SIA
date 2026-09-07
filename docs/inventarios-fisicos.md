@@ -43,6 +43,12 @@ El listado conserva sesiones abiertas, cerradas y canceladas. Permite buscar por
 
 El archivo anterior se limita por los nombres históricos de empresa y almacén cuando el usuario tiene contexto asignado. Los registros antiguos sin correspondencia necesitan consulta administrativa; no se inventan asociaciones con los almacenes actuales.
 
+### Reporte PDF
+
+**PDF** en el listado y **Descargar PDF** en la ficha generan el reporte de la sesión completa, independientemente de los filtros del conteo. Incluye datos empresariales, NIT, sucursal, almacén, responsable, fechas, avance, referencias, reservas, cantidades, diferencias, observaciones, revisiones, bitácora y firmas. Los encabezados de tabla se repiten y las páginas se numeran.
+
+En **Configuración de empresa**, cargar el **Logo de la empresa** en PNG/JPG (hasta 2 MB). Si no se ha cargado, se usa el logo general de `public/images/logo.png`. Este campo requiere la migración `2026_09_07_000002_add_logo_path_to_conf_empresas.php`.
+
 ## Verificación
 
 Pruebas de integración del flujo y de los componentes Livewire:

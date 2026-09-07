@@ -154,7 +154,11 @@ class InventarioResource extends Resource implements HasShieldPermissions
                 DatePicker::make('desde')->label('Desde'), DatePicker::make('hasta')->label('Hasta'),
             ])->query(fn (Builder $query, array $data) => $query->when($data['desde'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha_programada', '>=', $fecha))
                 ->when($data['hasta'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha_programada', '<=', $fecha))),
-        ])->actions([Tables\Actions\ViewAction::make()->label('Abrir')])->bulkActions([])
+        ])->actions([
+            Tables\Actions\ViewAction::make()->label('Abrir'),
+            Tables\Actions\Action::make('exportarPdf')->label('PDF')->icon('heroicon-o-document-arrow-down')
+                ->action(fn ($record) => app(\App\Services\Inventario\InventarioPdfService::class)->descargar($record)),
+        ])->bulkActions([])
             ->defaultSort('fecha_programada', 'desc')->poll('30s')
             ->emptyStateHeading('No hay inventarios programados')->emptyStateDescription('Programe un inventario por empresa, sucursal y almacén.');
     }

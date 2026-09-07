@@ -229,4 +229,36 @@ class InventarioFisicoTest extends TestCase
         $this->expectException(\LogicException::class);
         $inv->eventos()->first()->update(['motivo' => 'Modificado']);
     }
+
+    public function test_pdf_con_logo_conteos_y_bitacora_se_descarga_desde_la_ficha_y_el_listado(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('empresas/logos/prueba.png', file_get_contents(public_path('images/logo.png')));
+        $this->almacen->empresa->update(['logo_path' => 'empresas/logos/prueba.png', 'nit' => '123456789', 'direccion' => 'Av. de prueba 123', 'ciudad' => 'La Paz']);
+        for ($i = 2; $i <= 30; $i++) {
+            Articulo::create(['codigo' => sprintf('ART-%02d', $i), 'nombre_comercial' => 'Equipo de laboratorio con descripción de prueba '.$i, 'empresa_id' => $this->almacen->empresa_id]);
+        }
+        $inv = $this->programar();
+        $this->servicio->iniciar($inv);
+        $this->servicio->contar($inv->conteos()->first(), ['cantidad_contada' => 4.123456, 'version' => 0, 'observaciones' => 'Diferencia pendiente de revisión. Texto con tildes y símbolos: á é í ó ú ñ.']);
+        $servicio = app(\App\Services\Inventario\InventarioPdfService::class);
+        $this->assertStringStartsWith('data:image/png;base64,', $servicio->logoDataUri($this->almacen->empresa->fresh()));
+        $pdf = $servicio->generar($inv);
+        $this->assertStringStartsWith('%PDF-', $pdf);
+        $this->assertStringContainsString('/Subtype /Image', $pdf);
+        Livewire::test(ViewInventario::class, ['record' => $inv->id])->callAction('exportarPdf')->assertFileDownloaded($inv->codigo.'.pdf');
+        Livewire::test(ListInventarios::class)->callTableAction('exportarPdf', $inv)->assertFileDownloaded($inv->codigo.'.pdf');
+        if ($preview = getenv('SIA_PDF_PREVIEW')) {
+            file_put_contents($preview, $pdf);
+        }
+    }
+
+    public function test_pdf_no_exporta_inventario_de_otra_sucursal(): void
+    {
+        $inv = $this->programar();
+        $this->usuario->setRelation('empleado', (new \App\Models\RRHH\Empleado)->setRelation('historialActivo',
+            (new \App\Models\RRHH\HistorialLaboral)->forceFill(['empresa_id' => $this->almacen->empresa_id, 'sucursal_id' => 999999])));
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        app(\App\Services\Inventario\InventarioPdfService::class)->generar($inv);
+    }
 }

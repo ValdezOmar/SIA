@@ -13,6 +13,7 @@ class Empresa extends Model
 
     protected $fillable = [
         'razon_social',
+        'logo_path',
         'nombre_comercial',
         'nit',
         'nro_matricula',
