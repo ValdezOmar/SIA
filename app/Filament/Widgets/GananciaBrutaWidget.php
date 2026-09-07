@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Ventas\FacturaResource;
+use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Models\Ventas\Factura;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Widgets\TableWidget;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\DB;
  */
 class GananciaBrutaWidget extends TableWidget
 {
+    use HasWidgetPermission;
+
     protected static ?string $heading = 'Ventas · Ganancia bruta mensual';
 
     protected static ?string $description = 'Ingresos, costo de ventas y ganancia bruta por mes.';
@@ -32,8 +35,6 @@ class GananciaBrutaWidget extends TableWidget
      *
      * Agrupa las facturas por mes (ven_facturas) y les une por período
      * el costo de ventas acumulado del kardex (alm_kardex) para ese mismo mes.
-     *
-     * @return Builder
      */
     protected function getTableQuery(): Builder
     {
@@ -72,8 +73,6 @@ class GananciaBrutaWidget extends TableWidget
 
     /**
      * Columnas visibles de la tabla.
-     *
-     * @return array
      */
     protected function getTableColumns(): array
     {
@@ -107,7 +106,7 @@ class GananciaBrutaWidget extends TableWidget
             TextColumn::make('porcentaje')
                 ->label('% Ganancia')
                 ->formatStateUsing(fn ($record): string => $record->total_ventas > 0
-                    ? number_format(($record->ganancia_bruta / $record->total_ventas) * 100, 1, ',', '.') . '%'
+                    ? number_format(($record->ganancia_bruta / $record->total_ventas) * 100, 1, ',', '.').'%'
                     : '0%')
                 ->alignEnd()
                 ->searchable(false)
@@ -128,11 +127,11 @@ class GananciaBrutaWidget extends TableWidget
 
         $nombres = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-        return ($nombres[(int) $parts[1]] ?? $parts[1]) . ' ' . $parts[0];
+        return ($nombres[(int) $parts[1]] ?? $parts[1]).' '.$parts[0];
     }
 
     public static function canView(): bool
     {
-        return FacturaResource::canViewAny();
+        return static::canViewWithShieldPermission() && FacturaResource::canViewAny();
     }
 }

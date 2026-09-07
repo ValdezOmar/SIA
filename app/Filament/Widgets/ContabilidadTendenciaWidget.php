@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Contabilidad\AsientoContableResource;
+use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Models\Contabilidad\AsientoContable;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 
 class ContabilidadTendenciaWidget extends ChartWidget
 {
+    use HasWidgetPermission;
+
     protected static ?string $heading = 'Movimiento contable · Últimos 6 meses';
 
     protected static ?string $description = 'Control mensual de cargos y abonos confirmados.';
@@ -63,7 +66,7 @@ class ContabilidadTendenciaWidget extends ChartWidget
 
     public static function canView(): bool
     {
-        return AsientoContableResource::canViewAny();
+        return static::canViewWithShieldPermission() && AsientoContableResource::canViewAny();
     }
 
     private function scopeCompany(Builder $query): Builder

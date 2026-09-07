@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Filament\Resources\Inventario\ArticuloResource;
 use App\Filament\Resources\Inventario\StockAlmacenResource;
 use App\Filament\Resources\Inventario\TransferenciaAlmacenResource;
+use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Models\Inventario\Existencia;
 use App\Models\Inventario\Lote;
 use App\Models\Inventario\TransferenciaAlmacen;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Auth;
 
 class InventarioResumenWidget extends BaseWidget
 {
+    use HasWidgetPermission;
+
     protected static ?int $sort = 30;
 
     protected static ?string $pollingInterval = '5m';
@@ -83,7 +86,8 @@ class InventarioResumenWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return ArticuloResource::canViewAny() || StockAlmacenResource::canViewAny();
+        return static::canViewWithShieldPermission()
+            && (ArticuloResource::canViewAny() || StockAlmacenResource::canViewAny());
     }
 
     private function scopeExistencias(Builder $query): Builder

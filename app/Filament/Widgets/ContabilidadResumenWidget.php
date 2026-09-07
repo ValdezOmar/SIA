@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Contabilidad\AsientoContableResource;
 use App\Filament\Resources\Contabilidad\PlanCuentaResource;
+use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Contabilidad\PeriodoContable;
 use App\Models\Contabilidad\PlanCuenta;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Auth;
 
 class ContabilidadResumenWidget extends BaseWidget
 {
+    use HasWidgetPermission;
+
     protected static ?int $sort = 10;
 
     protected static ?string $pollingInterval = '5m';
@@ -81,7 +84,8 @@ class ContabilidadResumenWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return AsientoContableResource::canViewAny() || PlanCuentaResource::canViewAny();
+        return static::canViewWithShieldPermission()
+            && (AsientoContableResource::canViewAny() || PlanCuentaResource::canViewAny());
     }
 
     private function scopeCompany(Builder $query): Builder

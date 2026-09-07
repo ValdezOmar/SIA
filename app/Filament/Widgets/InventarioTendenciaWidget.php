@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Inventario\KardexResource;
+use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Models\Inventario\Kardex;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 
 class InventarioTendenciaWidget extends ChartWidget
 {
+    use HasWidgetPermission;
+
     protected static ?string $heading = 'Flujo de inventario · Últimos 6 meses';
 
     protected static ?string $description = 'Unidades confirmadas que ingresaron y salieron de los almacenes.';
@@ -63,7 +66,7 @@ class InventarioTendenciaWidget extends ChartWidget
 
     public static function canView(): bool
     {
-        return KardexResource::canViewAny();
+        return static::canViewWithShieldPermission() && KardexResource::canViewAny();
     }
 
     private function scopeCompany(Builder $query): Builder

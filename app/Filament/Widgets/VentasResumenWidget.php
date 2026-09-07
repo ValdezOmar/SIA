@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Filament\Resources\Ventas\CotizacionResource;
 use App\Filament\Resources\Ventas\FacturaResource;
 use App\Filament\Resources\Ventas\PedidoResource;
+use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Models\Ventas\Cotizacion;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\Pago;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Auth;
 
 class VentasResumenWidget extends BaseWidget
 {
+    use HasWidgetPermission;
+
     protected static ?int $sort = 20;
 
     protected static ?string $pollingInterval = '5m';
@@ -96,7 +99,8 @@ class VentasResumenWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return FacturaResource::canViewAny() || PedidoResource::canViewAny() || CotizacionResource::canViewAny();
+        return static::canViewWithShieldPermission()
+            && (FacturaResource::canViewAny() || PedidoResource::canViewAny() || CotizacionResource::canViewAny());
     }
 
     private function scopeCompany(Builder $query): Builder

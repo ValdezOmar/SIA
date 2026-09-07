@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Filament\Resources\Ventas\FacturaResource;
+use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\Pago;
 use Filament\Widgets\ChartWidget;
@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 
 class VentasTendenciaWidget extends ChartWidget
 {
+    use HasWidgetPermission;
+
     protected static ?string $heading = 'Ventas y cobranza · Últimos 6 meses';
 
     protected static ?string $description = 'Compara lo facturado con el efectivo realmente cobrado.';
@@ -60,11 +62,6 @@ class VentasTendenciaWidget extends ChartWidget
     protected function getType(): string
     {
         return 'line';
-    }
-
-    public static function canView(): bool
-    {
-        return FacturaResource::canViewAny();
     }
 
     private function scopeCompany(Builder $query): Builder
