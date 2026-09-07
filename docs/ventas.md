@@ -66,7 +66,9 @@ El sistema guarda dos pagos con la misma fecha, uno por cada medio. El banco y l
 
 ### Captura y cálculo de los detalles
 
-Las cantidades, precios y descuentos se escriben sin solicitar recálculos al servidor por cada pulsación. Pulsar **Calcular totales** para actualizar las filas y el resumen. Guardar vuelve a calcular con los datos actuales, aunque no se haya pulsado el botón. La selección de artículos y listas de precios sigue consultando los datos necesarios.
+Las cantidades, precios y descuentos se escriben sin solicitar recálculos al servidor por cada pulsación. Al terminar la edición y salir del campo, la fila y el resumen se actualizan localmente en el navegador; cambiar IVA actualiza también impuesto y total. **Calcular totales** permite solicitar un recálculo adicional. Guardar vuelve a calcular con los datos actuales, aunque no se haya pulsado el botón. La selección de artículos y listas de precios sigue consultando los datos necesarios.
+
+El resumen local y las filas comparten los importes del formulario. Si un descuento supera el importe de la línea, la vista muestra **—** en lugar de conservar un total anterior; al guardar se informa el error de validación. Al incorporar esta actualización a una sesión ya abierta, recargar la página para cargar el script de cálculo.
 
 Si se modifica el porcentaje o el importe del descuento, se usa el último de esos campos editado. **Subtotal neto** significa cantidad × precio menos descuento. El impuesto se calcula sobre ese subtotal y el total suma subtotal neto e impuesto; el descuento no se resta otra vez. En pedidos, el envío se agrega una sola vez al total del documento.
 

@@ -30,7 +30,9 @@ class CalculoRepeater extends Repeater
     {
         $this->tipoCalculo = $tipo;
         if ($tipo) {
-            $this->helperText('Escriba sin esperar. Pulse «Calcular totales» para actualizar los importes. Al guardar se recalculan nuevamente.');
+            $this->helperText($tipo === 'venta'
+                ? 'Al salir de cantidades, precios o descuentos se actualizan los importes sin esperar al servidor. También puede pulsar «Calcular totales». Al guardar se validan nuevamente.'
+                : 'Escriba sin esperar. Pulse «Calcular totales» para actualizar los importes. Al guardar se recalculan nuevamente.');
         }
 
         return $this;
@@ -74,6 +76,17 @@ class CalculoRepeater extends Repeater
                     if ($modo === 'importe') {
                         $field->maxValue(null);
                     }
+                }
+
+                if ($this->tipoCalculo === 'venta' && $field instanceof TextInput && in_array($field->getName(), ['cantidad', 'precio_unitario', 'descuento', 'descuento_porcentaje'], true)) {
+                    $field->extraInputAttributes([
+                        'x-on:change' => 'window.siaVentasImportes.actualizar($wire, '.json_encode($container->getStatePath()).', '.json_encode($field->getName()).', $event.target.value)',
+                    ], merge: true);
+                }
+                if ($this->tipoCalculo === 'venta' && $field instanceof Toggle && $field->getName() === 'aplicar_iva') {
+                    $field->extraAlpineAttributes([
+                        'x-init' => '$watch("state", value => window.siaVentasImportes.actualizar($wire, '.json_encode($container->getStatePath()).', "aplicar_iva", value))',
+                    ], merge: true);
                 }
             }
         }

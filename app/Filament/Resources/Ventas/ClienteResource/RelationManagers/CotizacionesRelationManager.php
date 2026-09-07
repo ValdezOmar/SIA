@@ -342,7 +342,7 @@ class CotizacionesRelationManager extends RelationManager
                                     ->schema([
                                         Grid::make(4)
                                             ->schema([
-                                                Placeholder::make('subtotal')
+                                                \App\Forms\Components\ImporteVenta::make('subtotal')
                                                     ->label('Subtotal neto')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -351,7 +351,7 @@ class CotizacionesRelationManager extends RelationManager
                                                         return self::formatearMonto($totales['subtotal'], $moneda);
                                                     }),
 
-                                                Placeholder::make('descuento')
+                                                \App\Forms\Components\ImporteVenta::make('descuento')
                                                     ->label('Descuento')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -360,7 +360,7 @@ class CotizacionesRelationManager extends RelationManager
                                                         return self::formatearMonto($totales['descuento'], $moneda);
                                                     }),
 
-                                                Placeholder::make('impuesto')
+                                                \App\Forms\Components\ImporteVenta::make('impuesto')
                                                     ->label('Impuesto')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -369,7 +369,7 @@ class CotizacionesRelationManager extends RelationManager
                                                         return self::formatearMonto($totales['impuesto'], $moneda);
                                                     }),
 
-                                                Placeholder::make('total')
+                                                \App\Forms\Components\ImporteVenta::make('total')
                                                     ->label('Total')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -519,7 +519,7 @@ class CotizacionesRelationManager extends RelationManager
                                                             })
                                                             ->columnSpan(2),
 
-                                                        Placeholder::make('subtotal_linea')
+                                                        \App\Forms\Components\ImporteVenta::make('subtotal_linea')
                                                             ->label('Subtotal neto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
@@ -589,7 +589,7 @@ class CotizacionesRelationManager extends RelationManager
                                                             })
                                                             ->columnSpan(4),
 
-                                                        Placeholder::make('impuesto_linea')
+                                                        \App\Forms\Components\ImporteVenta::make('impuesto_linea')
                                                             ->label('Impuesto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
@@ -598,7 +598,7 @@ class CotizacionesRelationManager extends RelationManager
                                                             })
                                                             ->columnSpan(4),
 
-                                                        Placeholder::make('total_con_iva')
+                                                        \App\Forms\Components\ImporteVenta::make('total_con_iva')
                                                             ->label('Total')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';

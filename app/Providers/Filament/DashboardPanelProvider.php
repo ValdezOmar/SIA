@@ -72,6 +72,7 @@ class DashboardPanelProvider extends PanelProvider
             ->databaseNotifications() // Habilita notificaciones almacenadas en la base de datos.
             ->databaseNotificationsPolling('30s') // Consulta nuevas notificaciones cada 30 segundos.
             ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_AFTER, fn () => view('filament.components.empresa-mail-link'))
+            ->renderHook(PanelsRenderHook::HEAD_END, fn () => view('filament.components.ventas-importes-script'))
             ->plugins($this->plugins()) // Activa permisos y el tema visual del sistema.
             ->userMenuItems($this->userMenuItems()); // Configura las opciones del menú del avatar.
     }
