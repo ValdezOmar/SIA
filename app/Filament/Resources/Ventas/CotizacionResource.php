@@ -482,7 +482,7 @@ class CotizacionResource extends Resource
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos incluidos en la cotización')
                                     ->schema([
-                                        Repeater::make('detalles')
+                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('venta')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()

@@ -128,33 +128,42 @@ class Factura extends Model
                 throw ValidationException::withMessages(['estado' => 'La factura ya está pagada o anulada.']);
             }
 
-            $monto = (float) ($data['monto'] ?? 0);
+            $mixto = ($data['tipo_pago'] ?? null) === 'mixto';
+            $efectivo = round((float) ($data['monto_efectivo'] ?? 0), 2);
+            $qr = round((float) ($data['monto_qr'] ?? 0), 2);
+            $monto = (float) ($data['monto'] ?? ($mixto ? $efectivo + $qr : 0));
+            if ($mixto && ($efectivo <= 0 || $qr <= 0 || abs($efectivo + $qr - $monto) > 0.005)) {
+                throw ValidationException::withMessages(['monto_efectivo' => 'Indique importes positivos en efectivo y QR. Su suma debe coincidir con el importe a cobrar.']);
+            }
             $pagado = (float) $factura->pagos()->where('estado', 'confirmado')->sum('monto');
             $saldo = max(0, (float) $factura->total - $pagado);
             if ($monto <= 0 || $monto > $saldo + 0.005) {
                 throw ValidationException::withMessages(['monto' => 'El pago debe ser mayor a cero y no puede superar el saldo pendiente.']);
             }
 
-            $pago = Pago::create([
-                'factura_id' => $factura->id,
-                'cliente_id' => $factura->cliente_id,
-                'numero' => $data['numero'] ?? Pago::generarNumero(),
-                'fecha_pago' => $data['fecha_pago'] ?? now()->toDateString(),
-                'tipo_pago' => $data['tipo_pago'],
-                'monto' => $monto,
-                'moneda' => $factura->moneda,
-                'tasa_cambio' => $factura->tasa_cambio,
-                'referencia' => $data['referencia'] ?? null,
-                'banco' => $data['banco'] ?? null,
-                'numero_cheque' => $data['numero_cheque'] ?? null,
-                'fecha_cheque' => $data['fecha_cheque'] ?? null,
-                'observaciones' => $data['observaciones'] ?? null,
-                'creado_por' => Auth::id(),
-                'empresa_id' => $factura->empresa_id,
-                'estado' => 'confirmado',
-            ]);
+            $partes = $mixto ? ['efectivo' => $efectivo, 'qr' => $qr] : [$data['tipo_pago'] => $monto];
+            foreach ($partes as $tipo => $importe) {
+                $pago = Pago::create([
+                    'factura_id' => $factura->id,
+                    'cliente_id' => $factura->cliente_id,
+                    'numero' => $mixto ? Pago::generarNumero() : ($data['numero'] ?? Pago::generarNumero()),
+                    'fecha_pago' => $data['fecha_pago'] ?? now()->toDateString(),
+                    'tipo_pago' => $tipo,
+                    'monto' => $importe,
+                    'moneda' => $factura->moneda,
+                    'tasa_cambio' => $factura->tasa_cambio,
+                    'referencia' => $mixto && $tipo === 'efectivo' ? null : ($data['referencia'] ?? null),
+                    'banco' => $mixto && $tipo === 'efectivo' ? null : ($data['banco'] ?? null),
+                    'numero_cheque' => $data['numero_cheque'] ?? null,
+                    'fecha_cheque' => $data['fecha_cheque'] ?? null,
+                    'observaciones' => $mixto ? trim('Pago mixto Efectivo/QR. '.($data['observaciones'] ?? '')) : ($data['observaciones'] ?? null),
+                    'creado_por' => Auth::id(),
+                    'empresa_id' => $factura->empresa_id,
+                    'estado' => 'confirmado',
+                ]);
 
-            AsientoContable::crearDesdePagoCliente($pago);
+                AsientoContable::crearDesdePagoCliente($pago);
+            }
             $factura->actualizarSaldo();
             $factura->refresh();
 
@@ -190,11 +199,11 @@ class Factura extends Model
                 $this->refresh();
 
                 if ((float) $this->saldo > 0) {
-                    return $this->registrarPago($datosPago + [
+                    return $this->registrarPago(array_merge($datosPago, [
                         'monto' => (float) $this->saldo,
                         'fecha_pago' => $datosPago['fecha_pago'] ?? $this->fecha_pago ?? $this->fecha_emision ?? now()->toDateString(),
                         'tipo_pago' => $datosPago['tipo_pago'] ?? 'efectivo',
-                    ]);
+                    ]));
                 }
 
                 // Es idempotente: también corrige ventas antiguas cuya salida ya
@@ -237,6 +246,13 @@ class Factura extends Model
                 $this->procesarVentaAutomatica();
 
                 return null;
+            }
+
+            if (($datosPago['tipo_pago'] ?? null) === 'mixto') {
+                return $this->registrarPago(array_merge($datosPago, [
+                    'monto' => $montoPago,
+                    'fecha_pago' => $fechaPago,
+                ]));
             }
 
             $pago = Pago::create([

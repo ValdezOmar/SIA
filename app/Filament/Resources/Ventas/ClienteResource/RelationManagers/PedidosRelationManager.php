@@ -449,7 +449,7 @@ class PedidosRelationManager extends RelationManager
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos incluidos en el pedido')
                                     ->schema([
-                                        Repeater::make('detalles')
+                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('venta')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()

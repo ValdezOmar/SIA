@@ -268,7 +268,7 @@ class SolicitudCompraResource extends Resource
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos solicitados')
                                     ->schema([
-                                        Repeater::make('detalles')
+                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('solicitud')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()

@@ -233,7 +233,7 @@ class RecepcionResource extends Resource
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos recibidos')
                                     ->schema([
-                                        Repeater::make('detalles')
+                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('recepcion')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->schema([

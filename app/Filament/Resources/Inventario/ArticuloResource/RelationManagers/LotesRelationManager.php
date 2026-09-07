@@ -92,7 +92,7 @@ class LotesRelationManager extends RelationManager
                             ->icon('heroicon-o-cube')
                             ->description('Distribución del lote en diferentes almacenes')
                             ->schema([
-                                Repeater::make('stocks')
+                                \App\Forms\Components\CalculoRepeater::make('stocks')
                                     ->label('')
                                     ->relationship('stocks')
                                     ->schema([

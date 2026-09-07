@@ -35,7 +35,7 @@ class AreasRelationManager extends RelationManager
             Forms\Components\Section::make('Cargos del área')
                 ->description('Agregue los puestos de trabajo que pertenecen a esta área.')
                 ->schema([
-                    Forms\Components\Repeater::make('cargos')
+                    \App\Forms\Components\CalculoRepeater::make('cargos')
                         ->relationship('cargos')
                         ->label('')
                         ->schema([

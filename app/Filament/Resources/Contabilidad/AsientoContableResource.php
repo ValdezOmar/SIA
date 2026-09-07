@@ -323,7 +323,7 @@ class AsientoContableResource extends Resource
                                     ->icon('heroicon-o-document-chart-bar')
                                     ->description('Partidas del asiento contable')
                                     ->schema([
-                                        Repeater::make('detalles')
+                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('contabilidad')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()

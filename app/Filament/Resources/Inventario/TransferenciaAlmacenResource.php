@@ -114,7 +114,7 @@ class TransferenciaAlmacenResource extends Resource
             Section::make('Artículos a trasladar')
                 ->description('Indique cantidades disponibles. Para productos con serie o lote, detalle los identificadores para conservar la trazabilidad.')
                 ->schema([
-                    Repeater::make('detalles')
+                    \App\Forms\Components\CalculoRepeater::make('detalles')
                         ->relationship()
                         ->defaultItems(1)
                         ->minItems(1)

@@ -48,11 +48,14 @@ class EditFactura extends EditRecord
         $this->datosPago = [
             'fecha_pago' => $data['fecha_pago'] ?? $data['fecha_emision'] ?? now()->toDateString(),
             'tipo_pago' => $data['pago_inicial_tipo'] ?? 'efectivo',
+            'monto_efectivo' => $data['pago_inicial_efectivo'] ?? null,
+            'monto_qr' => $data['pago_inicial_qr'] ?? null,
             'referencia' => $data['pago_inicial_referencia'] ?? null,
             'banco' => $data['pago_inicial_banco'] ?? null,
             'numero_cheque' => $data['pago_inicial_numero_cheque'] ?? null,
         ];
         unset($data['pago_inicial_monto'], $data['pago_inicial_tipo'], $data['pago_inicial_referencia'], $data['pago_inicial_banco'], $data['pago_inicial_numero_cheque']);
+        unset($data['pago_inicial_efectivo'], $data['pago_inicial_qr']);
 
         if (($data['condicion_pago'] ?? null) === 'contado') {
             $data['fecha_vencimiento'] ??= $data['fecha_emision'] ?? now()->toDateString();

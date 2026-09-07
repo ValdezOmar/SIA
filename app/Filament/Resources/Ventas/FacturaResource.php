@@ -530,8 +530,8 @@ class FacturaResource extends Resource
                                                     ->label('Monto recibido ahora')
                                                     ->numeric()
                                                     ->minValue(0.01)
-                                                    ->required(fn ($get): bool => $get('condicion_pago') === 'parcial')
-                                                    ->visible(fn ($get): bool => $get('condicion_pago') === 'parcial')
+                                                    ->required(fn ($get): bool => $get('condicion_pago') === 'parcial' && $get('pago_inicial_tipo') !== 'mixto')
+                                                    ->visible(fn ($get): bool => $get('condicion_pago') === 'parcial' && $get('pago_inicial_tipo') !== 'mixto')
                                                     ->helperText('Registre el abono inicial. El saldo pendiente podrá cobrarse después desde Pagos.')
                                                     ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                                     ->columnSpan(1),
@@ -541,6 +541,7 @@ class FacturaResource extends Resource
                                                     ->options([
                                                         'efectivo' => 'Efectivo',
                                                         'qr' => 'QR',
+                                                        'mixto' => 'Mixto: Efectivo + QR',
                                                         'transferencia' => 'Transferencia',
                                                         'cheque' => 'Cheque',
                                                         'tarjeta' => 'Tarjeta',
@@ -555,15 +556,25 @@ class FacturaResource extends Resource
                                                     ->native()
                                                     ->helperText('Se guardará en el pago y determinará la cuenta contable receptora.'),
 
+                                                TextInput::make('pago_inicial_efectivo')
+                                                    ->label('Importe en efectivo')->numeric()->minValue(0.01)
+                                                    ->required(fn ($get) => $get('pago_inicial_tipo') === 'mixto')
+                                                    ->visible(fn ($get) => $get('pago_inicial_tipo') === 'mixto')
+                                                    ->helperText('En contado, efectivo + QR debe cubrir el total pendiente. En parcial, la suma será el abono.'),
+                                                TextInput::make('pago_inicial_qr')
+                                                    ->label('Importe por QR')->numeric()->minValue(0.01)
+                                                    ->required(fn ($get) => $get('pago_inicial_tipo') === 'mixto')
+                                                    ->visible(fn ($get) => $get('pago_inicial_tipo') === 'mixto'),
+
                                                 TextInput::make('pago_inicial_referencia')
                                                     ->label('Referencia del pago')
                                                     ->maxLength(100)
-                                                    ->visible(fn ($get): bool => in_array($get('pago_inicial_tipo'), ['qr', 'transferencia', 'cheque', 'tarjeta', 'deposito', 'otros'], true)),
+                                                    ->visible(fn ($get): bool => in_array($get('pago_inicial_tipo'), ['mixto', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito', 'otros'], true)),
 
                                                 TextInput::make('pago_inicial_banco')
                                                     ->label('Banco')
                                                     ->maxLength(100)
-                                                    ->visible(fn ($get): bool => in_array($get('pago_inicial_tipo'), ['qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
+                                                    ->visible(fn ($get): bool => in_array($get('pago_inicial_tipo'), ['mixto', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
 
                                                 TextInput::make('pago_inicial_numero_cheque')
                                                     ->label('Número de cheque')
@@ -664,7 +675,7 @@ class FacturaResource extends Resource
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos incluidos en la factura')
                                     ->schema([
-                                        Repeater::make('detalles')
+                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('venta')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()
@@ -1333,7 +1344,8 @@ class FacturaResource extends Resource
                             TextInput::make('monto')
                                 ->label('Monto a Pagar')
                                 ->numeric()
-                                ->required()
+                                ->required(fn ($get) => $get('tipo_pago') !== 'mixto')
+                                ->visible(fn ($get) => $get('tipo_pago') !== 'mixto')
                                 ->minValue(0.01)
                                 ->maxValue(fn ($record) => ($record->total ?? 0) - ($record->monto_pagado ?? 0))
                                 ->prefix(fn ($get, $record) => self::getSimboloMoneda($record->moneda ?? 'BOB'))
@@ -1351,6 +1363,7 @@ class FacturaResource extends Resource
                                 ->options([
                                     'efectivo' => 'Efectivo',
                                     'qr' => 'QR',
+                                    'mixto' => 'Mixto: Efectivo + QR',
                                     'transferencia' => 'Transferencia',
                                     'cheque' => 'Cheque',
                                     'tarjeta' => 'Tarjeta',
@@ -1360,7 +1373,16 @@ class FacturaResource extends Resource
                                 ])
                                 ->required()
                                 ->searchable()
+                                ->live()
                                 ->prefixIcon('heroicon-o-credit-card'),
+
+                            TextInput::make('monto_efectivo')->label('Importe en efectivo')->numeric()->minValue(0.01)
+                                ->required(fn ($get) => $get('tipo_pago') === 'mixto')
+                                ->visible(fn ($get) => $get('tipo_pago') === 'mixto')
+                                ->helperText('Efectivo + QR no puede superar el saldo pendiente.'),
+                            TextInput::make('monto_qr')->label('Importe por QR')->numeric()->minValue(0.01)
+                                ->required(fn ($get) => $get('tipo_pago') === 'mixto')
+                                ->visible(fn ($get) => $get('tipo_pago') === 'mixto'),
 
                             TextInput::make('referencia')
                                 ->label('Referencia')
@@ -1369,7 +1391,7 @@ class FacturaResource extends Resource
                             TextInput::make('banco')
                                 ->label('Banco')
                                 ->maxLength(100)
-                                ->visible(fn ($get): bool => in_array($get('tipo_pago'), ['qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
+                                ->visible(fn ($get): bool => in_array($get('tipo_pago'), ['mixto', 'qr', 'transferencia', 'cheque', 'tarjeta', 'deposito'], true)),
 
                             TextInput::make('numero_cheque')
                                 ->label('Número de cheque')
@@ -1381,7 +1403,7 @@ class FacturaResource extends Resource
                             $record->registrarPago($data);
                             Notification::make()
                                 ->title('Pago registrado exitosamente')
-                                ->body('Se ha registrado el pago de '.$data['monto'].' '.$record->moneda)
+                                ->body('Se ha registrado el pago de '.(($data['tipo_pago'] ?? null) === 'mixto' ? (float) $data['monto_efectivo'] + (float) $data['monto_qr'] : $data['monto']).' '.$record->moneda)
                                 ->success()
                                 ->send();
                         })

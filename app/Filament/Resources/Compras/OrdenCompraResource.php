@@ -320,7 +320,7 @@ class OrdenCompraResource extends Resource
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos incluidos en la orden')
                                     ->schema([
-                                        Repeater::make('detalles')
+                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('compra')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()
