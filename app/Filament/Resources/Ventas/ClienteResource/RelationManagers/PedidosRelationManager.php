@@ -860,6 +860,7 @@ class PedidosRelationManager extends RelationManager
             ->filters([
                 SelectFilter::make('estado')
                     ->label('Estado')
+                    ->default('pendiente')
                     ->options([
                         'reservado' => 'Reservado',
                         'pendiente' => 'Pendiente',
@@ -949,8 +950,8 @@ class PedidosRelationManager extends RelationManager
             ])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar pedido...')
-            ->emptyStateHeading('No hay pedidos para este cliente')
-            ->emptyStateDescription('Crea un nuevo pedido para este cliente.')
+            ->emptyStateHeading('No hay pedidos que coincidan')
+            ->emptyStateDescription('Revise la búsqueda o quite el filtro de estado para consultar otros pedidos del cliente.')
             ->emptyStateIcon('heroicon-o-shopping-cart')
             ->poll('60s');
     }

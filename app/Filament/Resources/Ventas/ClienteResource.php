@@ -657,9 +657,9 @@ class ClienteResource extends Resource
     public static function getRelations(): array
     {
         return [
-            CotizacionesRelationManager::class,
-            PedidosRelationManager::class,
             FacturasRelationManager::class,
+            PedidosRelationManager::class,
+            CotizacionesRelationManager::class,
         ];
     }
 
