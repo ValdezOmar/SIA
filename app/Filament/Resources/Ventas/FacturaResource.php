@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Ventas;
 use App\Filament\Resources\Ventas\FacturaResource\Pages;
 use App\Filament\Resources\Ventas\FacturaResource\RelationManagers\PagosRelationManager;
 use App\Models\Inventario\Articulo;
-use App\Support\ArticuloSelectOptions;
 use App\Models\Inventario\Kardex;
 use App\Models\Inventario\MovimientoInventario;
 use App\Models\Sistema\Empresa;
@@ -14,6 +13,9 @@ use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Cotizacion;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\Pedido;
+use App\Support\ArticuloSelectOptions;
+use App\Support\ClienteRegistroForm;
+use App\Support\ClienteSelectOptions;
 use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Grid;
@@ -298,18 +300,15 @@ class FacturaResource extends Resource
                                             ->schema([
                                                 Select::make('cliente_id')
                                                     ->label('Cliente')
-                                                    ->options(
-                                                        fn (Get $get) => Cliente::where('activo', true)
-                                                            ->when($get('empresa_id') ?? Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
-                                                            ->orderBy('nombre')
-                                                            ->pluck('nombre', 'id')
-                                                            ->toArray()
-                                                    )
+                                                    ->options(fn (Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id))
+                                                    ->getSearchResultsUsing(fn (string $search, Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id, $search))
+                                                    ->getOptionLabelUsing(fn ($value, Get $get) => ClienteSelectOptions::seleccionado($value, $get('empresa_id') ?? Auth::user()?->empresa_id))
                                                     ->required()
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder('Seleccione un cliente')
-                                                    ->helperText('Cliente destino')
+                                                    ->searchPrompt('Buscar por nombre, código, celular o teléfono')
+                                                    ->helperText('Busque por nombre, código, celular o teléfono.')
                                                     ->prefixIcon('heroicon-o-user')
                                                     ->columnSpan(2)
                                                     ->live()
@@ -321,117 +320,7 @@ class FacturaResource extends Resource
                                                             }
                                                         }
                                                     })
-                                                    ->createOptionForm([
-                                                        Section::make('Nuevo Cliente')
-                                                            ->icon('heroicon-o-user-plus')
-                                                            ->description('Complete los datos del nuevo cliente')
-                                                            ->schema([
-                                                                Grid::make(2)
-                                                                    ->schema([
-                                                                        TextInput::make('codigo')
-                                                                            ->label('Código')
-                                                                            ->required()
-                                                                            ->disabled()
-                                                                            ->maxLength(50)
-                                                                            ->unique(ignoreRecord: true)
-                                                                            ->default(fn () => Cliente::generarCodigo())
-                                                                            ->prefixIcon('heroicon-o-hashtag')
-                                                                            ->columnSpan(1),
-                                                                        TextInput::make('nombre')
-                                                                            ->label('Nombre / Razón Social')
-                                                                            ->required()
-                                                                            ->maxLength(255)
-                                                                            ->placeholder('Ej: Juan Pérez')
-                                                                            ->prefixIcon('heroicon-o-user')
-                                                                            ->columnSpan(1),
-                                                                    ]),
-                                                                Grid::make(2)
-                                                                    ->schema([
-                                                                        TextInput::make('ci/nit')
-                                                                            ->label('CI / NIT')
-                                                                            ->maxLength(50)
-                                                                            ->placeholder('Ej: 123456789')
-                                                                            ->prefixIcon('heroicon-o-identification')
-                                                                            ->columnSpan(1),
-                                                                        Select::make('tipo_cliente')
-                                                                            ->label('Tipo')
-                                                                            ->options([
-                                                                                'persona_natural' => 'Natural',
-                                                                                'empresa' => 'Empresa',
-                                                                                'gobierno' => 'Gobierno',
-                                                                                'extranjero' => 'Extranjero',
-                                                                            ])
-                                                                            ->default('persona_natural')
-                                                                            ->prefixIcon('heroicon-o-tag')
-                                                                            ->columnSpan(1),
-                                                                    ]),
-                                                                Grid::make(2)
-                                                                    ->schema([
-                                                                        TextInput::make('telefono')
-                                                                            ->label('Teléfono')
-                                                                            ->maxLength(50)
-                                                                            ->placeholder('Ej: (591) 2-1234567')
-                                                                            ->prefixIcon('heroicon-o-phone')
-                                                                            ->columnSpan(1),
-                                                                        TextInput::make('celular')
-                                                                            ->label('Celular')
-                                                                            ->required()
-                                                                            ->maxLength(50)
-                                                                            ->placeholder('Ej: (591) 7-1234567')
-                                                                            ->prefixIcon('heroicon-o-device-phone-mobile')
-                                                                            ->columnSpan(1),
-                                                                    ]),
-                                                                TextInput::make('correo')
-                                                                    ->label('Correo')
-                                                                    ->email()
-                                                                    ->maxLength(255)
-                                                                    ->placeholder('cliente@email.com')
-                                                                    ->prefixIcon('heroicon-o-envelope')
-                                                                    ->columnSpanFull(),
-                                                                Textarea::make('direccion')
-                                                                    ->label('Dirección')
-                                                                    ->rows(2)
-                                                                    ->placeholder('Av. Principal #123')
-                                                                    ->columnSpanFull(),
-                                                                Grid::make(2)
-                                                                    ->schema([
-                                                                        Select::make('ciudad')
-                                                                            ->label('Departamento')
-                                                                            ->options([
-                                                                                'BENI' => 'Beni',
-                                                                                'CHUQUISACA' => 'Chuquisaca',
-                                                                                'COCHABAMBA' => 'Cochabamba',
-                                                                                'LA PAZ' => 'La Paz',
-                                                                                'ORURO' => 'Oruro',
-                                                                                'PANDO' => 'Pando',
-                                                                                'POTOSÍ' => 'Potosí',
-                                                                                'SANTA CRUZ' => 'Santa Cruz',
-                                                                                'TARIJA' => 'Tarija',
-                                                                            ])
-                                                                            ->searchable()
-                                                                            ->preload()
-                                                                            ->placeholder('Seleccione')
-                                                                            ->prefixIcon('heroicon-o-map-pin')
-                                                                            ->columnSpan(1),
-                                                                        TextInput::make('zona')
-                                                                            ->label('Zona')
-                                                                            ->maxLength(100)
-                                                                            ->placeholder('Equipetrol')
-                                                                            ->prefixIcon('heroicon-o-building-library')
-                                                                            ->columnSpan(1),
-                                                                    ]),
-                                                                TextInput::make('condicion_pago')
-                                                                    ->label('Condición de Pago')
-                                                                    ->maxLength(100)
-                                                                    ->placeholder('Crédito 30 días')
-                                                                    ->prefixIcon('heroicon-o-credit-card')
-                                                                    ->columnSpanFull(),
-                                                                Toggle::make('activo')
-                                                                    ->label('Cliente Activo')
-                                                                    ->default(true)
-                                                                    ->columnSpanFull(),
-                                                            ]),
-                                                    ])
+                                                    ->createOptionForm(ClienteRegistroForm::schema())
                                                     ->createOptionAction(fn (FormAction $action): FormAction => $action
                                                         ->modalHeading('Registrar o reutilizar cliente')
                                                         ->modalDescription('Si el celular ya pertenece a un cliente, se usará ese registro y no se creará un duplicado.')

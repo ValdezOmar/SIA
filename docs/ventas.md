@@ -10,6 +10,10 @@ El cliente debe pertenecer a la empresa de la venta y la sucursal debe correspon
 
 Registrar código, nombre, documento, celular y datos comerciales. El sistema normaliza los textos principales a mayúsculas y el celular a dígitos. La creación puede reutilizar un cliente con el mismo celular dentro de la empresa; no se debe crear otra ficha para el mismo contacto. Al editar, un celular que pertenece a otro cliente de esa empresa se rechaza.
 
+En Facturas, Pedidos y Cotizaciones, el selector muestra **nombre · celular**; si no hay celular, muestra el teléfono disponible. Permite buscar por nombre, código, celular o teléfono, también con espacios, guiones o paréntesis. Carga hasta 50 coincidencias por consulta y permite recuperar el cliente seleccionado aunque no esté entre las primeras opciones.
+
+El registro rápido comienza con **Código → Nombre → Celular → CI / NIT**. Los demás campos se agrupan en **Contacto adicional**, **Ubicación** y **Datos comerciales**. El código se genera automáticamente; nombre y celular son obligatorios.
+
 Las pestañas del cliente aparecen como **Facturas → Pedidos → Cotizaciones**. En la pestaña Pedidos está activo por defecto el filtro **Pendiente**; quitarlo permite revisar otros estados. La modificación de clientes conserva `updated_at`; no utiliza una columna `actualizado_por`.
 
 ### Contactos para el teléfono
