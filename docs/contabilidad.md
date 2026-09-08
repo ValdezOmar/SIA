@@ -38,6 +38,12 @@ El total exigible de la factura es la referencia para construir el asiento. Una 
 
 Las cuentas auxiliares usadas por la integración se buscan o crean mediante el modelo contable. Revisar el plan antes de operar: la existencia de una cuenta no garantiza que esté activa o admita movimientos.
 
+## Stock negativo valorizado
+
+Un almacén puede habilitar de forma independiente las salidas con stock negativo. La salida solo continúa si puede valorarse: Kardex usa el costo indicado, último costo, promedio o estándar disponible y conserva el importe provisional en el movimiento. El asiento de venta carga ese mismo importe al costo de ventas y acredita inventario; para movimientos manuales usa las cuentas configuradas para el tipo de Kardex. Por ello no se registran salidas negativas sin costo ni asientos con importe cero.
+
+Al registrar una entrada posterior, el costo acumulado y promedio de la existencia se recalculan con el saldo negativo previo. Revisar el Kardex y los asientos relacionados tras regularizar el stock físico.
+
 ## Fechas y registros retroactivos
 
 El asiento de venta usa la fecha de venta de la factura. El asiento del pago usa la fecha de ese pago. La aplicación de anticipos toma la fecha posterior entre la venta y el último pago confirmado. En el Kardex de venta se distingue fecha física de entrega y fecha contable de venta.

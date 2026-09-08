@@ -380,10 +380,19 @@ class Factura extends Model
                     ->lockForUpdate()
                     ->first();
                 $disponible = (float) ($existencia?->cantidad_disponible ?? 0) - (float) ($existencia?->cantidad_comprometida ?? 0);
-                if (! $existencia || $disponible < $cantidad) {
+                if ((! $existencia || $disponible < $cantidad) && ! $almacen->permite_inventario_negativo) {
                     throw new \RuntimeException('No hay stock disponible para reservar el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
                 }
 
+                $existencia ??= Existencia::create([
+                    'articulo_id' => $detalle->articulo_id,
+                    'almacen_id' => $almacen->id,
+                    'cantidad_disponible' => 0,
+                    'cantidad_comprometida' => 0,
+                    'costo_promedio' => 0,
+                    'costo_acumulado' => 0,
+                    'ultimo_costo' => 0,
+                ]);
                 $existencia->increment('cantidad_comprometida', $cantidad);
                 MovimientoInventario::create([
                     'articulo_id' => $detalle->articulo_id, 'almacen_id' => $almacen->id,
@@ -474,11 +483,11 @@ class Factura extends Model
                         ->where('almacen_id', $almacen->id)
                         ->first();
 
-                    if (! $existencia) {
+                    if (! $existencia && ! $almacen->permite_inventario_negativo) {
                         throw new \RuntimeException('No existe stock del artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).' en el almacén activo.');
                     }
 
-                    if ((float) $existencia->cantidad_disponible < $cantidad) {
+                    if (! $almacen->permite_inventario_negativo && (float) $existencia->cantidad_disponible < $cantidad) {
                         throw new \RuntimeException('Stock insuficiente para el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
                     }
 

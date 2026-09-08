@@ -17,6 +17,7 @@ class Almacen extends Model
 
     protected $casts = [
         'activo' => 'boolean',
+        'permite_inventario_negativo' => 'boolean',
     ];
 
     protected static function booted(): void

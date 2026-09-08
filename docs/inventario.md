@@ -38,6 +38,14 @@ Asignar precios en las listas correspondientes; la consulta de stock muestra pre
 
 La valoración de salidas contempla costo promedio, estándar, LIFO y consumo de capas. Para costo estándar se exige un valor positivo. En la rama de capas, LIFO consume las más recientes; una capa específica indicada se utiliza cuando corresponde y, en los demás casos, se priorizan las más antiguas. No todos los movimientos equivalen a FIFO: depende de la configuración y los datos enviados.
 
+### Stock negativo por almacén
+
+En **Parámetros de Inventario > Almacenes**, cada almacén tiene la opción **Permitir salidas con stock negativo**. Está desactivada de forma predeterminada. Al activarla, una venta, ajuste o transferencia de salida puede dejar la existencia bajo cero solo en ese almacén; los demás almacenes siguen bloqueando salidas sin stock.
+
+La salida negativa requiere un costo para proteger la contabilidad. El sistema usa, en este orden, el costo indicado en la salida, el último costo del almacén, el costo promedio o el costo estándar del artículo. Si ninguno tiene valor, bloquea la operación. Kardex guarda que la salida fue negativa y el costo provisional usado; Contabilidad registra el mismo importe entre costo de ventas/inventario o las cuentas del movimiento correspondiente. Una entrada posterior mantiene el valor acumulado y recalcula el costo promedio del saldo resultante.
+
+No use esta opción para omitir recepciones o corregir diferencias físicas. Registre la entrada real lo antes posible y revise el Kardex y el asiento generado. Series y lotes siguen exigiendo identificación y saldo disponible, aunque el almacén permita stock negativo.
+
 ## Consulta rápida para vendedores
 
 En **Stock por artículo**, buscar por código, modelo, nombre, descripción, marca o código de barras. Se muestran todos los registros de existencia del almacén sin paginación; esto no agrega automáticamente artículos del catálogo que nunca tuvieron una existencia registrada allí.
@@ -56,7 +64,7 @@ Las entradas, salidas y ajustes deben registrarse en Kardex para conservar canti
 
 Una reserva aumenta la cantidad comprometida sin disminuir la existencia física. La entrega libera las reservas asociadas y registra la salida física. En el flujo actual de ventas, la entrega se procesa cuando el importe está completamente pagado; consultar [Ventas](ventas.md).
 
-Cada salida exige existencia suficiente y una valoración posible. La anulación usa un movimiento de reversión; no debe reemplazarse por el borrado manual del Kardex o una modificación directa de la cantidad disponible.
+Cada salida exige existencia suficiente y una valoración posible, salvo que el almacén permita explícitamente stock negativo. La anulación usa un movimiento de reversión; no debe reemplazarse por el borrado manual del Kardex o una modificación directa de la cantidad disponible.
 
 ## Series y lotes
 
@@ -106,7 +114,7 @@ La ficha y el listado permiten descargar el PDF; la ficha también exporta CSV. 
 - [Trazabilidad](../app/Services/Inventario/TrazabilidadInventarioService.php), [sesiones físicas](../app/Services/Inventario/InventarioFisicoService.php) y [PDF](../app/Services/Inventario/InventarioPdfService.php).
 
 ```sh
-php -d extension=pdo_sqlite -d extension=sqlite3 vendor/phpunit/phpunit/phpunit --filter="InventarioFisicoTest|VentaFechasTest|KardexAccountingIntegrationTest"
+php -d extension=pdo_sqlite -d extension=sqlite3 vendor/phpunit/phpunit/phpunit --filter="InventarioFisicoTest|InventarioNegativoTest|VentaFechasTest|KardexAccountingIntegrationTest"
 ```
 
 Las pruebas de componentes no verifican la cámara física: comprobar una etiqueta real desde el teléfono con permiso de cámara y conexión HTTPS.

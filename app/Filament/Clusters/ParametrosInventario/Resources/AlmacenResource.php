@@ -234,6 +234,17 @@ class AlmacenResource extends Resource
                                             ->default(true)
                                             ->helperText('Si lo desactiva, conservará su historial y stock, pero no aparecerá para nuevas operaciones.'),
                                     ]),
+
+                                Section::make('Regla de stock negativo')
+                                    ->icon('heroicon-o-exclamation-triangle')
+                                    ->description('Esta regla se aplica solo a este almacén.')
+                                    ->schema([
+                                        Toggle::make('permite_inventario_negativo')
+                                            ->label('Permitir salidas con stock negativo')
+                                            ->inline(false)
+                                            ->default(false)
+                                            ->helperText('Al activarlo, ventas, ajustes y transferencias de salida podrán dejar existencias bajo cero. El sistema usará el último costo disponible o el costo estándar del artículo y registrará ese valor en Kardex y contabilidad. Si no existe un costo para valorar la salida, la operación se bloqueará.'),
+                                    ]),
                             ]),
 
                         // ========== TAB 2: UBICACIONES ==========
@@ -412,6 +423,18 @@ class AlmacenResource extends Resource
             ->falseIcon('heroicon-o-x-circle')
             ->trueColor('success')
             ->falseColor('danger')
+            ->toggleable();
+
+        $columns[] = IconColumn::make('permite_inventario_negativo')
+            ->label('Stock negativo')
+            ->boolean()
+            ->trueIcon('heroicon-o-exclamation-triangle')
+            ->falseIcon('heroicon-o-minus-circle')
+            ->trueColor('warning')
+            ->falseColor('gray')
+            ->tooltip(fn (Almacen $record): string => $record->permite_inventario_negativo
+                ? 'Permite salidas por encima del stock'
+                : 'Bloquea salidas por encima del stock')
             ->toggleable();
 
         $columns[] = TextColumn::make('created_at')

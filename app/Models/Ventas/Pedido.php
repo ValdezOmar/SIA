@@ -284,9 +284,18 @@ class Pedido extends Model
                 }
                 $existencia = Existencia::query()->where('articulo_id', $detalle->articulo_id)->where('almacen_id', $almacen->id)->lockForUpdate()->first();
                 $disponible = (float) ($existencia?->cantidad_disponible ?? 0) - (float) ($existencia?->cantidad_comprometida ?? 0);
-                if (! $existencia || $disponible < $cantidad) {
+                if ((! $existencia || $disponible < $cantidad) && ! $almacen->permite_inventario_negativo) {
                     throw new \RuntimeException('No hay stock disponible para reservar el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
                 }
+                $existencia ??= Existencia::create([
+                    'articulo_id' => $detalle->articulo_id,
+                    'almacen_id' => $almacen->id,
+                    'cantidad_disponible' => 0,
+                    'cantidad_comprometida' => 0,
+                    'costo_promedio' => 0,
+                    'costo_acumulado' => 0,
+                    'ultimo_costo' => 0,
+                ]);
                 $existencia->increment('cantidad_comprometida', $cantidad);
                 MovimientoInventario::create([
                     'articulo_id' => $detalle->articulo_id, 'almacen_id' => $almacen->id, 'tipo' => 'reserva_pedido', 'cantidad' => $cantidad,

@@ -10,11 +10,11 @@ return new class extends Migration
     {
         Schema::create('alm_almacenes', function (Blueprint $table) {
             $table->id();
-            
+
             $table->string('codigo', 20)->unique();
             $table->string('nombre');
             $table->string('direccion')->nullable();
-            
+
             $table->foreignId('sucursal_id')
                 ->nullable()
                 ->constrained('conf_sucursales')
@@ -25,6 +25,8 @@ return new class extends Migration
                 ->restrictOnDelete();
 
             $table->boolean('activo')->default(true);
+            $table->boolean('permite_inventario_negativo')->default(false)
+                ->comment('Permite salidas por encima del stock con costo provisional');
             $table->timestamps();
 
             // Índices

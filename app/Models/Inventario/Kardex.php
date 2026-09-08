@@ -539,19 +539,40 @@ class Kardex extends Model
      */
     public static function registrarSalida($data)
     {
+        $data = array_replace([
+            'cantidad' => 0,
+            'costo_unitario' => 0,
+            'documento_tipo' => 'manual',
+            'documento_id' => 0,
+        ], $data);
         $articulo = Articulo::find($data['articulo_id']);
         self::validarArticuloInventariable($articulo, $data);
+        $almacen = Almacen::query()->lockForUpdate()->findOrFail($data['almacen_id']);
+        $permiteNegativo = $almacen->permite_inventario_negativo;
         $existencia = Existencia::where('articulo_id', $data['articulo_id'])
             ->where('almacen_id', $data['almacen_id'])
             ->lockForUpdate()
             ->first();
 
-        if (! $existencia || $existencia->cantidad_disponible < $data['cantidad']) {
+        if (! $existencia && ! $permiteNegativo) {
             throw new \Exception('Stock insuficiente para la salida');
         }
 
-        $cantidadAnterior = $existencia->cantidad_disponible;
+        $existencia ??= new Existencia([
+            'articulo_id' => $data['articulo_id'],
+            'almacen_id' => $data['almacen_id'],
+            'cantidad_disponible' => 0,
+            'cantidad_comprometida' => 0,
+            'costo_promedio' => 0,
+            'costo_acumulado' => 0,
+            'ultimo_costo' => 0,
+        ]);
+
+        $cantidadAnterior = (float) $existencia->cantidad_disponible;
         $cantidadPosterior = $cantidadAnterior - $data['cantidad'];
+        if ($cantidadPosterior < 0 && ! $permiteNegativo) {
+            throw new \Exception('Stock insuficiente para la salida');
+        }
 
         // Valorar la salida según el método configurado en el artículo.
         $metodoCosto = $articulo?->metodo_costo ?: 'especifica';
@@ -562,6 +583,9 @@ class Kardex extends Model
 
         if ($metodoCosto === 'promedio') {
             $costoUnitarioSalida = (float) ($existencia->costo_promedio ?? 0);
+            if ($costoUnitarioSalida <= 0 && $cantidadPosterior < 0) {
+                $costoUnitarioSalida = self::resolverCostoProvisional($data, $articulo, $existencia);
+            }
             $costoTotal = $cantidadPendiente * $costoUnitarioSalida;
         } elseif ($metodoCosto === 'estandar') {
             if ($costoEstandar <= 0) {
@@ -608,16 +632,35 @@ class Kardex extends Model
             }
 
             if ($cantidadPendiente > 0) {
-                throw new \RuntimeException('No existen capas de costo suficientes para valorar toda la salida.');
+                if ($cantidadPosterior >= 0) {
+                    throw new \RuntimeException('No existen capas de costo suficientes para valorar toda la salida.');
+                }
+
+                $costoProvisional = self::resolverCostoProvisional($data, $articulo, $existencia);
+                $costoTotal += $cantidadPendiente * $costoProvisional;
+                $capasConsumidas[] = [
+                    'capa_id' => null,
+                    'cantidad' => $cantidadPendiente,
+                    'costo_unitario' => $costoProvisional,
+                    'metodo' => 'provisional_por_stock_negativo',
+                ];
+                $cantidadPendiente = 0;
             }
 
             $costoUnitarioSalida = $data['cantidad'] > 0 ? $costoTotal / $data['cantidad'] : 0;
         }
 
         $costoPromedioSalida = $costoUnitarioSalida;
-        $nuevoCostoPromedio = $cantidadPosterior > 0 ?
-            ($existencia->costo_acumulado - $costoTotal) / $cantidadPosterior :
-            0;
+        $nuevoCostoAcumulado = (float) $existencia->costo_acumulado - $costoTotal;
+        $nuevoCostoPromedio = $cantidadPosterior != 0
+            ? $nuevoCostoAcumulado / $cantidadPosterior
+            : 0;
+        $datosAdicionales = $data['datos_adicionales'] ?? [];
+        if ($cantidadPosterior < 0) {
+            $datosAdicionales['inventario_negativo'] = true;
+            $datosAdicionales['cantidad_negativa'] = abs($cantidadPosterior);
+            $datosAdicionales['costo_provisional'] = $costoPromedioSalida;
+        }
 
         // Crear registro en kardex
         $kardex = self::create([
@@ -632,7 +675,7 @@ class Kardex extends Model
             'costo_unitario' => $costoPromedioSalida,
             'costo_total' => $costoTotal,
             'costo_promedio' => $nuevoCostoPromedio,
-            'costo_acumulado' => $existencia->costo_acumulado - $costoTotal,
+            'costo_acumulado' => $nuevoCostoAcumulado,
             'capas_fifo_consumidas' => $capasConsumidas,
             'documento_tipo' => $data['documento_tipo'],
             'documento_id' => $data['documento_id'],
@@ -644,7 +687,7 @@ class Kardex extends Model
             'fecha_contable' => $data['fecha_contable'] ?? $data['fecha_movimiento'] ?? now(),
             'motivo' => $data['motivo'] ?? null,
             'observaciones' => $data['observaciones'] ?? null,
-            'datos_adicionales' => $data['datos_adicionales'] ?? null,
+            'datos_adicionales' => $datosAdicionales ?: null,
             'estado' => $data['estado'] ?? 'confirmado',
             'empresa_id' => $data['empresa_id'] ?? auth()->user()?->empresa_id,
         ]);
@@ -659,6 +702,20 @@ class Kardex extends Model
         $existencia->save();
 
         return $kardex;
+    }
+
+    private static function resolverCostoProvisional(array $data, ?Articulo $articulo, Existencia $existencia): float
+    {
+        $costo = (float) ($data['costo_unitario'] ?? 0);
+        $costo = $costo > 0 ? $costo : (float) ($existencia->ultimo_costo ?? 0);
+        $costo = $costo > 0 ? $costo : (float) ($existencia->costo_promedio ?? 0);
+        $costo = $costo > 0 ? $costo : (float) ($articulo?->costo_estandar ?? 0);
+
+        if ($costo <= 0) {
+            throw new \RuntimeException('No se puede registrar stock negativo sin un costo. Registre una entrada con costo, defina el costo estándar del artículo o indique el costo unitario de la salida.');
+        }
+
+        return $costo;
     }
 
     /**
