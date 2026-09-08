@@ -44,6 +44,10 @@ Un almacén puede habilitar de forma independiente las salidas con stock negativ
 
 Al registrar una entrada posterior, el costo acumulado y promedio de la existencia se recalculan con el saldo negativo previo. Revisar el Kardex y los asientos relacionados tras regularizar el stock físico.
 
+## Ganancia mensual del tablero
+
+El widget **Ganancia mensual** conserva formato de tabla y muestra ventas netas, descuentos, costo de ventas, ganancia después del costo y rendimiento. Solo incluye facturas con asiento de venta confirmado y excluye anuladas. Las ventas netas usan el subtotal después de descuentos y antes de impuestos indirectos; los descuentos se muestran por separado. Los importes de facturas en otra moneda se convierten a bolivianos con la tasa guardada en la factura. El costo se toma de las salidas confirmadas de Kardex vinculadas a cada factura, por lo que queda en el mismo período comercial de la venta aunque la entrega física tenga otra fecha.
+
 ## Fechas y registros retroactivos
 
 El asiento de venta usa la fecha de venta de la factura. El asiento del pago usa la fecha de ese pago. La aplicación de anticipos toma la fecha posterior entre la venta y el último pago confirmado. En el Kardex de venta se distingue fecha física de entrega y fecha contable de venta.

@@ -11,18 +11,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Widget de la tabla del dashboard que compara, por mes, lo facturado
- * contra el costo de ventas registrado en el kardex, mostrando la
- * ganancia bruta y el porcentaje de rentabilidad.
- */
 class GananciaBrutaWidget extends TableWidget
 {
     use HasWidgetPermission;
 
-    protected static ?string $heading = 'Ventas · Ganancia bruta mensual';
+    protected static ?string $heading = 'Ganancia mensual';
 
-    protected static ?string $description = 'Ingresos, costo de ventas y ganancia bruta por mes.';
+    protected static ?string $description = 'Ventas contabilizadas, expresadas en bolivianos y sin impuestos indirectos.';
 
     protected static ?int $sort = 15;
 
@@ -30,104 +25,93 @@ class GananciaBrutaWidget extends TableWidget
 
     protected int|string|array $columnSpan = ['md' => 2, 'xl' => 2];
 
-    /**
-     * Query principal del widget.
-     *
-     * Agrupa las facturas por mes (ven_facturas) y les une por período
-     * el costo de ventas acumulado del kardex (alm_kardex) para ese mismo mes.
-     */
     protected function getTableQuery(): Builder
     {
         $inicio = now()->subMonths(6)->startOfMonth();
         $fin = now()->endOfMonth();
         $empresaId = Auth::user()?->empresa_id;
+        $periodoFactura = $this->periodoSql('ven_facturas.fecha_emision');
 
-        // Subconsulta de costos: total del costo de ventas por mes.
-        // Solo considera salidas de kardex tipo "venta" confirmadas.
-        $costosQuery = DB::table('alm_kardex as k')
-            ->selectRaw('DATE_FORMAT(k.fecha_movimiento, "%Y-%m") as periodo, SUM(k.costo_total) as total_costo')
-            ->where('k.tipo_movimiento', 'venta')
-            ->where('k.direccion', 'salida')
-            ->where('k.estado', 'confirmado')
-            ->whereBetween('k.fecha_movimiento', [$inicio, $fin])
-            ->when($empresaId, fn ($q) => $q->where('k.empresa_id', $empresaId))
-            ->groupByRaw('DATE_FORMAT(k.fecha_movimiento, "%Y-%m")');
+        // El asiento confirmado identifica las ventas ya reconocidas; evita
+        // incluir borradores, anulaciones o facturas sin efecto contable.
+        $ventasContabilizadas = DB::table('con_asientos_contables')
+            ->select('documento_id')
+            ->where('documento_tipo', 'venta')
+            ->where('estado', 'confirmado')
+            ->groupBy('documento_id');
+
+        // Se agrupa por factura, no por fecha física de entrega. Así el costo
+        // queda en el mismo período comercial de la venta que lo originó.
+        $costosPorFactura = DB::table('alm_kardex')
+            ->selectRaw('documento_id, SUM(costo_total) as total_costo')
+            ->where('documento_tipo', 'venta')
+            ->where('tipo_movimiento', 'venta')
+            ->where('direccion', 'salida')
+            ->where('estado', 'confirmado')
+            ->groupBy('documento_id');
 
         return Factura::query()
-            ->selectRaw('
-                MIN(ven_facturas.id) as id,
-                DATE_FORMAT(ven_facturas.fecha_emision, "%Y-%m") as periodo,
-                COALESCE(SUM(ven_facturas.total), 0) as total_ventas,
-                COALESCE(MAX(costos.total_costo), 0) as total_costo,
-                COALESCE(SUM(ven_facturas.total), 0) - COALESCE(MAX(costos.total_costo), 0) as ganancia_bruta
-            ')
-            ->leftJoinSub($costosQuery, 'costos', function ($join) {
-                $join->whereRaw('DATE_FORMAT(ven_facturas.fecha_emision, "%Y-%m") = costos.periodo');
-            })
+            ->selectRaw("\n                MIN(ven_facturas.id) as id,\n                {$periodoFactura} as periodo,\n                SUM(COALESCE(ven_facturas.subtotal, 0) * COALESCE(ven_facturas.tasa_cambio, 1)) as ingresos_netos,\n                SUM(COALESCE(ven_facturas.descuento, 0) * COALESCE(ven_facturas.tasa_cambio, 1)) as descuentos,\n                SUM(COALESCE(costos.total_costo, 0)) as costo_ventas,\n                SUM(COALESCE(ven_facturas.subtotal, 0) * COALESCE(ven_facturas.tasa_cambio, 1))\n                    - SUM(COALESCE(costos.total_costo, 0)) as ganancia_despues_costo\n            ")
+            ->joinSub($ventasContabilizadas, 'ventas_contabilizadas', fn ($join) => $join->on('ven_facturas.id', '=', 'ventas_contabilizadas.documento_id'))
+            ->leftJoinSub($costosPorFactura, 'costos', fn ($join) => $join->on('ven_facturas.id', '=', 'costos.documento_id'))
             ->where('ven_facturas.estado', '!=', 'anulada')
             ->whereBetween('ven_facturas.fecha_emision', [$inicio, $fin])
-            ->when($empresaId, fn ($q) => $q->where('ven_facturas.empresa_id', $empresaId))
-            ->groupByRaw('DATE_FORMAT(ven_facturas.fecha_emision, "%Y-%m")')
+            ->when($empresaId, fn ($query) => $query->where('ven_facturas.empresa_id', $empresaId))
+            ->groupByRaw($periodoFactura)
             ->orderByDesc('periodo');
     }
 
-    /**
-     * Columnas visibles de la tabla.
-     */
     protected function getTableColumns(): array
     {
         return [
             TextColumn::make('periodo')
                 ->label('Período')
-                ->formatStateUsing(fn ($state): string => $this->formatPeriodo((string) $state))
-                ->searchable(false)
-                ->sortable(false),
-            TextColumn::make('total_ventas')
-                ->label('Ingresos')
+                ->formatStateUsing(fn ($state): string => $this->formatPeriodo((string) $state)),
+            TextColumn::make('ingresos_netos')
+                ->label('Ventas netas')
+                ->money('BOB', divideBy: 1, locale: 'es')
+                ->alignEnd(),
+            TextColumn::make('descuentos')
+                ->label('Descuentos')
                 ->money('BOB', divideBy: 1, locale: 'es')
                 ->alignEnd()
-                ->searchable(false)
-                ->sortable(false),
-            TextColumn::make('total_costo')
+                ->color('warning'),
+            TextColumn::make('costo_ventas')
                 ->label('Costo de ventas')
                 ->money('BOB', divideBy: 1, locale: 'es')
                 ->alignEnd()
-                ->searchable(false)
-                ->sortable(false),
-            TextColumn::make('ganancia_bruta')
-                ->label('Ganancia bruta')
+                ->color('danger'),
+            TextColumn::make('ganancia_despues_costo')
+                ->label('Ganancia después del costo')
                 ->money('BOB', divideBy: 1, locale: 'es')
                 ->alignEnd()
-                ->searchable(false)
-                ->sortable(false)
-                ->color(fn ($record): string => ($record->total_ventas - $record->total_costo) >= 0
-                    ? 'success'
-                    : 'danger'),
-            TextColumn::make('porcentaje')
-                ->label('% Ganancia')
-                ->formatStateUsing(fn ($record): string => $record->total_ventas > 0
-                    ? number_format(($record->ganancia_bruta / $record->total_ventas) * 100, 1, ',', '.').'%'
-                    : '0%')
+                ->color(fn ($record): string => (float) $record->ganancia_despues_costo >= 0 ? 'success' : 'danger'),
+            TextColumn::make('rendimiento')
+                ->label('Rendimiento')
+                ->tooltip('Ganancia después del costo dividida entre ventas netas.')
+                ->formatStateUsing(fn ($record): string => (float) $record->ingresos_netos > 0
+                    ? number_format(((float) $record->ganancia_despues_costo / (float) $record->ingresos_netos) * 100, 2, ',', '.').' %'
+                    : '0,00 %')
                 ->alignEnd()
-                ->searchable(false)
-                ->sortable(false),
+                ->color(fn ($record): string => (float) $record->ganancia_despues_costo >= 0 ? 'success' : 'danger'),
         ];
     }
 
-    /**
-     * Convierte un período "YYYY-MM" en una etiqueta amigable, p. ej. "Abr 2026".
-     */
+    private function periodoSql(string $column): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', {$column})"
+            : "DATE_FORMAT({$column}, '%Y-%m')";
+    }
+
     private function formatPeriodo(string $periodo): string
     {
-        $parts = explode('-', $periodo);
+        $partes = explode('-', $periodo);
+        $meses = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-        if (count($parts) !== 2) {
-            return $periodo;
-        }
-
-        $nombres = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-
-        return ($nombres[(int) $parts[1]] ?? $parts[1]).' '.$parts[0];
+        return count($partes) === 2
+            ? ($meses[(int) $partes[1]] ?? $partes[1]).' '.$partes[0]
+            : $periodo;
     }
 
     public static function canView(): bool
