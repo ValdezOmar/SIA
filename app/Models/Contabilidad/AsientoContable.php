@@ -194,6 +194,11 @@ class AsientoContable extends Model
                 throw new RuntimeException('No se puede confirmar un asiento anulado.');
             }
 
+            // Los detalles son la fuente de verdad: evitar confirmar totales
+            // desactualizados si el asiento fue creado o editado por otro flujo.
+            $this->recalcularTotales();
+            $this->refresh();
+
             $this->validarAntesDeConfirmar();
 
             if (! $this->esta_balanceado) {

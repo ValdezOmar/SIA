@@ -6,21 +6,20 @@ use App\Filament\Resources\Contabilidad\PlanCuentaResource\Pages;
 use App\Models\Contabilidad\PlanCuenta;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
-use Filament\Forms;
 use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -68,17 +67,17 @@ class PlanCuentaResource extends Resource
         $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
         $defaultEmpresaId = Auth::user()?->empresa_id ?: Empresa::query()->value('id');
         $defaultSucursalId = Auth::user()?->sucursal_id ?: Sucursal::query()
-            ->when($defaultEmpresaId, fn($query) => $query->where('empresa_id', $defaultEmpresaId))
+            ->when($defaultEmpresaId, fn ($query) => $query->where('empresa_id', $defaultEmpresaId))
             ->value('id');
 
         return $form
             ->schema([
                 Hidden::make('empresa_id')
-                    ->default(fn() => Auth::user()?->empresa_id ?: $defaultEmpresaId)
+                    ->default(fn () => Auth::user()?->empresa_id ?: $defaultEmpresaId)
                     ->dehydrated(),
 
                 Hidden::make('sucursal_id')
-                    ->default(fn() => Auth::user()?->sucursal_id ?: $defaultSucursalId)
+                    ->default(fn () => Auth::user()?->sucursal_id ?: $defaultSucursalId)
                     ->dehydrated(),
 
                 Tabs::make('Gestión de Cuenta')
@@ -98,14 +97,14 @@ class PlanCuentaResource extends Resource
                                                         return Empresa::query()
                                                             ->orderByRaw('COALESCE(nombre_comercial, razon_social)')
                                                             ->get()
-                                                            ->mapWithKeys(fn($empresa) => [
+                                                            ->mapWithKeys(fn ($empresa) => [
                                                                 $empresa->id => $empresa->nombre_comercial ?: $empresa->razon_social,
                                                             ])
                                                             ->toArray();
                                                     })
                                                     ->searchable()
                                                     ->preload()
-                                                    ->default(fn() => $defaultEmpresaId)
+                                                    ->default(fn () => $defaultEmpresaId)
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, callable $set) {
                                                         $set('sucursal_id', null);
@@ -119,7 +118,7 @@ class PlanCuentaResource extends Resource
                                                             $set('sucursal_id', $primeraSucursal);
                                                         }
                                                     })
-                                                    ->disabled(!$isAdmin)
+                                                    ->disabled(! $isAdmin)
                                                     ->dehydrated()
                                                     ->visible($isAdmin)
                                                     ->required(),
@@ -137,8 +136,8 @@ class PlanCuentaResource extends Resource
                                                     })
                                                     ->searchable()
                                                     ->preload()
-                                                    ->default(fn() => $defaultSucursalId)
-                                                    ->disabled(!$isAdmin)
+                                                    ->default(fn () => $defaultSucursalId)
+                                                    ->disabled(! $isAdmin)
                                                     ->dehydrated()
                                                     ->visible($isAdmin)
                                                     ->required(),
@@ -160,7 +159,7 @@ class PlanCuentaResource extends Resource
                                                         if ($padreId) {
                                                             $padre = PlanCuenta::find($padreId);
                                                             if ($padre) {
-                                                                $set('trayectoria', $padre->trayectoria . '.' . $padre->id);
+                                                                $set('trayectoria', $padre->trayectoria.'.'.$padre->id);
                                                                 $set('nivel', $padre->nivel + 1);
                                                             }
                                                         }
@@ -186,15 +185,14 @@ class PlanCuentaResource extends Resource
                                                 Select::make('cuenta_padre_id')
                                                     ->label('Cuenta Padre')
                                                     ->options(
-                                                        fn() => PlanCuenta::whereNull('cuenta_padre_id')
+                                                        fn () => PlanCuenta::whereNull('cuenta_padre_id')
                                                             ->orWhere('id', request()->route('record'))
-                                                            ->when(Auth::user()?->empresa_id, fn($q) => 
-                                                                $q->where('empresa_id', Auth::user()->empresa_id)
+                                                            ->when(Auth::user()?->empresa_id, fn ($q) => $q->where('empresa_id', Auth::user()->empresa_id)
                                                             )
                                                             ->orderBy('codigo')
                                                             ->get()
-                                                            ->mapWithKeys(fn($item) => [
-                                                                $item->id => $item->codigo . ' - ' . $item->nombre
+                                                            ->mapWithKeys(fn ($item) => [
+                                                                $item->id => $item->codigo.' - '.$item->nombre,
                                                             ])
                                                             ->toArray()
                                                     )
@@ -208,7 +206,7 @@ class PlanCuentaResource extends Resource
                                                         if ($state) {
                                                             $padre = PlanCuenta::find($state);
                                                             if ($padre) {
-                                                                $set('trayectoria', $padre->trayectoria . '.' . $padre->id);
+                                                                $set('trayectoria', $padre->trayectoria.'.'.$padre->id);
                                                                 $set('nivel', $padre->nivel + 1);
                                                                 $set('tipo_cuenta', $padre->tipo_cuenta);
                                                                 $set('naturaleza', $padre->naturaleza);
@@ -253,7 +251,7 @@ class PlanCuentaResource extends Resource
                                                     ->prefixIcon('heroicon-o-tag')
                                                     ->reactive()
                                                     ->afterStateUpdated(function ($state, callable $set) {
-                                                        $naturaleza = match($state) {
+                                                        $naturaleza = match ($state) {
                                                             'activo', 'gasto', 'costo' => 'deudora',
                                                             'pasivo', 'patrimonio', 'ingreso' => 'acreedora',
                                                             default => 'deudora'
@@ -264,8 +262,8 @@ class PlanCuentaResource extends Resource
                                                 Select::make('naturaleza')
                                                     ->label('Naturaleza')
                                                     ->options([
-                                                        'deudora' => '🟦 Deudora',
-                                                        'acreedora' => '🟥 Acreedora',
+                                                        'deudora' => 'Deudora',
+                                                        'acreedora' => 'Acreedora',
                                                     ])
                                                     ->required()
                                                     ->searchable()
@@ -276,11 +274,11 @@ class PlanCuentaResource extends Resource
                                                 Select::make('tipo_detalle')
                                                     ->label('Tipo de Detalle')
                                                     ->options([
-                                                        'general' => '📋 General',
-                                                        'auxiliar' => '📊 Auxiliar',
-                                                        'analitica' => '📈 Analítica',
-                                                        'control' => '🎯 Control',
-                                                        'ajuste' => '⚙️ Ajuste',
+                                                        'general' => 'General',
+                                                        'auxiliar' => 'Auxiliar',
+                                                        'analitica' => 'Analítica',
+                                                        'control' => 'Control',
+                                                        'ajuste' => 'Ajuste',
                                                     ])
                                                     ->default('general')
                                                     ->searchable()
@@ -342,7 +340,7 @@ class PlanCuentaResource extends Resource
                                         Placeholder::make('saldos_info')
                                             ->label('')
                                             ->content(function ($record) {
-                                                if (!$record) {
+                                                if (! $record) {
                                                     return 'Los saldos se mostrarán después de guardar la cuenta.';
                                                 }
 
@@ -370,20 +368,21 @@ class PlanCuentaResource extends Resource
 
                                                 foreach ($saldos as $saldo) {
                                                     $nombreMes = \DateTime::createFromFormat('!m', $saldo->mes)->format('F');
-                                                    $saldoFinal = $record->naturaleza === 'deudora' 
+                                                    $saldoFinal = $record->naturaleza === 'deudora'
                                                         ? $saldo->saldo_final_debe - $saldo->saldo_final_haber
                                                         : $saldo->saldo_final_haber - $saldo->saldo_final_debe;
                                                     $color = $saldoFinal > 0 ? 'text-green-600' : ($saldoFinal < 0 ? 'text-red-600' : 'text-gray-500');
 
                                                     $html .= '<tr>';
-                                                    $html .= '<td class="px-4 py-2 text-sm">' . $nombreMes . ' ' . $saldo->anio . '</td>';
-                                                    $html .= '<td class="px-4 py-2 text-sm text-right">' . number_format($saldo->saldo_final_debe, 2) . '</td>';
-                                                    $html .= '<td class="px-4 py-2 text-sm text-right">' . number_format($saldo->saldo_final_haber, 2) . '</td>';
-                                                    $html .= '<td class="px-4 py-2 text-sm text-right font-bold ' . $color . '">' . number_format($saldoFinal, 2) . '</td>';
+                                                    $html .= '<td class="px-4 py-2 text-sm">'.$nombreMes.' '.$saldo->anio.'</td>';
+                                                    $html .= '<td class="px-4 py-2 text-sm text-right">Bs '.number_format($saldo->saldo_final_debe, 2, ',', '.').'</td>';
+                                                    $html .= '<td class="px-4 py-2 text-sm text-right">Bs '.number_format($saldo->saldo_final_haber, 2, ',', '.').'</td>';
+                                                    $html .= '<td class="px-4 py-2 text-sm text-right font-bold '.$color.'">Bs '.number_format($saldoFinal, 2, ',', '.').'</td>';
                                                     $html .= '</tr>';
                                                 }
 
                                                 $html .= '</tbody></table></div>';
+
                                                 return new HtmlString($html);
                                             })
                                             ->columnSpanFull(),
@@ -400,19 +399,19 @@ class PlanCuentaResource extends Resource
                                             ->schema([
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
-                                                    ->content(fn($record) => $record?->creador?->name ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->creador?->name ?? 'N/A'),
 
                                                 Placeholder::make('empresa')
                                                     ->label('Empresa')
-                                                    ->content(fn($record) => $record?->empresa?->nombre_comercial ?: $record?->empresa?->razon_social ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->empresa?->nombre_comercial ?: $record?->empresa?->razon_social ?? 'N/A'),
 
                                                 Placeholder::make('sucursal')
                                                     ->label('Sucursal')
-                                                    ->content(fn($record) => $record?->sucursal?->nombre ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->sucursal?->nombre ?? 'N/A'),
 
                                                 Placeholder::make('created_at')
                                                     ->label('Fecha creación')
-                                                    ->content(fn($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A'),
+                                                    ->content(fn ($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A'),
                                             ]),
                                     ]),
                             ]),
@@ -459,7 +458,7 @@ class PlanCuentaResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->toggleable()
-                    ->formatStateUsing(fn($state, $record) => $record->empresa?->nombre_comercial ?: $record->empresa?->razon_social ?? 'N/A')
+                    ->formatStateUsing(fn ($state, $record) => $record->empresa?->nombre_comercial ?: $record->empresa?->razon_social ?? 'N/A')
                     ->visible($isAdmin)
                     ->placeholder('-'),
 
@@ -481,7 +480,7 @@ class PlanCuentaResource extends Resource
 
                 TextColumn::make('tipo_cuenta')
                     ->label('Tipo')
-                    ->formatStateUsing(fn($state) => match($state) {
+                    ->formatStateUsing(fn ($state) => match ($state) {
                         'activo' => '🟢 Activo',
                         'pasivo' => '🔴 Pasivo',
                         'patrimonio' => '🔵 Patrimonio',
@@ -491,7 +490,7 @@ class PlanCuentaResource extends Resource
                         default => $state,
                     })
                     ->badge()
-                    ->color(fn($state) => match($state) {
+                    ->color(fn ($state) => match ($state) {
                         'activo' => 'success',
                         'pasivo' => 'danger',
                         'patrimonio' => 'primary',
@@ -504,9 +503,9 @@ class PlanCuentaResource extends Resource
 
                 TextColumn::make('naturaleza')
                     ->label('Naturaleza')
-                    ->formatStateUsing(fn($state) => $state === 'deudora' ? '🟦 Deudora' : '🟥 Acreedora')
+                    ->formatStateUsing(fn ($state) => $state === 'deudora' ? 'Deudora' : 'Acreedora')
                     ->badge()
-                    ->color(fn($state) => $state === 'deudora' ? 'info' : 'danger')
+                    ->color(fn ($state) => $state === 'deudora' ? 'info' : 'danger')
                     ->toggleable(),
 
                 IconColumn::make('activo')
@@ -531,7 +530,7 @@ class PlanCuentaResource extends Resource
                     ->relationship('empresa', 'nombre_comercial')
                     ->searchable()
                     ->preload()
-                    ->default(fn() => Auth::user()?->empresa_id)
+                    ->default(fn () => Auth::user()?->empresa_id)
                     ->visible($isAdmin),
 
                 // Filtro por sucursal
@@ -540,7 +539,7 @@ class PlanCuentaResource extends Resource
                     ->relationship('sucursal', 'nombre')
                     ->searchable()
                     ->preload()
-                    ->default(fn() => Auth::user()?->sucursal_id)
+                    ->default(fn () => Auth::user()?->sucursal_id)
                     ->visible($isAdmin),
 
                 SelectFilter::make('tipo_cuenta')
@@ -588,9 +587,9 @@ class PlanCuentaResource extends Resource
                     Tables\Actions\Action::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
-                        ->color(fn($record) => $record->activo ? 'warning' : 'success')
+                        ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
-                            $record->update(['activo' => !$record->activo]);
+                            $record->update(['activo' => ! $record->activo]);
                             \Filament\Notifications\Notification::make()
                                 ->title($record->activo ? 'Cuenta activada' : 'Cuenta desactivada')
                                 ->success()
@@ -598,7 +597,7 @@ class PlanCuentaResource extends Resource
                         }),
 
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn($record) => !$record->tieneMovimientos()),
+                        ->visible(fn ($record) => ! $record->tieneMovimientos()),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

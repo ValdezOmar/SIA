@@ -12,7 +12,7 @@ test('cantidad, descuento, IVA y total se calculan sin duplicar descuentos', () 
     assert.equal(formato(fila.total, 'BOB'), 'Bs 305.10');
 });
 
-test('salir del campo actualiza localmente y no solicita envío al servidor', () => {
+test('cada pulsación actualiza localmente y no solicita envío al servidor', () => {
     let fila = { cantidad: 1, precio_unitario: 100, descuento: 0 };
     const wire = { $get: () => fila, $set: (ruta, valor, enviar) => {
         assert.equal(ruta, 'data.detalles.fila');

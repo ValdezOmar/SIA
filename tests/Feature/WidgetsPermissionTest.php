@@ -11,6 +11,7 @@ use App\Filament\Widgets\VentasResumenWidget;
 use App\Filament\Widgets\VentasTendenciaWidget;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Filament\Widgets\ChartWidget;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -43,5 +44,15 @@ class WidgetsPermissionTest extends TestCase
             $this->assertTrue($method->invoke(null), $widget);
             $usuario->revokePermissionTo($permiso);
         }
+    }
+
+    public function test_ganancia_bruta_es_una_grafica_mensual(): void
+    {
+        $widget = app(GananciaBrutaWidget::class);
+        $this->assertInstanceOf(ChartWidget::class, $widget);
+
+        $method = new \ReflectionMethod($widget, 'getType');
+        $method->setAccessible(true);
+        $this->assertSame('bar', $method->invoke($widget));
     }
 }

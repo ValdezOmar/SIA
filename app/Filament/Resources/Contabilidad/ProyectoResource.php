@@ -7,21 +7,20 @@ use App\Models\Contabilidad\Proyecto;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\Ventas\Cliente;
-use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +44,7 @@ class ProyectoResource extends Resource
 
     private static function formatearMonto($monto): string
     {
-        return 'Bs ' . number_format($monto ?? 0, 2);
+        return 'Bs '.number_format((float) ($monto ?? 0), 2, ',', '.');
     }
 
     /**
@@ -73,7 +72,7 @@ class ProyectoResource extends Resource
         $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
         $defaultEmpresaId = Auth::user()?->empresa_id ?: Empresa::query()->value('id');
         $defaultSucursalId = Auth::user()?->sucursal_id ?: Sucursal::query()
-            ->when($defaultEmpresaId, fn($query) => $query->where('empresa_id', $defaultEmpresaId))
+            ->when($defaultEmpresaId, fn ($query) => $query->where('empresa_id', $defaultEmpresaId))
             ->value('id');
 
         return $form
@@ -90,14 +89,14 @@ class ProyectoResource extends Resource
                                         return Empresa::query()
                                             ->orderByRaw('COALESCE(nombre_comercial, razon_social)')
                                             ->get()
-                                            ->mapWithKeys(fn($empresa) => [
+                                            ->mapWithKeys(fn ($empresa) => [
                                                 $empresa->id => $empresa->nombre_comercial ?: $empresa->razon_social,
                                             ])
                                             ->toArray();
                                     })
                                     ->searchable()
                                     ->preload()
-                                    ->default(fn() => $defaultEmpresaId)
+                                    ->default(fn () => $defaultEmpresaId)
                                     ->live()
                                     ->afterStateUpdated(function ($state, callable $set) {
                                         $set('sucursal_id', null);
@@ -111,7 +110,7 @@ class ProyectoResource extends Resource
                                             $set('sucursal_id', $primeraSucursal);
                                         }
                                     })
-                                    ->disabled(!$isAdmin)
+                                    ->disabled(! $isAdmin)
                                     ->dehydrated()
                                     ->visible($isAdmin)
                                     ->required(),
@@ -129,20 +128,20 @@ class ProyectoResource extends Resource
                                     })
                                     ->searchable()
                                     ->preload()
-                                    ->default(fn() => $defaultSucursalId)
-                                    ->disabled(!$isAdmin)
+                                    ->default(fn () => $defaultSucursalId)
+                                    ->disabled(! $isAdmin)
                                     ->dehydrated()
                                     ->visible($isAdmin)
                                     ->required(),
 
                                 Hidden::make('empresa_id')
-                                    ->default(fn() => Auth::user()?->empresa_id ?: $defaultEmpresaId)
-                                    ->visible(!$isAdmin)
+                                    ->default(fn () => Auth::user()?->empresa_id ?: $defaultEmpresaId)
+                                    ->visible(! $isAdmin)
                                     ->dehydrated(),
 
                                 Hidden::make('sucursal_id')
-                                    ->default(fn() => Auth::user()?->sucursal_id ?: $defaultSucursalId)
-                                    ->visible(!$isAdmin)
+                                    ->default(fn () => Auth::user()?->sucursal_id ?: $defaultSucursalId)
+                                    ->visible(! $isAdmin)
                                     ->dehydrated(),
                             ]),
 
@@ -188,11 +187,11 @@ class ProyectoResource extends Resource
                                 Select::make('estado')
                                     ->label('Estado')
                                     ->options([
-                                        'planeacion' => '📋 Planeación',
-                                        'activo' => '✅ Activo',
-                                        'pausado' => '⏸️ Pausado',
-                                        'finalizado' => '🏁 Finalizado',
-                                        'cancelado' => '❌ Cancelado',
+                                        'planeacion' => 'Planeación',
+                                        'activo' => 'Activo',
+                                        'pausado' => 'Pausado',
+                                        'finalizado' => 'Finalizado',
+                                        'cancelado' => 'Cancelado',
                                     ])
                                     ->default('planeacion')
                                     ->required()
@@ -205,7 +204,7 @@ class ProyectoResource extends Resource
                                     ->relationship('responsable', 'name')
                                     ->searchable()
                                     ->preload()
-                                    ->default(fn() => Auth::id())
+                                    ->default(fn () => Auth::id())
                                     ->placeholder('Seleccione un responsable')
                                     ->helperText('Responsable del proyecto')
                                     ->prefixIcon('heroicon-o-user'),
@@ -216,9 +215,8 @@ class ProyectoResource extends Resource
                                 Select::make('cliente_id')
                                     ->label('Cliente')
                                     ->options(
-                                        fn() => Cliente::where('activo', true)
-                                            ->when(Auth::user()?->empresa_id, fn($q) => 
-                                                $q->where('empresa_id', Auth::user()->empresa_id)
+                                        fn () => Cliente::where('activo', true)
+                                            ->when(Auth::user()?->empresa_id, fn ($q) => $q->where('empresa_id', Auth::user()->empresa_id)
                                             )
                                             ->pluck('nombre', 'id')
                                             ->toArray()
@@ -236,7 +234,7 @@ class ProyectoResource extends Resource
                                     ->step(1.00)
                                     ->default(0)
                                     ->placeholder('0.00')
-                                    ->prefix('$')
+                                    ->prefix('Bs')
                                     ->helperText('Presupuesto total del proyecto'),
                             ]),
 
@@ -249,7 +247,7 @@ class ProyectoResource extends Resource
                                     ->step(1.00)
                                     ->default(0)
                                     ->placeholder('0.00')
-                                    ->prefix('$')
+                                    ->prefix('Bs')
                                     ->disabled()
                                     ->helperText('Monto gastado del proyecto'),
 
@@ -260,9 +258,10 @@ class ProyectoResource extends Resource
                                         $gastado = floatval($get('gastado') ?? 0);
                                         $saldo = $presupuesto - $gastado;
                                         $color = $saldo >= 0 ? 'text-success-600' : 'text-danger-600';
+
                                         return new HtmlString(
-                                            '<span class="font-bold ' . $color . '">' .
-                                                self::formatearMonto($saldo) .
+                                            '<span class="font-bold '.$color.'">'.
+                                                self::formatearMonto($saldo).
                                                 '</span>'
                                         );
                                     }),
@@ -303,12 +302,12 @@ class ProyectoResource extends Resource
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn($state) => match($state) {
-                        'planeacion' => '📋 Planeación',
-                        'activo' => '✅ Activo',
-                        'pausado' => '⏸️ Pausado',
-                        'finalizado' => '🏁 Finalizado',
-                        'cancelado' => '❌ Cancelado',
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'planeacion' => 'Planeación',
+                        'activo' => 'Activo',
+                        'pausado' => 'Pausado',
+                        'finalizado' => 'Finalizado',
+                        'cancelado' => 'Cancelado',
                         default => $state,
                     })
                     ->colors([
@@ -339,7 +338,7 @@ class ProyectoResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->toggleable()
-                    ->formatStateUsing(fn($state, $record) => $record->empresa?->nombre_comercial ?: $record->empresa?->razon_social ?? 'N/A')
+                    ->formatStateUsing(fn ($state, $record) => $record->empresa?->nombre_comercial ?: $record->empresa?->razon_social ?? 'N/A')
                     ->visible($isAdmin)
                     ->placeholder('-'),
 
@@ -356,24 +355,24 @@ class ProyectoResource extends Resource
                     ->numeric(2)
                     ->sortable()
                     ->toggleable()
-                    ->prefix('$'),
+                    ->prefix('Bs'),
 
                 TextColumn::make('gastado')
                     ->label('Gastado')
                     ->numeric(2)
                     ->sortable()
                     ->toggleable()
-                    ->prefix('$')
+                    ->prefix('Bs')
                     ->color('danger'),
 
                 TextColumn::make('saldo')
                     ->label('Saldo')
                     ->numeric(2)
                     ->sortable()
-                    ->getStateUsing(fn($record) => ($record->presupuesto ?? 0) - ($record->gastado ?? 0))
+                    ->getStateUsing(fn ($record) => ($record->presupuesto ?? 0) - ($record->gastado ?? 0))
                     ->toggleable()
-                    ->prefix('$')
-                    ->color(fn($state) => $state >= 0 ? 'success' : 'danger'),
+                    ->prefix('Bs')
+                    ->color(fn ($state) => $state >= 0 ? 'success' : 'danger'),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
@@ -387,7 +386,7 @@ class ProyectoResource extends Resource
                     ->relationship('empresa', 'nombre_comercial')
                     ->searchable()
                     ->preload()
-                    ->default(fn() => Auth::user()?->empresa_id)
+                    ->default(fn () => Auth::user()?->empresa_id)
                     ->visible($isAdmin),
 
                 // Filtro por sucursal
@@ -396,7 +395,7 @@ class ProyectoResource extends Resource
                     ->relationship('sucursal', 'nombre')
                     ->searchable()
                     ->preload()
-                    ->default(fn() => Auth::user()?->sucursal_id)
+                    ->default(fn () => Auth::user()?->sucursal_id)
                     ->visible($isAdmin),
 
                 SelectFilter::make('estado')
@@ -441,11 +440,11 @@ class ProyectoResource extends Resource
                             Select::make('estado')
                                 ->label('Nuevo Estado')
                                 ->options([
-                                    'planeacion' => '📋 Planeación',
-                                    'activo' => '✅ Activo',
-                                    'pausado' => '⏸️ Pausado',
-                                    'finalizado' => '🏁 Finalizado',
-                                    'cancelado' => '❌ Cancelado',
+                                    'planeacion' => 'Planeación',
+                                    'activo' => 'Activo',
+                                    'pausado' => 'Pausado',
+                                    'finalizado' => 'Finalizado',
+                                    'cancelado' => 'Cancelado',
                                 ])
                                 ->required(),
                             Textarea::make('observaciones')
@@ -457,13 +456,13 @@ class ProyectoResource extends Resource
                             $record->update(['estado' => $data['estado']]);
                             Notification::make()
                                 ->title('Estado actualizado')
-                                ->body('El proyecto ahora está en estado: ' . ucfirst($data['estado']))
+                                ->body('El proyecto ahora está en estado: '.ucfirst($data['estado']))
                                 ->success()
                                 ->send();
                         }),
 
                     Tables\Actions\DeleteAction::make()
-                        ->visible(fn($record) => $record->estado === 'planeacion'),
+                        ->visible(fn ($record) => $record->estado === 'planeacion'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

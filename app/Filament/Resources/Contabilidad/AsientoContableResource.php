@@ -59,7 +59,7 @@ class AsientoContableResource extends Resource
 
     private static function formatearMonto($monto): string
     {
-        return 'Bs '.number_format($monto ?? 0, 2);
+        return 'Bs '.number_format((float) ($monto ?? 0), 2, ',', '.');
     }
 
     /**
@@ -203,9 +203,9 @@ class AsientoContableResource extends Resource
                                                     ->disabled()
                                                     ->dehydrated()
                                                     ->options([
-                                                        'borrador' => '📝 Borrador',
-                                                        'confirmado' => '✅ Confirmado',
-                                                        'anulado' => '❌ Anulado',
+                                                        'borrador' => 'Borrador',
+                                                        'confirmado' => 'Confirmado',
+                                                        'anulado' => 'Anulado',
                                                     ])
                                                     ->default('borrador')
                                                     ->required()
@@ -220,17 +220,17 @@ class AsientoContableResource extends Resource
                                                 Select::make('tipo')
                                                     ->label('Tipo de Asiento')
                                                     ->options([
-                                                        'apertura' => '📂 Apertura',
-                                                        'cierre' => '🔒 Cierre',
-                                                        'diario' => '📋 Diario',
-                                                        'compra' => '🛒 Compra',
-                                                        'venta' => '💰 Venta',
-                                                        'ingreso' => '📥 Ingreso',
-                                                        'egreso' => '📤 Egreso',
-                                                        'ajuste' => '⚙️ Ajuste',
-                                                        'depreciacion' => '📉 Depreciación',
-                                                        'inventario' => '📦 Inventario',
-                                                        'conciliacion' => '🔄 Conciliación',
+                                                        'apertura' => 'Apertura',
+                                                        'cierre' => 'Cierre',
+                                                        'diario' => 'Diario',
+                                                        'compra' => 'Compra',
+                                                        'venta' => 'Venta',
+                                                        'ingreso' => 'Ingreso',
+                                                        'egreso' => 'Egreso',
+                                                        'ajuste' => 'Ajuste',
+                                                        'depreciacion' => 'Depreciación',
+                                                        'inventario' => 'Inventario',
+                                                        'conciliacion' => 'Conciliación',
                                                     ])
                                                     ->default('diario')
                                                     ->required()
@@ -268,7 +268,7 @@ class AsientoContableResource extends Resource
                                             ->columnSpanFull(),
                                     ]),
 
-                                Section::make('💰 Totales')
+                                Section::make('Totales')
                                     ->icon('heroicon-o-calculator')
                                     ->schema([
                                         Grid::make(3)
@@ -301,7 +301,7 @@ class AsientoContableResource extends Resource
                                                         return new HtmlString(
                                                             '<span class="font-bold '.$color.'">'.
                                                                 self::formatearMonto($diferencia).
-                                                                ($diferencia == 0 ? ' ✅' : ' ⚠️').
+                                                                (abs($diferencia) < 0.01 ? ' (balanceado)' : ' (pendiente)').
                                                                 '</span>'
                                                         );
                                                     }),
@@ -358,7 +358,7 @@ class AsientoContableResource extends Resource
                                                             ->step(1.00)
                                                             ->default(0)
                                                             ->placeholder('0.00')
-                                                            ->prefix('$')
+                                                            ->prefix('Bs')
                                                             ->reactive()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 if ($state > 0) {
@@ -374,7 +374,7 @@ class AsientoContableResource extends Resource
                                                             ->step(1.00)
                                                             ->default(0)
                                                             ->placeholder('0.00')
-                                                            ->prefix('$')
+                                                            ->prefix('Bs')
                                                             ->reactive()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 if ($state > 0) {
@@ -431,7 +431,7 @@ class AsientoContableResource extends Resource
                                             ->defaultItems(2)
                                             ->collapsible()
                                             ->cloneable()
-                                            ->addActionLabel('➕ Agregar Partida')
+                                            ->addActionLabel('Agregar partida')
                                             ->reorderable()
                                             ->columnSpanFull()
                                             ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
@@ -524,17 +524,17 @@ class AsientoContableResource extends Resource
                 BadgeColumn::make('tipo')
                     ->label('Tipo')
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'apertura' => '📂 Apertura',
-                        'cierre' => '🔒 Cierre',
-                        'diario' => '📋 Diario',
-                        'compra' => '🛒 Compra',
-                        'venta' => '💰 Venta',
-                        'ingreso' => '📥 Ingreso',
-                        'egreso' => '📤 Egreso',
-                        'ajuste' => '⚙️ Ajuste',
-                        'depreciacion' => '📉 Depreciación',
-                        'inventario' => '📦 Inventario',
-                        'conciliacion' => '🔄 Conciliación',
+                        'apertura' => 'Apertura',
+                        'cierre' => 'Cierre',
+                        'diario' => 'Diario',
+                        'compra' => 'Compra',
+                        'venta' => 'Venta',
+                        'ingreso' => 'Ingreso',
+                        'egreso' => 'Egreso',
+                        'ajuste' => 'Ajuste',
+                        'depreciacion' => 'Depreciación',
+                        'inventario' => 'Inventario',
+                        'conciliacion' => 'Conciliación',
                         default => $state,
                     })
                     ->colors([
@@ -555,9 +555,9 @@ class AsientoContableResource extends Resource
                 BadgeColumn::make('estado')
                     ->label('Estado')
                     ->formatStateUsing(fn ($state) => match ($state) {
-                        'borrador' => '📝 Borrador',
-                        'confirmado' => '✅ Confirmado',
-                        'anulado' => '❌ Anulado',
+                        'borrador' => 'Borrador',
+                        'confirmado' => 'Confirmado',
+                        'anulado' => 'Anulado',
                         default => $state,
                     })
                     ->colors([
@@ -572,7 +572,7 @@ class AsientoContableResource extends Resource
                     ->numeric(2)
                     ->sortable()
                     ->toggleable()
-                    ->prefix('$')
+                    ->prefix('Bs')
                     ->color('info'),
 
                 TextColumn::make('total_haber')
@@ -580,7 +580,7 @@ class AsientoContableResource extends Resource
                     ->numeric(2)
                     ->sortable()
                     ->toggleable()
-                    ->prefix('$')
+                    ->prefix('Bs')
                     ->color('danger'),
 
                 TextColumn::make('documento_codigo')
@@ -700,6 +700,7 @@ class AsientoContableResource extends Resource
                         ->form([
                             Textarea::make('motivo')
                                 ->label('Motivo de anulación')
+                                ->required()
                                 ->rows(2)
                                 ->placeholder('Indique el motivo...'),
                         ])
