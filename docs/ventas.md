@@ -39,6 +39,8 @@ El listado general de Pedidos muestra **Pendiente y Reservado** por defecto. Est
 
 En Facturas, el selector **Pedido asociado** ofrece únicamente pedidos pendientes o reservados del contexto permitido, con detalles válidos. Un pedido entregado o cancelado no aparece como nueva opción.
 
+Al elegir un cliente, la condición de pago comienza y se conserva en **Contado** hasta que el vendedor la cambie. El selector de artículos muestra el stock disponible del almacén de venta: verde con más de 5 unidades, naranja entre más de 1 y 5, y rojo con 1 o menos; sin existencias muestra **Stock: Sin stock**. Al elegir un artículo, su **Lista de precios** queda disponible de inmediato y se actualiza al cambiar de artículo.
+
 ## Facturas y pagos
 
 Los artículos identificados como **Servicio · sin stock** se facturan y cobran sin requerir existencias ni almacén. En documentos mixtos, solo los productos inventariables reservan y descuentan stock; los servicios mantienen su importe y su contabilización de venta. Ver [configuración de productos y servicios](inventario.md#productos-y-servicios).

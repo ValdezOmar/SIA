@@ -2,8 +2,8 @@
 
 namespace App\Forms\Components;
 
-use App\Support\CalculoDetalle;
 use App\Models\Inventario\Articulo;
+use App\Support\CalculoDetalle;
 use Closure;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Hidden;
@@ -84,7 +84,8 @@ class CalculoRepeater extends Repeater
                     $field->live()->clearAfterStateUpdatedHooks()
                         ->afterStateUpdated(fn (Select $component) => $this->seleccionarPrecio($component));
                     if ($field->getName() === 'lista_precio') {
-                        $field->native()->searchable(false)->preload(false);
+                        // Al cambiar artículo se recrea el selector dependiente y se cargan sus opciones.
+                        $field->native(false)->searchable()->preload();
                     }
                 }
                 if ($this->tipoCalculo === 'venta' && $field instanceof Toggle && $field->getName() === 'aplicar_iva') {

@@ -5,13 +5,16 @@ namespace Tests\Feature;
 use App\Filament\Resources\Ventas\CotizacionResource;
 use App\Filament\Resources\Ventas\FacturaResource;
 use App\Filament\Resources\Ventas\PedidoResource;
+use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
+use App\Models\Inventario\Existencia;
 use App\Models\Inventario\ListaPrecio;
 use App\Models\User;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Cotizacion;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\Pedido;
+use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -38,6 +41,7 @@ class VentasFormularioRealTest extends TestCase
                     $articulo->precios()->create(['lista_precio_id' => $lista->id, 'precio' => $precio - $i * 20]);
                 }
             }
+
             return $articulo;
         });
         foreach ([FacturaResource::class => Factura::class, PedidoResource::class => Pedido::class, CotizacionResource::class => Cotizacion::class] as $recurso => $modelo) {
@@ -54,7 +58,8 @@ class VentasFormularioRealTest extends TestCase
                 ->assertSet('data.detalles.nueva.precio_unitario', 200.0)
                 ->assertSet('data.detalles.nueva.total', 400.0);
             $fields = $test->instance()->form->getComponent('data.detalles')->getChildComponentContainers()['nueva']->getFlatFields();
-            $this->assertTrue($fields['lista_precio']->isNative());
+            $this->assertFalse($fields['lista_precio']->isNative());
+            $this->assertTrue($fields['lista_precio']->isSearchable());
             $this->assertTrue($fields['articulo_id']->isLive());
             $this->assertStringContainsString('200', $fields['lista_precio']->getOptions()[$listas[0]->id]);
             $test->set('data.detalles.nueva.articulo_id', $articulos[2]->id)
@@ -116,6 +121,48 @@ class VentasFormularioRealTest extends TestCase
         libxml_use_internal_errors($previous);
         $expressions = collect((new \DOMXPath($dom))->query('//*[@x-text]'))->map(fn ($element) => $element->getAttribute('x-text'))->all();
         $this->assertContains(html_entity_decode($total->getExtraAttributes()['x-text'], ENT_QUOTES), $expressions);
+    }
+
+    public function test_factura_conserva_contado_al_elegir_cliente_y_respeta_un_cambio_manual(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $empresa = DB::table('conf_empresas')->insertGetId(['razon_social' => 'Prueba', 'nombre_comercial' => 'Prueba', 'pais' => 'Bolivia', 'empresa_activo' => true]);
+        $clientes = collect(['CLI-UNO', 'CLI-DOS'])->map(fn ($codigo) => Cliente::create([
+            'codigo' => $codigo, 'nombre' => $codigo, 'empresa_id' => $empresa, 'condicion_pago' => 'parcial',
+        ]));
+        $test = Livewire::test(FormularioVentasReal::class, ['record' => new Factura, 'recurso' => FacturaResource::class])
+            ->set('data.condicion_pago', 'contado')
+            ->set('data.cliente_id', $clientes[0]->id)
+            ->assertSet('data.condicion_pago', 'contado')
+            ->set('data.condicion_pago', 'parcial')
+            ->set('data.cliente_id', $clientes[1]->id)
+            ->assertSet('data.condicion_pago', 'parcial');
+    }
+
+    public function test_selector_de_articulos_muestra_stock_y_su_estado_visual(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $empresa = DB::table('conf_empresas')->insertGetId(['razon_social' => 'Prueba', 'nombre_comercial' => 'Prueba', 'pais' => 'Bolivia', 'empresa_activo' => true]);
+        $almacen = Almacen::create(['codigo' => 'ALM-STOCK', 'nombre' => 'Principal', 'empresa_id' => $empresa, 'activo' => true]);
+        $articulos = collect([['VERDE', 6], ['NARANJA', 5], ['ROJO', 1], ['SIN', 0]])->map(function (array $dato) use ($empresa, $almacen) {
+            $articulo = Articulo::create(['codigo' => $dato[0], 'nombre_comercial' => $dato[0], 'empresa_id' => $empresa, 'inventariable' => true]);
+            if ($dato[1] > 0) {
+                Existencia::create(['articulo_id' => $articulo->id, 'almacen_id' => $almacen->id, 'cantidad_disponible' => $dato[1]]);
+            }
+
+            return $articulo;
+        });
+        $opciones = ArticuloSelectOptions::ventas();
+        $etiquetaSeleccionada = ArticuloSelectOptions::label($articulos[0]->id);
+
+        $this->assertStringContainsString('Stock: 6,00', $opciones[$articulos[0]->id]);
+        $this->assertStringContainsString('text-success-600', $opciones[$articulos[0]->id]);
+        $this->assertStringContainsString('Stock: 6,00', $etiquetaSeleccionada);
+        $this->assertStringContainsString('Stock: 5,00', $opciones[$articulos[1]->id]);
+        $this->assertStringContainsString('text-warning-600', $opciones[$articulos[1]->id]);
+        $this->assertStringContainsString('Stock: 1,00', $opciones[$articulos[2]->id]);
+        $this->assertStringContainsString('text-danger-600', $opciones[$articulos[2]->id]);
+        $this->assertStringContainsString('Stock: Sin stock', $opciones[$articulos[3]->id]);
     }
 }
 
