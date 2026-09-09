@@ -43,6 +43,8 @@ Al elegir un cliente, la condición de pago comienza y se conserva en **Contado*
 
 ## Facturas y pagos
 
+El tablero incluye **Análisis comercial mensual** en un único panel con pestañas. Permite elegir cualquiera de los últimos doce meses y consultar los cinco productos más vendidos, los cinco con mayor ganancia después del costo, los cinco clientes con mayor compra y el resumen mensual. Solo considera facturas con asiento de venta confirmado, excluye anuladas y expresa los importes en bolivianos mediante la tasa de cambio registrada en la factura.
+
 Los artículos identificados como **Servicio · sin stock** se facturan y cobran sin requerir existencias ni almacén. En documentos mixtos, solo los productos inventariables reservan y descuentan stock; los servicios mantienen su importe y su contabilización de venta. Ver [configuración de productos y servicios](inventario.md#productos-y-servicios).
 
 ### Venta al contado
