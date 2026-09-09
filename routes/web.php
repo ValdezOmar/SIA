@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\EmpleadoFotoController;
+use App\Http\Controllers\AnalisisComercialController;
 use Illuminate\Support\Facades\Route;
 
 // Redirige la ruta raíz al dashboard de Filament
@@ -18,3 +19,7 @@ Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->
 Route::get('/media/empleados/{empleado}/foto', EmpleadoFotoController::class)
     ->middleware('auth')
     ->name('empleados.foto');
+
+Route::get('/dashboard/analisis-comercial/datos', AnalisisComercialController::class)
+    ->middleware('auth')
+    ->name('analisis-comercial.datos');
