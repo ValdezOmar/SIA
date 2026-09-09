@@ -8,12 +8,9 @@ use App\Models\User;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\FacturaDetalle;
-use Filament\Facades\Filament;
-use Filament\Pages\Dashboard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class AnalisisComercialWidgetTest extends TestCase
@@ -76,18 +73,6 @@ class AnalisisComercialWidgetTest extends TestCase
         Livewire::test(AnalisisComercialWidget::class)
             ->assertSee('Análisis comercial mensual')
             ->assertSet('periodo', now()->format('Y-m'));
-    }
-
-    public function test_dashboard_se_renderiza_cuando_el_widget_esta_autorizado(): void
-    {
-        $usuario = User::factory()->create();
-        $this->actingAs($usuario);
-        $usuario->givePermissionTo(Permission::findOrCreate('widget_AnalisisComercialWidget', 'web'));
-        Filament::setCurrentPanel(Filament::getPanel('dashboard'));
-
-        Livewire::test(Dashboard::class)
-            ->assertOk()
-            ->assertSeeLivewire(AnalisisComercialWidget::class);
     }
 
     private function factura(int $empresa, int $cliente, string $numero, float $subtotal, string $estado = 'pagada'): Factura

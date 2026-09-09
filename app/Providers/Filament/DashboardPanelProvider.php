@@ -3,7 +3,6 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
-use App\Filament\Widgets\AnalisisComercialWidget;
 use App\Filament\Widgets\ContabilidadResumenWidget;
 use App\Filament\Widgets\ContabilidadTendenciaWidget;
 use App\Filament\Widgets\GananciaBrutaWidget;
@@ -103,7 +102,6 @@ class DashboardPanelProvider extends PanelProvider
             VentasResumenWidget::class,
             InventarioResumenWidget::class,
             GananciaBrutaWidget::class,
-            AnalisisComercialWidget::class,
             VentasTendenciaWidget::class,
             ContabilidadTendenciaWidget::class,
             InventarioTendenciaWidget::class,
