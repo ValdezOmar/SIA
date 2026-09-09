@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Widgets\AnalisisComercialWidget;
 use App\Filament\Widgets\ContabilidadResumenWidget;
 use App\Filament\Widgets\ContabilidadTendenciaWidget;
 use App\Filament\Widgets\GananciaBrutaWidget;
@@ -30,7 +29,6 @@ class WidgetsPermissionTest extends TestCase
         foreach ([
             ContabilidadResumenWidget::class,
             ContabilidadTendenciaWidget::class,
-            AnalisisComercialWidget::class,
             GananciaBrutaWidget::class,
             InventarioResumenWidget::class,
             InventarioTendenciaWidget::class,
@@ -52,13 +50,5 @@ class WidgetsPermissionTest extends TestCase
     {
         $widget = app(GananciaBrutaWidget::class);
         $this->assertInstanceOf(TableWidget::class, $widget);
-    }
-
-    public function test_analisis_comercial_usa_un_solo_widget(): void
-    {
-        $widget = app(AnalisisComercialWidget::class);
-
-        $this->assertInstanceOf(AnalisisComercialWidget::class, $widget);
-        $this->assertCount(4, $widget->pestanas());
     }
 }
