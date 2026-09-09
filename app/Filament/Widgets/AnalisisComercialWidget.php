@@ -2,13 +2,13 @@
 
 namespace App\Filament\Widgets;
 
-use App\Filament\Resources\Ventas\FacturaResource;
 use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class AnalisisComercialWidget extends Widget
 {
@@ -30,16 +30,32 @@ class AnalisisComercialWidget extends Widget
 
     public string $periodo = '';
 
+    /** @var array<int, array<string, float|int|string>> */
+    public array $filas = [];
+
+    public ?string $mensajeError = null;
+
     public function mount(): void
     {
         $this->periodo = now()->format('Y-m');
+        $this->cargarFilas();
     }
 
     public function seleccionarPestana(string $pestana): void
     {
         if (array_key_exists($pestana, $this->pestanas())) {
             $this->pestana = $pestana;
+            $this->cargarFilas();
         }
+    }
+
+    public function updatedPeriodo(): void
+    {
+        if (! array_key_exists($this->periodo, $this->periodos())) {
+            $this->periodo = now()->format('Y-m');
+        }
+
+        $this->cargarFilas();
     }
 
     /** @return array<string, string> */
@@ -65,14 +81,21 @@ class AnalisisComercialWidget extends Widget
     }
 
     /** @return array<int, array<string, float|int|string>> */
-    public function filas(): array
+    private function cargarFilas(): void
     {
-        return match ($this->pestana) {
-            'productos_rentables' => $this->productosRentables(),
-            'clientes' => $this->clientesConMayorCompra(),
-            'resumen' => $this->resumenMensual(),
-            default => $this->productosMasVendidos(),
-        };
+        try {
+            $this->mensajeError = null;
+            $this->filas = match ($this->pestana) {
+                'productos_rentables' => $this->productosRentables(),
+                'clientes' => $this->clientesConMayorCompra(),
+                'resumen' => $this->resumenMensual(),
+                default => $this->productosMasVendidos(),
+            };
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->filas = [];
+            $this->mensajeError = 'No se pudo actualizar el análisis comercial. El resto del sistema continúa disponible.';
+        }
     }
 
     /** @return array<int, string> */
@@ -220,6 +243,12 @@ class AnalisisComercialWidget extends Widget
 
     public static function canView(): bool
     {
-        return static::canViewWithShieldPermission() && FacturaResource::canViewAny();
+        try {
+            return static::canViewWithShieldPermission();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
     }
 }

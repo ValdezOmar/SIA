@@ -33,7 +33,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-white/10">
-                    @forelse ($this->filas() as $fila)
+                    @forelse ($filas as $fila)
                         <tr class="text-gray-700 dark:text-gray-200">
                             @if ($pestana === 'productos_vendidos')
                                 <td class="px-3 py-3 font-medium">{{ $fila['producto'] }}</td>
@@ -69,7 +69,7 @@
                     @empty
                         <tr>
                             <td colspan="{{ count($this->columnas()) }}" class="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
-                                No hay ventas contabilizadas para este mes.
+                                {{ $mensajeError ?? 'No hay ventas contabilizadas para este mes.' }}
                             </td>
                         </tr>
                     @endforelse

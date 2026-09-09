@@ -8,9 +8,12 @@ use App\Models\User;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\FacturaDetalle;
+use Filament\Facades\Filament;
+use Filament\Pages\Dashboard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class AnalisisComercialWidgetTest extends TestCase
@@ -42,26 +45,24 @@ class AnalisisComercialWidgetTest extends TestCase
         $this->kardex($facturaA, $detalleA, $articuloA, $almacen, $empresa, 50);
         $this->kardex($facturaB, $detalleB, $articuloB, $almacen, $empresa, 5);
 
-        $widget = app(AnalisisComercialWidget::class);
-        $widget->periodo = now()->format('Y-m');
+        $widget = Livewire::test(AnalisisComercialWidget::class);
 
-        $widget->pestana = 'productos_vendidos';
-        $vendidos = $widget->filas();
+        $vendidos = $widget->instance()->filas;
         $this->assertSame('ART-A · PRODUCTO A', $vendidos[0]['producto']);
         $this->assertEqualsWithDelta(10, $vendidos[0]['unidades'], 0.000001);
 
-        $widget->pestana = 'productos_rentables';
-        $rentables = $widget->filas();
+        $widget->call('seleccionarPestana', 'productos_rentables');
+        $rentables = $widget->instance()->filas;
         $this->assertSame('ART-B · PRODUCTO B', $rentables[0]['producto']);
         $this->assertEqualsWithDelta(45, $rentables[0]['ganancia'], 0.000001);
 
-        $widget->pestana = 'clientes';
-        $clientes = $widget->filas();
+        $widget->call('seleccionarPestana', 'clientes');
+        $clientes = $widget->instance()->filas;
         $this->assertSame('CLIENTE UNO', $clientes[0]['cliente']);
         $this->assertEqualsWithDelta(80, $clientes[0]['compra_neta'], 0.000001);
 
-        $widget->pestana = 'resumen';
-        $resumen = $widget->filas();
+        $widget->call('seleccionarPestana', 'resumen');
+        $resumen = $widget->instance()->filas;
         $this->assertEqualsWithDelta(130, $resumen[0]['valor'], 0.000001);
         $this->assertEqualsWithDelta(11, $resumen[4]['valor'], 0.000001);
     }
@@ -73,6 +74,18 @@ class AnalisisComercialWidgetTest extends TestCase
         Livewire::test(AnalisisComercialWidget::class)
             ->assertSee('Análisis comercial mensual')
             ->assertSet('periodo', now()->format('Y-m'));
+    }
+
+    public function test_dashboard_carga_el_widget_autorizado_sin_interferir_con_los_dem_ã¡s(): void
+    {
+        $usuario = User::factory()->create();
+        $this->actingAs($usuario);
+        $usuario->givePermissionTo(Permission::findOrCreate('widget_AnalisisComercialWidget', 'web'));
+        Filament::setCurrentPanel(Filament::getPanel('dashboard'));
+
+        Livewire::test(Dashboard::class)
+            ->assertOk()
+            ->assertSeeLivewire(AnalisisComercialWidget::class);
     }
 
     private function factura(int $empresa, int $cliente, string $numero, float $subtotal, string $estado = 'pagada'): Factura
