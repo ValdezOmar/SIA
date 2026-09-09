@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class AnalisisComercialController extends Controller
 {
@@ -21,13 +22,13 @@ class AnalisisComercialController extends Controller
         $detalles = fn () => (clone $facturas)->join('ven_facturas_detalle as d', 'd.factura_id', '=', 'f.id')->whereNull('d.deleted_at');
 
         if ($tipo === 'vendidos') {
-            $filas = $detalles()->selectRaw('MAX(d.codigo_articulo) codigo, MAX(d.descripcion_articulo) producto, SUM(d.cantidad) unidades, SUM(d.subtotal * COALESCE(f.tasa_cambio, 1)) ventas')->groupBy('d.articulo_id')->orderByDesc('unidades')->orderByDesc('ventas')->limit(5)->get();
-            return response()->json(['columnas' => ['Producto', 'Unidades', 'Venta neta'], 'filas' => $filas->map(fn ($r) => [(string) $r->codigo.' · '.(string) $r->producto, number_format($r->unidades, 2, ',', '.'), 'Bs '.number_format($r->ventas, 2, ',', '.')])]);
+            $filas = $detalles()->leftJoin('alm_articulos as art', 'art.id', '=', 'd.articulo_id')->selectRaw('MAX(d.codigo_articulo) codigo, MAX(d.descripcion_articulo) producto, MAX(art.foto_catalogo) foto, SUM(d.cantidad) unidades, SUM(d.subtotal * COALESCE(f.tasa_cambio, 1)) ventas')->groupBy('d.articulo_id')->orderByDesc('unidades')->orderByDesc('ventas')->limit(5)->get();
+            return response()->json(['columnas' => ['Producto', 'Unidades', 'Venta neta'], 'filas' => $filas->map(fn ($r) => ['producto' => [(string) $r->codigo, (string) $r->producto, $r->foto ? Storage::disk('public')->url($r->foto) : null], 'celdas' => [number_format($r->unidades, 2, ',', '.'), 'Bs '.number_format($r->ventas, 2, ',', '.')]])]);
         }
         if ($tipo === 'rentables') {
             $costos = DB::table('alm_kardex')->selectRaw('documento_id, documento_detalle_id, SUM(costo_total) costo')->where('documento_tipo', 'venta')->where('tipo_movimiento', 'venta')->where('direccion', 'salida')->where('estado', 'confirmado')->groupBy('documento_id', 'documento_detalle_id');
-            $filas = $detalles()->leftJoinSub($costos, 'k', fn ($join) => $join->on('k.documento_id', '=', 'f.id')->on('k.documento_detalle_id', '=', 'd.id'))->selectRaw('MAX(d.codigo_articulo) codigo, MAX(d.descripcion_articulo) producto, SUM(d.subtotal * COALESCE(f.tasa_cambio, 1)) ventas, SUM(COALESCE(k.costo,0)) costo')->groupBy('d.articulo_id')->orderByRaw('SUM(d.subtotal * COALESCE(f.tasa_cambio, 1)) - SUM(COALESCE(k.costo,0)) DESC')->limit(5)->get();
-            return response()->json(['columnas' => ['Producto', 'Venta neta', 'Costo', 'Ganancia'], 'filas' => $filas->map(fn ($r) => [(string) $r->codigo.' · '.(string) $r->producto, 'Bs '.number_format($r->ventas, 2, ',', '.'), 'Bs '.number_format($r->costo, 2, ',', '.'), 'Bs '.number_format($r->ventas - $r->costo, 2, ',', '.')])]);
+            $filas = $detalles()->leftJoin('alm_articulos as art', 'art.id', '=', 'd.articulo_id')->leftJoinSub($costos, 'k', fn ($join) => $join->on('k.documento_id', '=', 'f.id')->on('k.documento_detalle_id', '=', 'd.id'))->selectRaw('MAX(d.codigo_articulo) codigo, MAX(d.descripcion_articulo) producto, MAX(art.foto_catalogo) foto, SUM(d.subtotal * COALESCE(f.tasa_cambio, 1)) ventas, SUM(COALESCE(k.costo,0)) costo')->groupBy('d.articulo_id')->orderByRaw('SUM(d.subtotal * COALESCE(f.tasa_cambio, 1)) - SUM(COALESCE(k.costo,0)) DESC')->limit(5)->get();
+            return response()->json(['columnas' => ['Producto', 'Venta neta', 'Costo', 'Ganancia'], 'filas' => $filas->map(fn ($r) => ['producto' => [(string) $r->codigo, (string) $r->producto, $r->foto ? Storage::disk('public')->url($r->foto) : null], 'celdas' => ['Bs '.number_format($r->ventas, 2, ',', '.'), 'Bs '.number_format($r->costo, 2, ',', '.'), 'Bs '.number_format($r->ventas - $r->costo, 2, ',', '.')]])]);
         }
         if ($tipo === 'clientes') {
             $filas = (clone $facturas)->join('ven_clientes as c', 'c.id', '=', 'f.cliente_id')->selectRaw('c.nombre, COUNT(f.id) facturas, SUM(f.subtotal * COALESCE(f.tasa_cambio,1)) compras')->groupBy('c.id', 'c.nombre')->orderByDesc('compras')->limit(5)->get();
