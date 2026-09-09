@@ -10,6 +10,7 @@ use App\Models\Ventas\Factura;
 use App\Models\Ventas\FacturaDetalle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class AnalisisComercialWidgetTest extends TestCase
@@ -63,6 +64,15 @@ class AnalisisComercialWidgetTest extends TestCase
         $resumen = $widget->filas();
         $this->assertEqualsWithDelta(130, $resumen[0]['valor'], 0.000001);
         $this->assertEqualsWithDelta(11, $resumen[4]['valor'], 0.000001);
+    }
+
+    public function test_se_renderiza_sin_carga_diferida_para_inicializar_el_periodo(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Livewire::test(AnalisisComercialWidget::class)
+            ->assertSee('Análisis comercial mensual')
+            ->assertSet('periodo', now()->format('Y-m'));
     }
 
     private function factura(int $empresa, int $cliente, string $numero, float $subtotal, string $estado = 'pagada'): Factura

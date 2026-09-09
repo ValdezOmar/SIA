@@ -20,11 +20,15 @@ class AnalisisComercialWidget extends Widget
 
     protected static ?string $pollingInterval = '5m';
 
+    // El widget tiene estado inicial (mes y pestaña); se renderiza directamente
+    // para que Livewire ejecute mount() antes de consultar los datos.
+    protected static bool $isLazy = false;
+
     protected int|string|array $columnSpan = 'full';
 
     public string $pestana = 'productos_vendidos';
 
-    public string $periodo;
+    public string $periodo = '';
 
     public function mount(): void
     {
