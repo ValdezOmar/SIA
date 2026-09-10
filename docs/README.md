@@ -54,3 +54,4 @@ Volver al [README del proyecto](../README.md).
 ## Actualizaciones
 
 - [Cambios de septiembre de 2026](actualizacion-2026-09-10.md): Filament 4, tema nativo, migraciones e integridad de operaciones.
+- [Migración a Filament 5](migracion-filament-5-preparacion.md): dependencias actualizadas, validación y pasos de despliegue.

@@ -12,13 +12,8 @@
     "src": "node_modules/leaflet/dist/images/marker-icon.png"
   },
   "resources/css/app.css": {
-    "file": "assets/app-h_2YMNky.css",
+    "file": "assets/app-uIlcvlUd.css",
     "src": "resources/css/app.css",
-    "isEntry": true
-  },
-  "resources/css/filament/dashboard/theme.css": {
-    "file": "assets/theme-CZf2mLjm.css",
-    "src": "resources/css/filament/dashboard/theme.css",
     "isEntry": true
   },
   "resources/js/app.js": {

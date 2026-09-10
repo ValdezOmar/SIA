@@ -2,7 +2,7 @@
 
 ## Plataforma y apariencia
 
-- El panel utiliza Filament 4 con un tema nativo de SIA; DashStack fue retirado.
+- El panel utiliza Filament 5.8 con Livewire 4.4 y un tema nativo de SIA; DashStack fue retirado.
 - La apariencia, identidad visual y fondo de inicio de sesión se administran desde **Sistema > Parámetros generales**.
 - El inicio de sesión se mantiene en tema claro para preservar contraste y legibilidad.
 - **Análisis comercial** ya no es una página del menú: se muestra como widget Livewire reactivo en el Escritorio, con filtro de período y actualización periódica.

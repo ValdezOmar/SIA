@@ -20,9 +20,9 @@
     ],
     "require": {
         "php": "^8.1",
-        "filament/filament": "^4.0",
-        "filament/forms": "^4.0",
-        "filament/tables": "^4.0",
+        "filament/filament": "^4.0|^5.0",
+        "filament/forms": "^4.0|^5.0",
+        "filament/tables": "^4.0|^5.0",
         "spatie/laravel-package-tools": "^1.15.0"
     },
     "autoload": {
@@ -47,5 +47,5 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "version": "1.0.0",
-    "description": "barcode-field - SIA local adaptation for Filament 4"
+    "description": "barcode-field - SIA local adaptation for Filament 4 and 5"
 }
