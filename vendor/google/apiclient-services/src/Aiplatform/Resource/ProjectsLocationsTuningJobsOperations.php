@@ -97,6 +97,13 @@ class ProjectsLocationsTuningJobsOperations extends \Google\Service\Resource
    * @opt_param string filter The standard list filter.
    * @opt_param int pageSize The standard list page size.
    * @opt_param string pageToken The standard list page token.
+   * @opt_param bool returnPartialSuccess When set to `true`, operations that are
+   * reachable are returned as normal, and those that are unreachable are returned
+   * in the ListOperationsResponse.unreachable field. This can only be `true` when
+   * reading across collections. For example, when `parent` is set to
+   * `"projects/example/locations/-"`. This field is not supported by default and
+   * will result in an `UNIMPLEMENTED` error if set unless explicitly documented
+   * otherwise in service or product specific documentation.
    * @return GoogleLongrunningListOperationsResponse
    * @throws \Google\Service\Exception
    */
@@ -105,6 +112,33 @@ class ProjectsLocationsTuningJobsOperations extends \Google\Service\Resource
     $params = ['name' => $name];
     $params = array_merge($params, $optParams);
     return $this->call('list', [$params], GoogleLongrunningListOperationsResponse::class);
+  }
+  /**
+   * Waits until the specified long-running operation is done or reaches at most a
+   * specified timeout, returning the latest state. If the operation is already
+   * done, the latest state is immediately returned. If the timeout specified is
+   * greater than the default HTTP/RPC timeout, the HTTP/RPC timeout is used. If
+   * the server does not support this method, it returns
+   * `google.rpc.Code.UNIMPLEMENTED`. Note that this method is on a best-effort
+   * basis. It may return the latest state before the specified timeout (including
+   * immediately), meaning even an immediate response is no guarantee that the
+   * operation is done. (operations.wait)
+   *
+   * @param string $name The name of the operation resource to wait on.
+   * @param array $optParams Optional parameters.
+   *
+   * @opt_param string timeout The maximum duration to wait before timing out. If
+   * left blank, the wait will be at most the time permitted by the underlying
+   * HTTP/RPC protocol. If RPC context deadline is also specified, the shorter one
+   * will be used.
+   * @return GoogleLongrunningOperation
+   * @throws \Google\Service\Exception
+   */
+  public function wait($name, $optParams = [])
+  {
+    $params = ['name' => $name];
+    $params = array_merge($params, $optParams);
+    return $this->call('wait', [$params], GoogleLongrunningOperation::class);
   }
 }
 

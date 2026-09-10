@@ -27,7 +27,7 @@ use Google\Client;
  *
  * <p>
  * For more information about this service, see the API
- * <a href="https://developers.google.com/google-apps/calendar/firstapp" target="_blank">Documentation</a>
+ * <a href="https://developers.google.com/workspace/calendar/firstapp" target="_blank">Documentation</a>
  * </p>
  *
  * @author Google, Inc.
@@ -316,6 +316,10 @@ class Calendar extends \Google\Service
                   'location' => 'query',
                   'type' => 'boolean',
                 ],
+                'showOwnOrganizationOnly' => [
+                  'location' => 'query',
+                  'type' => 'boolean',
+                ],
                 'syncToken' => [
                   'location' => 'query',
                   'type' => 'string',
@@ -370,6 +374,10 @@ class Calendar extends \Google\Service
                   'type' => 'boolean',
                 ],
                 'showHidden' => [
+                  'location' => 'query',
+                  'type' => 'boolean',
+                ],
+                'showOwnOrganizationOnly' => [
                   'location' => 'query',
                   'type' => 'boolean',
                 ],
@@ -429,6 +437,26 @@ class Calendar extends \Google\Service
                 'calendarId' => [
                   'location' => 'path',
                   'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'transferOwnership' => [
+              'path' => 'calendars/{calendarId}/transferOwnership',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'calendarId' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'newDataOwner' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'useAdminAccess' => [
+                  'location' => 'query',
+                  'type' => 'boolean',
                   'required' => true,
                 ],
               ],
@@ -543,6 +571,10 @@ class Calendar extends \Google\Service
                   'location' => 'query',
                   'type' => 'integer',
                 ],
+                'eventLabelVersion' => [
+                  'location' => 'query',
+                  'type' => 'integer',
+                ],
                 'supportsAttachments' => [
                   'location' => 'query',
                   'type' => 'boolean',
@@ -558,6 +590,10 @@ class Calendar extends \Google\Service
                   'required' => true,
                 ],
                 'conferenceDataVersion' => [
+                  'location' => 'query',
+                  'type' => 'integer',
+                ],
+                'eventLabelVersion' => [
                   'location' => 'query',
                   'type' => 'integer',
                 ],
@@ -764,6 +800,10 @@ class Calendar extends \Google\Service
                   'location' => 'query',
                   'type' => 'integer',
                 ],
+                'eventLabelVersion' => [
+                  'location' => 'query',
+                  'type' => 'integer',
+                ],
                 'maxAttendees' => [
                   'location' => 'query',
                   'type' => 'integer',
@@ -823,6 +863,10 @@ class Calendar extends \Google\Service
                   'type' => 'boolean',
                 ],
                 'conferenceDataVersion' => [
+                  'location' => 'query',
+                  'type' => 'integer',
+                ],
+                'eventLabelVersion' => [
                   'location' => 'query',
                   'type' => 'integer',
                 ],

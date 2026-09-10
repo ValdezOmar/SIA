@@ -21,6 +21,8 @@ use Google\Service\DiscoveryEngine\GoogleCloudDiscoveryengineV1CompleteQueryResp
 use Google\Service\DiscoveryEngine\GoogleCloudDiscoveryengineV1DataStore;
 use Google\Service\DiscoveryEngine\GoogleCloudDiscoveryengineV1ListDataStoresResponse;
 use Google\Service\DiscoveryEngine\GoogleCloudDiscoveryengineV1SiteSearchEngine;
+use Google\Service\DiscoveryEngine\GoogleIamV1Policy;
+use Google\Service\DiscoveryEngine\GoogleIamV1SetIamPolicyRequest;
 use Google\Service\DiscoveryEngine\GoogleLongrunningOperation;
 
 /**
@@ -59,14 +61,15 @@ class ProjectsLocationsDataStores extends \Google\Service\Resource
    * fields marked as completable. Default values: * `document` is the default
    * model for regular dataStores. * `search-history` is the default model for
    * site search dataStores.
-   * @opt_param string userPseudoId A unique identifier for tracking visitors. For
-   * example, this could be implemented with an HTTP cookie, which should be able
-   * to uniquely identify a visitor on a single device. This unique identifier
-   * should not change if the visitor logs in or out of the website. This field
-   * should NOT have a fixed value such as `unknown_visitor`. This should be the
-   * same identifier as UserEvent.user_pseudo_id and SearchRequest.user_pseudo_id.
-   * The field must be a UTF-8 encoded string with a length limit of 128
-   * characters. Otherwise, an `INVALID_ARGUMENT` error is returned.
+   * @opt_param string userPseudoId Optional. A unique identifier for tracking
+   * visitors. For example, this could be implemented with an HTTP cookie, which
+   * should be able to uniquely identify a visitor on a single device. This unique
+   * identifier should not change if the visitor logs in or out of the website.
+   * This field should NOT have a fixed value such as `unknown_visitor`. This
+   * should be the same identifier as UserEvent.user_pseudo_id and
+   * SearchRequest.user_pseudo_id. The field must be a UTF-8 encoded string with a
+   * length limit of 128 characters. Otherwise, an `INVALID_ARGUMENT` error is
+   * returned.
    * @return GoogleCloudDiscoveryengineV1CompleteQueryResponse
    * @throws \Google\Service\Exception
    */
@@ -154,6 +157,39 @@ class ProjectsLocationsDataStores extends \Google\Service\Resource
     return $this->call('get', [$params], GoogleCloudDiscoveryengineV1DataStore::class);
   }
   /**
+   * Gets the IAM access control policy for a DataStore. A `NOT_FOUND` error is
+   * returned if the resource does not exist. An empty policy is returned if the
+   * resource exists but does not have a policy set on it.
+   * (dataStores.getIamPolicy)
+   *
+   * @param string $resource REQUIRED: The resource for which the policy is being
+   * requested. See [Resource
+   * names](https://cloud.google.com/apis/design/resource_names) for the
+   * appropriate value for this field.
+   * @param array $optParams Optional parameters.
+   *
+   * @opt_param int options.requestedPolicyVersion Optional. The maximum policy
+   * version that will be used to format the policy. Valid values are 0, 1, and 3.
+   * Requests specifying an invalid value will be rejected. Requests for policies
+   * with any conditional role bindings must specify version 3. Policies with no
+   * conditional role bindings may specify any valid value or leave the field
+   * unset. The policy in the response might use the policy version that you
+   * specified, or it might use a lower policy version. For example, if you
+   * specify version 3, but the policy has no conditional role bindings, the
+   * response uses version 1. To learn which resources support conditions in their
+   * IAM policies, see the [IAM
+   * documentation](https://cloud.google.com/iam/help/conditions/resource-
+   * policies).
+   * @return GoogleIamV1Policy
+   * @throws \Google\Service\Exception
+   */
+  public function getIamPolicy($resource, $optParams = [])
+  {
+    $params = ['resource' => $resource];
+    $params = array_merge($params, $optParams);
+    return $this->call('getIamPolicy', [$params], GoogleIamV1Policy::class);
+  }
+  /**
    * Gets the SiteSearchEngine. (dataStores.getSiteSearchEngine)
    *
    * @param string $name Required. Resource name of SiteSearchEngine, such as `pro
@@ -206,10 +242,10 @@ class ProjectsLocationsDataStores extends \Google\Service\Resource
   /**
    * Updates a DataStore (dataStores.patch)
    *
-   * @param string $name Immutable. The full resource name of the data store.
-   * Format: `projects/{project}/locations/{location}/collections/{collection_id}/
-   * dataStores/{data_store_id}`. This field must be a UTF-8 encoded string with a
-   * length limit of 1024 characters.
+   * @param string $name Immutable. Identifier. The full resource name of the data
+   * store. Format: `projects/{project}/locations/{location}/collections/{collecti
+   * on_id}/dataStores/{data_store_id}`. This field must be a UTF-8 encoded string
+   * with a length limit of 1024 characters.
    * @param GoogleCloudDiscoveryengineV1DataStore $postBody
    * @param array $optParams Optional parameters.
    *
@@ -224,6 +260,31 @@ class ProjectsLocationsDataStores extends \Google\Service\Resource
     $params = ['name' => $name, 'postBody' => $postBody];
     $params = array_merge($params, $optParams);
     return $this->call('patch', [$params], GoogleCloudDiscoveryengineV1DataStore::class);
+  }
+  /**
+   * Sets the IAM access control policy for a DataStore. A `NOT_FOUND` error is
+   * returned if the resource does not exist. **Important:** When setting a policy
+   * directly on a DataStore resource, the only recommended roles in the bindings
+   * are: `roles/discoveryengine.admin` `roles/discoveryengine.agentspaceAdmin`
+   * `roles/discoveryengine.viewer` `roles/discoveryengine.agentspaceViewer`
+   * `roles/discoveryengine.user` `roles/discoveryengine.agentspaceUser`
+   * Attempting to grant any other role will result in a warning in logging.
+   * (dataStores.setIamPolicy)
+   *
+   * @param string $resource REQUIRED: The resource for which the policy is being
+   * specified. See [Resource
+   * names](https://cloud.google.com/apis/design/resource_names) for the
+   * appropriate value for this field.
+   * @param GoogleIamV1SetIamPolicyRequest $postBody
+   * @param array $optParams Optional parameters.
+   * @return GoogleIamV1Policy
+   * @throws \Google\Service\Exception
+   */
+  public function setIamPolicy($resource, GoogleIamV1SetIamPolicyRequest $postBody, $optParams = [])
+  {
+    $params = ['resource' => $resource, 'postBody' => $postBody];
+    $params = array_merge($params, $optParams);
+    return $this->call('setIamPolicy', [$params], GoogleIamV1Policy::class);
   }
 }
 

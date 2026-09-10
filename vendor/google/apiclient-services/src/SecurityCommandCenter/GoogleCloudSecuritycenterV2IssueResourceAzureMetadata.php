@@ -23,7 +23,7 @@ class GoogleCloudSecuritycenterV2IssueResourceAzureMetadata extends \Google\Mode
   protected $subscriptionDataType = '';
 
   /**
-   * @param GoogleCloudSecuritycenterV2IssueResourceAzureMetadataAzureSubscription
+   * @param GoogleCloudSecuritycenterV2IssueResourceAzureMetadataAzureSubscription $subscription
    */
   public function setSubscription(GoogleCloudSecuritycenterV2IssueResourceAzureMetadataAzureSubscription $subscription)
   {

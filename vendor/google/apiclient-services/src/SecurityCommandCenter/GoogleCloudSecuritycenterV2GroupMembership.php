@@ -19,6 +19,9 @@ namespace Google\Service\SecurityCommandCenter;
 
 class GoogleCloudSecuritycenterV2GroupMembership extends \Google\Model
 {
+  public const GROUP_TYPE_GROUP_TYPE_UNSPECIFIED = 'GROUP_TYPE_UNSPECIFIED';
+  public const GROUP_TYPE_GROUP_TYPE_TOXIC_COMBINATION = 'GROUP_TYPE_TOXIC_COMBINATION';
+  public const GROUP_TYPE_GROUP_TYPE_CHOKEPOINT = 'GROUP_TYPE_CHOKEPOINT';
   /**
    * @var string
    */
@@ -29,7 +32,7 @@ class GoogleCloudSecuritycenterV2GroupMembership extends \Google\Model
   public $groupType;
 
   /**
-   * @param string
+   * @param string $groupId
    */
   public function setGroupId($groupId)
   {
@@ -43,14 +46,14 @@ class GoogleCloudSecuritycenterV2GroupMembership extends \Google\Model
     return $this->groupId;
   }
   /**
-   * @param string
+   * @param self::GROUP_TYPE_* $groupType
    */
   public function setGroupType($groupType)
   {
     $this->groupType = $groupType;
   }
   /**
-   * @return string
+   * @return self::GROUP_TYPE_*
    */
   public function getGroupType()
   {

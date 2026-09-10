@@ -43,6 +43,7 @@ class CloudKMS extends \Google\Service
       "https://www.googleapis.com/auth/cloudkms";
 
   public $folders;
+  public $organizations;
   public $projects;
   public $projects_locations;
   public $projects_locations_ekmConfig;
@@ -53,6 +54,9 @@ class CloudKMS extends \Google\Service
   public $projects_locations_keyRings_cryptoKeys_cryptoKeyVersions;
   public $projects_locations_keyRings_importJobs;
   public $projects_locations_operations;
+  public $projects_locations_retiredResources;
+  public $projects_locations_singleTenantHsmInstances;
+  public $projects_locations_singleTenantHsmInstances_proposals;
   public $rootUrlTemplate;
 
   /**
@@ -88,7 +92,75 @@ class CloudKMS extends \Google\Service
                   'required' => true,
                 ],
               ],
+            ],'getKajPolicyConfig' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'showEffectiveAutokeyConfig' => [
+              'path' => 'v1/{+parent}:showEffectiveAutokeyConfig',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
             ],'updateAutokeyConfig' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'PATCH',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'updateMask' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+              ],
+            ],'updateKajPolicyConfig' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'PATCH',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'updateMask' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+              ],
+            ],
+          ]
+        ]
+    );
+    $this->organizations = new CloudKMS\Resource\Organizations(
+        $this,
+        $this->serviceName,
+        'organizations',
+        [
+          'methods' => [
+            'getKajPolicyConfig' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'updateKajPolicyConfig' => [
               'path' => 'v1/{+name}',
               'httpMethod' => 'PATCH',
               'parameters' => [
@@ -112,7 +184,27 @@ class CloudKMS extends \Google\Service
         'projects',
         [
           'methods' => [
-            'showEffectiveAutokeyConfig' => [
+            'getAutokeyConfig' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'getKajPolicyConfig' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'showEffectiveAutokeyConfig' => [
               'path' => 'v1/{+parent}:showEffectiveAutokeyConfig',
               'httpMethod' => 'GET',
               'parameters' => [
@@ -120,6 +212,54 @@ class CloudKMS extends \Google\Service
                   'location' => 'path',
                   'type' => 'string',
                   'required' => true,
+                ],
+              ],
+            ],'showEffectiveKeyAccessJustificationsEnrollmentConfig' => [
+              'path' => 'v1/{+project}:showEffectiveKeyAccessJustificationsEnrollmentConfig',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'project' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'showEffectiveKeyAccessJustificationsPolicyConfig' => [
+              'path' => 'v1/{+project}:showEffectiveKeyAccessJustificationsPolicyConfig',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'project' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'updateAutokeyConfig' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'PATCH',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'updateMask' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+              ],
+            ],'updateKajPolicyConfig' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'PATCH',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'updateMask' => [
+                  'location' => 'query',
+                  'type' => 'string',
                 ],
               ],
             ],
@@ -170,6 +310,11 @@ class CloudKMS extends \Google\Service
                   'location' => 'path',
                   'type' => 'string',
                   'required' => true,
+                ],
+                'extraLocationTypes' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                  'repeated' => true,
                 ],
                 'filter' => [
                   'location' => 'query',
@@ -440,6 +585,16 @@ class CloudKMS extends \Google\Service
                   'type' => 'string',
                 ],
               ],
+            ],'delete' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'DELETE',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
             ],'get' => [
               'path' => 'v1/{+name}',
               'httpMethod' => 'GET',
@@ -537,10 +692,24 @@ class CloudKMS extends \Google\Service
                   'location' => 'query',
                   'type' => 'boolean',
                 ],
+                'trustedWrappingEnabled' => [
+                  'location' => 'query',
+                  'type' => 'boolean',
+                ],
               ],
             ],'decrypt' => [
               'path' => 'v1/{+name}:decrypt',
               'httpMethod' => 'POST',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'delete' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'DELETE',
               'parameters' => [
                 'name' => [
                   'location' => 'path',
@@ -696,6 +865,26 @@ class CloudKMS extends \Google\Service
                   'required' => true,
                 ],
               ],
+            ],'decapsulate' => [
+              'path' => 'v1/{+name}:decapsulate',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'delete' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'DELETE',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
             ],'destroy' => [
               'path' => 'v1/{+name}:destroy',
               'httpMethod' => 'POST',
@@ -704,6 +893,20 @@ class CloudKMS extends \Google\Service
                   'location' => 'path',
                   'type' => 'string',
                   'required' => true,
+                ],
+              ],
+            ],'exportTrustedKeyWrappedCryptoKeyVersion' => [
+              'path' => 'v1/{+name}:exportTrustedKeyWrappedCryptoKeyVersion',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'wrappingKey' => [
+                  'location' => 'query',
+                  'type' => 'string',
                 ],
               ],
             ],'get' => [
@@ -732,6 +935,16 @@ class CloudKMS extends \Google\Service
               ],
             ],'import' => [
               'path' => 'v1/{+parent}/cryptoKeyVersions:import',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'importTrustedKeyWrappedCryptoKeyVersion' => [
+              'path' => 'v1/{+parent}/cryptoKeyVersions:importTrustedKeyWrappedCryptoKeyVersion',
               'httpMethod' => 'POST',
               'parameters' => [
                 'parent' => [
@@ -867,6 +1080,10 @@ class CloudKMS extends \Google\Service
                   'type' => 'string',
                   'required' => true,
                 ],
+                'publicKeyFormat' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
               ],
             ],'getIamPolicy' => [
               'path' => 'v1/{+resource}:getIamPolicy',
@@ -946,6 +1163,202 @@ class CloudKMS extends \Google\Service
                   'location' => 'path',
                   'type' => 'string',
                   'required' => true,
+                ],
+              ],
+            ],
+          ]
+        ]
+    );
+    $this->projects_locations_retiredResources = new CloudKMS\Resource\ProjectsLocationsRetiredResources(
+        $this,
+        $this->serviceName,
+        'retiredResources',
+        [
+          'methods' => [
+            'get' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'list' => [
+              'path' => 'v1/{+parent}/retiredResources',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'pageSize' => [
+                  'location' => 'query',
+                  'type' => 'integer',
+                ],
+                'pageToken' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+              ],
+            ],
+          ]
+        ]
+    );
+    $this->projects_locations_singleTenantHsmInstances = new CloudKMS\Resource\ProjectsLocationsSingleTenantHsmInstances(
+        $this,
+        $this->serviceName,
+        'singleTenantHsmInstances',
+        [
+          'methods' => [
+            'create' => [
+              'path' => 'v1/{+parent}/singleTenantHsmInstances',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'singleTenantHsmInstanceId' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+              ],
+            ],'get' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'list' => [
+              'path' => 'v1/{+parent}/singleTenantHsmInstances',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'filter' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+                'orderBy' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+                'pageSize' => [
+                  'location' => 'query',
+                  'type' => 'integer',
+                ],
+                'pageToken' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+                'showDeleted' => [
+                  'location' => 'query',
+                  'type' => 'boolean',
+                ],
+              ],
+            ],
+          ]
+        ]
+    );
+    $this->projects_locations_singleTenantHsmInstances_proposals = new CloudKMS\Resource\ProjectsLocationsSingleTenantHsmInstancesProposals(
+        $this,
+        $this->serviceName,
+        'proposals',
+        [
+          'methods' => [
+            'approve' => [
+              'path' => 'v1/{+name}:approve',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'create' => [
+              'path' => 'v1/{+parent}/proposals',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'singleTenantHsmInstanceProposalId' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+              ],
+            ],'delete' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'DELETE',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'execute' => [
+              'path' => 'v1/{+name}:execute',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'get' => [
+              'path' => 'v1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'list' => [
+              'path' => 'v1/{+parent}/proposals',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+                'filter' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+                'orderBy' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+                'pageSize' => [
+                  'location' => 'query',
+                  'type' => 'integer',
+                ],
+                'pageToken' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                ],
+                'showDeleted' => [
+                  'location' => 'query',
+                  'type' => 'boolean',
                 ],
               ],
             ],

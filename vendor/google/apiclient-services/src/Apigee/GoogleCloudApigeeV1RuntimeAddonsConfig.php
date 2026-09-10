@@ -24,20 +24,33 @@ class GoogleCloudApigeeV1RuntimeAddonsConfig extends \Google\Model
   protected $apiSecurityConfigType = GoogleCloudApigeeV1RuntimeApiSecurityConfig::class;
   protected $apiSecurityConfigDataType = '';
   /**
+   * Name of the addons config in the format:
+   * `organizations/{org}/environments/{env}/addonsConfig`
+   *
    * @var string
    */
   public $name;
   /**
+   * Revision number used by the runtime to detect config changes.
+   *
    * @var string
    */
   public $revisionId;
+  protected $specGenerationConfigType = GoogleCloudApigeeV1RuntimeSpecGenerationAddonConfig::class;
+  protected $specGenerationConfigDataType = '';
   /**
+   * UID is to detect if config is recreated after deletion. The add-on config
+   * will only be deleted when the environment itself gets deleted, thus it will
+   * always be the same as the UID of EnvironmentConfig.
+   *
    * @var string
    */
   public $uid;
 
   /**
-   * @param GoogleCloudApigeeV1RuntimeAnalyticsConfig
+   * Runtime configuration for Analytics add-on.
+   *
+   * @param GoogleCloudApigeeV1RuntimeAnalyticsConfig $analyticsConfig
    */
   public function setAnalyticsConfig(GoogleCloudApigeeV1RuntimeAnalyticsConfig $analyticsConfig)
   {
@@ -51,7 +64,9 @@ class GoogleCloudApigeeV1RuntimeAddonsConfig extends \Google\Model
     return $this->analyticsConfig;
   }
   /**
-   * @param GoogleCloudApigeeV1RuntimeApiSecurityConfig
+   * Runtime configuration for API Security add-on.
+   *
+   * @param GoogleCloudApigeeV1RuntimeApiSecurityConfig $apiSecurityConfig
    */
   public function setApiSecurityConfig(GoogleCloudApigeeV1RuntimeApiSecurityConfig $apiSecurityConfig)
   {
@@ -65,7 +80,10 @@ class GoogleCloudApigeeV1RuntimeAddonsConfig extends \Google\Model
     return $this->apiSecurityConfig;
   }
   /**
-   * @param string
+   * Name of the addons config in the format:
+   * `organizations/{org}/environments/{env}/addonsConfig`
+   *
+   * @param string $name
    */
   public function setName($name)
   {
@@ -79,7 +97,9 @@ class GoogleCloudApigeeV1RuntimeAddonsConfig extends \Google\Model
     return $this->name;
   }
   /**
-   * @param string
+   * Revision number used by the runtime to detect config changes.
+   *
+   * @param string $revisionId
    */
   public function setRevisionId($revisionId)
   {
@@ -93,7 +113,27 @@ class GoogleCloudApigeeV1RuntimeAddonsConfig extends \Google\Model
     return $this->revisionId;
   }
   /**
-   * @param string
+   * Runtime configuration for Spec Generation add-on.
+   *
+   * @param GoogleCloudApigeeV1RuntimeSpecGenerationAddonConfig $specGenerationConfig
+   */
+  public function setSpecGenerationConfig(GoogleCloudApigeeV1RuntimeSpecGenerationAddonConfig $specGenerationConfig)
+  {
+    $this->specGenerationConfig = $specGenerationConfig;
+  }
+  /**
+   * @return GoogleCloudApigeeV1RuntimeSpecGenerationAddonConfig
+   */
+  public function getSpecGenerationConfig()
+  {
+    return $this->specGenerationConfig;
+  }
+  /**
+   * UID is to detect if config is recreated after deletion. The add-on config
+   * will only be deleted when the environment itself gets deleted, thus it will
+   * always be the same as the UID of EnvironmentConfig.
+   *
+   * @param string $uid
    */
   public function setUid($uid)
   {

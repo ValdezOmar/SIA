@@ -30,7 +30,7 @@ class GoogleCloudSecuritycenterV2IssueSecurityContextContext extends \Google\Col
   public $values;
 
   /**
-   * @param string
+   * @param string $type
    */
   public function setType($type)
   {
@@ -44,7 +44,7 @@ class GoogleCloudSecuritycenterV2IssueSecurityContextContext extends \Google\Col
     return $this->type;
   }
   /**
-   * @param string[]
+   * @param string[] $values
    */
   public function setValues($values)
   {

@@ -24,6 +24,7 @@ class Attack extends \Google\Model
    */
   public $classification;
   /**
+   * @deprecated
    * @var int
    */
   public $volumeBps;
@@ -32,6 +33,7 @@ class Attack extends \Google\Model
    */
   public $volumeBpsLong;
   /**
+   * @deprecated
    * @var int
    */
   public $volumePps;
@@ -41,7 +43,7 @@ class Attack extends \Google\Model
   public $volumePpsLong;
 
   /**
-   * @param string
+   * @param string $classification
    */
   public function setClassification($classification)
   {
@@ -55,13 +57,15 @@ class Attack extends \Google\Model
     return $this->classification;
   }
   /**
-   * @param int
+   * @deprecated
+   * @param int $volumeBps
    */
   public function setVolumeBps($volumeBps)
   {
     $this->volumeBps = $volumeBps;
   }
   /**
+   * @deprecated
    * @return int
    */
   public function getVolumeBps()
@@ -69,7 +73,7 @@ class Attack extends \Google\Model
     return $this->volumeBps;
   }
   /**
-   * @param string
+   * @param string $volumeBpsLong
    */
   public function setVolumeBpsLong($volumeBpsLong)
   {
@@ -83,13 +87,15 @@ class Attack extends \Google\Model
     return $this->volumeBpsLong;
   }
   /**
-   * @param int
+   * @deprecated
+   * @param int $volumePps
    */
   public function setVolumePps($volumePps)
   {
     $this->volumePps = $volumePps;
   }
   /**
+   * @deprecated
    * @return int
    */
   public function getVolumePps()
@@ -97,7 +103,7 @@ class Attack extends \Google\Model
     return $this->volumePps;
   }
   /**
-   * @param string
+   * @param string $volumePpsLong
    */
   public function setVolumePpsLong($volumePpsLong)
   {

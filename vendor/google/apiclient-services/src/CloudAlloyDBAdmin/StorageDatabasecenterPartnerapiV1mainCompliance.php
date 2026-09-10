@@ -20,16 +20,22 @@ namespace Google\Service\CloudAlloyDBAdmin;
 class StorageDatabasecenterPartnerapiV1mainCompliance extends \Google\Model
 {
   /**
+   * Disable validation warnings
+   *
    * @var string
    */
   public $standard;
   /**
+   * Disable validation warnings
+   *
    * @var string
    */
   public $version;
 
   /**
-   * @param string
+   * Disable validation warnings
+   *
+   * @param string $standard
    */
   public function setStandard($standard)
   {
@@ -43,7 +49,9 @@ class StorageDatabasecenterPartnerapiV1mainCompliance extends \Google\Model
     return $this->standard;
   }
   /**
-   * @param string
+   * Disable validation warnings
+   *
+   * @param string $version
    */
   public function setVersion($version)
   {

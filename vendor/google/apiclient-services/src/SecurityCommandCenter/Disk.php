@@ -25,7 +25,7 @@ class Disk extends \Google\Model
   public $name;
 
   /**
-   * @param string
+   * @param string $name
    */
   public function setName($name)
   {

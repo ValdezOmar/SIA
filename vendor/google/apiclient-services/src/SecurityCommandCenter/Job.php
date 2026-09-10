@@ -19,6 +19,11 @@ namespace Google\Service\SecurityCommandCenter;
 
 class Job extends \Google\Model
 {
+  public const STATE_JOB_STATE_UNSPECIFIED = 'JOB_STATE_UNSPECIFIED';
+  public const STATE_PENDING = 'PENDING';
+  public const STATE_RUNNING = 'RUNNING';
+  public const STATE_SUCCEEDED = 'SUCCEEDED';
+  public const STATE_FAILED = 'FAILED';
   /**
    * @var int
    */
@@ -37,7 +42,7 @@ class Job extends \Google\Model
   public $state;
 
   /**
-   * @param int
+   * @param int $errorCode
    */
   public function setErrorCode($errorCode)
   {
@@ -51,7 +56,7 @@ class Job extends \Google\Model
     return $this->errorCode;
   }
   /**
-   * @param string
+   * @param string $location
    */
   public function setLocation($location)
   {
@@ -65,7 +70,7 @@ class Job extends \Google\Model
     return $this->location;
   }
   /**
-   * @param string
+   * @param string $name
    */
   public function setName($name)
   {
@@ -79,14 +84,14 @@ class Job extends \Google\Model
     return $this->name;
   }
   /**
-   * @param string
+   * @param self::STATE_* $state
    */
   public function setState($state)
   {
     $this->state = $state;
   }
   /**
-   * @return string
+   * @return self::STATE_*
    */
   public function getState()
   {

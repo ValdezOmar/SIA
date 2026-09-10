@@ -26,7 +26,7 @@ class GoogleCloudSecuritycenterV2MuteInfo extends \Google\Collection
   protected $staticMuteDataType = '';
 
   /**
-   * @param GoogleCloudSecuritycenterV2DynamicMuteRecord[]
+   * @param GoogleCloudSecuritycenterV2DynamicMuteRecord[] $dynamicMuteRecords
    */
   public function setDynamicMuteRecords($dynamicMuteRecords)
   {
@@ -40,7 +40,7 @@ class GoogleCloudSecuritycenterV2MuteInfo extends \Google\Collection
     return $this->dynamicMuteRecords;
   }
   /**
-   * @param GoogleCloudSecuritycenterV2StaticMute
+   * @param GoogleCloudSecuritycenterV2StaticMute $staticMute
    */
   public function setStaticMute(GoogleCloudSecuritycenterV2StaticMute $staticMute)
   {

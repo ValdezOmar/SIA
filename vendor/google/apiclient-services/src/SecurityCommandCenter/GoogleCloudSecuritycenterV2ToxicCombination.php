@@ -35,7 +35,7 @@ class GoogleCloudSecuritycenterV2ToxicCombination extends \Google\Collection
     return $this->attackExposureScore;
   }
   /**
-   * @param string[]
+   * @param string[] $relatedFindings
    */
   public function setRelatedFindings($relatedFindings)
   {

@@ -29,7 +29,7 @@ class GoogleCloudSecuritycenterV2AzureManagementGroup extends \Google\Model
   public $id;
 
   /**
-   * @param string
+   * @param string $displayName
    */
   public function setDisplayName($displayName)
   {
@@ -43,7 +43,7 @@ class GoogleCloudSecuritycenterV2AzureManagementGroup extends \Google\Model
     return $this->displayName;
   }
   /**
-   * @param string
+   * @param string $id
    */
   public function setId($id)
   {

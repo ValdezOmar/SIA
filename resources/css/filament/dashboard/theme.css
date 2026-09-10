@@ -155,6 +155,10 @@
     color: #fff;
 }
 
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn :is(.fi-sidebar-item-label, .fi-sidebar-item-icon, .fi-icon) {
+    color: #fff !important;
+}
+
 .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-icon,
 .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-badge {
     color: #fff;

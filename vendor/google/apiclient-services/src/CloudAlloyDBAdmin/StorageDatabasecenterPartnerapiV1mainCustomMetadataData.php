@@ -24,7 +24,9 @@ class StorageDatabasecenterPartnerapiV1mainCustomMetadataData extends \Google\Co
   protected $internalResourceMetadataDataType = 'array';
 
   /**
-   * @param StorageDatabasecenterPartnerapiV1mainInternalResourceMetadata[]
+   * Disable validation warnings
+   *
+   * @param StorageDatabasecenterPartnerapiV1mainInternalResourceMetadata[] $internalResourceMetadata
    */
   public function setInternalResourceMetadata($internalResourceMetadata)
   {

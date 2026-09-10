@@ -19,6 +19,9 @@ namespace Google\Service\SecurityCommandCenter;
 
 class IpRules extends \Google\Collection
 {
+  public const DIRECTION_DIRECTION_UNSPECIFIED = 'DIRECTION_UNSPECIFIED';
+  public const DIRECTION_INGRESS = 'INGRESS';
+  public const DIRECTION_EGRESS = 'EGRESS';
   protected $collection_key = 'sourceIpRanges';
   protected $allowedType = Allowed::class;
   protected $allowedDataType = '';
@@ -42,7 +45,7 @@ class IpRules extends \Google\Collection
   public $sourceIpRanges;
 
   /**
-   * @param Allowed
+   * @param Allowed $allowed
    */
   public function setAllowed(Allowed $allowed)
   {
@@ -56,7 +59,7 @@ class IpRules extends \Google\Collection
     return $this->allowed;
   }
   /**
-   * @param Denied
+   * @param Denied $denied
    */
   public function setDenied(Denied $denied)
   {
@@ -70,7 +73,7 @@ class IpRules extends \Google\Collection
     return $this->denied;
   }
   /**
-   * @param string[]
+   * @param string[] $destinationIpRanges
    */
   public function setDestinationIpRanges($destinationIpRanges)
   {
@@ -84,21 +87,21 @@ class IpRules extends \Google\Collection
     return $this->destinationIpRanges;
   }
   /**
-   * @param string
+   * @param self::DIRECTION_* $direction
    */
   public function setDirection($direction)
   {
     $this->direction = $direction;
   }
   /**
-   * @return string
+   * @return self::DIRECTION_*
    */
   public function getDirection()
   {
     return $this->direction;
   }
   /**
-   * @param string[]
+   * @param string[] $exposedServices
    */
   public function setExposedServices($exposedServices)
   {
@@ -112,7 +115,7 @@ class IpRules extends \Google\Collection
     return $this->exposedServices;
   }
   /**
-   * @param string[]
+   * @param string[] $sourceIpRanges
    */
   public function setSourceIpRanges($sourceIpRanges)
   {

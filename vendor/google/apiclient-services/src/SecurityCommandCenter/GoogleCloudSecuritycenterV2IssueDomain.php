@@ -19,20 +19,28 @@ namespace Google\Service\SecurityCommandCenter;
 
 class GoogleCloudSecuritycenterV2IssueDomain extends \Google\Model
 {
+  public const DOMAIN_CATEGORY_DOMAIN_CATEGORY_UNSPECIFIED = 'DOMAIN_CATEGORY_UNSPECIFIED';
+  public const DOMAIN_CATEGORY_AI = 'AI';
+  public const DOMAIN_CATEGORY_CODE = 'CODE';
+  public const DOMAIN_CATEGORY_CONTAINER = 'CONTAINER';
+  public const DOMAIN_CATEGORY_DATA = 'DATA';
+  public const DOMAIN_CATEGORY_IDENTITY_AND_ACCESS = 'IDENTITY_AND_ACCESS';
+  public const DOMAIN_CATEGORY_VULNERABILITY = 'VULNERABILITY';
+  public const DOMAIN_CATEGORY_THREAT = 'THREAT';
   /**
    * @var string
    */
   public $domainCategory;
 
   /**
-   * @param string
+   * @param self::DOMAIN_CATEGORY_* $domainCategory
    */
   public function setDomainCategory($domainCategory)
   {
     $this->domainCategory = $domainCategory;
   }
   /**
-   * @return string
+   * @return self::DOMAIN_CATEGORY_*
    */
   public function getDomainCategory()
   {

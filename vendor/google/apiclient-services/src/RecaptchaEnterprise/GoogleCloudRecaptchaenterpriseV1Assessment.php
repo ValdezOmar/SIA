@@ -34,11 +34,16 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
   protected $fraudSignalsType = GoogleCloudRecaptchaenterpriseV1FraudSignals::class;
   protected $fraudSignalsDataType = '';
   /**
+   * Output only. Identifier. The resource name for the Assessment in the format
+   * `projects/{project}/assessments/{assessment}`.
+   *
    * @var string
    */
   public $name;
   protected $phoneFraudAssessmentType = GoogleCloudRecaptchaenterpriseV1PhoneFraudAssessment::class;
   protected $phoneFraudAssessmentDataType = '';
+  protected $policyEvaluationType = GoogleCloudRecaptchaenterpriseV1PolicyEvaluation::class;
+  protected $policyEvaluationDataType = '';
   protected $privatePasswordLeakVerificationType = GoogleCloudRecaptchaenterpriseV1PrivatePasswordLeakVerification::class;
   protected $privatePasswordLeakVerificationDataType = '';
   protected $riskAnalysisType = GoogleCloudRecaptchaenterpriseV1RiskAnalysis::class;
@@ -47,7 +52,10 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
   protected $tokenPropertiesDataType = '';
 
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1AccountDefenderAssessment
+   * Output only. Assessment returned by Account defense when an account
+   * identifier is provided.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1AccountDefenderAssessment $accountDefenderAssessment
    */
   public function setAccountDefenderAssessment(GoogleCloudRecaptchaenterpriseV1AccountDefenderAssessment $accountDefenderAssessment)
   {
@@ -61,7 +69,10 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->accountDefenderAssessment;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1AccountVerificationInfo
+   * Optional. Account verification information for identity verification. The
+   * assessment event must include a token and site key to use this feature.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1AccountVerificationInfo $accountVerification
    */
   public function setAccountVerification(GoogleCloudRecaptchaenterpriseV1AccountVerificationInfo $accountVerification)
   {
@@ -75,7 +86,11 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->accountVerification;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1AssessmentEnvironment
+   * Optional. The environment creating the assessment. This describes your
+   * environment (the system invoking CreateAssessment), NOT the environment of
+   * your user.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1AssessmentEnvironment $assessmentEnvironment
    */
   public function setAssessmentEnvironment(GoogleCloudRecaptchaenterpriseV1AssessmentEnvironment $assessmentEnvironment)
   {
@@ -89,7 +104,9 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->assessmentEnvironment;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1Event
+   * Optional. The event being assessed.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1Event $event
    */
   public function setEvent(GoogleCloudRecaptchaenterpriseV1Event $event)
   {
@@ -103,7 +120,10 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->event;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1FirewallPolicyAssessment
+   * Output only. Assessment returned when firewall policies belonging to the
+   * project are evaluated using the field firewall_policy_evaluation.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1FirewallPolicyAssessment $firewallPolicyAssessment
    */
   public function setFirewallPolicyAssessment(GoogleCloudRecaptchaenterpriseV1FirewallPolicyAssessment $firewallPolicyAssessment)
   {
@@ -117,7 +137,10 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->firewallPolicyAssessment;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessment
+   * Output only. Assessment returned by Fraud Prevention when TransactionData
+   * is provided.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessment $fraudPreventionAssessment
    */
   public function setFraudPreventionAssessment(GoogleCloudRecaptchaenterpriseV1FraudPreventionAssessment $fraudPreventionAssessment)
   {
@@ -131,7 +154,10 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->fraudPreventionAssessment;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1FraudSignals
+   * Output only. Fraud Signals specific to the users involved in a payment
+   * transaction.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1FraudSignals $fraudSignals
    */
   public function setFraudSignals(GoogleCloudRecaptchaenterpriseV1FraudSignals $fraudSignals)
   {
@@ -145,7 +171,10 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->fraudSignals;
   }
   /**
-   * @param string
+   * Output only. Identifier. The resource name for the Assessment in the format
+   * `projects/{project}/assessments/{assessment}`.
+   *
+   * @param string $name
    */
   public function setName($name)
   {
@@ -159,7 +188,10 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->name;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1PhoneFraudAssessment
+   * Output only. Assessment returned when a site key, a token, and a phone
+   * number as `user_id` are provided. SMS defense needs to be enabled.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1PhoneFraudAssessment $phoneFraudAssessment
    */
   public function setPhoneFraudAssessment(GoogleCloudRecaptchaenterpriseV1PhoneFraudAssessment $phoneFraudAssessment)
   {
@@ -173,7 +205,28 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->phoneFraudAssessment;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1PrivatePasswordLeakVerification
+   * Output only. Provides information about the policy evaluation for this
+   * assessment.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1PolicyEvaluation $policyEvaluation
+   */
+  public function setPolicyEvaluation(GoogleCloudRecaptchaenterpriseV1PolicyEvaluation $policyEvaluation)
+  {
+    $this->policyEvaluation = $policyEvaluation;
+  }
+  /**
+   * @return GoogleCloudRecaptchaenterpriseV1PolicyEvaluation
+   */
+  public function getPolicyEvaluation()
+  {
+    return $this->policyEvaluation;
+  }
+  /**
+   * Optional. The private password leak verification field contains the
+   * parameters that are used to to check for leaks privately without sharing
+   * user credentials.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1PrivatePasswordLeakVerification $privatePasswordLeakVerification
    */
   public function setPrivatePasswordLeakVerification(GoogleCloudRecaptchaenterpriseV1PrivatePasswordLeakVerification $privatePasswordLeakVerification)
   {
@@ -187,7 +240,9 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->privatePasswordLeakVerification;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1RiskAnalysis
+   * Output only. The risk analysis result for the event being assessed.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1RiskAnalysis $riskAnalysis
    */
   public function setRiskAnalysis(GoogleCloudRecaptchaenterpriseV1RiskAnalysis $riskAnalysis)
   {
@@ -201,7 +256,9 @@ class GoogleCloudRecaptchaenterpriseV1Assessment extends \Google\Model
     return $this->riskAnalysis;
   }
   /**
-   * @param GoogleCloudRecaptchaenterpriseV1TokenProperties
+   * Output only. Properties of the provided event token.
+   *
+   * @param GoogleCloudRecaptchaenterpriseV1TokenProperties $tokenProperties
    */
   public function setTokenProperties(GoogleCloudRecaptchaenterpriseV1TokenProperties $tokenProperties)
   {

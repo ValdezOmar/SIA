@@ -24,7 +24,7 @@ class GoogleCloudSecuritycenterV2Denied extends \Google\Collection
   protected $ipRulesDataType = 'array';
 
   /**
-   * @param GoogleCloudSecuritycenterV2IpRule[]
+   * @param GoogleCloudSecuritycenterV2IpRule[] $ipRules
    */
   public function setIpRules($ipRules)
   {

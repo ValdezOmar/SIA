@@ -20,52 +20,120 @@ namespace Google\Service\NetworkManagement;
 class ForwardingRuleInfo extends \Google\Model
 {
   /**
+   * Configuration state unspecified. It usually means that there are no
+   * relevant health checks for this load balancer frontend, or there was an
+   * unexpected configuration error preventing Connectivity Tests from verifying
+   * health check configuration.
+   */
+  public const ENVOY_HEALTH_CHECK_FIREWALLS_CONFIG_STATE_HEALTH_CHECK_FIREWALLS_CONFIG_STATE_UNSPECIFIED = 'HEALTH_CHECK_FIREWALLS_CONFIG_STATE_UNSPECIFIED';
+  /**
+   * Firewall rules (policies) allow health check traffic to the load balancer
+   * frontend.
+   */
+  public const ENVOY_HEALTH_CHECK_FIREWALLS_CONFIG_STATE_FIREWALLS_CONFIGURED = 'FIREWALLS_CONFIGURED';
+  /**
+   * Firewall rules (policies) allow health check traffic to the load balancer
+   * frontend only from a part of the required IP ranges.
+   */
+  public const ENVOY_HEALTH_CHECK_FIREWALLS_CONFIG_STATE_FIREWALLS_PARTIALLY_CONFIGURED = 'FIREWALLS_PARTIALLY_CONFIGURED';
+  /**
+   * Firewall rules (policies) deny health check traffic to the load balancer
+   * frontend.
+   */
+  public const ENVOY_HEALTH_CHECK_FIREWALLS_CONFIG_STATE_FIREWALLS_NOT_CONFIGURED = 'FIREWALLS_NOT_CONFIGURED';
+  /**
+   * Connectivity Tests doesn't support evaluating some of the firewall rules in
+   * the network, so it's not able to verify health check configuration status.
+   */
+  public const ENVOY_HEALTH_CHECK_FIREWALLS_CONFIG_STATE_FIREWALLS_UNSUPPORTED = 'FIREWALLS_UNSUPPORTED';
+  /**
+   * Name of the forwarding rule.
+   *
    * @var string
    */
   public $displayName;
   /**
+   * Output only. State of the firewalls allowing health check traffic to the
+   * load balancer frontend (Envoy proxies). This is the result of the firewall
+   * configuration analysis verifying that health check traffic from required IP
+   * ranges to the the Envoy-based load balancer frontend is allowed by firewall
+   * rules with the load balancer target.
+   *
+   * @var string
+   */
+  public $envoyHealthCheckFirewallsConfigState;
+  /**
+   * Name of the load balancer the forwarding rule belongs to. Empty for
+   * forwarding rules not related to load balancers (like PSC forwarding rules).
+   *
    * @var string
    */
   public $loadBalancerName;
   /**
+   * Port range defined in the forwarding rule that matches the packet.
+   *
    * @var string
    */
   public $matchedPortRange;
   /**
+   * Protocol defined in the forwarding rule that matches the packet.
+   *
    * @var string
    */
   public $matchedProtocol;
   /**
+   * URI of a VPC network where the forwarding rule is located in format
+   * "projects/{project}/global/networks/{network}".
+   *
    * @var string
    */
   public $networkUri;
   /**
+   * PSC Google API target this forwarding rule targets (if applicable).
+   *
    * @var string
    */
   public $pscGoogleApiTarget;
   /**
+   * URI of the PSC service attachment this forwarding rule targets (if
+   * applicable) in format "projects/{project}/regions/{region}/serviceAttachmen
+   * ts/{service_attachment}".
+   *
    * @var string
    */
   public $pscServiceAttachmentUri;
   /**
+   * Region of the forwarding rule. Set only for regional forwarding rules.
+   *
    * @var string
    */
   public $region;
   /**
+   * Target type of the forwarding rule.
+   *
    * @var string
    */
   public $target;
   /**
+   * URI of the forwarding rule in format
+   * "projects/{project}/global/forwardingRules/{forwarding_rule}" (global) or
+   * "projects/{project}/regions/{region}/forwardingRules/{forwarding_rule}"
+   * (regional).
+   *
    * @var string
    */
   public $uri;
   /**
+   * VIP of the forwarding rule.
+   *
    * @var string
    */
   public $vip;
 
   /**
-   * @param string
+   * Name of the forwarding rule.
+   *
+   * @param string $displayName
    */
   public function setDisplayName($displayName)
   {
@@ -79,7 +147,34 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->displayName;
   }
   /**
-   * @param string
+   * Output only. State of the firewalls allowing health check traffic to the
+   * load balancer frontend (Envoy proxies). This is the result of the firewall
+   * configuration analysis verifying that health check traffic from required IP
+   * ranges to the the Envoy-based load balancer frontend is allowed by firewall
+   * rules with the load balancer target.
+   *
+   * Accepted values: HEALTH_CHECK_FIREWALLS_CONFIG_STATE_UNSPECIFIED,
+   * FIREWALLS_CONFIGURED, FIREWALLS_PARTIALLY_CONFIGURED,
+   * FIREWALLS_NOT_CONFIGURED, FIREWALLS_UNSUPPORTED
+   *
+   * @param self::ENVOY_HEALTH_CHECK_FIREWALLS_CONFIG_STATE_* $envoyHealthCheckFirewallsConfigState
+   */
+  public function setEnvoyHealthCheckFirewallsConfigState($envoyHealthCheckFirewallsConfigState)
+  {
+    $this->envoyHealthCheckFirewallsConfigState = $envoyHealthCheckFirewallsConfigState;
+  }
+  /**
+   * @return self::ENVOY_HEALTH_CHECK_FIREWALLS_CONFIG_STATE_*
+   */
+  public function getEnvoyHealthCheckFirewallsConfigState()
+  {
+    return $this->envoyHealthCheckFirewallsConfigState;
+  }
+  /**
+   * Name of the load balancer the forwarding rule belongs to. Empty for
+   * forwarding rules not related to load balancers (like PSC forwarding rules).
+   *
+   * @param string $loadBalancerName
    */
   public function setLoadBalancerName($loadBalancerName)
   {
@@ -93,7 +188,9 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->loadBalancerName;
   }
   /**
-   * @param string
+   * Port range defined in the forwarding rule that matches the packet.
+   *
+   * @param string $matchedPortRange
    */
   public function setMatchedPortRange($matchedPortRange)
   {
@@ -107,7 +204,9 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->matchedPortRange;
   }
   /**
-   * @param string
+   * Protocol defined in the forwarding rule that matches the packet.
+   *
+   * @param string $matchedProtocol
    */
   public function setMatchedProtocol($matchedProtocol)
   {
@@ -121,7 +220,10 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->matchedProtocol;
   }
   /**
-   * @param string
+   * URI of a VPC network where the forwarding rule is located in format
+   * "projects/{project}/global/networks/{network}".
+   *
+   * @param string $networkUri
    */
   public function setNetworkUri($networkUri)
   {
@@ -135,7 +237,9 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->networkUri;
   }
   /**
-   * @param string
+   * PSC Google API target this forwarding rule targets (if applicable).
+   *
+   * @param string $pscGoogleApiTarget
    */
   public function setPscGoogleApiTarget($pscGoogleApiTarget)
   {
@@ -149,7 +253,11 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->pscGoogleApiTarget;
   }
   /**
-   * @param string
+   * URI of the PSC service attachment this forwarding rule targets (if
+   * applicable) in format "projects/{project}/regions/{region}/serviceAttachmen
+   * ts/{service_attachment}".
+   *
+   * @param string $pscServiceAttachmentUri
    */
   public function setPscServiceAttachmentUri($pscServiceAttachmentUri)
   {
@@ -163,7 +271,9 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->pscServiceAttachmentUri;
   }
   /**
-   * @param string
+   * Region of the forwarding rule. Set only for regional forwarding rules.
+   *
+   * @param string $region
    */
   public function setRegion($region)
   {
@@ -177,7 +287,9 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->region;
   }
   /**
-   * @param string
+   * Target type of the forwarding rule.
+   *
+   * @param string $target
    */
   public function setTarget($target)
   {
@@ -191,7 +303,12 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->target;
   }
   /**
-   * @param string
+   * URI of the forwarding rule in format
+   * "projects/{project}/global/forwardingRules/{forwarding_rule}" (global) or
+   * "projects/{project}/regions/{region}/forwardingRules/{forwarding_rule}"
+   * (regional).
+   *
+   * @param string $uri
    */
   public function setUri($uri)
   {
@@ -205,7 +322,9 @@ class ForwardingRuleInfo extends \Google\Model
     return $this->uri;
   }
   /**
-   * @param string
+   * VIP of the forwarding rule.
+   *
+   * @param string $vip
    */
   public function setVip($vip)
   {

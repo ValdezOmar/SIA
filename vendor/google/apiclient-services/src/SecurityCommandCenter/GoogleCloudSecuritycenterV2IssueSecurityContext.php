@@ -25,7 +25,7 @@ class GoogleCloudSecuritycenterV2IssueSecurityContext extends \Google\Model
   protected $contextDataType = '';
 
   /**
-   * @param GoogleCloudSecuritycenterV2IssueSecurityContextAggregatedCount
+   * @param GoogleCloudSecuritycenterV2IssueSecurityContextAggregatedCount $aggregatedCount
    */
   public function setAggregatedCount(GoogleCloudSecuritycenterV2IssueSecurityContextAggregatedCount $aggregatedCount)
   {
@@ -39,7 +39,7 @@ class GoogleCloudSecuritycenterV2IssueSecurityContext extends \Google\Model
     return $this->aggregatedCount;
   }
   /**
-   * @param GoogleCloudSecuritycenterV2IssueSecurityContextContext
+   * @param GoogleCloudSecuritycenterV2IssueSecurityContextContext $context
    */
   public function setContext(GoogleCloudSecuritycenterV2IssueSecurityContextContext $context)
   {

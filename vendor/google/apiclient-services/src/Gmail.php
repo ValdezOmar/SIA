@@ -28,7 +28,7 @@ use Google\Client;
  *
  * <p>
  * For more information about this service, see the API
- * <a href="https://developers.google.com/gmail/api/" target="_blank">Documentation</a>
+ * <a href="https://developers.google.com/workspace/gmail/api/" target="_blank">Documentation</a>
  * </p>
  *
  * @author Google, Inc.
@@ -824,6 +824,10 @@ class Gmail extends \Google\Service
                   'location' => 'path',
                   'type' => 'string',
                   'required' => true,
+                ],
+                'chainValidation' => [
+                  'location' => 'query',
+                  'type' => 'string',
                 ],
               ],
             ],'disable' => [

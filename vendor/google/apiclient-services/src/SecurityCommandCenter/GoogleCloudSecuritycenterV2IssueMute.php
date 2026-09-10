@@ -19,6 +19,9 @@ namespace Google\Service\SecurityCommandCenter;
 
 class GoogleCloudSecuritycenterV2IssueMute extends \Google\Model
 {
+  public const MUTE_STATE_MUTE_STATE_UNSPECIFIED = 'MUTE_STATE_UNSPECIFIED';
+  public const MUTE_STATE_NOT_MUTED = 'NOT_MUTED';
+  public const MUTE_STATE_MUTED = 'MUTED';
   /**
    * @var string
    */
@@ -37,7 +40,7 @@ class GoogleCloudSecuritycenterV2IssueMute extends \Google\Model
   public $muteUpdateTime;
 
   /**
-   * @param string
+   * @param string $muteInitiator
    */
   public function setMuteInitiator($muteInitiator)
   {
@@ -51,7 +54,7 @@ class GoogleCloudSecuritycenterV2IssueMute extends \Google\Model
     return $this->muteInitiator;
   }
   /**
-   * @param string
+   * @param string $muteReason
    */
   public function setMuteReason($muteReason)
   {
@@ -65,21 +68,21 @@ class GoogleCloudSecuritycenterV2IssueMute extends \Google\Model
     return $this->muteReason;
   }
   /**
-   * @param string
+   * @param self::MUTE_STATE_* $muteState
    */
   public function setMuteState($muteState)
   {
     $this->muteState = $muteState;
   }
   /**
-   * @return string
+   * @return self::MUTE_STATE_*
    */
   public function getMuteState()
   {
     return $this->muteState;
   }
   /**
-   * @param string
+   * @param string $muteUpdateTime
    */
   public function setMuteUpdateTime($muteUpdateTime)
   {

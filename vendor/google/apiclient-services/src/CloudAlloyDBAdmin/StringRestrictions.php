@@ -21,12 +21,24 @@ class StringRestrictions extends \Google\Collection
 {
   protected $collection_key = 'allowedValues';
   /**
+   * The list of allowed values, if bounded. This field will be empty if there
+   * is a unbounded number of allowed values.
+   *
    * @var string[]
    */
   public $allowedValues;
+  /**
+   * Output only. Whether the allowed values are case agnostic.
+   *
+   * @var bool
+   */
+  public $caseAgnostic;
 
   /**
-   * @param string[]
+   * The list of allowed values, if bounded. This field will be empty if there
+   * is a unbounded number of allowed values.
+   *
+   * @param string[] $allowedValues
    */
   public function setAllowedValues($allowedValues)
   {
@@ -38,6 +50,22 @@ class StringRestrictions extends \Google\Collection
   public function getAllowedValues()
   {
     return $this->allowedValues;
+  }
+  /**
+   * Output only. Whether the allowed values are case agnostic.
+   *
+   * @param bool $caseAgnostic
+   */
+  public function setCaseAgnostic($caseAgnostic)
+  {
+    $this->caseAgnostic = $caseAgnostic;
+  }
+  /**
+   * @return bool
+   */
+  public function getCaseAgnostic()
+  {
+    return $this->caseAgnostic;
   }
 }
 

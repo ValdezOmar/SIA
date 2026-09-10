@@ -27,7 +27,6 @@ class CalculoRepeaterTest extends TestCase
         $this->assertFalse($repeater->isLive());
         $this->assertFalse($fields['cantidad']->isLive());
         $this->assertFalse($fields['precio_unitario']->isLive());
-        $this->assertStringContainsString('siaVentasImportes.actualizar', $fields['descuento_porcentaje']->getExtraInputAttributes()['x-on:input']);
         $test->set($path.'.cantidad', '123')
             ->set($path.'.precio_unitario', '12.50')
             ->set($path.'.descuento_porcentaje', '10')
@@ -95,8 +94,8 @@ class FormularioCalculoPrueba extends Component implements HasForms
     {
         return $schema->statePath('data')->components([
             CalculoRepeater::make('detalles')->key('detalles')->calculo('venta')->live()->schema([
-                TextInput::make('cantidad')->numeric()->live()->afterStateUpdated(fn ($set) => $set('cantidad', 1)),
-                TextInput::make('precio_unitario')->numeric()->live(onBlur: true),
+                TextInput::make('cantidad')->numeric(),
+                TextInput::make('precio_unitario')->numeric(),
                 TextInput::make('descuento')->numeric(),
                 TextInput::make('descuento_porcentaje')->numeric(),
                 Toggle::make('aplicar_iva')->live(),

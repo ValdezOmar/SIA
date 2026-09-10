@@ -19,18 +19,100 @@ namespace Google\Service\NetAppFiles;
 
 class LocationMetadata extends \Google\Collection
 {
+  /**
+   * Unspecified flex performance tier.
+   */
+  public const FLEX_PERFORMANCE_TIER_FLEX_PERFORMANCE_TIER_UNSPECIFIED = 'FLEX_PERFORMANCE_TIER_UNSPECIFIED';
+  /**
+   * Flex performance tier is limited.
+   */
+  public const FLEX_PERFORMANCE_TIER_LIMITED = 'LIMITED';
   protected $collection_key = 'supportedServiceLevels';
   /**
+   * Output only. Indicates the flex performance tier of this location.
+   *
+   * @var string
+   */
+  public $flexPerformanceTier;
+  /**
+   * Output only. Indicates if the location has ONTAP Proxy support.
+   *
+   * @var bool
+   */
+  public $hasOntapProxy;
+  /**
+   * Output only. Indicates if the location has VCP support.
+   *
+   * @var bool
+   */
+  public $hasVcp;
+  /**
+   * Output only. Supported flex performance in a location.
+   *
    * @var string[]
    */
   public $supportedFlexPerformance;
   /**
+   * Output only. Supported service levels in a location.
+   *
    * @var string[]
    */
   public $supportedServiceLevels;
 
   /**
-   * @param string[]
+   * Output only. Indicates the flex performance tier of this location.
+   *
+   * Accepted values: FLEX_PERFORMANCE_TIER_UNSPECIFIED, LIMITED
+   *
+   * @param self::FLEX_PERFORMANCE_TIER_* $flexPerformanceTier
+   */
+  public function setFlexPerformanceTier($flexPerformanceTier)
+  {
+    $this->flexPerformanceTier = $flexPerformanceTier;
+  }
+  /**
+   * @return self::FLEX_PERFORMANCE_TIER_*
+   */
+  public function getFlexPerformanceTier()
+  {
+    return $this->flexPerformanceTier;
+  }
+  /**
+   * Output only. Indicates if the location has ONTAP Proxy support.
+   *
+   * @param bool $hasOntapProxy
+   */
+  public function setHasOntapProxy($hasOntapProxy)
+  {
+    $this->hasOntapProxy = $hasOntapProxy;
+  }
+  /**
+   * @return bool
+   */
+  public function getHasOntapProxy()
+  {
+    return $this->hasOntapProxy;
+  }
+  /**
+   * Output only. Indicates if the location has VCP support.
+   *
+   * @param bool $hasVcp
+   */
+  public function setHasVcp($hasVcp)
+  {
+    $this->hasVcp = $hasVcp;
+  }
+  /**
+   * @return bool
+   */
+  public function getHasVcp()
+  {
+    return $this->hasVcp;
+  }
+  /**
+   * Output only. Supported flex performance in a location.
+   *
+   * @param string[] $supportedFlexPerformance
    */
   public function setSupportedFlexPerformance($supportedFlexPerformance)
   {
@@ -44,7 +126,9 @@ class LocationMetadata extends \Google\Collection
     return $this->supportedFlexPerformance;
   }
   /**
-   * @param string[]
+   * Output only. Supported service levels in a location.
+   *
+   * @param string[] $supportedServiceLevels
    */
   public function setSupportedServiceLevels($supportedServiceLevels)
   {

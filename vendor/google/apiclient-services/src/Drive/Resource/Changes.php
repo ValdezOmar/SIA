@@ -33,7 +33,8 @@ class Changes extends \Google\Service\Resource
 {
   /**
    * Gets the starting pageToken for listing future changes. For more information,
-   * see [Retrieve changes](https://developers.google.com/drive/api/guides/manage-
+   * see [Retrieve
+   * changes](https://developers.google.com/workspace/drive/api/guides/manage-
    * changes). (changes.getStartPageToken)
    *
    * @param array $optParams Optional parameters.
@@ -56,7 +57,8 @@ class Changes extends \Google\Service\Resource
   }
   /**
    * Lists the changes for a user or shared drive. For more information, see
-   * [Retrieve changes](https://developers.google.com/drive/api/guides/manage-
+   * [Retrieve
+   * changes](https://developers.google.com/workspace/drive/api/guides/manage-
    * changes). (changes.listChanges)
    *
    * @param string $pageToken The token for continuing a previous list request on
@@ -82,7 +84,10 @@ class Changes extends \Google\Service\Resource
    * loss of access.
    * @opt_param bool includeTeamDriveItems Deprecated: Use
    * `includeItemsFromAllDrives` instead.
-   * @opt_param int pageSize The maximum number of changes to return per page.
+   * @opt_param int pageSize The maximum number of changes to return. The service
+   * may return fewer than this value. If unspecified, at most 100 changes will be
+   * returned. The maximum value is 1000; values above 1000 will be coerced to
+   * 1000.
    * @opt_param bool restrictToMyDrive Whether to restrict the results to changes
    * inside the My Drive hierarchy. This omits changes to files such as those in
    * the Application Data folder or shared files which have not been added to My
@@ -105,7 +110,8 @@ class Changes extends \Google\Service\Resource
   }
   /**
    * Subscribes to changes for a user. For more information, see [Notifications
-   * for resource changes](https://developers.google.com/drive/api/guides/push).
+   * for resource
+   * changes](https://developers.google.com/workspace/drive/api/guides/push).
    * (changes.watch)
    *
    * @param string $pageToken The token for continuing a previous list request on
@@ -132,7 +138,10 @@ class Changes extends \Google\Service\Resource
    * loss of access.
    * @opt_param bool includeTeamDriveItems Deprecated: Use
    * `includeItemsFromAllDrives` instead.
-   * @opt_param int pageSize The maximum number of changes to return per page.
+   * @opt_param int pageSize The maximum number of changes to return. The service
+   * may return fewer than this value. If unspecified, at most 100 changes will be
+   * returned. The maximum value is 1000; values above 1000 will be coerced to
+   * 1000.
    * @opt_param bool restrictToMyDrive Whether to restrict the results to changes
    * inside the My Drive hierarchy. This omits changes to files such as those in
    * the Application Data folder or shared files which have not been added to My

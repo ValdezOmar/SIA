@@ -29,7 +29,7 @@ class GoogleCloudSecuritycenterV2IssueFinding extends \Google\Model
   protected $securityBulletinDataType = '';
 
   /**
-   * @param GoogleCloudSecuritycenterV2IssueFindingCve
+   * @param GoogleCloudSecuritycenterV2IssueFindingCve $cve
    */
   public function setCve(GoogleCloudSecuritycenterV2IssueFindingCve $cve)
   {
@@ -43,7 +43,7 @@ class GoogleCloudSecuritycenterV2IssueFinding extends \Google\Model
     return $this->cve;
   }
   /**
-   * @param string
+   * @param string $name
    */
   public function setName($name)
   {
@@ -57,7 +57,7 @@ class GoogleCloudSecuritycenterV2IssueFinding extends \Google\Model
     return $this->name;
   }
   /**
-   * @param GoogleCloudSecuritycenterV2IssueFindingSecurityBulletin
+   * @param GoogleCloudSecuritycenterV2IssueFindingSecurityBulletin $securityBulletin
    */
   public function setSecurityBulletin(GoogleCloudSecuritycenterV2IssueFindingSecurityBulletin $securityBulletin)
   {

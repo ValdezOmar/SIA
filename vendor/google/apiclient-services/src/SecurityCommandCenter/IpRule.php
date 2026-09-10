@@ -28,7 +28,7 @@ class IpRule extends \Google\Collection
   public $protocol;
 
   /**
-   * @param PortRange[]
+   * @param PortRange[] $portRanges
    */
   public function setPortRanges($portRanges)
   {
@@ -42,7 +42,7 @@ class IpRule extends \Google\Collection
     return $this->portRanges;
   }
   /**
-   * @param string
+   * @param string $protocol
    */
   public function setProtocol($protocol)
   {

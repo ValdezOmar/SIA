@@ -20,17 +20,48 @@ namespace Google\Service\Dataproc;
 class InstanceSelection extends \Google\Collection
 {
   protected $collection_key = 'machineTypes';
+  protected $diskConfigType = DiskConfig::class;
+  protected $diskConfigDataType = '';
   /**
+   * Optional. Full machine-type names, e.g. "n1-standard-16".
+   *
    * @var string[]
    */
   public $machineTypes;
   /**
+   * Optional. Preference of this instance selection. Lower number means higher
+   * preference. The service will first try to create a VM based on the machine-
+   * type with priority rank and fallback to next rank based on availability.
+   * Machine types and instance selections with the same priority have the same
+   * preference.
+   *
    * @var int
    */
   public $rank;
 
   /**
-   * @param string[]
+   * Optional. Disk configuration to apply to the instances in this instance
+   * selection. If specified on any entry in instanceSelectionList, then it must
+   * be specified on every entry in instanceSelectionList and the
+   * instanceGroupConfig must not specify any diskConfig.
+   *
+   * @param DiskConfig $diskConfig
+   */
+  public function setDiskConfig(DiskConfig $diskConfig)
+  {
+    $this->diskConfig = $diskConfig;
+  }
+  /**
+   * @return DiskConfig
+   */
+  public function getDiskConfig()
+  {
+    return $this->diskConfig;
+  }
+  /**
+   * Optional. Full machine-type names, e.g. "n1-standard-16".
+   *
+   * @param string[] $machineTypes
    */
   public function setMachineTypes($machineTypes)
   {
@@ -44,7 +75,13 @@ class InstanceSelection extends \Google\Collection
     return $this->machineTypes;
   }
   /**
-   * @param int
+   * Optional. Preference of this instance selection. Lower number means higher
+   * preference. The service will first try to create a VM based on the machine-
+   * type with priority rank and fallback to next rank based on availability.
+   * Machine types and instance selections with the same priority have the same
+   * preference.
+   *
+   * @param int $rank
    */
   public function setRank($rank)
   {

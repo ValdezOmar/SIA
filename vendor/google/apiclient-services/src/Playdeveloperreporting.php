@@ -40,12 +40,15 @@ class Playdeveloperreporting extends \Google\Service
 
   public $anomalies;
   public $apps;
+  public $vitals_anonrssandswapmemoryusage;
   public $vitals_anrrate;
+  public $vitals_bitmapmemoryusage;
   public $vitals_crashrate;
   public $vitals_errors_counts;
   public $vitals_errors_issues;
   public $vitals_errors_reports;
   public $vitals_excessivewakeuprate;
+  public $vitals_lmkrate;
   public $vitals_slowrenderingrate;
   public $vitals_slowstartrate;
   public $vitals_stuckbackgroundwakelockrate;
@@ -134,10 +137,70 @@ class Playdeveloperreporting extends \Google\Service
           ]
         ]
     );
+    $this->vitals_anonrssandswapmemoryusage = new Playdeveloperreporting\Resource\VitalsAnonrssandswapmemoryusage(
+        $this,
+        $this->serviceName,
+        'anonrssandswapmemoryusage',
+        [
+          'methods' => [
+            'get' => [
+              'path' => 'v1beta1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'query' => [
+              'path' => 'v1beta1/{+name}:query',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],
+          ]
+        ]
+    );
     $this->vitals_anrrate = new Playdeveloperreporting\Resource\VitalsAnrrate(
         $this,
         $this->serviceName,
         'anrrate',
+        [
+          'methods' => [
+            'get' => [
+              'path' => 'v1beta1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'query' => [
+              'path' => 'v1beta1/{+name}:query',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],
+          ]
+        ]
+    );
+    $this->vitals_bitmapmemoryusage = new Playdeveloperreporting\Resource\VitalsBitmapmemoryusage(
+        $this,
+        $this->serviceName,
+        'bitmapmemoryusage',
         [
           'methods' => [
             'get' => [
@@ -460,6 +523,36 @@ class Playdeveloperreporting extends \Google\Service
         $this,
         $this->serviceName,
         'excessivewakeuprate',
+        [
+          'methods' => [
+            'get' => [
+              'path' => 'v1beta1/{+name}',
+              'httpMethod' => 'GET',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],'query' => [
+              'path' => 'v1beta1/{+name}:query',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'name' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
+            ],
+          ]
+        ]
+    );
+    $this->vitals_lmkrate = new Playdeveloperreporting\Resource\VitalsLmkrate(
+        $this,
+        $this->serviceName,
+        'lmkrate',
         [
           'methods' => [
             'get' => [

@@ -88,6 +88,11 @@ class SecretManager extends \Google\Service
                   'type' => 'string',
                   'required' => true,
                 ],
+                'extraLocationTypes' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                  'repeated' => true,
+                ],
                 'filter' => [
                   'location' => 'query',
                   'type' => 'string',
@@ -149,6 +154,16 @@ class SecretManager extends \Google\Service
                   'type' => 'string',
                 ],
               ],
+            ],'enableManagedRotation' => [
+              'path' => 'v1/{+parent}:enableManagedRotation',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
             ],'get' => [
               'path' => 'v1/{+name}',
               'httpMethod' => 'GET',
@@ -207,6 +222,16 @@ class SecretManager extends \Google\Service
                 'updateMask' => [
                   'location' => 'query',
                   'type' => 'string',
+                ],
+              ],
+            ],'rotateSecret' => [
+              'path' => 'v1/{+parent}:rotateSecret',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
                 ],
               ],
             ],'setIamPolicy' => [
@@ -359,6 +384,16 @@ class SecretManager extends \Google\Service
                   'type' => 'string',
                 ],
               ],
+            ],'enableManagedRotation' => [
+              'path' => 'v1/{+parent}:enableManagedRotation',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
+                ],
+              ],
             ],'get' => [
               'path' => 'v1/{+name}',
               'httpMethod' => 'GET',
@@ -417,6 +452,16 @@ class SecretManager extends \Google\Service
                 'updateMask' => [
                   'location' => 'query',
                   'type' => 'string',
+                ],
+              ],
+            ],'rotateSecret' => [
+              'path' => 'v1/{+parent}:rotateSecret',
+              'httpMethod' => 'POST',
+              'parameters' => [
+                'parent' => [
+                  'location' => 'path',
+                  'type' => 'string',
+                  'required' => true,
                 ],
               ],
             ],'setIamPolicy' => [

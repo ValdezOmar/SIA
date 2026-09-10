@@ -2,7 +2,7 @@
 
 ## Plataforma y apariencia
 
-- El panel utiliza Filament 5.8 con Livewire 4.4 y un tema nativo de SIA; DashStack fue retirado.
+- El panel utiliza Laravel 13.31, Filament 5.8 y Livewire 4.4 con un tema nativo de SIA; DashStack fue retirado.
 - La apariencia, identidad visual y fondo de inicio de sesión se administran desde **Sistema > Parámetros generales**.
 - El inicio de sesión se mantiene en tema claro para preservar contraste y legibilidad.
 - **Análisis comercial** ya no es una página del menú: se muestra como widget Livewire reactivo en el Escritorio, con filtro de período y actualización periódica.
@@ -30,6 +30,13 @@ php artisan migrate:status
 ```
 
 ## Validación automatizada
+
+Validado tras la actualización a Laravel 13:
+
+- Rutas del panel, cachés y componentes de Filament: correctos.
+- Pruebas unitarias: 5 correctas, 44 aserciones.
+- Pruebas JavaScript: 8 correctas.
+- Integración ventas, pagos, inventario, Kardex y asientos: 19 pruebas correctas, incluidas venta al contado, pago mixto, reversión, stock negativo, servicios y transferencias internas.
 
 Ejecutado durante esta actualización:
 

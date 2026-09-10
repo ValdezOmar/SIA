@@ -29,7 +29,7 @@ class GoogleCloudSecuritycenterV2DynamicMuteRecord extends \Google\Model
   public $muteConfig;
 
   /**
-   * @param string
+   * @param string $matchTime
    */
   public function setMatchTime($matchTime)
   {
@@ -43,7 +43,7 @@ class GoogleCloudSecuritycenterV2DynamicMuteRecord extends \Google\Model
     return $this->matchTime;
   }
   /**
-   * @param string
+   * @param string $muteConfig
    */
   public function setMuteConfig($muteConfig)
   {

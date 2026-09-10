@@ -20,60 +20,171 @@ namespace Google\Service\NetworkManagement;
 class NatInfo extends \Google\Model
 {
   /**
+   * Type is unspecified.
+   */
+  public const CLOUD_NAT_GATEWAY_TYPE_CLOUD_NAT_GATEWAY_TYPE_UNSPECIFIED = 'CLOUD_NAT_GATEWAY_TYPE_UNSPECIFIED';
+  /**
+   * Public NAT gateway.
+   */
+  public const CLOUD_NAT_GATEWAY_TYPE_PUBLIC_NAT44 = 'PUBLIC_NAT44';
+  /**
+   * Public NAT64 gateway.
+   */
+  public const CLOUD_NAT_GATEWAY_TYPE_PUBLIC_NAT64 = 'PUBLIC_NAT64';
+  /**
+   * Private NAT gateway for NCC.
+   */
+  public const CLOUD_NAT_GATEWAY_TYPE_PRIVATE_NAT_NCC = 'PRIVATE_NAT_NCC';
+  /**
+   * Private NAT gateway for hybrid connectivity.
+   */
+  public const CLOUD_NAT_GATEWAY_TYPE_PRIVATE_NAT_HYBRID = 'PRIVATE_NAT_HYBRID';
+  /**
+   * Private NAT64 gateway.
+   */
+  public const CLOUD_NAT_GATEWAY_TYPE_PRIVATE_NAT64 = 'PRIVATE_NAT64';
+  /**
+   * Type is unspecified.
+   */
+  public const TYPE_TYPE_UNSPECIFIED = 'TYPE_UNSPECIFIED';
+  /**
+   * From Compute Engine instance's internal address to external address.
+   */
+  public const TYPE_INTERNAL_TO_EXTERNAL = 'INTERNAL_TO_EXTERNAL';
+  /**
+   * From Compute Engine instance's external address to internal address.
+   */
+  public const TYPE_EXTERNAL_TO_INTERNAL = 'EXTERNAL_TO_INTERNAL';
+  /**
+   * Cloud NAT Gateway.
+   */
+  public const TYPE_CLOUD_NAT = 'CLOUD_NAT';
+  /**
+   * Private service connect NAT.
+   */
+  public const TYPE_PRIVATE_SERVICE_CONNECT = 'PRIVATE_SERVICE_CONNECT';
+  /**
+   * GKE Pod IP address masquerading.
+   */
+  public const TYPE_GKE_POD_IP_MASQUERADING = 'GKE_POD_IP_MASQUERADING';
+  /**
+   * Type of Cloud NAT gateway. Only valid when `type` is CLOUD_NAT.
+   *
+   * @var string
+   */
+  public $cloudNatGatewayType;
+  /**
+   * The name of Cloud NAT Gateway. Only valid when type is CLOUD_NAT.
+   *
    * @var string
    */
   public $natGatewayName;
   /**
+   * URI of the VPC network where NAT translation takes place. Format:
+   * `projects/{project_id}/global/networks/{network_id}`
+   *
    * @var string
    */
   public $networkUri;
   /**
+   * Destination IP address after NAT translation.
+   *
    * @var string
    */
   public $newDestinationIp;
   /**
+   * Destination port after NAT translation. Only valid when protocol is TCP or
+   * UDP.
+   *
    * @var int
    */
   public $newDestinationPort;
   /**
+   * Source IP address after NAT translation.
+   *
    * @var string
    */
   public $newSourceIp;
   /**
+   * Source port after NAT translation. Only valid when protocol is TCP or UDP.
+   *
    * @var int
    */
   public $newSourcePort;
   /**
+   * Destination IP address before NAT translation.
+   *
    * @var string
    */
   public $oldDestinationIp;
   /**
+   * Destination port before NAT translation. Only valid when protocol is TCP or
+   * UDP.
+   *
    * @var int
    */
   public $oldDestinationPort;
   /**
+   * Source IP address before NAT translation.
+   *
    * @var string
    */
   public $oldSourceIp;
   /**
+   * Source port before NAT translation. Only valid when protocol is TCP or UDP.
+   *
    * @var int
    */
   public $oldSourcePort;
   /**
+   * IP protocol in string format, for example: "TCP", "UDP", "ICMP".
+   *
    * @var string
    */
   public $protocol;
   /**
+   * URI of the Cloud Router. Only valid when type is CLOUD_NAT. Format:
+   * `projects/{project_id}/regions/{region}/routers/{router_id}`
+   *
    * @var string
    */
   public $routerUri;
   /**
+   * The number of the NAT rule that was matched.
+   *
+   * @var int
+   */
+  public $ruleNumber;
+  /**
+   * Type of NAT.
+   *
    * @var string
    */
   public $type;
 
   /**
-   * @param string
+   * Type of Cloud NAT gateway. Only valid when `type` is CLOUD_NAT.
+   *
+   * Accepted values: CLOUD_NAT_GATEWAY_TYPE_UNSPECIFIED, PUBLIC_NAT44,
+   * PUBLIC_NAT64, PRIVATE_NAT_NCC, PRIVATE_NAT_HYBRID, PRIVATE_NAT64
+   *
+   * @param self::CLOUD_NAT_GATEWAY_TYPE_* $cloudNatGatewayType
+   */
+  public function setCloudNatGatewayType($cloudNatGatewayType)
+  {
+    $this->cloudNatGatewayType = $cloudNatGatewayType;
+  }
+  /**
+   * @return self::CLOUD_NAT_GATEWAY_TYPE_*
+   */
+  public function getCloudNatGatewayType()
+  {
+    return $this->cloudNatGatewayType;
+  }
+  /**
+   * The name of Cloud NAT Gateway. Only valid when type is CLOUD_NAT.
+   *
+   * @param string $natGatewayName
    */
   public function setNatGatewayName($natGatewayName)
   {
@@ -87,7 +198,10 @@ class NatInfo extends \Google\Model
     return $this->natGatewayName;
   }
   /**
-   * @param string
+   * URI of the VPC network where NAT translation takes place. Format:
+   * `projects/{project_id}/global/networks/{network_id}`
+   *
+   * @param string $networkUri
    */
   public function setNetworkUri($networkUri)
   {
@@ -101,7 +215,9 @@ class NatInfo extends \Google\Model
     return $this->networkUri;
   }
   /**
-   * @param string
+   * Destination IP address after NAT translation.
+   *
+   * @param string $newDestinationIp
    */
   public function setNewDestinationIp($newDestinationIp)
   {
@@ -115,7 +231,10 @@ class NatInfo extends \Google\Model
     return $this->newDestinationIp;
   }
   /**
-   * @param int
+   * Destination port after NAT translation. Only valid when protocol is TCP or
+   * UDP.
+   *
+   * @param int $newDestinationPort
    */
   public function setNewDestinationPort($newDestinationPort)
   {
@@ -129,7 +248,9 @@ class NatInfo extends \Google\Model
     return $this->newDestinationPort;
   }
   /**
-   * @param string
+   * Source IP address after NAT translation.
+   *
+   * @param string $newSourceIp
    */
   public function setNewSourceIp($newSourceIp)
   {
@@ -143,7 +264,9 @@ class NatInfo extends \Google\Model
     return $this->newSourceIp;
   }
   /**
-   * @param int
+   * Source port after NAT translation. Only valid when protocol is TCP or UDP.
+   *
+   * @param int $newSourcePort
    */
   public function setNewSourcePort($newSourcePort)
   {
@@ -157,7 +280,9 @@ class NatInfo extends \Google\Model
     return $this->newSourcePort;
   }
   /**
-   * @param string
+   * Destination IP address before NAT translation.
+   *
+   * @param string $oldDestinationIp
    */
   public function setOldDestinationIp($oldDestinationIp)
   {
@@ -171,7 +296,10 @@ class NatInfo extends \Google\Model
     return $this->oldDestinationIp;
   }
   /**
-   * @param int
+   * Destination port before NAT translation. Only valid when protocol is TCP or
+   * UDP.
+   *
+   * @param int $oldDestinationPort
    */
   public function setOldDestinationPort($oldDestinationPort)
   {
@@ -185,7 +313,9 @@ class NatInfo extends \Google\Model
     return $this->oldDestinationPort;
   }
   /**
-   * @param string
+   * Source IP address before NAT translation.
+   *
+   * @param string $oldSourceIp
    */
   public function setOldSourceIp($oldSourceIp)
   {
@@ -199,7 +329,9 @@ class NatInfo extends \Google\Model
     return $this->oldSourceIp;
   }
   /**
-   * @param int
+   * Source port before NAT translation. Only valid when protocol is TCP or UDP.
+   *
+   * @param int $oldSourcePort
    */
   public function setOldSourcePort($oldSourcePort)
   {
@@ -213,7 +345,9 @@ class NatInfo extends \Google\Model
     return $this->oldSourcePort;
   }
   /**
-   * @param string
+   * IP protocol in string format, for example: "TCP", "UDP", "ICMP".
+   *
+   * @param string $protocol
    */
   public function setProtocol($protocol)
   {
@@ -227,7 +361,10 @@ class NatInfo extends \Google\Model
     return $this->protocol;
   }
   /**
-   * @param string
+   * URI of the Cloud Router. Only valid when type is CLOUD_NAT. Format:
+   * `projects/{project_id}/regions/{region}/routers/{router_id}`
+   *
+   * @param string $routerUri
    */
   public function setRouterUri($routerUri)
   {
@@ -241,14 +378,36 @@ class NatInfo extends \Google\Model
     return $this->routerUri;
   }
   /**
-   * @param string
+   * The number of the NAT rule that was matched.
+   *
+   * @param int $ruleNumber
+   */
+  public function setRuleNumber($ruleNumber)
+  {
+    $this->ruleNumber = $ruleNumber;
+  }
+  /**
+   * @return int
+   */
+  public function getRuleNumber()
+  {
+    return $this->ruleNumber;
+  }
+  /**
+   * Type of NAT.
+   *
+   * Accepted values: TYPE_UNSPECIFIED, INTERNAL_TO_EXTERNAL,
+   * EXTERNAL_TO_INTERNAL, CLOUD_NAT, PRIVATE_SERVICE_CONNECT,
+   * GKE_POD_IP_MASQUERADING
+   *
+   * @param self::TYPE_* $type
    */
   public function setType($type)
   {
     $this->type = $type;
   }
   /**
-   * @return string
+   * @return self::TYPE_*
    */
   public function getType()
   {

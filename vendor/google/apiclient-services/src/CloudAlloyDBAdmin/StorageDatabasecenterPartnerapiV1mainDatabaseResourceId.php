@@ -20,38 +20,81 @@ namespace Google\Service\CloudAlloyDBAdmin;
 class StorageDatabasecenterPartnerapiV1mainDatabaseResourceId extends \Google\Model
 {
   /**
+   * Disable validation warnings
+   */
+  public const PROVIDER_PROVIDER_UNSPECIFIED = 'PROVIDER_UNSPECIFIED';
+  /**
+   * Disable validation warnings
+   */
+  public const PROVIDER_GCP = 'GCP';
+  /**
+   * Disable validation warnings
+   */
+  public const PROVIDER_AWS = 'AWS';
+  /**
+   * Disable validation warnings
+   */
+  public const PROVIDER_AZURE = 'AZURE';
+  /**
+   * Disable validation warnings
+   */
+  public const PROVIDER_ONPREM = 'ONPREM';
+  /**
+   * Disable validation warnings
+   */
+  public const PROVIDER_SELFMANAGED = 'SELFMANAGED';
+  /**
+   * Disable validation warnings
+   */
+  public const PROVIDER_PROVIDER_OTHER = 'PROVIDER_OTHER';
+  /**
+   * Required. Disable validation warnings
+   *
    * @var string
    */
   public $provider;
   /**
+   * Optional. Disable validation warnings
+   *
    * @var string
    */
   public $providerDescription;
   /**
+   * Required. Disable validation warnings
+   *
    * @var string
    */
   public $resourceType;
   /**
+   * Required. Disable validation warnings
+   *
    * @var string
    */
   public $uniqueId;
 
   /**
-   * @param string
+   * Required. Disable validation warnings
+   *
+   * Accepted values: PROVIDER_UNSPECIFIED, GCP, AWS, AZURE, ONPREM,
+   * SELFMANAGED, PROVIDER_OTHER
+   *
+   * @param self::PROVIDER_* $provider
    */
   public function setProvider($provider)
   {
     $this->provider = $provider;
   }
   /**
-   * @return string
+   * @return self::PROVIDER_*
    */
   public function getProvider()
   {
     return $this->provider;
   }
   /**
-   * @param string
+   * Optional. Disable validation warnings
+   *
+   * @param string $providerDescription
    */
   public function setProviderDescription($providerDescription)
   {
@@ -65,7 +108,9 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceId extends \Google\Mo
     return $this->providerDescription;
   }
   /**
-   * @param string
+   * Required. Disable validation warnings
+   *
+   * @param string $resourceType
    */
   public function setResourceType($resourceType)
   {
@@ -79,7 +124,9 @@ class StorageDatabasecenterPartnerapiV1mainDatabaseResourceId extends \Google\Mo
     return $this->resourceType;
   }
   /**
-   * @param string
+   * Required. Disable validation warnings
+   *
+   * @param string $uniqueId
    */
   public function setUniqueId($uniqueId)
   {

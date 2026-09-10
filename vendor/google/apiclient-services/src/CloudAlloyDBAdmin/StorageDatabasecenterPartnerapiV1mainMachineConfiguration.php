@@ -20,27 +20,71 @@ namespace Google\Service\CloudAlloyDBAdmin;
 class StorageDatabasecenterPartnerapiV1mainMachineConfiguration extends \Google\Model
 {
   /**
+   * Optional. Disable validation warnings
+   *
+   * @var string
+   */
+  public $baselineSlots;
+  /**
+   * Disable validation warnings
+   *
+   * @deprecated
    * @var int
    */
   public $cpuCount;
   /**
+   * Optional. Disable validation warnings
+   *
+   * @var string
+   */
+  public $maxReservationSlots;
+  /**
+   * Disable validation warnings
+   *
    * @var string
    */
   public $memorySizeInBytes;
   /**
+   * Optional. Disable validation warnings
+   *
    * @var int
    */
   public $shardCount;
+  /**
+   * Optional. Disable validation warnings
+   *
+   * @var 
+   */
   public $vcpuCount;
 
   /**
-   * @param int
+   * Optional. Disable validation warnings
+   *
+   * @param string $baselineSlots
+   */
+  public function setBaselineSlots($baselineSlots)
+  {
+    $this->baselineSlots = $baselineSlots;
+  }
+  /**
+   * @return string
+   */
+  public function getBaselineSlots()
+  {
+    return $this->baselineSlots;
+  }
+  /**
+   * Disable validation warnings
+   *
+   * @deprecated
+   * @param int $cpuCount
    */
   public function setCpuCount($cpuCount)
   {
     $this->cpuCount = $cpuCount;
   }
   /**
+   * @deprecated
    * @return int
    */
   public function getCpuCount()
@@ -48,7 +92,25 @@ class StorageDatabasecenterPartnerapiV1mainMachineConfiguration extends \Google\
     return $this->cpuCount;
   }
   /**
-   * @param string
+   * Optional. Disable validation warnings
+   *
+   * @param string $maxReservationSlots
+   */
+  public function setMaxReservationSlots($maxReservationSlots)
+  {
+    $this->maxReservationSlots = $maxReservationSlots;
+  }
+  /**
+   * @return string
+   */
+  public function getMaxReservationSlots()
+  {
+    return $this->maxReservationSlots;
+  }
+  /**
+   * Disable validation warnings
+   *
+   * @param string $memorySizeInBytes
    */
   public function setMemorySizeInBytes($memorySizeInBytes)
   {
@@ -62,7 +124,9 @@ class StorageDatabasecenterPartnerapiV1mainMachineConfiguration extends \Google\
     return $this->memorySizeInBytes;
   }
   /**
-   * @param int
+   * Optional. Disable validation warnings
+   *
+   * @param int $shardCount
    */
   public function setShardCount($shardCount)
   {

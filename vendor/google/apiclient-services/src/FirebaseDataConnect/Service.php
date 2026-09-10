@@ -17,47 +17,82 @@
 
 namespace Google\Service\FirebaseDataConnect;
 
-class Service extends \Google\Model
+class Service extends \Google\Collection
 {
+  protected $collection_key = 'schemas';
   /**
+   * Optional. Stores small amounts of arbitrary data.
+   *
    * @var string[]
    */
   public $annotations;
+  protected $connectorsType = Connector::class;
+  protected $connectorsDataType = 'array';
   /**
+   * Output only. [Output only] Create time stamp.
+   *
    * @var string
    */
   public $createTime;
   /**
+   * Optional. Mutable human-readable name. 63 character limit.
+   *
    * @var string
    */
   public $displayName;
   /**
+   * Output only. This checksum is computed by the server based on the value of
+   * other fields, and may be sent on update and delete requests to ensure the
+   * client has an up-to-date value before proceeding.
+   * [AIP-154](https://google.aip.dev/154)
+   *
    * @var string
    */
   public $etag;
   /**
+   * Optional. Labels as key value pairs.
+   *
    * @var string[]
    */
   public $labels;
   /**
+   * Identifier. The relative resource name of the Firebase SQL Connect service,
+   * in the format: ```
+   * projects/{project}/locations/{location}/services/{service} ``` Note that
+   * the service ID is specific to Firebase SQL Connect and does not correspond
+   * to any of the instance IDs of the underlying data source connections.
+   *
    * @var string
    */
   public $name;
   /**
+   * Output only. A field that if true, indicates that the system is working
+   * update the service.
+   *
    * @var bool
    */
   public $reconciling;
+  protected $schemasType = Schema::class;
+  protected $schemasDataType = 'array';
+  protected $sourceType = Source::class;
+  protected $sourceDataType = '';
   /**
+   * Output only. System-assigned, unique identifier.
+   *
    * @var string
    */
   public $uid;
   /**
+   * Output only. [Output only] Update time stamp.
+   *
    * @var string
    */
   public $updateTime;
 
   /**
-   * @param string[]
+   * Optional. Stores small amounts of arbitrary data.
+   *
+   * @param string[] $annotations
    */
   public function setAnnotations($annotations)
   {
@@ -71,7 +106,25 @@ class Service extends \Google\Model
     return $this->annotations;
   }
   /**
-   * @param string
+   * Output only. The list of connectors in this service.
+   *
+   * @param Connector[] $connectors
+   */
+  public function setConnectors($connectors)
+  {
+    $this->connectors = $connectors;
+  }
+  /**
+   * @return Connector[]
+   */
+  public function getConnectors()
+  {
+    return $this->connectors;
+  }
+  /**
+   * Output only. [Output only] Create time stamp.
+   *
+   * @param string $createTime
    */
   public function setCreateTime($createTime)
   {
@@ -85,7 +138,9 @@ class Service extends \Google\Model
     return $this->createTime;
   }
   /**
-   * @param string
+   * Optional. Mutable human-readable name. 63 character limit.
+   *
+   * @param string $displayName
    */
   public function setDisplayName($displayName)
   {
@@ -99,7 +154,12 @@ class Service extends \Google\Model
     return $this->displayName;
   }
   /**
-   * @param string
+   * Output only. This checksum is computed by the server based on the value of
+   * other fields, and may be sent on update and delete requests to ensure the
+   * client has an up-to-date value before proceeding.
+   * [AIP-154](https://google.aip.dev/154)
+   *
+   * @param string $etag
    */
   public function setEtag($etag)
   {
@@ -113,7 +173,9 @@ class Service extends \Google\Model
     return $this->etag;
   }
   /**
-   * @param string[]
+   * Optional. Labels as key value pairs.
+   *
+   * @param string[] $labels
    */
   public function setLabels($labels)
   {
@@ -127,7 +189,13 @@ class Service extends \Google\Model
     return $this->labels;
   }
   /**
-   * @param string
+   * Identifier. The relative resource name of the Firebase SQL Connect service,
+   * in the format: ```
+   * projects/{project}/locations/{location}/services/{service} ``` Note that
+   * the service ID is specific to Firebase SQL Connect and does not correspond
+   * to any of the instance IDs of the underlying data source connections.
+   *
+   * @param string $name
    */
   public function setName($name)
   {
@@ -141,7 +209,10 @@ class Service extends \Google\Model
     return $this->name;
   }
   /**
-   * @param bool
+   * Output only. A field that if true, indicates that the system is working
+   * update the service.
+   *
+   * @param bool $reconciling
    */
   public function setReconciling($reconciling)
   {
@@ -155,7 +226,42 @@ class Service extends \Google\Model
     return $this->reconciling;
   }
   /**
-   * @param string
+   * Output only. The list of schemas in this service.
+   *
+   * @param Schema[] $schemas
+   */
+  public function setSchemas($schemas)
+  {
+    $this->schemas = $schemas;
+  }
+  /**
+   * @return Schema[]
+   */
+  public function getSchemas()
+  {
+    return $this->schemas;
+  }
+  /**
+   * Optional. Input only. The source files for service, schemas, and
+   * connectors.
+   *
+   * @param Source $source
+   */
+  public function setSource(Source $source)
+  {
+    $this->source = $source;
+  }
+  /**
+   * @return Source
+   */
+  public function getSource()
+  {
+    return $this->source;
+  }
+  /**
+   * Output only. System-assigned, unique identifier.
+   *
+   * @param string $uid
    */
   public function setUid($uid)
   {
@@ -169,7 +275,9 @@ class Service extends \Google\Model
     return $this->uid;
   }
   /**
-   * @param string
+   * Output only. [Output only] Update time stamp.
+   *
+   * @param string $updateTime
    */
   public function setUpdateTime($updateTime)
   {

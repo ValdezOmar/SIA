@@ -38,6 +38,10 @@ class ProjectsLocationsGiVersions extends \Google\Service\Resource
    * projects/{project}/locations/{location}.
    * @param array $optParams Optional parameters.
    *
+   * @opt_param string filter Optional. An expression for filtering the results of
+   * the request. Only the `shape` and `gcp_oracle_zone_id` fields are supported
+   * in the following format: `shape="{shape}" AND
+   * gcp_oracle_zone_id="{gcp_oracle_zone_id}"`.
    * @opt_param int pageSize Optional. The maximum number of items to return. If
    * unspecified, a maximum of 50 Oracle Grid Infrastructure (GI) versions will be
    * returned. The maximum value is 1000; values above 1000 will be reset to 1000.

@@ -81,6 +81,10 @@ class DatabaseMigrationService extends \Google\Service
                   'type' => 'string',
                   'required' => true,
                 ],
+                'fetchReservedPublicIps' => [
+                  'location' => 'query',
+                  'type' => 'boolean',
+                ],
                 'pageSize' => [
                   'location' => 'query',
                   'type' => 'integer',
@@ -108,6 +112,11 @@ class DatabaseMigrationService extends \Google\Service
                   'location' => 'path',
                   'type' => 'string',
                   'required' => true,
+                ],
+                'extraLocationTypes' => [
+                  'location' => 'query',
+                  'type' => 'string',
+                  'repeated' => true,
                 ],
                 'filter' => [
                   'location' => 'query',
@@ -983,6 +992,10 @@ class DatabaseMigrationService extends \Google\Service
                   'location' => 'query',
                   'type' => 'string',
                 ],
+                'returnPartialSuccess' => [
+                  'location' => 'query',
+                  'type' => 'boolean',
+                ],
               ],
             ],
           ]
@@ -1012,6 +1025,10 @@ class DatabaseMigrationService extends \Google\Service
                   'type' => 'string',
                 ],
                 'skipValidation' => [
+                  'location' => 'query',
+                  'type' => 'boolean',
+                ],
+                'validateOnly' => [
                   'location' => 'query',
                   'type' => 'boolean',
                 ],

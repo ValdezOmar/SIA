@@ -25,7 +25,7 @@ class GoogleCloudSecuritycenterV2IssueFindingSecurityBulletin extends \Google\Mo
   public $name;
 
   /**
-   * @param string
+   * @param string $name
    */
   public function setName($name)
   {

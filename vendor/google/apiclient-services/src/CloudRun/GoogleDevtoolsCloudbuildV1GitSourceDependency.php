@@ -20,26 +20,47 @@ namespace Google\Service\CloudRun;
 class GoogleDevtoolsCloudbuildV1GitSourceDependency extends \Google\Model
 {
   /**
+   * Optional. How much history should be fetched for the build (default 1, -1
+   * for all history).
+   *
    * @var string
    */
   public $depth;
   /**
+   * Required. Where should the files be placed on the worker.
+   *
    * @var string
    */
   public $destPath;
   /**
+   * Optional. True if remote tags should be fetched too (default false). Note:
+   * when depth is 1 (default), git fetch only retrieves tags pointing to
+   * commits within the shallow boundary. Set depth to -1 to fetch all
+   * historical tags.
+   *
+   * @var bool
+   */
+  public $fetchTags;
+  /**
+   * Optional. True if submodules should be fetched too (default false).
+   *
    * @var bool
    */
   public $recurseSubmodules;
   protected $repositoryType = GoogleDevtoolsCloudbuildV1GitSourceRepository::class;
   protected $repositoryDataType = '';
   /**
+   * Required. The revision that we will fetch the repo at.
+   *
    * @var string
    */
   public $revision;
 
   /**
-   * @param string
+   * Optional. How much history should be fetched for the build (default 1, -1
+   * for all history).
+   *
+   * @param string $depth
    */
   public function setDepth($depth)
   {
@@ -53,7 +74,9 @@ class GoogleDevtoolsCloudbuildV1GitSourceDependency extends \Google\Model
     return $this->depth;
   }
   /**
-   * @param string
+   * Required. Where should the files be placed on the worker.
+   *
+   * @param string $destPath
    */
   public function setDestPath($destPath)
   {
@@ -67,7 +90,28 @@ class GoogleDevtoolsCloudbuildV1GitSourceDependency extends \Google\Model
     return $this->destPath;
   }
   /**
-   * @param bool
+   * Optional. True if remote tags should be fetched too (default false). Note:
+   * when depth is 1 (default), git fetch only retrieves tags pointing to
+   * commits within the shallow boundary. Set depth to -1 to fetch all
+   * historical tags.
+   *
+   * @param bool $fetchTags
+   */
+  public function setFetchTags($fetchTags)
+  {
+    $this->fetchTags = $fetchTags;
+  }
+  /**
+   * @return bool
+   */
+  public function getFetchTags()
+  {
+    return $this->fetchTags;
+  }
+  /**
+   * Optional. True if submodules should be fetched too (default false).
+   *
+   * @param bool $recurseSubmodules
    */
   public function setRecurseSubmodules($recurseSubmodules)
   {
@@ -81,7 +125,9 @@ class GoogleDevtoolsCloudbuildV1GitSourceDependency extends \Google\Model
     return $this->recurseSubmodules;
   }
   /**
-   * @param GoogleDevtoolsCloudbuildV1GitSourceRepository
+   * Required. The kind of repo (url or dev connect).
+   *
+   * @param GoogleDevtoolsCloudbuildV1GitSourceRepository $repository
    */
   public function setRepository(GoogleDevtoolsCloudbuildV1GitSourceRepository $repository)
   {
@@ -95,7 +141,9 @@ class GoogleDevtoolsCloudbuildV1GitSourceDependency extends \Google\Model
     return $this->repository;
   }
   /**
-   * @param string
+   * Required. The revision that we will fetch the repo at.
+   *
+   * @param string $revision
    */
   public function setRevision($revision)
   {

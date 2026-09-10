@@ -29,7 +29,7 @@ class GoogleCloudSecuritycenterV2PortRange extends \Google\Model
   public $min;
 
   /**
-   * @param string
+   * @param string $max
    */
   public function setMax($max)
   {
@@ -43,7 +43,7 @@ class GoogleCloudSecuritycenterV2PortRange extends \Google\Model
     return $this->max;
   }
   /**
-   * @param string
+   * @param string $min
    */
   public function setMin($min)
   {

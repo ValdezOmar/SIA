@@ -20,12 +20,18 @@ namespace Google\Service\NetworkManagement;
 class ServerlessNegInfo extends \Google\Model
 {
   /**
+   * URI of the serverless network endpoint group in format "projects/{project}/
+   * regions/{region}/networkEndpointGroups/{network_endpoint_group}".
+   *
    * @var string
    */
   public $negUri;
 
   /**
-   * @param string
+   * URI of the serverless network endpoint group in format "projects/{project}/
+   * regions/{region}/networkEndpointGroups/{network_endpoint_group}".
+   *
+   * @param string $negUri
    */
   public function setNegUri($negUri)
   {

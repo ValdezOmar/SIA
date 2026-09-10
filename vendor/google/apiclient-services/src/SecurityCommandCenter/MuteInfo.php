@@ -26,7 +26,7 @@ class MuteInfo extends \Google\Collection
   protected $staticMuteDataType = '';
 
   /**
-   * @param DynamicMuteRecord[]
+   * @param DynamicMuteRecord[] $dynamicMuteRecords
    */
   public function setDynamicMuteRecords($dynamicMuteRecords)
   {
@@ -40,7 +40,7 @@ class MuteInfo extends \Google\Collection
     return $this->dynamicMuteRecords;
   }
   /**
-   * @param StaticMute
+   * @param StaticMute $staticMute
    */
   public function setStaticMute(StaticMute $staticMute)
   {

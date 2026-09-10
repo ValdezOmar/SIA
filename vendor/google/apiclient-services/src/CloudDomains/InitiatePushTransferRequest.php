@@ -20,12 +20,25 @@ namespace Google\Service\CloudDomains;
 class InitiatePushTransferRequest extends \Google\Model
 {
   /**
+   * Required. The Tag of the new registrar. Can be found at [List of
+   * registrars](https://nominet.uk/registrar-list/).
+   *
    * @var string
    */
   public $tag;
+  /**
+   * Optional. If set, validates the request without actually initiating the
+   * transfer.
+   *
+   * @var bool
+   */
+  public $validateOnly;
 
   /**
-   * @param string
+   * Required. The Tag of the new registrar. Can be found at [List of
+   * registrars](https://nominet.uk/registrar-list/).
+   *
+   * @param string $tag
    */
   public function setTag($tag)
   {
@@ -37,6 +50,23 @@ class InitiatePushTransferRequest extends \Google\Model
   public function getTag()
   {
     return $this->tag;
+  }
+  /**
+   * Optional. If set, validates the request without actually initiating the
+   * transfer.
+   *
+   * @param bool $validateOnly
+   */
+  public function setValidateOnly($validateOnly)
+  {
+    $this->validateOnly = $validateOnly;
+  }
+  /**
+   * @return bool
+   */
+  public function getValidateOnly()
+  {
+    return $this->validateOnly;
   }
 }
 

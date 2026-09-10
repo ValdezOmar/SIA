@@ -29,7 +29,7 @@ class GoogleCloudSecuritycenterV2IssueSecurityContextAggregatedCount extends \Go
   public $value;
 
   /**
-   * @param string
+   * @param string $key
    */
   public function setKey($key)
   {
@@ -43,7 +43,7 @@ class GoogleCloudSecuritycenterV2IssueSecurityContextAggregatedCount extends \Go
     return $this->key;
   }
   /**
-   * @param int
+   * @param int $value
    */
   public function setValue($value)
   {

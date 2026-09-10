@@ -18,6 +18,7 @@
 namespace Google\Service\OracleDatabase\Resource;
 
 use Google\Service\OracleDatabase\CloudExadataInfrastructure;
+use Google\Service\OracleDatabase\ConfigureExascaleCloudExadataInfrastructureRequest;
 use Google\Service\OracleDatabase\ListCloudExadataInfrastructuresResponse;
 use Google\Service\OracleDatabase\Operation;
 
@@ -31,6 +32,24 @@ use Google\Service\OracleDatabase\Operation;
  */
 class ProjectsLocationsCloudExadataInfrastructures extends \Google\Service\Resource
 {
+  /**
+   * Configures Exascale for a single Exadata Infrastructure.
+   * (cloudExadataInfrastructures.configureExascale)
+   *
+   * @param string $name Required. The name of the Cloud Exadata Infrastructure in
+   * the following format: projects/{project}/locations/{location}/cloudExadataInf
+   * rastructures/{cloud_exadata_infrastructure}.
+   * @param ConfigureExascaleCloudExadataInfrastructureRequest $postBody
+   * @param array $optParams Optional parameters.
+   * @return Operation
+   * @throws \Google\Service\Exception
+   */
+  public function configureExascale($name, ConfigureExascaleCloudExadataInfrastructureRequest $postBody, $optParams = [])
+  {
+    $params = ['name' => $name, 'postBody' => $postBody];
+    $params = array_merge($params, $optParams);
+    return $this->call('configureExascale', [$params], Operation::class);
+  }
   /**
    * Creates a new Exadata Infrastructure in a given project and location.
    * (cloudExadataInfrastructures.create)
@@ -114,6 +133,10 @@ class ProjectsLocationsCloudExadataInfrastructures extends \Google\Service\Resou
    * projects/{project}/locations/{location}.
    * @param array $optParams Optional parameters.
    *
+   * @opt_param string filter Optional. An expression for filtering the results of
+   * the request.
+   * @opt_param string orderBy Optional. An expression for ordering the results of
+   * the request.
    * @opt_param int pageSize Optional. The maximum number of items to return. If
    * unspecified, at most 50 Exadata infrastructures will be returned. The maximum
    * value is 1000; values above 1000 will be coerced to 1000.

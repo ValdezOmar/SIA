@@ -19,6 +19,17 @@ namespace Google\Service\SecurityCommandCenter;
 
 class GoogleCloudSecuritycenterV2Cve extends \Google\Collection
 {
+  public const EXPLOITATION_ACTIVITY_EXPLOITATION_ACTIVITY_UNSPECIFIED = 'EXPLOITATION_ACTIVITY_UNSPECIFIED';
+  public const EXPLOITATION_ACTIVITY_WIDE = 'WIDE';
+  public const EXPLOITATION_ACTIVITY_CONFIRMED = 'CONFIRMED';
+  public const EXPLOITATION_ACTIVITY_AVAILABLE = 'AVAILABLE';
+  public const EXPLOITATION_ACTIVITY_ANTICIPATED = 'ANTICIPATED';
+  public const EXPLOITATION_ACTIVITY_NO_KNOWN = 'NO_KNOWN';
+  public const IMPACT_RISK_RATING_UNSPECIFIED = 'RISK_RATING_UNSPECIFIED';
+  public const IMPACT_LOW = 'LOW';
+  public const IMPACT_MEDIUM = 'MEDIUM';
+  public const IMPACT_HIGH = 'HIGH';
+  public const IMPACT_CRITICAL = 'CRITICAL';
   protected $collection_key = 'references';
   protected $cvssv3Type = GoogleCloudSecuritycenterV2Cvssv3::class;
   protected $cvssv3DataType = '';
@@ -58,7 +69,7 @@ class GoogleCloudSecuritycenterV2Cve extends \Google\Collection
   public $zeroDay;
 
   /**
-   * @param GoogleCloudSecuritycenterV2Cvssv3
+   * @param GoogleCloudSecuritycenterV2Cvssv3 $cvssv3
    */
   public function setCvssv3(GoogleCloudSecuritycenterV2Cvssv3 $cvssv3)
   {
@@ -72,7 +83,7 @@ class GoogleCloudSecuritycenterV2Cve extends \Google\Collection
     return $this->cvssv3;
   }
   /**
-   * @param string
+   * @param string $exploitReleaseDate
    */
   public function setExploitReleaseDate($exploitReleaseDate)
   {
@@ -86,21 +97,21 @@ class GoogleCloudSecuritycenterV2Cve extends \Google\Collection
     return $this->exploitReleaseDate;
   }
   /**
-   * @param string
+   * @param self::EXPLOITATION_ACTIVITY_* $exploitationActivity
    */
   public function setExploitationActivity($exploitationActivity)
   {
     $this->exploitationActivity = $exploitationActivity;
   }
   /**
-   * @return string
+   * @return self::EXPLOITATION_ACTIVITY_*
    */
   public function getExploitationActivity()
   {
     return $this->exploitationActivity;
   }
   /**
-   * @param string
+   * @param string $firstExploitationDate
    */
   public function setFirstExploitationDate($firstExploitationDate)
   {
@@ -114,7 +125,7 @@ class GoogleCloudSecuritycenterV2Cve extends \Google\Collection
     return $this->firstExploitationDate;
   }
   /**
-   * @param string
+   * @param string $id
    */
   public function setId($id)
   {
@@ -128,21 +139,21 @@ class GoogleCloudSecuritycenterV2Cve extends \Google\Collection
     return $this->id;
   }
   /**
-   * @param string
+   * @param self::IMPACT_* $impact
    */
   public function setImpact($impact)
   {
     $this->impact = $impact;
   }
   /**
-   * @return string
+   * @return self::IMPACT_*
    */
   public function getImpact()
   {
     return $this->impact;
   }
   /**
-   * @param bool
+   * @param bool $observedInTheWild
    */
   public function setObservedInTheWild($observedInTheWild)
   {
@@ -156,7 +167,7 @@ class GoogleCloudSecuritycenterV2Cve extends \Google\Collection
     return $this->observedInTheWild;
   }
   /**
-   * @param GoogleCloudSecuritycenterV2Reference[]
+   * @param GoogleCloudSecuritycenterV2Reference[] $references
    */
   public function setReferences($references)
   {
@@ -170,7 +181,7 @@ class GoogleCloudSecuritycenterV2Cve extends \Google\Collection
     return $this->references;
   }
   /**
-   * @param bool
+   * @param bool $upstreamFixAvailable
    */
   public function setUpstreamFixAvailable($upstreamFixAvailable)
   {
@@ -184,7 +195,7 @@ class GoogleCloudSecuritycenterV2Cve extends \Google\Collection
     return $this->upstreamFixAvailable;
   }
   /**
-   * @param bool
+   * @param bool $zeroDay
    */
   public function setZeroDay($zeroDay)
   {
