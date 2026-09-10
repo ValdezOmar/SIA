@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Compras\Recepcion;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
@@ -107,7 +108,7 @@ class VentaServiciosTest extends TestCase
         $proveedor = DB::table('cmp_proveedores')->insertGetId(['codigo' => 'PROV', 'nombre' => 'Proveedor', 'empresa_id' => $this->factura->empresa_id]);
         $orden = DB::table('cmp_ordenes_compra')->insertGetId(['codigo' => 'OC-SRV', 'proveedor_id' => $proveedor, 'fecha_orden' => today(), 'empresa_id' => $this->factura->empresa_id]);
         $detalle = DB::table('cmp_ordenes_compra_detalle')->insertGetId(['orden_id' => $orden, 'articulo_id' => $this->servicio->id, 'linea' => 1, 'codigo_articulo' => 'SRV', 'descripcion_articulo' => 'Instalación', 'cantidad' => 1, 'precio_unitario' => 100, 'subtotal' => 100, 'total' => 100]);
-        $recepcion = \App\Models\Compras\Recepcion::create(['codigo' => 'REC-SRV', 'orden_compra_id' => $orden, 'proveedor_id' => $proveedor, 'fecha_recepcion' => today(), 'empresa_id' => $this->factura->empresa_id]);
+        $recepcion = Recepcion::create(['codigo' => 'REC-SRV', 'orden_compra_id' => $orden, 'proveedor_id' => $proveedor, 'fecha_recepcion' => today(), 'empresa_id' => $this->factura->empresa_id]);
         $recepcion->detalles()->create(['orden_detalle_id' => $detalle, 'articulo_id' => $this->servicio->id, 'codigo_articulo' => 'SRV', 'descripcion_articulo' => 'Instalación', 'cantidad' => 1, 'cantidad_aceptada' => 1, 'costo_unitario' => 100]);
         $recepcion->procesarEntradaInventario();
         $this->assertNotNull($recepcion->fresh()->inventario_procesado_at);

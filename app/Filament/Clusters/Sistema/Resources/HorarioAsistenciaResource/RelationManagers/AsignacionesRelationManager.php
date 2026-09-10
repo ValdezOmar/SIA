@@ -2,6 +2,15 @@
 
 namespace App\Filament\Clusters\Sistema\Resources\HorarioAsistenciaResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use App\Models\RRHH\AsignacionHorarioAsistencia;
 use App\Models\RRHH\Empleado;
 use Filament\Forms;
@@ -16,10 +25,10 @@ class AsignacionesRelationManager extends RelationManager
 
     protected static ?string $title = 'Asignaciones a empleados';
 
-    public function form(Forms\Form $form): Forms\Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Select::make('empleado_id')
+        return $schema->components([
+            Select::make('empleado_id')
                 ->label('Empleado')
                 ->options(fn (): array => Empleado::query()
                     ->orderBy('nombres')
@@ -31,10 +40,10 @@ class AsignacionesRelationManager extends RelationManager
                 ->preload()
                 ->helperText('Seleccione a quién aplicará este horario.')
                 ->required(),
-            Forms\Components\DatePicker::make('fecha_inicio')->label('Vigente desde')->default(today())->helperText('Fecha de inicio del turno.')->required(),
-            Forms\Components\DatePicker::make('fecha_fin')->label('Vigente hasta')->afterOrEqual('fecha_inicio')->helperText('Déjelo vacío si no tiene fecha de finalización.'),
-            Forms\Components\Toggle::make('activo')->label('Activa')->helperText('Solo las asignaciones activas se aplican al control de asistencia.')->default(true),
-        ])->columns(2);
+            DatePicker::make('fecha_inicio')->label('Vigente desde')->default(today())->helperText('Fecha de inicio del turno.')->required(),
+            DatePicker::make('fecha_fin')->label('Vigente hasta')->afterOrEqual('fecha_inicio')->helperText('Déjelo vacío si no tiene fecha de finalización.'),
+            Toggle::make('activo')->label('Activa')->helperText('Solo las asignaciones activas se aplican al control de asistencia.')->default(true),
+        ])->columns(['default' => 1, 'lg' => 2]);
     }
 
     public function table(Table $table): Table
@@ -42,27 +51,29 @@ class AsignacionesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('empleado_id')
             ->columns([
-                Tables\Columns\TextColumn::make('empleado.full_name')->label('Empleado')->searchable(['nombres', 'apellidos', 'ci']),
-                Tables\Columns\TextColumn::make('fecha_inicio')->label('Desde')->date('d/m/Y')->sortable(),
-                Tables\Columns\TextColumn::make('fecha_fin')->label('Hasta')->date('d/m/Y')->placeholder('Indefinido'),
-                Tables\Columns\IconColumn::make('activo')->label('Activa')->boolean(),
+                TextColumn::make('empleado.full_name')->label('Empleado')->searchable(['nombres', 'apellidos', 'ci']),
+                TextColumn::make('fecha_inicio')->label('Desde')->date('d/m/Y')->sortable(),
+                TextColumn::make('fecha_fin')->label('Hasta')->date('d/m/Y')->placeholder('Indefinido'),
+                IconColumn::make('activo')->label('Activa')->boolean(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Asignar empleado')
                     ->tooltip('Aplicar este horario a un empleado')
+                    ->modalHeading('Asignar horario a empleado')
+                    ->modalWidth('3xl')
                     ->before(function (array $data): void {
                         $this->validarSolapamiento($data);
                     }),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()
+            ->recordActions([
+                EditAction::make()
                     ->label('Editar')
                     ->tooltip('Modificar la vigencia de esta asignación')
                     ->before(function (array $data, AsignacionHorarioAsistencia $record): void {
                         $this->validarSolapamiento($data, $record);
                     }),
-                Tables\Actions\DeleteAction::make(),
+                DeleteAction::make(),
             ])
             ->emptyStateHeading('Sin empleados asignados')
             ->emptyStateDescription('Asigne este horario a los empleados que corresponda.');

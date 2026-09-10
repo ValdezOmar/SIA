@@ -3,8 +3,8 @@
 namespace pxlrbt\FilamentExcel;
 
 use Closure;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
-use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -63,7 +63,13 @@ class FilamentExport
 
     public function sendNotification(): void
     {
-        $exports = cache()->pull(static::getNotificationCacheKey(Filament::auth()->id()));
+        $key = static::getNotificationCacheKey(Filament::auth()->id());
+
+        if (! cache()->has($key)) {
+            return;
+        }
+
+        $exports = cache()->pull($key);
 
         if (! filled($exports)) {
             return;

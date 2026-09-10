@@ -2,14 +2,17 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Kardex;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -33,10 +36,10 @@ class ExistenciasRelationManager extends RelationManager
         return 'Bs '.number_format($monto ?? 0, 2);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Gestión de Existencias')
                     ->schema([
                         Grid::make(3)
@@ -270,22 +273,22 @@ class ExistenciasRelationManager extends RelationManager
                     ->label('Stock excedido')
                     ->query(fn ($query) => $query->whereRaw('cantidad_maxima > 0 AND cantidad_disponible >= cantidad_maxima')),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl')
-                        ->mutateFormDataUsing(function (array $data): array {
+                        ->mutateDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                             return $data;
                         }),
 
-                    Tables\Actions\Action::make('ajustar_stock')
+                    Action::make('ajustar_stock')
                         ->label('Ajustar Stock')
                         ->icon('heroicon-o-arrow-path')
                         ->color('warning')
-                        ->form([
+                        ->schema([
                             TextInput::make('nuevo_stock')
                                 ->label('Nuevo Stock Actual')
                                 ->numeric()

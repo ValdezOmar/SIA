@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Ventas\PedidoResource\Pages;
 
+use Filament\Actions\DeleteAction;
 use App\Filament\Resources\Ventas\PedidoResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -13,7 +14,7 @@ class EditPedido extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

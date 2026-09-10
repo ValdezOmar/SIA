@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
 
+use Filament\Actions\EditAction;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
@@ -26,7 +27,7 @@ class ViewPerfilEmpleado extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
+            EditAction::make()
                 ->label('Editar mis datos')
                 ->icon('heroicon-o-pencil-square'),
         ];

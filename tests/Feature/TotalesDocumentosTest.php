@@ -2,6 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Ventas\FacturaResource;
+use App\Filament\Resources\Ventas\PedidoResource;
+use App\Filament\Resources\Ventas\CotizacionResource;
+use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\PedidosRelationManager;
+use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\CotizacionesRelationManager;
+use App\Filament\Resources\Compras\FacturaCompraResource;
+use App\Filament\Resources\Compras\OrdenCompraResource;
+use ReflectionMethod;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Schemas\Schema;
 use App\Forms\Components\CalculoRepeater;
 use App\Models\Inventario\Articulo;
 use App\Models\Ventas\Cliente;
@@ -11,7 +21,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Component;
 use Livewire\Livewire;
@@ -24,18 +33,18 @@ class TotalesDocumentosTest extends TestCase
     public function test_resumen_usa_formulario_incluso_al_borrar_todas_las_filas(): void
     {
         $clases = [
-            \App\Filament\Resources\Ventas\FacturaResource::class,
-            \App\Filament\Resources\Ventas\PedidoResource::class,
-            \App\Filament\Resources\Ventas\CotizacionResource::class,
-            \App\Filament\Resources\Ventas\ClienteResource\RelationManagers\PedidosRelationManager::class,
-            \App\Filament\Resources\Ventas\ClienteResource\RelationManagers\CotizacionesRelationManager::class,
-            \App\Filament\Resources\Compras\FacturaCompraResource::class,
-            \App\Filament\Resources\Compras\OrdenCompraResource::class,
+            FacturaResource::class,
+            PedidoResource::class,
+            CotizacionResource::class,
+            PedidosRelationManager::class,
+            CotizacionesRelationManager::class,
+            FacturaCompraResource::class,
+            OrdenCompraResource::class,
         ];
         $anterior = new Cotizacion(['subtotal' => 999, 'total' => 999]);
         $anterior->exists = true;
         foreach ($clases as $clase) {
-            $metodo = new \ReflectionMethod($clase, 'calcularTotales');
+            $metodo = new ReflectionMethod($clase, 'calcularTotales');
             $filas = [['subtotal' => 180, 'descuento' => 20, 'impuesto' => 23.4, 'total' => 203.4]];
             $actual = $metodo->invoke(null, fn ($campo) => $filas, $anterior);
             $this->assertSame(203.4, $actual['total'], $clase);
@@ -74,6 +83,7 @@ class TotalesDocumentosTest extends TestCase
 
 class FormularioDocumentoCalculoPrueba extends Component implements HasForms
 {
+    use InteractsWithActions;
     use InteractsWithForms;
 
     public Cotizacion $record;
@@ -86,9 +96,9 @@ class FormularioDocumentoCalculoPrueba extends Component implements HasForms
         $this->form->fill();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->statePath('data')->model($this->record)->schema([
+        return $schema->statePath('data')->model($this->record)->components([
             CalculoRepeater::make('detalles')->calculo('venta')->relationship('detalles')->defaultItems(0)->schema([
                 Hidden::make('articulo_id'), Hidden::make('codigo_articulo'), Hidden::make('descripcion_articulo'),
                 TextInput::make('cantidad')->numeric(), TextInput::make('precio_unitario')->numeric(),

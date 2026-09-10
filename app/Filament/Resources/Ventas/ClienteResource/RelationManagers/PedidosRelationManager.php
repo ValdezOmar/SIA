@@ -2,19 +2,30 @@
 
 namespace App\Filament\Resources\Ventas\ClienteResource\RelationManagers;
 
+use App\Support\CalculoDetalle;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use App\Forms\Components\ImporteVenta;
+use App\Forms\Components\CalculoRepeater;
+use Filament\Actions\CreateAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use App\Models\Inventario\Articulo;
 use App\Models\Ventas\Pedido;
 use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -87,7 +98,7 @@ class PedidosRelationManager extends RelationManager
             $detalles = $record?->detalles()->get() ?? [];
         }
 
-        return \App\Support\CalculoDetalle::totales($detalles);
+        return CalculoDetalle::totales($detalles);
     }
 
     private static function formatearNumero($valor, $decimales = 2): string
@@ -131,14 +142,14 @@ class PedidosRelationManager extends RelationManager
         );
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('Gestión de Pedido')
                     ->tabs([
 
-                        Tabs\Tab::make('General')
+                        Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Pedido')
@@ -337,9 +348,9 @@ class PedidosRelationManager extends RelationManager
                                 Section::make('Totales')
                                     ->icon('heroicon-o-calculator')
                                     ->schema([
-                                        Grid::make(5)
+                                        Grid::make(['default' => 1, 'sm' => 2, 'xl' => 5])
                                             ->schema([
-                                                \App\Forms\Components\ImporteVenta::make('subtotal')
+                                                ImporteVenta::make('subtotal')
                                                     ->label('Subtotal neto')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -348,7 +359,7 @@ class PedidosRelationManager extends RelationManager
                                                         return self::formatearMonto($totales['subtotal'], $moneda);
                                                     }),
 
-                                                \App\Forms\Components\ImporteVenta::make('descuento')
+                                                ImporteVenta::make('descuento')
                                                     ->label('Descuento')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -357,7 +368,7 @@ class PedidosRelationManager extends RelationManager
                                                         return self::formatearMonto($totales['descuento'], $moneda);
                                                     }),
 
-                                                \App\Forms\Components\ImporteVenta::make('impuesto')
+                                                ImporteVenta::make('impuesto')
                                                     ->label('Impuesto')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -375,7 +386,7 @@ class PedidosRelationManager extends RelationManager
                                                         return self::formatearMonto($costoEnvio, $moneda);
                                                     }),
 
-                                                \App\Forms\Components\ImporteVenta::make('total')
+                                                ImporteVenta::make('total')
                                                     ->label('Total')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -395,7 +406,7 @@ class PedidosRelationManager extends RelationManager
                             ]),
 
                         // ========== TAB 2: PRODUCTOS (igual que en PedidoResource) ==========
-                        Tabs\Tab::make('Productos')
+                        Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
                                 if (! $record) {
@@ -409,15 +420,16 @@ class PedidosRelationManager extends RelationManager
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos incluidos en el pedido')
                                     ->schema([
-                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('venta')
+                                        CalculoRepeater::make('detalles')->calculo('venta')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()
                                             ->schema([
-                                                Grid::make(16)
+                                                Grid::make(['default' => 1, 'lg' => 16])
                                                     ->schema([
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
+                                                            ->allowHtml()
                                                             ->options(fn () => ArticuloSelectOptions::ventas())
                                                             ->getSearchResultsUsing(fn (string $search): array => ArticuloSelectOptions::ventas($search))
                                                             ->getOptionLabelUsing(fn ($value): ?string => ArticuloSelectOptions::label($value))
@@ -520,7 +532,7 @@ class PedidosRelationManager extends RelationManager
                                                             })
                                                             ->columnSpan(2),
 
-                                                        \App\Forms\Components\ImporteVenta::make('subtotal_linea')
+                                                        ImporteVenta::make('subtotal_linea')
                                                             ->label('Subtotal neto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
@@ -531,7 +543,7 @@ class PedidosRelationManager extends RelationManager
                                                             ->columnSpan(2),
                                                     ]),
 
-                                                Grid::make(16)
+                                                Grid::make(['default' => 1, 'lg' => 16])
                                                     ->schema([
                                                         TextInput::make('descuento_porcentaje')
                                                             ->label('Descuento %')
@@ -590,7 +602,7 @@ class PedidosRelationManager extends RelationManager
                                                             })
                                                             ->columnSpan(4),
 
-                                                        \App\Forms\Components\ImporteVenta::make('impuesto_linea')
+                                                        ImporteVenta::make('impuesto_linea')
                                                             ->label('Impuesto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
@@ -599,7 +611,7 @@ class PedidosRelationManager extends RelationManager
                                                             })
                                                             ->columnSpan(4),
 
-                                                        \App\Forms\Components\ImporteVenta::make('total_con_iva')
+                                                        ImporteVenta::make('total_con_iva')
                                                             ->label('Total')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
@@ -677,7 +689,7 @@ class PedidosRelationManager extends RelationManager
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Notas')
+                        Tab::make('Notas')
                             ->icon('heroicon-o-clipboard-document')
                             ->schema([
                                 Section::make('Observaciones e Instrucciones')
@@ -699,7 +711,7 @@ class PedidosRelationManager extends RelationManager
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Auditoría')
+                        Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -857,7 +869,7 @@ class PedidosRelationManager extends RelationManager
                     ->preload(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Nuevo Pedido')
                     ->icon('heroicon-o-plus')
                     ->modalHeading('Nuevo Pedido')
@@ -879,17 +891,17 @@ class PedidosRelationManager extends RelationManager
                         return $pedido;
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('cambiar_estado')
+                    Action::make('cambiar_estado')
                         ->label('Cambiar Estado')
                         ->icon('heroicon-o-arrow-path')
                         ->color('warning')
-                        ->form([
+                        ->schema([
                             Select::make('estado')
                                 ->label('Nuevo Estado')
                                 ->options([
@@ -911,14 +923,14 @@ class PedidosRelationManager extends RelationManager
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')

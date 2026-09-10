@@ -2,28 +2,37 @@
 
 namespace App\Filament\Clusters\Sistema\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Clusters\Sistema\Resources\EmpresaResource\Pages\ListEmpresas;
+use App\Filament\Clusters\Sistema\Resources\EmpresaResource\Pages\CreateEmpresa;
+use App\Filament\Clusters\Sistema\Resources\EmpresaResource\Pages\EditEmpresa;
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\EmpresaResource\Pages;
 use App\Filament\Clusters\Sistema\Resources\EmpresaResource\RelationManagers\AreasRelationManager;
 use App\Filament\Clusters\Sistema\Resources\EmpresaResource\RelationManagers\SucursalesRelationManager;
 use App\Models\Sistema\Empresa;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class EmpresaResource extends Resource implements HasShieldPermissions
+class EmpresaResource extends Resource
 {
     protected static ?string $model = Empresa::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-building-office-2';
 
     protected static ?string $pluralModelLabel = 'Configuración de empresa';
 
@@ -31,17 +40,18 @@ class EmpresaResource extends Resource implements HasShieldPermissions
 
     protected static ?string $navigationLabel = 'Empresas';
 
-    protected static ?string $navigationGroup = 'Estructura empresarial';
+    protected static string | \UnitEnum | null $navigationGroup = 'Estructura empresarial';
 
     protected static ?string $cluster = Sistema::class;
 
     protected static ?int $navigationSort = 1;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Identificación')
+                    ->icon('heroicon-o-building-office-2')
                     ->description('Registre los nombres legal y comercial que identifican a la empresa.')
                     ->schema([
                         TextInput::make('razon_social')
@@ -82,9 +92,10 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                             ->helperText('Las áreas contienen los cargos; las sucursales representan las ubicaciones de la empresa.')
                             ->columnSpanFull(),
                     ])
-                    ->columns(2),
+                    ->columns(['default' => 1, 'lg' => 2]),
 
                 Section::make('Datos de Contacto')
+                    ->icon('heroicon-o-phone')
                     ->description('Incluya solo los canales de contacto vigentes.')
                     ->schema([
                         Textarea::make('direccion')
@@ -131,15 +142,17 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                             ->helperText('Entidad de salud que corresponde a sus empleados.')
                             ->hintIcon('heroicon-o-heart'),
                     ])
-                    ->columns(2),
+                    ->columns(['default' => 1, 'lg' => 2]),
 
                 Section::make('Estado')
+                    ->icon('heroicon-o-check-circle')
                     ->description('Desactive una empresa que ya no opera para evitar nuevas asignaciones.')
                     ->schema([
                         Toggle::make('empresa_activo')
                             ->label('Empresa activa')
                             ->default(true),
-                    ]),
+                    ])
+                    ->columns(['default' => 1, 'lg' => 2]),
             ]);
     }
 
@@ -147,7 +160,7 @@ class EmpresaResource extends Resource implements HasShieldPermissions
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nombre_comercial')
+                TextColumn::make('nombre_comercial')
                     ->label('Empresa')
                     ->searchable()
                     ->sortable()
@@ -155,43 +168,43 @@ class EmpresaResource extends Resource implements HasShieldPermissions
                     ->placeholder('Sin nombre comercial')
                     ->description(fn (Empresa $record): string => $record->razon_social),
 
-                Tables\Columns\TextColumn::make('sucursales_count')
+                TextColumn::make('sucursales_count')
                     ->counts('sucursales')
                     ->label('Sucursales')
                     ->badge()
                     ->color('info'),
 
-                Tables\Columns\TextColumn::make('areas_count')
+                TextColumn::make('areas_count')
                     ->counts('areas')
                     ->label('Áreas')
                     ->badge()
                     ->color('primary'),
 
-                Tables\Columns\TextColumn::make('nit')
+                TextColumn::make('nit')
                     ->label('NIT')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('ciudad')
+                TextColumn::make('ciudad')
                     ->label('Ciudad')
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('empresa_activo')
+                IconColumn::make('empresa_activo')
                     ->label('Activa')
                     ->boolean(),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('empresa_activo')
+                TernaryFilter::make('empresa_activo')
                     ->label('Activa'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()
+            ->recordActions([
+                EditAction::make()
                     ->label('Administrar')
                     ->tooltip('Editar la empresa y administrar sucursales y áreas'),
-                Tables\Actions\DeleteAction::make()->label('Eliminar'),
+                DeleteAction::make()->label('Eliminar'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('nombre_comercial')
@@ -223,9 +236,9 @@ class EmpresaResource extends Resource implements HasShieldPermissions
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListEmpresas::route('/'),
-            'create' => Pages\CreateEmpresa::route('/create'),
-            'edit' => Pages\EditEmpresa::route('/{record}/edit'),
+            'index' => ListEmpresas::route('/'),
+            'create' => CreateEmpresa::route('/create'),
+            'edit' => EditEmpresa::route('/{record}/edit'),
         ];
     }
 }

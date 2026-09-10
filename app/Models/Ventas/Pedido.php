@@ -2,6 +2,7 @@
 
 namespace App\Models\Ventas;
 
+use RuntimeException;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Existencia;
 use App\Models\Inventario\MovimientoInventario;
@@ -274,7 +275,7 @@ class Pedido extends Model
                     ->orderByRaw('sucursal_id IS NULL'))
                 ->first();
             if (! $almacen) {
-                throw new \RuntimeException('No existe un almacén activo para reservar los productos del pedido.');
+                throw new RuntimeException('No existe un almacén activo para reservar los productos del pedido.');
             }
 
             foreach ($this->detalles as $detalle) {
@@ -285,7 +286,7 @@ class Pedido extends Model
                 $existencia = Existencia::query()->where('articulo_id', $detalle->articulo_id)->where('almacen_id', $almacen->id)->lockForUpdate()->first();
                 $disponible = (float) ($existencia?->cantidad_disponible ?? 0) - (float) ($existencia?->cantidad_comprometida ?? 0);
                 if ((! $existencia || $disponible < $cantidad) && ! $almacen->permite_inventario_negativo) {
-                    throw new \RuntimeException('No hay stock disponible para reservar el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
+                    throw new RuntimeException('No hay stock disponible para reservar el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
                 }
                 $existencia ??= Existencia::create([
                     'articulo_id' => $detalle->articulo_id,

@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use App\Models\Inventario\Articulo;
+use Filament\Actions\ViewAction;
 use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
@@ -26,10 +28,10 @@ class KardexPorAlmacenRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Movimientos Kardex';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Filtros de Búsqueda')
                     ->schema([
                         Grid::make(3)
@@ -37,7 +39,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
                                 Select::make('articulo_id')
                                     ->label('Artículo')
                                     ->options(
-                                        fn () => \App\Models\Inventario\Articulo::where('activo', true)
+                                        fn () => Articulo::where('activo', true)
                                             ->orderBy('codigo')
                                             ->get()
                                             ->mapWithKeys(fn ($item) => [
@@ -185,7 +187,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
 
                 Filter::make('fecha_movimiento')
                     ->label('Rango de Fechas')
-                    ->form([
+                    ->schema([
                         DatePicker::make('fecha_desde')
                             ->label('Desde')
                             ->displayFormat('d/m/Y'),
@@ -199,8 +201,8 @@ class KardexPorAlmacenRelationManager extends RelationManager
                             ->when($data['fecha_hasta'], fn ($q, $fecha) => $q->whereDate('fecha_movimiento', '<=', $fecha));
                     }),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->slideOver()
                     ->modalWidth('5xl'),
             ])

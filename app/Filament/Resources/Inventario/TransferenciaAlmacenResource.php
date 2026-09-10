@@ -2,6 +2,16 @@
 
 namespace App\Filament\Resources\Inventario;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use App\Forms\Components\CalculoRepeater;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\ListTransferenciaAlmacens;
+use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\CreateTransferenciaAlmacen;
+use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\EditTransferenciaAlmacen;
 use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages;
 use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource;
 use App\Models\Inventario\Articulo;
@@ -10,11 +20,9 @@ use App\Models\Inventario\TransferenciaAlmacen;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -27,9 +35,9 @@ class TransferenciaAlmacenResource extends Resource
 {
     protected static ?string $model = TransferenciaAlmacen::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-arrows-right-left';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-arrows-right-left';
 
-    protected static ?string $navigationGroup = 'Inventario';
+    protected static string | \UnitEnum | null $navigationGroup = 'Inventario';
 
     protected static ?string $navigationLabel = 'Traspasos entre almacenes';
 
@@ -69,9 +77,9 @@ class TransferenciaAlmacenResource extends Resource
         return $record->estado === 'borrador';
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Section::make('Cómo funciona')
                 ->description('1. Prepare el traspaso. 2. Envíelo para descontar el origen. 3. El receptor asignado lo aprueba y el stock ingresa al destino.')
                 ->icon('heroicon-o-information-circle')
@@ -114,7 +122,7 @@ class TransferenciaAlmacenResource extends Resource
             Section::make('Artículos a trasladar')
                 ->description('Indique cantidades disponibles. Para productos con serie o lote, detalle los identificadores para conservar la trazabilidad.')
                 ->schema([
-                    \App\Forms\Components\CalculoRepeater::make('detalles')
+                    CalculoRepeater::make('detalles')
                         ->relationship()
                         ->defaultItems(1)
                         ->minItems(1)
@@ -141,14 +149,14 @@ class TransferenciaAlmacenResource extends Resource
                             Textarea::make('series')
                                 ->label('Series')
                                 ->rows(2)
-                                ->visible(fn (Forms\Get $get) => (bool) Articulo::find($get('articulo_id'))?->maneja_series)
+                                ->visible(fn (Get $get) => (bool) Articulo::find($get('articulo_id'))?->maneja_series)
                                 ->helperText('Una serie por línea o separada por coma. Deben coincidir con la cantidad.')
                                 ->formatStateUsing(fn ($state) => is_array($state) ? implode(PHP_EOL, $state) : $state)
                                 ->dehydrateStateUsing(fn ($state) => is_string($state) ? array_values(array_filter(array_map('trim', preg_split('/[,\\n]+/', $state)))) : $state),
                             Textarea::make('lotes')
                                 ->label('Lotes')
                                 ->rows(2)
-                                ->visible(fn (Forms\Get $get) => (bool) Articulo::find($get('articulo_id'))?->maneja_lotes)
+                                ->visible(fn (Get $get) => (bool) Articulo::find($get('articulo_id'))?->maneja_lotes)
                                 ->helperText('Un lote por línea con formato LOTE:CANTIDAD. La suma debe coincidir con la cantidad.')
                                 ->formatStateUsing(fn ($state) => is_array($state) ? implode(PHP_EOL, $state) : $state)
                                 ->dehydrateStateUsing(fn ($state) => is_string($state) ? array_values(array_filter(array_map('trim', preg_split('/[,\\n]+/', $state)))) : $state),
@@ -183,14 +191,14 @@ class TransferenciaAlmacenResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                Tables\Filters\SelectFilter::make('estado')->options([
+                SelectFilter::make('estado')->options([
                     'borrador' => 'Borrador', 'en_transito' => 'En tránsito', 'recibida' => 'Recibida', 'rechazada' => 'Rechazada',
                 ]),
-                Tables\Filters\SelectFilter::make('almacen_destino_id')->label('Destino')->options(fn () => self::almacenesDestino()),
+                SelectFilter::make('almacen_destino_id')->label('Destino')->options(fn () => self::almacenesDestino()),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()->label('Abrir'),
-                Tables\Actions\DeleteAction::make()->visible(fn (TransferenciaAlmacen $record) => $record->estado === 'borrador'),
+            ->recordActions([
+                EditAction::make()->label('Abrir'),
+                DeleteAction::make()->visible(fn (TransferenciaAlmacen $record) => $record->estado === 'borrador'),
             ])
             ->emptyStateHeading('No hay traspasos registrados')
             ->emptyStateDescription('Cree un traspaso para mover stock entre almacenes con aprobación del destino.')
@@ -200,9 +208,9 @@ class TransferenciaAlmacenResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListTransferenciaAlmacens::route('/'),
-            'create' => Pages\CreateTransferenciaAlmacen::route('/create'),
-            'edit' => Pages\EditTransferenciaAlmacen::route('/{record}/edit'),
+            'index' => ListTransferenciaAlmacens::route('/'),
+            'create' => CreateTransferenciaAlmacen::route('/create'),
+            'edit' => EditTransferenciaAlmacen::route('/{record}/edit'),
         ];
     }
 }

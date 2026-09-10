@@ -6,6 +6,7 @@ use App\Filament\Resources\Inventario\ArticuloResource;
 use App\Filament\Resources\Inventario\StockAlmacenResource;
 use App\Filament\Resources\Inventario\TransferenciaAlmacenResource;
 use App\Filament\Widgets\Concerns\HasWidgetPermission;
+use App\Filament\Widgets\Concerns\RendersDashboardSummaryCards;
 use App\Models\Inventario\Existencia;
 use App\Models\Inventario\Lote;
 use App\Models\Inventario\TransferenciaAlmacen;
@@ -17,10 +18,15 @@ use Illuminate\Support\Facades\Auth;
 class InventarioResumenWidget extends BaseWidget
 {
     use HasWidgetPermission;
+    use RendersDashboardSummaryCards;
 
     protected static ?int $sort = 30;
 
-    protected static ?string $pollingInterval = '5m';
+    protected string $view = 'filament.widgets.dashboard-summary-cards';
+
+    protected ?string $pollingInterval = '30s';
+
+    protected int|string|array $columnSpan = 'full';
 
     protected function getHeading(): string
     {

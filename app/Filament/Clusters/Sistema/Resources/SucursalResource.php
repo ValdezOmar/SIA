@@ -2,24 +2,39 @@
 
 namespace App\Filament\Clusters\Sistema\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Clusters\Sistema\Resources\SucursalResource\Pages\ListSucursals;
+use App\Filament\Clusters\Sistema\Resources\SucursalResource\Pages\CreateSucursal;
+use App\Filament\Clusters\Sistema\Resources\SucursalResource\Pages\EditSucursal;
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\SucursalResource\Pages;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class SucursalResource extends Resource implements HasShieldPermissions
+class SucursalResource extends Resource
 {
     protected static ?string $model = Sucursal::class;
 
     protected static ?string $cluster = Sistema::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-building-storefront';
 
     protected static ?string $modelLabel = 'Sucursal';
 
@@ -27,18 +42,21 @@ class SucursalResource extends Resource implements HasShieldPermissions
 
     protected static ?string $navigationLabel = 'Sucursales';
 
-    protected static ?string $navigationGroup = 'Estructura empresarial';
+    protected static string | \UnitEnum | null $navigationGroup = 'Estructura empresarial';
 
     protected static ?int $navigationSort = 2;
 
-    public static function form(Form $form): Form
+    // Las sucursales se administran desde la empresa para evitar duplicar el flujo.
+    protected static bool $shouldRegisterNavigation = false;
+
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make('Información General')
+        return $schema
+            ->components([
+                Section::make('Información General')
                     ->description('Datos principales de la sucursal.')
                     ->schema([
-                        Forms\Components\Select::make('empresa_id')
+                        Select::make('empresa_id')
                             ->label('Empresa')
                             ->relationship('empresa', 'nombre_comercial')
                             ->getOptionLabelFromRecordUsing(fn (Empresa $record): string => $record->nombre_comercial ?: $record->razon_social)
@@ -48,7 +66,7 @@ class SucursalResource extends Resource implements HasShieldPermissions
                             ->placeholder('Busque por nombre comercial, razón social o NIT')
                             ->helperText('La sucursal quedará disponible únicamente para la empresa seleccionada.'),
 
-                        Forms\Components\TextInput::make('nombre')
+                        TextInput::make('nombre')
                             ->label('Nombre de la sucursal')
                             ->required()
                             ->maxLength(150)
@@ -57,29 +75,29 @@ class SucursalResource extends Resource implements HasShieldPermissions
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Ubicación y Contacto')
+                Section::make('Ubicación y Contacto')
                     ->description('Dirección y datos de contacto de la sucursal.')
                     ->schema([
-                        Forms\Components\Textarea::make('direccion')
+                        Textarea::make('direccion')
                             ->label('Dirección')
                             ->rows(2)
                             ->placeholder('Ej: Av. Mariscal Santa Cruz #123')
                             ->helperText('Incluya calle, número y referencias útiles.'),
 
-                        Forms\Components\TextInput::make('ciudad')
+                        TextInput::make('ciudad')
                             ->label('Ciudad')
                             ->maxLength(150)
                             ->placeholder('Ej: La Paz')
                             ->helperText('Ciudad donde opera la sucursal.'),
 
-                        Forms\Components\TextInput::make('pais')
+                        TextInput::make('pais')
                             ->label('País')
                             ->maxLength(100)
                             ->default('Bolivia')
                             ->placeholder('Ej: Bolivia')
                             ->helperText('País de ubicación.'),
 
-                        Forms\Components\TextInput::make('telefono')
+                        TextInput::make('telefono')
                             ->label('Teléfono')
                             ->maxLength(50)
                             ->placeholder('Ej: (2) 2456789')
@@ -87,10 +105,10 @@ class SucursalResource extends Resource implements HasShieldPermissions
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Configuración')
+                Section::make('Configuración')
                     ->description('Estado de la sucursal en el sistema.')
                     ->schema([
-                        Forms\Components\Toggle::make('activo')
+                        Toggle::make('activo')
                             ->label('Sucursal activa')
                             ->default(true)
                             ->helperText('Desactive si ya no opera; conservará su historial.'),
@@ -103,60 +121,60 @@ class SucursalResource extends Resource implements HasShieldPermissions
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('empresa.nombre_comercial')
+                TextColumn::make('empresa.nombre_comercial')
                     ->label('Empresa')
                     ->placeholder('Sin nombre comercial')
                     ->description(fn (Sucursal $record): string => $record->empresa?->razon_social ?? 'Empresa no disponible')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->label('Nombre de sucursal')
                     ->sortable()
                     ->searchable()
                     ->description(fn (Sucursal $record): string => $record->direccion ?: 'Sin dirección registrada'),
 
-                Tables\Columns\TextColumn::make('ciudad')
+                TextColumn::make('ciudad')
                     ->label('Ciudad')
                     ->sortable()
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('telefono')
+                TextColumn::make('telefono')
                     ->label('Teléfono'),
 
-                Tables\Columns\IconColumn::make('activo')
+                IconColumn::make('activo')
                     ->label('Activa')
                     ->boolean(),
 
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('empresa_id')
+                SelectFilter::make('empresa_id')
                     ->label('Empresa')
                     ->relationship('empresa', 'nombre_comercial')
                     ->getOptionLabelFromRecordUsing(fn (Empresa $record): string => $record->nombre_comercial ?: $record->razon_social)
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\TernaryFilter::make('activo')
+                TernaryFilter::make('activo')
                     ->label('Activa')
                     ->trueLabel('Solo activas')
                     ->falseLabel('Solo inactivas')
                     ->placeholder('Todas'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()
+            ->recordActions([
+                EditAction::make()
                     ->label('Editar'),
 
-                Tables\Actions\DeleteAction::make()
+                DeleteAction::make()
                     ->label('Eliminar'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
                         ->label('Eliminar seleccionadas'),
                 ]),
             ])
@@ -181,9 +199,9 @@ class SucursalResource extends Resource implements HasShieldPermissions
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSucursals::route('/'),
-            'create' => Pages\CreateSucursal::route('/create'),
-            'edit' => Pages\EditSucursal::route('/{record}/edit'),
+            'index' => ListSucursals::route('/'),
+            'create' => CreateSucursal::route('/create'),
+            'edit' => EditSucursal::route('/{record}/edit'),
         ];
     }
 }

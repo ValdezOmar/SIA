@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources\UnidadMedidaResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Clusters\ParametrosInventario\Resources\UnidadMedidaResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -18,7 +19,7 @@ class ListUnidadMedidas extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->label('Nueva unidad de medida'),
+            CreateAction::make()->label('Nueva unidad de medida'),
         ];
     }
 }

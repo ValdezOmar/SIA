@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Sistema\Resources\HorarioAsistenciaResource\Pages;
 
+use Filament\Actions\DeleteAction;
 use App\Filament\Clusters\Sistema\Resources\HorarioAsistenciaResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -17,6 +18,6 @@ class EditHorarioAsistencia extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [Actions\DeleteAction::make()];
+        return [DeleteAction::make()];
     }
 }

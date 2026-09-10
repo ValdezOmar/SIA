@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources\AtributoResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Clusters\ParametrosInventario\Resources\AtributoResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -18,7 +19,7 @@ class ListAtributos extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->label('Nuevo atributo'),
+            CreateAction::make()->label('Nuevo atributo'),
         ];
     }
 }

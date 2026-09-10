@@ -2,9 +2,12 @@
 
 namespace App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\Action;
 use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Form;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -22,9 +25,9 @@ class ArticulosStockAlmacenRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Existencias';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Placeholder::make('informacion')
                 ->label('Control de stock')
                 ->content('Esta pantalla es sólo de consulta. Registre entradas, salidas o ajustes desde Kardex para conservar el historial y el costo correctos.'),
@@ -131,7 +134,7 @@ class ArticulosStockAlmacenRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('con_stock')
+                TernaryFilter::make('con_stock')
                     ->label('Disponibilidad')
                     ->trueLabel('Con unidades libres')
                     ->falseLabel('Sin unidades libres')
@@ -139,23 +142,23 @@ class ArticulosStockAlmacenRelationManager extends RelationManager
                         true: fn ($query) => $query->whereRaw('(cantidad_disponible - cantidad_comprometida) > 0'),
                         false: fn ($query) => $query->whereRaw('(cantidad_disponible - cantidad_comprometida) <= 0'),
                     ),
-                Tables\Filters\Filter::make('bajo_minimo')
+                Filter::make('bajo_minimo')
                     ->label('Bajo mínimo')
                     ->query(fn ($query) => $query->whereRaw('(cantidad_disponible - cantidad_comprometida) <= cantidad_minima')),
-                Tables\Filters\Filter::make('vendibles')
+                Filter::make('vendibles')
                     ->label('Solo artículos activos y vendibles')
                     ->query(fn (Builder $query) => $query->whereHas('articulo', fn (Builder $query) => $query->where('activo', true)->where('vendible', true))),
             ])
             ->headerActions([])
-            ->actions([
-                Tables\Actions\Action::make('ficha')
+            ->recordActions([
+                Action::make('ficha')
                     ->label('Ver ficha')
                     ->icon('heroicon-o-information-circle')
                     ->slideOver()
                     ->modalHeading('Información del artículo')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar')
-                    ->infolist([
+                    ->schema([
                         TextEntry::make('articulo.codigo')->label('Código')->copyable(),
                         TextEntry::make('articulo.nombre_comercial')->label('Nombre'),
                         TextEntry::make('articulo.codigo_alterno')->label('Modelo')->placeholder('Sin modelo'),
@@ -171,7 +174,7 @@ class ArticulosStockAlmacenRelationManager extends RelationManager
                         TextEntry::make('ultima_salida')->label('Última salida')->dateTime('d/m/Y H:i')->placeholder('Sin registros'),
                     ]),
             ])
-            ->bulkActions([])
+            ->toolbarActions([])
             ->emptyStateHeading('No hay stock registrado')
             ->emptyStateDescription('Cuando se confirme una entrada en Kardex, el artículo aparecerá aquí.')
             ->emptyStateIcon('heroicon-o-cube')

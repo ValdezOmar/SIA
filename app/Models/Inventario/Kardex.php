@@ -2,6 +2,10 @@
 
 namespace App\Models\Inventario;
 
+use InvalidArgumentException;
+use Exception;
+use RuntimeException;
+use Illuminate\Validation\ValidationException;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Sistema\Empresa;
 use App\Models\User;
@@ -218,12 +222,12 @@ class Kardex extends Model
             ];
 
             if (! array_key_exists($tipo, $direcciones)) {
-                throw new \InvalidArgumentException('Tipo de movimiento no soportado: '.($tipo ?? 'vacío'));
+                throw new InvalidArgumentException('Tipo de movimiento no soportado: '.($tipo ?? 'vacío'));
             }
 
             $direccion = $direcciones[$tipo];
             if (! $direccion || ! in_array($direccion, ['entrada', 'salida'], true)) {
-                throw new \InvalidArgumentException('La dirección es obligatoria para un ajuste físico.');
+                throw new InvalidArgumentException('La dirección es obligatoria para un ajuste físico.');
             }
 
             $documentoTipo = $data['documento_tipo'] ?? 'manual';
@@ -342,7 +346,7 @@ class Kardex extends Model
 
                 $tipoReversion = $tiposReversion[$movimiento->tipo_movimiento] ?? null;
                 if (! $tipoReversion) {
-                    throw new \InvalidArgumentException('No existe una reversión definida para: '.$movimiento->tipo_movimiento);
+                    throw new InvalidArgumentException('No existe una reversión definida para: '.$movimiento->tipo_movimiento);
                 }
 
                 $movimientoAuxiliarOriginal = MovimientoInventario::where('kardex_id', $movimiento->id)->first();
@@ -555,7 +559,7 @@ class Kardex extends Model
             ->first();
 
         if (! $existencia && ! $permiteNegativo) {
-            throw new \Exception('Stock insuficiente para la salida');
+            throw new Exception('Stock insuficiente para la salida');
         }
 
         $existencia ??= new Existencia([
@@ -571,7 +575,7 @@ class Kardex extends Model
         $cantidadAnterior = (float) $existencia->cantidad_disponible;
         $cantidadPosterior = $cantidadAnterior - $data['cantidad'];
         if ($cantidadPosterior < 0 && ! $permiteNegativo) {
-            throw new \Exception('Stock insuficiente para la salida');
+            throw new Exception('Stock insuficiente para la salida');
         }
 
         // Valorar la salida según el método configurado en el artículo.
@@ -589,7 +593,7 @@ class Kardex extends Model
             $costoTotal = $cantidadPendiente * $costoUnitarioSalida;
         } elseif ($metodoCosto === 'estandar') {
             if ($costoEstandar <= 0) {
-                throw new \RuntimeException('El artículo no tiene costo estándar configurado.');
+                throw new RuntimeException('El artículo no tiene costo estándar configurado.');
             }
 
             $costoUnitarioSalida = $costoEstandar;
@@ -633,7 +637,7 @@ class Kardex extends Model
 
             if ($cantidadPendiente > 0) {
                 if ($cantidadPosterior >= 0) {
-                    throw new \RuntimeException('No existen capas de costo suficientes para valorar toda la salida.');
+                    throw new RuntimeException('No existen capas de costo suficientes para valorar toda la salida.');
                 }
 
                 $costoProvisional = self::resolverCostoProvisional($data, $articulo, $existencia);
@@ -712,7 +716,7 @@ class Kardex extends Model
         $costo = $costo > 0 ? $costo : (float) ($articulo?->costo_estandar ?? 0);
 
         if ($costo <= 0) {
-            throw new \RuntimeException('No se puede registrar stock negativo sin un costo. Registre una entrada con costo, defina el costo estándar del artículo o indique el costo unitario de la salida.');
+            throw new RuntimeException('No se puede registrar stock negativo sin un costo. Registre una entrada con costo, defina el costo estándar del artículo o indique el costo unitario de la salida.');
         }
 
         return $costo;
@@ -749,7 +753,7 @@ class Kardex extends Model
             return;
         }
 
-        throw \Illuminate\Validation\ValidationException::withMessages([
+        throw ValidationException::withMessages([
             'articulo_id' => 'Este artículo es un servicio y no admite entradas ni salidas de almacén. Registre su operación en el documento comercial.',
         ]);
     }

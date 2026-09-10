@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Ventas\FacturaResource\Pages;
 
+use Illuminate\Validation\ValidationException;
 use App\Filament\Resources\Ventas\FacturaResource;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -19,7 +20,7 @@ class CreateFactura extends CreateRecord
             $cotizacion = FacturaResource::cotizacionesAbiertas($data['empresa_id'] ?? null, $data['sucursal_id'] ?? null)
                 ->lockForUpdate()->find($data['cotizacion_origen_id']);
             if (! $cotizacion || (int) $cotizacion->cliente_id !== (int) ($data['cliente_id'] ?? 0)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'data.cotizacion_origen_id' => 'La cotización ya no está abierta o no corresponde al cliente seleccionado.',
                 ]);
             }

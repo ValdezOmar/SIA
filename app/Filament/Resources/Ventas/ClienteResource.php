@@ -2,6 +2,22 @@
 
 namespace App\Filament\Resources\Ventas;
 
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Grid;
+use Exception;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\BulkAction;
+use App\Filament\Resources\Ventas\ClienteResource\Pages\ListClientes;
+use App\Filament\Resources\Ventas\ClienteResource\Pages\CreateCliente;
+use App\Filament\Resources\Ventas\ClienteResource\Pages\EditCliente;
 use App\Filament\Resources\Ventas\ClienteResource\Pages;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\CotizacionesRelationManager;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\FacturasRelationManager;
@@ -10,15 +26,11 @@ use App\Models\Inventario\ListaPrecio;
 use App\Models\Sistema\Empresa;
 use App\Models\Ventas\Cliente;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
@@ -34,9 +46,9 @@ class ClienteResource extends Resource
 {
     protected static ?string $model = Cliente::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
 
-    protected static ?string $navigationGroup = 'Ventas';
+    protected static string | \UnitEnum | null $navigationGroup = 'Ventas';
 
     protected static ?string $navigationLabel = 'Clientes';
 
@@ -46,17 +58,17 @@ class ClienteResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
 
         return $query->when(Auth::user()?->empresa_id, fn ($builder, $empresaId) => $builder->where('empresa_id', $empresaId));
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Empresa responsable')
                     ->description('Define a qué empresa pertenece la cartera de este cliente.')
                     ->icon('heroicon-o-building-office-2')
@@ -77,7 +89,7 @@ class ClienteResource extends Resource
                     ->tabs([
 
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
-                        Tabs\Tab::make('Información General')
+                        Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos Básicos')
@@ -178,7 +190,7 @@ class ClienteResource extends Resource
                                                             $primeraLista = ListaPrecio::where('activo', true)->first();
 
                                                             return $primeraLista?->id;
-                                                        } catch (\Exception $e) {
+                                                        } catch (Exception $e) {
                                                             return null;
                                                         }
                                                     }),
@@ -255,14 +267,14 @@ class ClienteResource extends Resource
                                                     ->placeholder('Ej: Deuda pendiente')
                                                     ->helperText('Razón del bloqueo')
                                                     ->prefixIcon('heroicon-o-exclamation-triangle')
-                                                    ->visible(fn (Forms\Get $get) => $get('bloqueado'))
+                                                    ->visible(fn (Get $get) => $get('bloqueado'))
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
                             ]),
 
                         // ========== TAB 2: CONTACTO ==========
-                        Tabs\Tab::make('Contacto')
+                        Tab::make('Contacto')
                             ->icon('heroicon-o-phone')
                             ->schema([
                                 Section::make('Datos de Contacto')
@@ -332,7 +344,7 @@ class ClienteResource extends Resource
                             ]),
 
                         // ========== TAB 3: COMERCIAL ==========
-                        Tabs\Tab::make('Comercial')
+                        Tab::make('Comercial')
                             ->icon('heroicon-o-shopping-bag')
                             ->schema([
                                 Section::make('Condiciones Comerciales')
@@ -412,7 +424,7 @@ class ClienteResource extends Resource
                             ]),
 
                         // ========== TAB 4: AUDITORÍA ==========
-                        Tabs\Tab::make('Auditoría')
+                        Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -614,13 +626,13 @@ class ClienteResource extends Resource
             ->groups([
                 Group::make('empresa.nombre_comercial')->label('Empresa')->collapsible(),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
@@ -628,17 +640,17 @@ class ClienteResource extends Resource
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+            ->toolbarActions([
+                BulkActionGroup::make([
 
-                    Tables\Actions\BulkAction::make('toggle_active_bulk')
+                    BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
                         ->requiresConfirmation()
                         ->modalHeading('Cambiar estado de clientes'),
 
-                    Tables\Actions\BulkAction::make('toggle_blocked_bulk')
+                    BulkAction::make('toggle_blocked_bulk')
                         ->label('Bloquear/Desbloquear')
                         ->icon('heroicon-o-lock-closed')
                         ->action(fn ($records) => $records->each->update(['bloqueado' => ! $records->first()->bloqueado]))
@@ -666,9 +678,9 @@ class ClienteResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListClientes::route('/'),
-            'create' => Pages\CreateCliente::route('/create'),
-            'edit' => Pages\EditCliente::route('/{record}/edit'),
+            'index' => ListClientes::route('/'),
+            'create' => CreateCliente::route('/create'),
+            'edit' => EditCliente::route('/{record}/edit'),
         ];
     }
 }

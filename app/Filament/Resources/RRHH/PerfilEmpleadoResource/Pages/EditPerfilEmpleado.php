@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
 
+use Filament\Actions\ViewAction;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -58,7 +59,7 @@ class EditPerfilEmpleado extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make()
+            ViewAction::make()
                 ->label('Ver perfil'),
         ];
     }

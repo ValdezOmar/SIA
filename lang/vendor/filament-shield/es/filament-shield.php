@@ -31,7 +31,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'nav.group' => 'Seguridad',
+    'nav.group' => 'Filament Shield',
     'nav.role.label' => 'Roles',
     'nav.role.icon' => 'heroicon-o-shield-check',
     'resource.label.role' => 'Rol',
@@ -65,7 +65,7 @@ return [
 
     'resource_permission_prefixes_labels' => [
         'view' => 'Ver registro',
-        'view_any' => 'Mostrar en el menú',
+        'view_any' => 'Ver el listado de registros',
         'create' => 'Crear',
         'update' => 'Actualizar',
         'delete' => 'Eliminar registro',

@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventario;
 
+use Illuminate\Support\Carbon;
 use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Lote;
 use App\Models\Inventario\LoteStock;
@@ -114,7 +115,7 @@ class TrazabilidadInventarioService
                         'estado' => 'vendido',
                         'estado_actual' => 'vendido',
                         'cliente_id' => $data['cliente_id'] ?? null,
-                        'fecha_venta' => \Illuminate\Support\Carbon::parse($data['fecha_venta'] ?? $movimiento->fecha ?? now())->toDateString(),
+                        'fecha_venta' => Carbon::parse($data['fecha_venta'] ?? $movimiento->fecha ?? now())->toDateString(),
                     ]);
                     MovimientoSerie::create([
                         'serie_id' => $serie->id,

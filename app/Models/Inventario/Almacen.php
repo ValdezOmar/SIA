@@ -2,6 +2,7 @@
 
 namespace App\Models\Inventario;
 
+use App\Models\Inventario\Concerns\GeneraCodigoInventario;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Validation\ValidationException;
 
 class Almacen extends Model
 {
-    use Concerns\GeneraCodigoInventario;
+    use GeneraCodigoInventario;
 
     protected $table = 'alm_almacenes';
 

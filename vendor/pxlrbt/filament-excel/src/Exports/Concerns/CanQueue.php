@@ -3,14 +3,21 @@
 namespace pxlrbt\FilamentExcel\Exports\Concerns;
 
 use AnourValar\EloquentSerialize\Facades\EloquentSerializeFacade;
+use pxlrbt\FilamentExcel\Dev\FindClosures;
 
 trait CanQueue
 {
     protected bool $isQueued = false;
 
-    public function queue(): static
+    protected ?string $queueName = null;
+
+    protected ?string $queueConnection = null;
+
+    public function queue(?string $queue = null, ?string $connection = null): static
     {
         $this->isQueued = true;
+        $this->queueName = $queue;
+        $this->queueConnection = $connection;
 
         return $this;
     }
@@ -18,6 +25,16 @@ trait CanQueue
     protected function isQueued()
     {
         return $this->isQueued;
+    }
+
+    public function getQueueName(): ?string
+    {
+        return $this->queueName;
+    }
+
+    public function getQueueConnection(): ?string
+    {
+        return $this->queueConnection;
     }
 
     protected function prepareQueuedExport()
@@ -34,6 +51,7 @@ trait CanQueue
         $this->writerType = $this->getWriterType();
         $this->columnFormats = $this->getColumnFormats();
         $this->columnWidths = $this->getColumnWidths();
+        $this->csvSettings = $this->getCsvSettings();
         $this->livewireClass = $this->getLivewireClass();
 
         // Reset
@@ -46,5 +64,9 @@ trait CanQueue
 
         $this->livewire = null;
         $this->query = EloquentSerializeFacade::serialize($this->query());
+
+        // Debug Closured
+        // $closures = (new FindClosures)($this);
+        // dd($closures);
     }
 }

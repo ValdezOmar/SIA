@@ -2,6 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\RRHH\Empleado;
+use App\Models\RRHH\HistorialLaboral;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use App\Filament\Resources\Almacen\InventarioHistoricoResource\Pages\ListInventariosHistoricos;
+use App\Filament\Resources\Almacen\InventarioResource\RelationManagers\EventosRelationManager;
+use LogicException;
+use Illuminate\Support\Facades\Storage;
+use App\Services\Inventario\InventarioPdfService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use App\Filament\Resources\Almacen\InventarioResource;
 use App\Filament\Resources\Almacen\InventarioResource\Pages\CreateInventario;
 use App\Filament\Resources\Almacen\InventarioResource\Pages\ListInventarios;
@@ -171,17 +180,17 @@ class InventarioFisicoTest extends TestCase
     {
         $inv = $this->programar();
         $this->servicio->iniciar($inv);
-        $this->usuario->setRelation('empleado', (new \App\Models\RRHH\Empleado)->setRelation('historialActivo',
-            (new \App\Models\RRHH\HistorialLaboral)->forceFill(['empresa_id' => $this->almacen->empresa_id, 'sucursal_id' => 999999])));
+        $this->usuario->setRelation('empleado', (new Empleado)->setRelation('historialActivo',
+            (new HistorialLaboral)->forceFill(['empresa_id' => $this->almacen->empresa_id, 'sucursal_id' => 999999])));
         $this->assertFalse(InventarioResource::getEloquentQuery()->whereKey($inv->id)->exists());
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
         $this->servicio->contar($inv->conteos()->first(), ['cantidad_contada' => 5.5, 'version' => 0]);
     }
 
     public function test_usuario_sin_permiso_no_puede_programar(): void
     {
         $this->usuario->revokePermissionTo(Servicio::PROGRAMAR);
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
         $this->programar();
     }
 
@@ -218,22 +227,22 @@ class InventarioFisicoTest extends TestCase
         Livewire::test(ViewInventario::class, ['record' => $inv->id])->callAction('iniciar')->assertHasNoActionErrors();
         $this->assertSame('en_conteo', $inv->fresh()->estado);
         Livewire::test(ViewInventario::class, ['record' => $inv->id])->callAction('exportar')->assertFileDownloaded($inv->codigo.'.csv');
-        Livewire::test(\App\Filament\Resources\Almacen\InventarioHistoricoResource\Pages\ListInventariosHistoricos::class)->assertSuccessful();
-        Livewire::test(\App\Filament\Resources\Almacen\InventarioResource\RelationManagers\EventosRelationManager::class,
+        Livewire::test(ListInventariosHistoricos::class)->assertSuccessful();
+        Livewire::test(EventosRelationManager::class,
             ['ownerRecord' => $inv->fresh(), 'pageClass' => ViewInventario::class])->assertSuccessful();
     }
 
     public function test_bitacora_no_se_puede_editar(): void
     {
         $inv = $this->programar();
-        $this->expectException(\LogicException::class);
+        $this->expectException(LogicException::class);
         $inv->eventos()->first()->update(['motivo' => 'Modificado']);
     }
 
     public function test_pdf_con_logo_conteos_y_bitacora_se_descarga_desde_la_ficha_y_el_listado(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('public');
-        \Illuminate\Support\Facades\Storage::disk('public')->put('empresas/logos/prueba.png', file_get_contents(public_path('images/logo.png')));
+        Storage::fake('public');
+        Storage::disk('public')->put('empresas/logos/prueba.png', file_get_contents(public_path('images/logo.png')));
         $this->almacen->empresa->update(['logo_path' => 'empresas/logos/prueba.png', 'nit' => '123456789', 'direccion' => 'Av. de prueba 123', 'ciudad' => 'La Paz']);
         for ($i = 2; $i <= 30; $i++) {
             Articulo::create(['codigo' => sprintf('ART-%02d', $i), 'nombre_comercial' => 'Equipo de laboratorio con descripción de prueba '.$i, 'empresa_id' => $this->almacen->empresa_id]);
@@ -241,7 +250,7 @@ class InventarioFisicoTest extends TestCase
         $inv = $this->programar();
         $this->servicio->iniciar($inv);
         $this->servicio->contar($inv->conteos()->first(), ['cantidad_contada' => 4.123456, 'version' => 0, 'observaciones' => 'Diferencia pendiente de revisión. Texto con tildes y símbolos: á é í ó ú ñ.']);
-        $servicio = app(\App\Services\Inventario\InventarioPdfService::class);
+        $servicio = app(InventarioPdfService::class);
         $this->assertStringStartsWith('data:image/png;base64,', $servicio->logoDataUri($this->almacen->empresa->fresh()));
         $pdf = $servicio->generar($inv);
         $this->assertStringStartsWith('%PDF-', $pdf);
@@ -256,9 +265,9 @@ class InventarioFisicoTest extends TestCase
     public function test_pdf_no_exporta_inventario_de_otra_sucursal(): void
     {
         $inv = $this->programar();
-        $this->usuario->setRelation('empleado', (new \App\Models\RRHH\Empleado)->setRelation('historialActivo',
-            (new \App\Models\RRHH\HistorialLaboral)->forceFill(['empresa_id' => $this->almacen->empresa_id, 'sucursal_id' => 999999])));
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
-        app(\App\Services\Inventario\InventarioPdfService::class)->generar($inv);
+        $this->usuario->setRelation('empleado', (new Empleado)->setRelation('historialActivo',
+            (new HistorialLaboral)->forceFill(['empresa_id' => $this->almacen->empresa_id, 'sucursal_id' => 999999])));
+        $this->expectException(ModelNotFoundException::class);
+        app(InventarioPdfService::class)->generar($inv);
     }
 }

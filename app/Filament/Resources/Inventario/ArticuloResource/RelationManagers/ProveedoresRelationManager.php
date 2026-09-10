@@ -2,14 +2,25 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Illuminate\Support\HtmlString;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\CreateAction;
+use Filament\Notifications\Notification;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use App\Models\Compras\ArticuloProveedor;
+use Filament\Actions\DeleteAction;
 use App\Models\Compras\Proveedor;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -28,10 +39,10 @@ class ProveedoresRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Proveedores';
 
-    public function form(Form $form): Form
+    public function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Información del Proveedor')
                     ->icon('heroicon-o-users')
                     ->description('Datos de la relación entre el artículo y el proveedor')
@@ -80,7 +91,7 @@ class ProveedoresRelationManager extends RelationManager
                             ]),
 
                         // ========== INFORMACIÓN DEL PROVEEDOR ==========
-                        Forms\Components\Placeholder::make('proveedor_info')
+                        Placeholder::make('proveedor_info')
                             ->label('Información de Contacto')
                             ->content(function ($get) {
                                 $proveedorId = $get('proveedor_id');
@@ -139,7 +150,7 @@ class ProveedoresRelationManager extends RelationManager
                                 $html .= '</div>';
                                 $html .= '</div>';
 
-                                return new \Illuminate\Support\HtmlString($html);
+                                return new HtmlString($html);
                             })
                             ->columnSpanFull(),
                     ]),
@@ -227,7 +238,7 @@ class ProveedoresRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('proveedor_id')
+                SelectFilter::make('proveedor_id')
                     ->label('Proveedor')
                     ->options(fn () => Proveedor::where('activo', true)
                         ->pluck('nombre', 'id')
@@ -236,7 +247,7 @@ class ProveedoresRelationManager extends RelationManager
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\SelectFilter::make('tipo_proveedor')
+                SelectFilter::make('tipo_proveedor')
                     ->label('Tipo de Proveedor')
                     ->options([
                         'nacional' => 'Nacional',
@@ -245,16 +256,16 @@ class ProveedoresRelationManager extends RelationManager
                     ])
                     ->visible(fn () => Schema::hasColumn('cmp_proveedores', 'tipo_proveedor')),
 
-                Tables\Filters\TernaryFilter::make('es_principal')
+                TernaryFilter::make('es_principal')
                     ->label('Proveedor Principal')
                     ->boolean()
                     ->trueLabel('Sí')
                     ->falseLabel('No')
                     ->placeholder('Todos'),
 
-                Tables\Filters\Filter::make('costo_compra_mayor_que')
+                Filter::make('costo_compra_mayor_que')
                     ->label('Costo mayor que')
-                    ->form([
+                    ->schema([
                         TextInput::make('costo_minimo')
                             ->label('Costo mínimo')
                             ->numeric()
@@ -269,75 +280,75 @@ class ProveedoresRelationManager extends RelationManager
                     }),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Agregar Proveedor')
                     ->icon('heroicon-o-plus')
                     ->modalHeading('Agregar Proveedor al Artículo')
                     ->modalWidth('4xl')
-                    ->mutateFormDataUsing(function (array $data): array {
+                    ->mutateDataUsing(function (array $data): array {
                         $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                         return $data;
                     })
                     ->after(function ($record) {
                         $proveedor = Proveedor::find($record->proveedor_id);
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Proveedor agregado exitosamente')
                             ->body("El proveedor {$proveedor->nombre} ha sido asignado al artículo")
                             ->success()
                             ->send();
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl')
-                        ->mutateFormDataUsing(function (array $data): array {
+                        ->mutateDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                             return $data;
                         })
                         ->after(function ($record) {
                             $proveedor = Proveedor::find($record->proveedor_id);
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Proveedor actualizado')
                                 ->body("La información del proveedor {$proveedor->nombre} ha sido actualizada")
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('toggle_principal')
+                    Action::make('toggle_principal')
                         ->label('Marcar como Principal')
                         ->icon('heroicon-o-star')
                         ->color(fn ($record) => $record->es_principal ? 'warning' : 'gray')
                         ->action(function ($record) {
                             // Si este proveedor se marca como principal, desmarcar los demás
                             if (! $record->es_principal) {
-                                \App\Models\Compras\ArticuloProveedor::where('articulo_id', $record->articulo_id)
+                                ArticuloProveedor::where('articulo_id', $record->articulo_id)
                                     ->where('id', '!=', $record->id)
                                     ->update(['es_principal' => false]);
                             }
 
                             $record->update(['es_principal' => ! $record->es_principal]);
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title($record->es_principal ? 'Proveedor marcado como principal' : 'Proveedor desmarcado como principal')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('ver_proveedor')
+                    Action::make('ver_proveedor')
                         ->label('Ver Proveedor')
                         ->icon('heroicon-o-eye')
                         ->color('info')
                         ->url(fn ($record) => route('filament.dashboard.resources.compras.proveedors.edit', $record->proveedor_id))
                         ->openUrlInNewTab(),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->before(function ($record) {
                             $proveedor = Proveedor::find($record->proveedor_id);
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Proveedor eliminado')
                                 ->body("El proveedor {$proveedor->nombre} ha sido desvinculado del artículo")
                                 ->warning()

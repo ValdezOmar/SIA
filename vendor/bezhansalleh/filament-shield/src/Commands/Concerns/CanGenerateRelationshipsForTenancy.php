@@ -15,14 +15,10 @@ trait CanGenerateRelationshipsForTenancy
 {
     protected function generateRelationships(Panel $panel): void
     {
-        Filament::setCurrentPanel($panel);
-
         collect($panel->getResources())
             ->values()
-            ->filter(function ($resource): bool {
-                return filled($this->guessResourceModelRelationshipType($resource::getModel(), Filament::getTenantModel()));
-            })
-            ->map(function ($resource) {
+            ->filter(fn ($resource): bool => filled($this->guessResourceModelRelationshipType($resource::getModel(), Filament::getTenantModel())))
+            ->map(function ($resource): array {
                 $resource = resolve($resource);
                 $tenantModel = Filament::getTenantModel();
 
@@ -48,16 +44,15 @@ trait CanGenerateRelationshipsForTenancy
                     ],
                 ];
             })
-            ->each(function ($modifiedResource) {
+            ->each(function (array $modifiedResource): void {
                 $resourceModelStringer = Stringer::for($modifiedResource['modelPath']);
                 $tenantModelstringer = Stringer::for($modifiedResource['tenantModelPath']);
 
                 if (! $resourceModelStringer->contains($modifiedResource['resource_model_method']['name'])) {
-                    if (filled($importStatement = $this->addModelReturnTypeImportStatement($modifiedResource['resource_model_method']['relationshipName']))) {
-                        if (! $resourceModelStringer->contains($importStatement)) {
-                            $resourceModelStringer->append('use', $importStatement);
-                        }
+                    if (filled($importStatement = $this->addModelReturnTypeImportStatement($modifiedResource['resource_model_method']['relationshipName'])) && ! $resourceModelStringer->contains($importStatement)) {
+                        $resourceModelStringer->append('use', $importStatement);
                     }
+
                     $resourceModelStringer
                         ->newLine()
                         ->indent(4)
@@ -68,11 +63,10 @@ trait CanGenerateRelationshipsForTenancy
                         ))
                         ->save();
                 }
+
                 if (! $tenantModelstringer->contains($modifiedResource['tenant_model_method']['name'])) {
-                    if (filled($importStatement = $this->addModelReturnTypeImportStatement($modifiedResource['tenant_model_method']['relationshipName']))) {
-                        if (! $tenantModelstringer->contains($importStatement)) {
-                            $tenantModelstringer->append('use', $importStatement);
-                        }
+                    if (filled($importStatement = $this->addModelReturnTypeImportStatement($modifiedResource['tenant_model_method']['relationshipName'])) && ! $tenantModelstringer->contains($importStatement)) {
+                        $tenantModelstringer->append('use', $importStatement);
                     }
 
                     $tenantModelstringer
@@ -151,7 +145,7 @@ trait CanGenerateRelationshipsForTenancy
             'morphMany' => "        /** @return MorphMany<{$returnType}, self> */\n    public function {$name}(): MorphMany\n    {\n        return \$this->morphMany({$related});\n    }",
         ];
 
-        return $stubs[$relationshipName] ?? "// No relationship defined for the given name: {$relationshipName}\n";
+        return $stubs[$relationshipName] ?? sprintf('// No relationship defined for the given name: %s%s', $relationshipName, PHP_EOL);
     }
 
     protected function addModelReturnTypeImportStatement(string $relationshipName): ?string

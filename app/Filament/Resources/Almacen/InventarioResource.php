@@ -2,6 +2,19 @@
 
 namespace App\Filament\Resources\Almacen;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use App\Services\Inventario\InventarioPdfService;
+use App\Filament\Resources\Almacen\InventarioResource\RelationManagers\ConteosRelationManager;
+use App\Filament\Resources\Almacen\InventarioResource\RelationManagers\EventosRelationManager;
+use App\Filament\Resources\Almacen\InventarioResource\Pages\ListInventarios;
+use App\Filament\Resources\Almacen\InventarioResource\Pages\CreateInventario;
+use App\Filament\Resources\Almacen\InventarioResource\Pages\ViewInventario;
 use App\Filament\Resources\Almacen\InventarioResource\Pages;
 use App\Filament\Resources\Almacen\InventarioResource\RelationManagers;
 use App\Models\Inventario\Almacen;
@@ -10,15 +23,10 @@ use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;
 use App\Services\Inventario\InventarioFisicoService as Servicio;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -26,13 +34,13 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-class InventarioResource extends Resource implements HasShieldPermissions
+class InventarioResource extends Resource
 {
     protected static ?string $model = InventarioFisico::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $navigationGroup = 'Almacenes';
+    protected static string | \UnitEnum | null $navigationGroup = 'Almacenes';
 
     protected static ?string $navigationLabel = 'Inventarios físicos';
 
@@ -77,9 +85,9 @@ class InventarioResource extends Resource implements HasShieldPermissions
         return parent::getEloquentQuery()->delUsuario(auth()->user())->conProgreso()->with(['empresa', 'sucursal', 'almacen', 'responsable']);
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Select::make('empresa_id')->label('Empresa')->required()->searchable()->preload()->live()
                 ->default(fn () => auth()->user()->empresa_id)
                 ->options(fn () => Empresa::query()->when(auth()->user()->empresa_id, fn ($q, $id) => $q->whereKey($id))->pluck('nombre_comercial', 'id'))
@@ -107,9 +115,9 @@ class InventarioResource extends Resource implements HasShieldPermissions
         ])->columns(2);
     }
 
-    public static function infolist(Infolist $infolist): Infolist
+    public static function infolist(Schema $schema): Schema
     {
-        return $infolist->schema([
+        return $schema->components([
             TextEntry::make('codigo')->label('Inventario')->copyable(),
             TextEntry::make('estado')->label('Estado')->badge()->formatStateUsing(fn ($state) => InventarioFisico::ESTADOS[$state]),
             TextEntry::make('empresa.nombre_comercial')->label('Empresa'),
@@ -143,29 +151,29 @@ class InventarioResource extends Resource implements HasShieldPermissions
             TextColumn::make('diferencias_count')->label('Diferencias')->color('warning'),
             TextColumn::make('responsable.name')->label('Responsable')->searchable()->toggleable(isToggledHiddenByDefault: true),
         ])->filters([
-            Tables\Filters\SelectFilter::make('empresa_id')->label('Empresa')->searchable()
+            SelectFilter::make('empresa_id')->label('Empresa')->searchable()
                 ->options(fn () => Empresa::query()->when(auth()->user()->empresa_id, fn ($q, $id) => $q->whereKey($id))->pluck('nombre_comercial', 'id')),
-            Tables\Filters\SelectFilter::make('sucursal_id')->label('Sucursal')->searchable()
+            SelectFilter::make('sucursal_id')->label('Sucursal')->searchable()
                 ->options(fn () => Sucursal::query()->when(auth()->user()->empresa_id, fn ($q, $id) => $q->where('empresa_id', $id))
                     ->when(auth()->user()->sucursal_id, fn ($q, $id) => $q->whereKey($id))->pluck('nombre', 'id')),
-            Tables\Filters\SelectFilter::make('estado')->label('Estado')->multiple()->options(InventarioFisico::ESTADOS),
-            Tables\Filters\Filter::make('abiertos')->label('Solo abiertos')->query(fn (Builder $query) => $query->whereIn('estado', ['programado', 'en_conteo', 'en_revision'])),
-            Tables\Filters\Filter::make('fechas')->form([
+            SelectFilter::make('estado')->label('Estado')->multiple()->options(InventarioFisico::ESTADOS),
+            Filter::make('abiertos')->label('Solo abiertos')->query(fn (Builder $query) => $query->whereIn('estado', ['programado', 'en_conteo', 'en_revision'])),
+            Filter::make('fechas')->schema([
                 DatePicker::make('desde')->label('Desde'), DatePicker::make('hasta')->label('Hasta'),
             ])->query(fn (Builder $query, array $data) => $query->when($data['desde'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha_programada', '>=', $fecha))
                 ->when($data['hasta'] ?? null, fn ($q, $fecha) => $q->whereDate('fecha_programada', '<=', $fecha))),
-        ])->actions([
-            Tables\Actions\ViewAction::make()->label('Abrir'),
-            Tables\Actions\Action::make('exportarPdf')->label('PDF')->icon('heroicon-o-document-arrow-down')
-                ->action(fn ($record) => app(\App\Services\Inventario\InventarioPdfService::class)->descargar($record)),
-        ])->bulkActions([])
+        ])->recordActions([
+            ViewAction::make()->label('Abrir'),
+            Action::make('exportarPdf')->label('PDF')->icon('heroicon-o-document-arrow-down')
+                ->action(fn ($record) => app(InventarioPdfService::class)->descargar($record)),
+        ])->toolbarActions([])
             ->defaultSort('fecha_programada', 'desc')->poll('30s')
             ->emptyStateHeading('No hay inventarios programados')->emptyStateDescription('Programe un inventario por empresa, sucursal y almacén.');
     }
 
     public static function getRelations(): array
     {
-        return [RelationManagers\ConteosRelationManager::class, RelationManagers\EventosRelationManager::class];
+        return [ConteosRelationManager::class, EventosRelationManager::class];
     }
 
     public static function getPermissionPrefixes(): array
@@ -175,6 +183,6 @@ class InventarioResource extends Resource implements HasShieldPermissions
 
     public static function getPages(): array
     {
-        return ['index' => Pages\ListInventarios::route('/'), 'create' => Pages\CreateInventario::route('/create'), 'view' => Pages\ViewInventario::route('/{record}')];
+        return ['index' => ListInventarios::route('/'), 'create' => CreateInventario::route('/create'), 'view' => ViewInventario::route('/{record}')];
     }
 }

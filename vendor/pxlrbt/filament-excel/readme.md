@@ -29,14 +29,19 @@ Easily configure your Excel exports in Filament via a bulk or page action.
 Install via Composer. This will download the package and [Laravel Excel](https://laravel-excel.com/).
 
 | Plugin Version | Filament Version | PHP Version |
-|----------------|-----------------|-------------|
-| 1.x            | 2.x   | \> 8.0      |
-| 2.x            | 3.x             | \> 8.1      |
-
+|----------------|------------------|-------------|
+| 1.x            | 2.x              | \> 8.0      |
+| 2.x            | 3.x              | \> 8.1      |
+| 3.x            | 4.x, 5.x         | \> 8.1      |
 
 ```bash
 composer require pxlrbt/filament-excel
 ```
+
+### Upgrading to Filament v4
+
+- `composer require pxlrbt/filament-excel:3.0`
+- The Action classes were simplified into a single `ExportBulkAction` and `ExportAction` for pages and tables
 
 ### Laravel > 9
 
@@ -166,6 +171,39 @@ ExportAction::make()->exports([
 ])
 ```
 
+
+### CSV settings
+
+When exporting as CSV, you can customize the CSV output via `->withCsvSettings()` using the `CsvSettings` DTO. Any setting left as `null` will use the Laravel Excel config defaults.
+
+```php
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use pxlrbt\FilamentExcel\Exports\CsvSettings;
+use Maatwebsite\Excel\Excel;
+
+ExportAction::make()->exports([
+    ExcelExport::make()
+        ->withWriterType(Excel::CSV)
+        ->withCsvSettings(new CsvSettings(
+            delimiter: ';',
+            useBom: true,
+        )),
+])
+```
+
+You can also pass a Closure for dynamic configuration:
+
+```php
+ExcelExport::make()
+    ->withWriterType(Excel::CSV)
+    ->withCsvSettings(fn () => new CsvSettings(
+        delimiter: '\t',
+        outputEncoding: 'ISO-8859-1',
+    ))
+```
+
+Available settings: `delimiter`, `enclosure`, `lineEnding`, `useBom`, `includeSeparatorLine`, `excelCompatibility`, `outputEncoding`.
 
 ### Defining columns
 
@@ -318,6 +356,40 @@ class AppServiceProvider extends ServiceProvider
 ```
 
 
+### Styling
+
+To apply custom styles (bold headers, alignment, font sizes, etc.) to your export, create a custom export class that implements the `WithStyles` interface from Laravel Excel:
+
+```php
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use pxlrbt\FilamentExcel\Columns\Column;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+
+class CustomExport extends ExcelExport implements WithStyles
+{
+    public function setUp()
+    {
+        $this->withFilename('custom_export');
+        $this->withColumns([
+            Column::make('name'),
+            Column::make('email'),
+        ]);
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [
+            1    => ['font' => ['bold' => true]],          // Style the first row (headings) as bold
+            'B2' => ['font' => ['italic' => true]],        // Style a specific cell
+            'C'  => ['font' => ['size' => 16]],            // Style an entire column
+        ];
+    }
+}
+```
+
+For all available styling options, refer to the [Laravel Excel Styling documentation](https://docs.laravel-excel.com/3.1/exports/column-formatting.html#styling).
+
 ### User input
 
 You can let the user pick a filename and writer type by using `->askForFilename()` and `->askForWriterType()`:
@@ -379,12 +451,19 @@ ExportAction::make()->exports([
 The size of exported records per Job can be adjusted by using `->withChunkSize()`:
 
 ```php
-se pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 ExportAction::make()->exports([
     ExcelExport::make()->queue()->withChunkSize(100)
 ])
+```
+
+You can specify a custom queue name and connection:
+
+```php
+ExcelExport::make()->queue(queue: 'exports')
+ExcelExport::make()->queue(queue: 'exports', connection: 'redis')
 ```
 
 
@@ -410,6 +489,32 @@ class CustomExport extends ExcelExport
     }
 }
 ```
+
+## Multiple sheets
+
+By default, the package will only generate the sheet containing the data. However, it is possible to add additional custom sheets before and after the data sheet. 
+
+```php
+ExportBulkAction::make()->exports([
+    ExcelExport::make('user_export')->fromTable()
+        ->withSheets(
+            sheets: [
+                new OverriddenDataSheet(),
+            ],
+            prepend: [
+                new CoverSheet(),
+            ],
+            append: [
+                new AppendixSheet(),
+            ]
+        )
+])
+```
+
+The array of classes that are passed to `->withSheets()` should be sheet classes as detailed [here](https://docs.laravel-excel.com/3.1/exports/multiple-sheets.html#sheet-classes)
+
+It is also possible to pass an array of sheet classes to `->withSheets(sheets: array)` which will override the default data sheet.
+
 
 ## File download URL customization
 

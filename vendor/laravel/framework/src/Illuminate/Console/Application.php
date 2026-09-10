@@ -8,7 +8,9 @@ use Illuminate\Contracts\Console\Application as ApplicationContract;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ProcessUtils;
+use ReflectionClass;
 use Symfony\Component\Console\Application as SymfonyApplication;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Exception\CommandNotFoundException;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -53,7 +55,7 @@ class Application extends SymfonyApplication implements ApplicationContract
     /**
      * A map of command names to classes.
      *
-     * @var array
+     * @var array<string, \Illuminate\Console\Command|string>
      */
     protected $commandMap = [];
 
@@ -145,7 +147,7 @@ class Application extends SymfonyApplication implements ApplicationContract
     /**
      * Run an Artisan console command by name.
      *
-     * @param  string  $command
+     * @param  \Symfony\Component\Console\Command\Command|string  $command
      * @param  array  $parameters
      * @param  \Symfony\Component\Console\Output\OutputInterface|null  $outputBuffer
      * @return int
@@ -168,14 +170,18 @@ class Application extends SymfonyApplication implements ApplicationContract
     /**
      * Parse the incoming Artisan command and its input.
      *
-     * @param  string  $command
+     * @param  \Symfony\Component\Console\Command\Command|string  $command
      * @param  array  $parameters
-     * @return array
+     * @return array<string, \Symfony\Component\Console\Input\ArrayInput>
      */
     protected function parseCommand($command, $parameters)
     {
         if (is_subclass_of($command, SymfonyCommand::class)) {
             $callingClass = true;
+
+            if (is_object($command)) {
+                $command = get_class($command);
+            }
 
             $command = $this->laravel->make($command)->getName();
         }
@@ -204,6 +210,20 @@ class Application extends SymfonyApplication implements ApplicationContract
     }
 
     /**
+     * Add an array of commands to the console.
+     *
+     * @param  array<int, \Symfony\Component\Console\Command\Command>  $commands
+     * @return void
+     */
+    #[\Override]
+    public function addCommands(array $commands): void
+    {
+        foreach ($commands as $command) {
+            $this->addCommand($command);
+        }
+    }
+
+    /**
      * Add a command to the console.
      *
      * @param  \Symfony\Component\Console\Command\Command  $command
@@ -211,6 +231,17 @@ class Application extends SymfonyApplication implements ApplicationContract
      */
     #[\Override]
     public function add(SymfonyCommand $command): ?SymfonyCommand
+    {
+        return $this->addCommand($command);
+    }
+
+    /**
+     * Add a command to the console.
+     *
+     * @param  \Symfony\Component\Console\Command\Command|callable  $command
+     * @return \Symfony\Component\Console\Command\Command|null
+     */
+    public function addCommand(SymfonyCommand|callable $command): ?SymfonyCommand
     {
         if ($command instanceof Command) {
             $command->setLaravel($this->laravel);
@@ -227,6 +258,10 @@ class Application extends SymfonyApplication implements ApplicationContract
      */
     protected function addToParent(SymfonyCommand $command)
     {
+        if (method_exists(SymfonyApplication::class, 'addCommand')) {
+            return parent::addCommand($command);
+        }
+
         return parent::add($command);
     }
 
@@ -238,12 +273,18 @@ class Application extends SymfonyApplication implements ApplicationContract
      */
     public function resolve($command)
     {
-        if (is_subclass_of($command, SymfonyCommand::class) && ($commandName = $command::getDefaultName())) {
-            foreach (explode('|', $commandName) as $name) {
-                $this->commandMap[$name] = $command;
-            }
+        if (is_subclass_of($command, SymfonyCommand::class)) {
+            $attribute = (new ReflectionClass($command))->getAttributes(AsCommand::class);
 
-            return null;
+            $commandName = ! empty($attribute) ? $attribute[0]->newInstance()->name : null;
+
+            if (! is_null($commandName)) {
+                foreach (explode('|', $commandName) as $name) {
+                    $this->commandMap[$name] = $command;
+                }
+
+                return null;
+            }
         }
 
         if ($command instanceof Command) {
@@ -256,7 +297,7 @@ class Application extends SymfonyApplication implements ApplicationContract
     /**
      * Resolve an array of commands through the application.
      *
-     * @param  array|mixed  $commands
+     * @param  mixed  $commands
      * @return $this
      */
     public function resolveCommands($commands)

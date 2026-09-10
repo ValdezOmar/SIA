@@ -2,19 +2,30 @@
 
 namespace App\Filament\Resources\Compras;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use App\Models\Sistema\Area;
+use App\Forms\Components\CalculoRepeater;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use App\Filament\Resources\Compras\SolicitudCompraResource\Pages\ListSolicitudCompras;
+use App\Filament\Resources\Compras\SolicitudCompraResource\Pages\CreateSolicitudCompra;
+use App\Filament\Resources\Compras\SolicitudCompraResource\Pages\EditSolicitudCompra;
 use App\Filament\Resources\Compras\SolicitudCompraResource\Pages;
 use App\Models\Compras\SolicitudCompra;
 use App\Models\Inventario\Articulo;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -29,9 +40,9 @@ class SolicitudCompraResource extends Resource
 {
     protected static ?string $model = SolicitudCompra::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-plus';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-document-plus';
 
-    protected static ?string $navigationGroup = 'Compras';
+    protected static string | \UnitEnum | null $navigationGroup = 'Compras';
 
     protected static ?string $navigationLabel = 'Solicitudes de Compra';
 
@@ -93,13 +104,13 @@ class SolicitudCompraResource extends Resource
         $set('total', $total);
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('Gestión de Solicitud')
                     ->tabs([
-                        Tabs\Tab::make('General')
+                        Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Solicitud')
@@ -176,7 +187,7 @@ class SolicitudCompraResource extends Resource
                                                 Select::make('area_id')
                                                     ->label('Área')
                                                     ->options(
-                                                        fn () => \App\Models\Sistema\Area::pluck('nombre', 'id')->toArray()
+                                                        fn () => Area::pluck('nombre', 'id')->toArray()
                                                     )
                                                     ->searchable()
                                                     ->preload()
@@ -254,7 +265,7 @@ class SolicitudCompraResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Productos')
+                        Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
                                 if (! $record) {
@@ -268,12 +279,12 @@ class SolicitudCompraResource extends Resource
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos solicitados')
                                     ->schema([
-                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('solicitud')
+                                        CalculoRepeater::make('detalles')->calculo('solicitud')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()
                                             ->schema([
-                                                Grid::make(12)
+                                                Grid::make(['default' => 1, 'lg' => 12])
                                                     ->schema([
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
@@ -375,7 +386,7 @@ class SolicitudCompraResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Auditoría')
+                        Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -517,17 +528,17 @@ class SolicitudCompraResource extends Resource
                     ->searchable()
                     ->preload(),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('aprobar')
+                    Action::make('aprobar')
                         ->label('Aprobar')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -541,12 +552,12 @@ class SolicitudCompraResource extends Resource
                         })
                         ->visible(fn ($record) => $record->estado === 'pendiente'),
 
-                    Tables\Actions\Action::make('rechazar')
+                    Action::make('rechazar')
                         ->label('Rechazar')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->form([
+                        ->schema([
                             Textarea::make('motivo')
                                 ->label('Motivo de rechazo')
                                 ->required()
@@ -563,7 +574,7 @@ class SolicitudCompraResource extends Resource
                         })
                         ->visible(fn ($record) => in_array($record->estado, ['pendiente', 'en_cotizacion'])),
 
-                    Tables\Actions\Action::make('convertir_orden')
+                    Action::make('convertir_orden')
                         ->label('Convertir a Orden')
                         ->icon('heroicon-o-arrow-path')
                         ->color('primary')
@@ -580,7 +591,7 @@ class SolicitudCompraResource extends Resource
                         })
                         ->visible(fn ($record) => $record->estado === 'aprobada'),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->visible(fn ($record) => in_array($record->estado, ['borrador', 'rechazada'])),
                 ])
                     ->tooltip('Acciones')
@@ -604,9 +615,9 @@ class SolicitudCompraResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSolicitudCompras::route('/'),
-            'create' => Pages\CreateSolicitudCompra::route('/create'),
-            'edit' => Pages\EditSolicitudCompra::route('/{record}/edit'),
+            'index' => ListSolicitudCompras::route('/'),
+            'create' => CreateSolicitudCompra::route('/create'),
+            'edit' => EditSolicitudCompra::route('/{record}/edit'),
         ];
     }
 }

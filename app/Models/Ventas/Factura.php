@@ -2,6 +2,7 @@
 
 namespace App\Models\Ventas;
 
+use RuntimeException;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Existencia;
@@ -365,7 +366,7 @@ class Factura extends Model
                     ->orderByRaw('sucursal_id IS NULL'))
                 ->first();
             if (! $almacen) {
-                throw new \RuntimeException('No existe un almacén activo para reservar los productos.');
+                throw new RuntimeException('No existe un almacén activo para reservar los productos.');
             }
 
             foreach ($this->detalles as $detalle) {
@@ -381,7 +382,7 @@ class Factura extends Model
                     ->first();
                 $disponible = (float) ($existencia?->cantidad_disponible ?? 0) - (float) ($existencia?->cantidad_comprometida ?? 0);
                 if ((! $existencia || $disponible < $cantidad) && ! $almacen->permite_inventario_negativo) {
-                    throw new \RuntimeException('No hay stock disponible para reservar el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
+                    throw new RuntimeException('No hay stock disponible para reservar el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
                 }
 
                 $existencia ??= Existencia::create([
@@ -433,7 +434,7 @@ class Factura extends Model
             $fechaEntrega = $this->fecha_vencimiento ?? $fechaVenta;
 
             if ((float) $this->saldo > 0) {
-                throw new \RuntimeException('La entrega solo puede confirmarse cuando el pago total de la venta esté verificado.');
+                throw new RuntimeException('La entrega solo puede confirmarse cuando el pago total de la venta esté verificado.');
             }
 
             $requiereInventario = $this->detalles()->whereHas('articulo', fn ($query) => $query->where('inventariable', true))->where('cantidad', '>', 0)->exists();
@@ -469,7 +470,7 @@ class Factura extends Model
                 : null;
 
             if ($requiereInventario && ! $almacen) {
-                throw new \RuntimeException('No existe un almacén activo para registrar la salida de inventario.');
+                throw new RuntimeException('No existe un almacén activo para registrar la salida de inventario.');
             }
 
             if (! $yaExisteKardex) {
@@ -484,11 +485,11 @@ class Factura extends Model
                         ->first();
 
                     if (! $existencia && ! $almacen->permite_inventario_negativo) {
-                        throw new \RuntimeException('No existe stock del artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).' en el almacén activo.');
+                        throw new RuntimeException('No existe stock del artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).' en el almacén activo.');
                     }
 
                     if (! $almacen->permite_inventario_negativo && (float) $existencia->cantidad_disponible < $cantidad) {
-                        throw new \RuntimeException('Stock insuficiente para el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
+                        throw new RuntimeException('Stock insuficiente para el artículo '.($detalle->articulo?->nombre_comercial ?? $detalle->articulo_id).'.');
                     }
 
                     $kardex = Kardex::registrarSalida([

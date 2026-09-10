@@ -2,28 +2,42 @@
 
 namespace App\Filament\Clusters\Sistema\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Clusters\Sistema\Resources\HorarioAsistenciaResource\Pages\ListHorarioAsistencias;
+use App\Filament\Clusters\Sistema\Resources\HorarioAsistenciaResource\Pages\CreateHorarioAsistencia;
+use App\Filament\Clusters\Sistema\Resources\HorarioAsistenciaResource\Pages\EditHorarioAsistencia;
 use App\Filament\Clusters\Sistema;
 use App\Filament\Clusters\Sistema\Resources\HorarioAsistenciaResource\Pages;
 use App\Filament\Clusters\Sistema\Resources\HorarioAsistenciaResource\RelationManagers\AsignacionesRelationManager;
 use App\Models\RRHH\HorarioAsistencia;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class HorarioAsistenciaResource extends Resource implements HasShieldPermissions
+class HorarioAsistenciaResource extends Resource
 {
     protected static ?string $model = HorarioAsistencia::class;
 
     protected static ?string $cluster = Sistema::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clock';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clock';
 
     protected static ?string $navigationLabel = 'Horarios de asistencia';
 
-    protected static ?string $navigationGroup = 'Personal y asistencia';
+    protected static string | \UnitEnum | null $navigationGroup = 'Personal y asistencia';
 
     protected static ?string $modelLabel = 'Horario de asistencia';
 
@@ -31,18 +45,20 @@ class HorarioAsistenciaResource extends Resource implements HasShieldPermissions
 
     protected static ?int $navigationSort = 5;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Identificación del turno')
+        return $schema->components([
+            Section::make('Identificación del turno')
+                ->icon('heroicon-o-identification')
+                ->columnSpanFull()
                 ->description('Defina un turno reutilizable y asígnelo a los empleados desde la pestaña Asignaciones.')
                 ->schema([
-                    Forms\Components\TextInput::make('nombre')
+                    TextInput::make('nombre')
                         ->label('Nombre del turno')
                         ->placeholder('Ej. Administrativo')
                         ->required()
                         ->maxLength(100),
-                    Forms\Components\TextInput::make('codigo')
+                    TextInput::make('codigo')
                         ->label('Código')
                         ->placeholder('Ej. ADMINISTRATIVO')
                         ->unique(ignoreRecord: true)
@@ -50,36 +66,40 @@ class HorarioAsistenciaResource extends Resource implements HasShieldPermissions
                         ->maxLength(50)
                         ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? strtoupper(trim($state)) : null)
                         ->extraInputAttributes(['style' => 'text-transform: uppercase;']),
-                    Forms\Components\CheckboxList::make('dias_laborales')
+                    CheckboxList::make('dias_laborales')
                         ->label('Días laborables')
                         ->options([
                             1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves',
                             5 => 'Viernes', 6 => 'Sábado', 7 => 'Domingo',
                         ])
-                        ->columns(4)
+                        ->columns(['default' => 2, 'md' => 4, 'xl' => 7])
                         ->required()
                         ->minItems(1)
                         ->default([1, 2, 3, 4, 5])
                         ->helperText('Seleccione los días en que este turno espera una marcación de entrada.')
                         ->columnSpanFull(),
-                ])->columns(2),
-            Forms\Components\Section::make('Marcaciones esperadas')
+                ])->columns(['default' => 1, 'lg' => 2]),
+            Section::make('Marcaciones esperadas')
+                ->icon('heroicon-o-clock')
+                ->columnSpanFull()
                 ->description('Las horas se usan para calcular puntualidad. La primera marcación del día se contrasta con la entrada y su tolerancia.')
                 ->schema([
-                    Forms\Components\TimePicker::make('hora_entrada')->label('Entrada')->seconds(false)->required(),
-                    Forms\Components\TextInput::make('tolerancia_minutos')->label('Tolerancia (minutos)')->numeric()->minValue(0)->maxValue(240)->default(0)->required()->helperText('Minutos permitidos antes de registrar retraso.'),
-                    Forms\Components\TimePicker::make('hora_omision')->label('Desde qué hora es omisión')->seconds(false)->helperText('Opcional. Después de esta hora la primera marcación se clasifica como omisión.'),
-                    Forms\Components\TimePicker::make('hora_inicio_almuerzo')->label('Inicio de almuerzo')->seconds(false),
-                    Forms\Components\TimePicker::make('hora_fin_almuerzo')->label('Fin de almuerzo')->seconds(false),
-                    Forms\Components\TimePicker::make('hora_salida')->label('Salida')->seconds(false),
-                    Forms\Components\Toggle::make('requiere_marcacion_almuerzo')->label('Exigir marcación de almuerzo')->helperText('Úselo cuando el personal debe marcar salida y retorno de almuerzo.'),
-                ])->columns(3),
-            Forms\Components\Section::make('Estado')
+                    TimePicker::make('hora_entrada')->label('Entrada')->seconds(false)->required(),
+                    TextInput::make('tolerancia_minutos')->label('Tolerancia (minutos)')->numeric()->minValue(0)->maxValue(240)->default(0)->required()->helperText('Minutos permitidos antes de registrar retraso.'),
+                    TimePicker::make('hora_omision')->label('Desde qué hora es omisión')->seconds(false)->helperText('Opcional. Después de esta hora la primera marcación se clasifica como omisión.'),
+                    TimePicker::make('hora_inicio_almuerzo')->label('Inicio de almuerzo')->seconds(false),
+                    TimePicker::make('hora_fin_almuerzo')->label('Fin de almuerzo')->seconds(false),
+                    TimePicker::make('hora_salida')->label('Salida')->seconds(false),
+                    Toggle::make('requiere_marcacion_almuerzo')->label('Exigir marcación de almuerzo')->helperText('Úselo cuando el personal debe marcar salida y retorno de almuerzo.'),
+                ])->columns(['default' => 1, 'md' => 2, 'xl' => 3]),
+            Section::make('Estado')
+                ->icon('heroicon-o-adjustments-horizontal')
+                ->columnSpanFull()
                 ->schema([
-                    Forms\Components\Toggle::make('activo')->label('Turno activo')->default(true),
-                    Forms\Components\Toggle::make('predeterminado')->label('Usar cuando un empleado no tiene un turno asignado')->helperText('Solo puede existir un turno predeterminado; los turnos específicos siempre tienen prioridad.')->default(false),
-                    Forms\Components\Textarea::make('observaciones')->label('Observaciones')->maxLength(1000)->columnSpanFull(),
-                ])->columns(2),
+                    Toggle::make('activo')->label('Turno activo')->default(true),
+                    Toggle::make('predeterminado')->label('Usar cuando un empleado no tiene un turno asignado')->helperText('Solo puede existir un turno predeterminado; los turnos específicos siempre tienen prioridad.')->default(false),
+                    Textarea::make('observaciones')->label('Observaciones')->maxLength(1000)->columnSpanFull(),
+                ])->columns(['default' => 1, 'lg' => 2]),
         ]);
     }
 
@@ -87,22 +107,22 @@ class HorarioAsistenciaResource extends Resource implements HasShieldPermissions
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')->label('Turno')->searchable()->sortable()->description(fn (HorarioAsistencia $record): string => $record->codigo),
-                Tables\Columns\TextColumn::make('hora_entrada')->label('Entrada')->time('H:i'),
-                Tables\Columns\TextColumn::make('hora_inicio_almuerzo')->label('Almuerzo')->formatStateUsing(fn ($state, HorarioAsistencia $record): string => $state && $record->hora_fin_almuerzo ? substr($state, 0, 5).' – '.substr($record->hora_fin_almuerzo, 0, 5) : 'No definido'),
-                Tables\Columns\TextColumn::make('hora_salida')->label('Salida')->time('H:i')->placeholder('No definida'),
-                Tables\Columns\IconColumn::make('predeterminado')->label('Predeterminado')->boolean(),
-                Tables\Columns\IconColumn::make('activo')->label('Activo')->boolean(),
+                TextColumn::make('nombre')->label('Turno')->searchable()->sortable()->description(fn (HorarioAsistencia $record): string => $record->codigo),
+                TextColumn::make('hora_entrada')->label('Entrada')->time('H:i'),
+                TextColumn::make('hora_inicio_almuerzo')->label('Almuerzo')->formatStateUsing(fn ($state, HorarioAsistencia $record): string => $state && $record->hora_fin_almuerzo ? substr($state, 0, 5).' – '.substr($record->hora_fin_almuerzo, 0, 5) : 'No definido'),
+                TextColumn::make('hora_salida')->label('Salida')->time('H:i')->placeholder('No definida'),
+                IconColumn::make('predeterminado')->label('Predeterminado')->boolean(),
+                IconColumn::make('activo')->label('Activo')->boolean(),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('activo')->label('Activo'),
+                TernaryFilter::make('activo')->label('Activo'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()->label('Editar')->tooltip('Editar turno y sus asignaciones'),
+            ->recordActions([
+                EditAction::make()->label('Editar')->tooltip('Editar turno y sus asignaciones'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('nombre')
@@ -119,9 +139,9 @@ class HorarioAsistenciaResource extends Resource implements HasShieldPermissions
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListHorarioAsistencias::route('/'),
-            'create' => Pages\CreateHorarioAsistencia::route('/create'),
-            'edit' => Pages\EditHorarioAsistencia::route('/{record}/edit'),
+            'index' => ListHorarioAsistencias::route('/'),
+            'create' => CreateHorarioAsistencia::route('/create'),
+            'edit' => EditHorarioAsistencia::route('/{record}/edit'),
         ];
     }
 

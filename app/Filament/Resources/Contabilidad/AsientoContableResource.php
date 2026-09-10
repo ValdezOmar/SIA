@@ -2,6 +2,23 @@
 
 namespace App\Filament\Resources\Contabilidad;
 
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use App\Support\CalculoDetalle;
+use App\Forms\Components\CalculoRepeater;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Exception;
+use Filament\Actions\DeleteAction;
+use App\Filament\Resources\Contabilidad\AsientoContableResource\Pages\ListAsientoContables;
+use App\Filament\Resources\Contabilidad\AsientoContableResource\Pages\CreateAsientoContable;
+use App\Filament\Resources\Contabilidad\AsientoContableResource\Pages\EditAsientoContable;
 use App\Filament\Resources\Contabilidad\AsientoContableResource\Pages;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Contabilidad\CentroCosto;
@@ -10,15 +27,11 @@ use App\Models\Contabilidad\Proyecto;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -35,9 +48,9 @@ class AsientoContableResource extends Resource
 {
     protected static ?string $model = AsientoContable::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-duplicate';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-document-duplicate';
 
-    protected static ?string $navigationGroup = 'Contabilidad';
+    protected static string | \UnitEnum | null $navigationGroup = 'Contabilidad';
 
     protected static ?string $navigationLabel = 'Asientos Contables';
 
@@ -65,7 +78,7 @@ class AsientoContableResource extends Resource
     /**
      * Aplicar filtros de empresa y sucursal a la consulta
      */
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
 
@@ -82,7 +95,7 @@ class AsientoContableResource extends Resource
         return $query;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
         $defaultEmpresaId = Auth::user()?->empresa_id ?: Empresa::query()->value('id');
@@ -90,11 +103,11 @@ class AsientoContableResource extends Resource
             ->when($defaultEmpresaId, fn ($query) => $query->where('empresa_id', $defaultEmpresaId))
             ->value('id');
 
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('Gestión de Asiento')
                     ->tabs([
-                        Tabs\Tab::make('General')
+                        Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Asiento')
@@ -276,7 +289,7 @@ class AsientoContableResource extends Resource
                                                 Placeholder::make('total_debe')
                                                     ->label('Total Debe')
                                                     ->content(function ($get, $record) {
-                                                        $total = \App\Support\CalculoDetalle::totales($get('detalles') ?? [], 'contabilidad')['total_debe'];
+                                                        $total = CalculoDetalle::totales($get('detalles') ?? [], 'contabilidad')['total_debe'];
 
                                                         return self::formatearMonto($total);
                                                     }),
@@ -284,7 +297,7 @@ class AsientoContableResource extends Resource
                                                 Placeholder::make('total_haber')
                                                     ->label('Total Haber')
                                                     ->content(function ($get, $record) {
-                                                        $total = \App\Support\CalculoDetalle::totales($get('detalles') ?? [], 'contabilidad')['total_haber'];
+                                                        $total = CalculoDetalle::totales($get('detalles') ?? [], 'contabilidad')['total_haber'];
 
                                                         return self::formatearMonto($total);
                                                     }),
@@ -292,7 +305,7 @@ class AsientoContableResource extends Resource
                                                 Placeholder::make('balance')
                                                     ->label('Balance')
                                                     ->content(function ($get, $record) {
-                                                        $totales = \App\Support\CalculoDetalle::totales($get('detalles') ?? [], 'contabilidad');
+                                                        $totales = CalculoDetalle::totales($get('detalles') ?? [], 'contabilidad');
                                                         $debe = $totales['total_debe'];
                                                         $haber = $totales['total_haber'];
                                                         $diferencia = $debe - $haber;
@@ -309,7 +322,7 @@ class AsientoContableResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Partidas')
+                        Tab::make('Partidas')
                             ->icon('heroicon-o-document-chart-bar')
                             ->badge(function ($record) {
                                 if (! $record) {
@@ -323,12 +336,12 @@ class AsientoContableResource extends Resource
                                     ->icon('heroicon-o-document-chart-bar')
                                     ->description('Partidas del asiento contable')
                                     ->schema([
-                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('contabilidad')
+                                        CalculoRepeater::make('detalles')->calculo('contabilidad')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()
                                             ->schema([
-                                                Grid::make(12)
+                                                Grid::make(['default' => 1, 'lg' => 12])
                                                     ->schema([
                                                         Select::make('cuenta_id')
                                                             ->label('Cuenta')
@@ -444,7 +457,7 @@ class AsientoContableResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Auditoría')
+                        Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -645,7 +658,7 @@ class AsientoContableResource extends Resource
 
                 Filter::make('fecha_asiento')
                     ->label('Rango de Fechas')
-                    ->form([
+                    ->schema([
                         DatePicker::make('fecha_desde')
                             ->label('Desde')
                             ->displayFormat('d/m/Y'),
@@ -659,18 +672,18 @@ class AsientoContableResource extends Resource
                             ->when($data['fecha_hasta'], fn ($q, $fecha) => $q->whereDate('fecha_asiento', '<=', $fecha));
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl')
                         ->visible(fn ($record) => $record->estado !== 'confirmado'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('confirmar')
+                    Action::make('confirmar')
                         ->label('Confirmar')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -682,7 +695,7 @@ class AsientoContableResource extends Resource
                                     ->body('El asiento '.$record->codigo.' ha sido confirmado.')
                                     ->success()
                                     ->send();
-                            } catch (\Exception $e) {
+                            } catch (Exception $e) {
                                 Notification::make()
                                     ->title('Error al confirmar')
                                     ->body($e->getMessage())
@@ -692,12 +705,12 @@ class AsientoContableResource extends Resource
                         })
                         ->visible(fn ($record) => $record->estado === 'borrador' && $record->esta_balanceado),
 
-                    Tables\Actions\Action::make('anular')
+                    Action::make('anular')
                         ->label('Anular')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->form([
+                        ->schema([
                             Textarea::make('motivo')
                                 ->label('Motivo de anulación')
                                 ->required()
@@ -714,7 +727,7 @@ class AsientoContableResource extends Resource
                         })
                         ->visible(fn ($record) => $record->estado === 'confirmado'),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->visible(fn ($record) => $record->estado === 'borrador'),
                 ])
                     ->tooltip('Acciones')
@@ -736,9 +749,9 @@ class AsientoContableResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAsientoContables::route('/'),
-            'create' => Pages\CreateAsientoContable::route('/create'),
-            'edit' => Pages\EditAsientoContable::route('/{record}/edit'),
+            'index' => ListAsientoContables::route('/'),
+            'create' => CreateAsientoContable::route('/create'),
+            'edit' => EditAsientoContable::route('/{record}/edit'),
         ];
     }
 }

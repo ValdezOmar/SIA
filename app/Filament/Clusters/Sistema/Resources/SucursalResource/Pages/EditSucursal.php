@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Sistema\Resources\SucursalResource\Pages;
 
+use Filament\Actions\DeleteAction;
 use App\Filament\Clusters\Sistema\Resources\SucursalResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -19,7 +20,7 @@ class EditSucursal extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

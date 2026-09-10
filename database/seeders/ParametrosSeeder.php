@@ -2,15 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class ParametrosSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         DB::table('conf_parametros')->insert([
@@ -18,6 +14,9 @@ class ParametrosSeeder extends Seeder
             'favicon_path' => '/images/favicon.ico',
             'fondo_path' => '/images/fondo.jpg',
             'color_principal' => '#009BA4',
+            'color_secundario' => '#3066BE',
+            'escala_interfaz' => '88%',
+            'estilo_login' => 'cristal',
             'google_activo' => false,
             'google_client_id' => null,
             'google_client_secret' => null,

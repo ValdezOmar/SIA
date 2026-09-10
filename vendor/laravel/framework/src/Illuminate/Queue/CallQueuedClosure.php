@@ -23,6 +23,13 @@ class CallQueuedClosure implements ShouldQueue
     public $closure;
 
     /**
+     * The name assigned to the job.
+     *
+     * @var string|null
+     */
+    public $name = null;
+
+    /**
      * The callbacks that should be executed on failure.
      *
      * @var array
@@ -103,8 +110,27 @@ class CallQueuedClosure implements ShouldQueue
      */
     public function displayName()
     {
-        $reflection = new ReflectionFunction($this->closure->getClosure());
+        $closure = $this->closure instanceof SerializableClosure
+                    ? $this->closure->getClosure()
+                    : $this->closure;
 
-        return 'Closure ('.basename($reflection->getFileName()).':'.$reflection->getStartLine().')';
+        $reflection = new ReflectionFunction($closure);
+
+        $prefix = is_null($this->name) ? '' : "{$this->name} - ";
+
+        return $prefix.'Closure ('.basename($reflection->getFileName()).':'.$reflection->getStartLine().')';
+    }
+
+    /**
+     * Assign a name to the job.
+     *
+     * @param  string  $name
+     * @return $this
+     */
+    public function name($name)
+    {
+        $this->name = $name;
+
+        return $this;
     }
 }

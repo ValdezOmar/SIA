@@ -2,6 +2,7 @@
 
 namespace App\Models\Inventario;
 
+use LogicException;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
@@ -32,7 +33,7 @@ class InventarioEvento extends Model
 
     protected static function booted(): void
     {
-        static::updating(fn () => throw new \LogicException('La bitácora de inventario no se puede modificar.'));
-        static::deleting(fn () => throw new \LogicException('La bitácora de inventario no se puede eliminar.'));
+        static::updating(fn () => throw new LogicException('La bitácora de inventario no se puede modificar.'));
+        static::deleting(fn () => throw new LogicException('La bitácora de inventario no se puede eliminar.'));
     }
 }

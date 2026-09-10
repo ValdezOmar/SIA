@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Compras\FacturaCompraResource\Pages;
 
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use App\Filament\Resources\Compras\FacturaCompraResource;
 use Filament\Actions;
 use Filament\Forms\Components\Textarea;
@@ -20,14 +22,14 @@ class EditFacturaCompra extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('anularFactura')
+            Action::make('anularFactura')
                 ->label('Anular factura')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('Anular factura')
                 ->modalDescription('Se anularán sus pagos y asientos. No estará disponible si ya se procesó el ingreso a inventario.')
-                ->form([
+                ->schema([
                     Textarea::make('motivo')->label('Motivo de la anulación')->required()->maxLength(2000),
                 ])
                 ->action(function (array $data): void {
@@ -36,7 +38,7 @@ class EditFacturaCompra extends EditRecord
                     $this->redirect(static::getResource()::getUrl('index'));
                 })
                 ->visible(fn (): bool => $this->record->estado !== 'anulada'),
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 

@@ -2,11 +2,14 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use App\Models\Inventario\Articulo;
 use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -18,9 +21,9 @@ class PreciosRelationManager extends RelationManager
 
     protected static ?string $title = 'Artículos y precios';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Select::make('articulo_id')
                 ->label('Artículo')
                 ->options(fn () => Articulo::query()->where('activo', true)->orderBy('codigo')->get()
@@ -54,10 +57,10 @@ class PreciosRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('updated_at')->label('Actualizado')->dateTime('d/m/Y H:i')->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->headerActions([Tables\Actions\CreateAction::make()->label('Asignar precio')])
-            ->actions([
-                Tables\Actions\EditAction::make()->label('Editar'),
-                Tables\Actions\DeleteAction::make(),
+            ->headerActions([CreateAction::make()->label('Asignar precio')])
+            ->recordActions([
+                EditAction::make()->label('Editar'),
+                DeleteAction::make(),
             ])
             ->emptyStateHeading('Aún no hay precios')
             ->emptyStateDescription('Asigne el precio de los artículos para esta lista.');

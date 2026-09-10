@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Exception;
 use App\Models\Sistema\Parametro;
 use App\Services\Sistema\NotificacionExcepcionOperativaService;
 use Filament\Notifications\Notification;
@@ -28,6 +29,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \BezhanSalleh\FilamentShield\Facades\FilamentShield::buildPermissionKeyUsing(
+            fn (string $entity, ?string $affix, string $subject): string => \App\Support\LegacyShieldPermissions::key($entity, $affix, $subject),
+        );
         $this->registrarNotificacionesDeExcepcionesOperativas();
 
         // Configuración para subidas temporales de Livewire
@@ -114,7 +118,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             Log::warning('No se encontró zona horaria en BD, usando la de .env');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error estableciendo timezone desde BD: '.$e->getMessage());
         }
 
@@ -146,7 +150,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             Log::warning('No se encontraron credenciales de Google en BD. Usando .env.');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error cargando configuración Google desde BD: '.$e->getMessage());
         }
     }

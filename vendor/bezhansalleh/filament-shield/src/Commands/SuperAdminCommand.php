@@ -1,42 +1,134 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BezhanSalleh\FilamentShield\Commands;
 
-use BezhanSalleh\FilamentShield\FilamentShield;
 use BezhanSalleh\FilamentShield\Support\Utils;
+use Closure;
 use Filament\Facades\Filament;
 use Illuminate\Auth\EloquentUserProvider;
 use Illuminate\Console\Command;
+use Illuminate\Console\Prohibitable;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
+use Symfony\Component\Console\Attribute\AsCommand;
 
 use function Laravel\Prompts\password;
+use function Laravel\Prompts\select;
 use function Laravel\Prompts\text;
 
+#[AsCommand(name: 'shield:super-admin', description: 'Assign the super admin role to a user')]
 class SuperAdminCommand extends Command
 {
+    use Prohibitable;
+
     public $signature = 'shield:super-admin
         {--user= : ID of user to be made super admin.}
         {--panel= : Panel ID to get the configuration from.}
         {--tenant= : Team/Tenant ID to assign role to user.}
     ';
 
-    public $description = 'Creates Filament Super Admin';
+    protected static ?Closure $createSuperAdminUsing = null;
 
     protected Authenticatable $superAdmin;
 
-    /** @var ?\Illuminate\Database\Eloquent\Model */
-    protected $superAdminRole = null;
+    protected ?string $panel = null;
+
+    protected ?Model $superAdminRole = null;
+
+    public static function createSuperAdminUsing(?Closure $callback): void
+    {
+        static::$createSuperAdminUsing = $callback;
+    }
+
+    public function handle(): int
+    {
+        if ($this->isProhibited()) {
+            return Command::FAILURE;
+        }
+
+        $this->panel = $this->option('panel') ?? select(
+            label: 'Which Panel would you like to use?',
+            options: collect(Filament::getPanels())->keys(),
+            required: true
+        );
+
+        Filament::setCurrentPanel($this->panel);
+
+        $tenantId = $this->option('tenant');
+
+        if (Utils::isTenancyEnabled()) {
+            if (blank($tenantId)) {
+                $this->components->error('Please provide the team/tenant id via `--tenant` option to assign the super admin to a team/tenant.');
+
+                return self::FAILURE;
+            }
+
+            if (($tenantModel = Utils::getTenantModel()) && $tenantModel::query()->whereKey($tenantId)->doesntExist()) {
+                $this->components->error(sprintf('The team/tenant [%s] does not exist in [%s].', $tenantId, $tenantModel));
+
+                return self::FAILURE;
+            }
+        }
+
+        $usersCount = static::getUserModel()::count();
+
+        if ($this->option('user')) {
+            $this->superAdmin = static::getUserModel()::findOrFail($this->option('user'));
+        } elseif ($usersCount === 1) {
+            $this->superAdmin = static::getUserModel()::first();
+        } elseif ($usersCount > 1) {
+            $this->table(
+                ['ID', 'Name', 'Email', 'Roles'],
+                static::getUserModel()::with('roles')->get()->map(fn (Authenticatable $user): array => [
+                    'id' => $user->getKey(),
+                    'name' => $user->getAttribute('name'),
+                    'email' => $user->getAttribute('email'),
+                    /** @phpstan-ignore-next-line */
+                    'roles' => implode(',', $user->roles->pluck('name')->toArray()),
+                ])
+            );
+
+            $superAdminId = text(
+                label: 'Please provide the `UserID` to be set as `super_admin`',
+                required: true
+            );
+
+            $this->superAdmin = static::getUserModel()::findOrFail($superAdminId);
+        } else {
+            $this->superAdmin = $this->createSuperAdmin();
+        }
+
+        if (Utils::isTenancyEnabled()) {
+            setPermissionsTeamId($tenantId);
+            $this->superAdminRole = Utils::createRole(tenantId: $tenantId);
+        } else {
+            $this->superAdminRole = Utils::createRole();
+        }
+
+        $this->superAdminRole->syncPermissions(Utils::getPermissionModel()::pluck('id'));
+
+        $this->superAdmin
+            ->unsetRelation('roles')
+            ->unsetRelation('permissions');
+
+        $this->superAdmin
+            ->assignRole($this->superAdminRole);
+
+        $loginUrl = Filament::getCurrentOrDefaultPanel()?->getLoginUrl();
+
+        $this->components->info(sprintf('Success! %s may now log in at %s.', $this->superAdmin->email, $loginUrl));
+
+        return self::SUCCESS;
+    }
 
     protected function getAuthGuard(): Guard
     {
-        if ($this->option('panel')) {
-            Filament::setCurrentPanel(Filament::getPanel($this->option('panel')));
-        }
-
-        return Filament::getCurrentPanel()?->auth();
+        return Filament::getPanel($this->panel)->auth();
     }
 
     protected function getUserProvider(): UserProvider
@@ -52,68 +144,17 @@ class SuperAdminCommand extends Command
         return $provider->getModel();
     }
 
-    public function handle(): int
+    protected function createSuperAdmin(): Authenticatable
     {
-        $usersCount = static::getUserModel()::count();
-        $tenantId = $this->option('tenant');
-
-        if ($this->option('user')) {
-            $this->superAdmin = static::getUserModel()::findOrFail($this->option('user'));
-        } elseif ($usersCount === 1) {
-            $this->superAdmin = static::getUserModel()::first();
-        } elseif ($usersCount > 1) {
-            $this->table(
-                ['ID', 'Name', 'Email', 'Roles'],
-                static::getUserModel()::with('roles')->get()->map(function (Authenticatable $user) {
-                    return [
-                        'id' => $user->getKey(),
-                        'name' => $user->getAttribute('name'),
-                        'email' => $user->getAttribute('email'),
-                        /** @phpstan-ignore-next-line */
-                        'roles' => implode(',', $user->roles->pluck('name')->toArray()),
-                    ];
-                })
-            );
-
-            $superAdminId = text(
-                label: 'Please provide the `UserID` to be set as `super_admin`',
-                required: true
-            );
-
-            $this->superAdmin = static::getUserModel()::findOrFail($superAdminId);
-        } else {
-            $this->superAdmin = $this->createSuperAdmin();
+        if (static::$createSuperAdminUsing instanceof Closure) {
+            return app()->call(static::$createSuperAdminUsing)
+                ?? $this->createSuperAdminInteractively();
         }
 
-        if (Utils::isTenancyEnabled()) {
-            if (blank($tenantId)) {
-                $this->components->error('Please provide the team/tenant id via `--tenant` option to assign the super admin to a team/tenant.');
-
-                return self::FAILURE;
-            }
-            setPermissionsTeamId($tenantId);
-            $this->superAdminRole = FilamentShield::createRole(tenantId: $tenantId);
-            $this->superAdminRole->syncPermissions(Utils::getPermissionModel()::pluck('id'));
-
-        } else {
-            $this->superAdminRole = FilamentShield::createRole();
-        }
-
-        $this->superAdmin
-            ->unsetRelation('roles')
-            ->unsetRelation('permissions');
-
-        $this->superAdmin
-            ->assignRole($this->superAdminRole);
-
-        $loginUrl = Filament::getCurrentPanel()?->getLoginUrl();
-
-        $this->components->info("Success! {$this->superAdmin->email} may now log in at {$loginUrl}.");
-
-        return self::SUCCESS;
+        return $this->createSuperAdminInteractively();
     }
 
-    protected function createSuperAdmin(): Authenticatable
+    protected function createSuperAdminInteractively(): Authenticatable
     {
         return static::getUserModel()::create([
             'name' => text(label: 'Name', required: true),
@@ -129,7 +170,7 @@ class SuperAdminCommand extends Command
             'password' => Hash::make(password(
                 label: 'Password',
                 required: true,
-                validate: fn (string $value) => match (true) {
+                validate: fn (string $value): ?string => match (true) {
                     strlen($value) < 8 => 'The password must be at least 8 characters.',
                     default => null
                 }

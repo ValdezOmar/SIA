@@ -2,6 +2,22 @@
 
 namespace App\Filament\Resources\Inventario;
 
+use Illuminate\Database\Eloquent\Builder;
+use Exception;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\BulkAction;
+use Filament\Notifications\Notification;
 use App\Filament\Resources\Inventario\ArticuloResource\Pages\CreateArticulo;
 use App\Filament\Resources\Inventario\ArticuloResource\Pages\EditArticulo;
 use App\Filament\Resources\Inventario\ArticuloResource\Pages\ListArticulos;
@@ -18,16 +34,12 @@ use App\Filament\Resources\Inventario\ArticuloResource\RelationManagers\Unidades
 use App\Models\Inventario\Articulo;
 use Filament\Forms;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -43,9 +55,9 @@ class ArticuloResource extends Resource
 {
     protected static ?string $model = Articulo::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cube';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-cube';
 
-    protected static ?string $navigationGroup = 'Inventario';
+    protected static string | \UnitEnum | null $navigationGroup = 'Inventario';
 
     protected static ?string $navigationLabel = 'Datos de Artículos';
 
@@ -55,7 +67,7 @@ class ArticuloResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->withCount('precios');
     }
@@ -92,7 +104,7 @@ class ArticuloResource extends Resource
                 ->pluck($labelColumn, $valueColumn)
                 ->map(fn ($label): string => (string) $label)
                 ->toArray();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [];
         }
     }
@@ -105,7 +117,7 @@ class ArticuloResource extends Resource
             }
 
             return DB::table($table)->exists();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -127,20 +139,20 @@ class ArticuloResource extends Resource
                 ->filter(fn ($label) => filled($label))
                 ->map(fn ($label): string => (string) $label)
                 ->toArray();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [];
         }
     }
 
-    public static function form(Form $form): Form
+    public static function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('')
                     ->tabs([
 
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
-                        Tabs\Tab::make('General')
+                        Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Información Principal')
@@ -346,7 +358,7 @@ class ArticuloResource extends Resource
                             ]),
 
                         // ========== TAB 2: INVENTARIO ==========
-                        Tabs\Tab::make('Inventario')
+                        Tab::make('Inventario')
                             ->icon('heroicon-o-archive-box')
                             ->schema([
                                 Section::make('Configuración de Inventario')
@@ -360,7 +372,7 @@ class ArticuloResource extends Resource
                                                     ->default(true)
                                                     ->helperText('Activado: reserva y descuenta existencias. Desactivado: servicio; se factura y cobra sin requerir almacén ni descontar stock.')
                                                     ->live()
-                                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                                    ->afterStateUpdated(function ($state, Set $set) {
                                                         if (! $state) {
                                                             $set('maneja_lotes', false);
                                                             $set('maneja_series', false);
@@ -370,7 +382,7 @@ class ArticuloResource extends Resource
                                                     ->columnSpan(1),
                                                 Placeholder::make('tipo_operacion')
                                                     ->label('Cómo funcionará')
-                                                    ->content(fn (Forms\Get $get) => $get('inventariable')
+                                                    ->content(fn (Get $get) => $get('inventariable')
                                                         ? 'Producto físico: necesita existencias para reservar y entregar. Configure lotes o series solo si necesita identificar cada lote o unidad.'
                                                         : 'Servicio: no exige existencias, series ni lotes. Mantenga «Disponible para venta» activado y configure su precio. Cambiar esta opción no borra movimientos ni existencias anteriores.'),
                                             ]),
@@ -380,9 +392,9 @@ class ArticuloResource extends Resource
                                                 Toggle::make('maneja_lotes')
                                                     ->label('Maneja Lotes')
                                                     ->helperText('Agrupa varias unidades por lote, por ejemplo una partida de fabricación. Al activarlo se deshabilita el control por serie.')
-                                                    ->visible(fn (Forms\Get $get) => $get('inventariable'))
+                                                    ->visible(fn (Get $get) => $get('inventariable'))
                                                     ->live()
-                                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                                    ->afterStateUpdated(function ($state, Set $set) {
                                                         if ($state) {
                                                             $set('maneja_series', false);
                                                             $set('requiere_serie_en_salida', false);
@@ -393,9 +405,9 @@ class ArticuloResource extends Resource
                                                 Toggle::make('maneja_series')
                                                     ->label('Maneja Series')
                                                     ->helperText('Identifica cada unidad, por ejemplo un equipo. Al activarlo se deshabilita el control por lote.')
-                                                    ->visible(fn (Forms\Get $get) => $get('inventariable'))
+                                                    ->visible(fn (Get $get) => $get('inventariable'))
                                                     ->live()
-                                                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                                                    ->afterStateUpdated(function ($state, Set $set) {
                                                         if ($state) {
                                                             $set('maneja_lotes', false);
                                                         }
@@ -405,14 +417,14 @@ class ArticuloResource extends Resource
                                                 Toggle::make('requiere_serie_en_salida')
                                                     ->label('Requerir Serie en Salida')
                                                     ->helperText('Obligatorio registrar serie al vender')
-                                                    ->visible(fn (Forms\Get $get) => $get('inventariable') && $get('maneja_series'))
+                                                    ->visible(fn (Get $get) => $get('inventariable') && $get('maneja_series'))
                                                     ->columnSpan(1),
                                             ]),
 
                                         Grid::make(1)
                                             ->schema([
                                                 Select::make('metodo_costo')
-                                                    ->visible(fn (Forms\Get $get) => $get('inventariable'))
+                                                    ->visible(fn (Get $get) => $get('inventariable'))
                                                     ->label('Método de Costeo')
                                                     ->options([
                                                         'promedio' => 'Costo Promedio',
@@ -435,14 +447,14 @@ class ArticuloResource extends Resource
                                                     ->step(0.000001)
                                                     ->prefix('Bs')
                                                     ->helperText('Se usa solo con Costo Estándar. Define el valor contable unitario de referencia.')
-                                                    ->visible(fn (Forms\Get $get) => $get('inventariable') && $get('metodo_costo') === 'estandar')
-                                                    ->required(fn (Forms\Get $get) => $get('inventariable') && $get('metodo_costo') === 'estandar')
+                                                    ->visible(fn (Get $get) => $get('inventariable') && $get('metodo_costo') === 'estandar')
+                                                    ->required(fn (Get $get) => $get('inventariable') && $get('metodo_costo') === 'estandar')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
 
                                 Section::make('Gestión de Stock')
-                                    ->visible(fn (Forms\Get $get) => $get('inventariable'))
+                                    ->visible(fn (Get $get) => $get('inventariable'))
                                     ->icon('heroicon-o-chart-bar')
                                     ->schema([
                                         Placeholder::make('stock_info')
@@ -466,7 +478,7 @@ class ArticuloResource extends Resource
                             ]),
 
                         // ========== TAB 3: COMPRAS ==========
-                        Tabs\Tab::make('Compras')
+                        Tab::make('Compras')
                             ->icon('heroicon-o-shopping-cart')
                             ->schema([
                                 Section::make('Configuración de Compras')
@@ -535,7 +547,7 @@ class ArticuloResource extends Resource
                                                     $html .= '</div>';
 
                                                     return new HtmlString($html);
-                                                } catch (\Exception $e) {
+                                                } catch (Exception $e) {
                                                     return new HtmlString('<div class="text-sm text-gray-500">Error al cargar proveedores.</div>');
                                                 }
                                             })
@@ -544,7 +556,7 @@ class ArticuloResource extends Resource
                             ]),
 
                         // ========== TAB 4: VENTAS ==========
-                        Tabs\Tab::make('Ventas')
+                        Tab::make('Ventas')
                             ->icon('heroicon-o-currency-dollar')
                             ->schema([
                                 Section::make('Configuración de Ventas')
@@ -569,7 +581,7 @@ class ArticuloResource extends Resource
                                                     ->dehydrateStateUsing(fn ($state) => $state ?? 0)
                                                     ->helperText('Porcentaje para vendedores')
                                                     ->prefixIcon('heroicon-o-percent-badge')
-                                                    ->visible(fn (Forms\Get $get) => $get('vendible'))
+                                                    ->visible(fn (Get $get) => $get('vendible'))
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -768,46 +780,46 @@ class ArticuloResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('grupo_articulo_id')
+                SelectFilter::make('grupo_articulo_id')
                     ->label('Grupo')
                     ->options(fn () => self::getSafeOptions('alm_grupos_articulos', 'nombre'))
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\SelectFilter::make('fabricante_id')
+                SelectFilter::make('fabricante_id')
                     ->label('Fabricante')
                     ->options(fn () => self::getFabricanteOptions())
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\SelectFilter::make('empresa_id')
+                SelectFilter::make('empresa_id')
                     ->label('Empresa')
                     ->options(fn () => self::getSafeOptions('conf_empresas', 'nombre_comercial', 'id', [], ['deleted_at' => null]))
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\TernaryFilter::make('inventariable')
+                TernaryFilter::make('inventariable')
                     ->label('Es inventariable')
                     ->boolean()
                     ->trueLabel('Sí')
                     ->falseLabel('No')
                     ->placeholder('Todos'),
 
-                Tables\Filters\TernaryFilter::make('activo')
+                TernaryFilter::make('activo')
                     ->label('Activo')
                     ->boolean()
                     ->trueLabel('Activos')
                     ->falseLabel('Inactivos')
                     ->placeholder('Todos'),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl')
                         ->icon('heroicon-o-pencil-square'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl')
                         ->icon('heroicon-o-eye'),
@@ -825,9 +837,9 @@ class ArticuloResource extends Resource
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('toggle_active')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-check-circle')
                         ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
@@ -910,13 +922,13 @@ class ArticuloResource extends Resource
             $newRecord->updated_at = now();
             $newRecord->save();
 
-            \Filament\Notifications\Notification::make()
+            Notification::make()
                 ->title('Artículo duplicado exitosamente')
                 ->body('El artículo "'.($newRecord->nombre_comercial ?? $newRecord->descripcion ?? $newRecord->codigo).'" ha sido creado.')
                 ->success()
                 ->send();
-        } catch (\Exception $e) {
-            \Filament\Notifications\Notification::make()
+        } catch (Exception $e) {
+            Notification::make()
                 ->title('Error al duplicar')
                 ->body('Ocurrió un error: '.$e->getMessage())
                 ->danger()

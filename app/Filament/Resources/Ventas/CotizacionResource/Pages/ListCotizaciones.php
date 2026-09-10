@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Ventas\CotizacionResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Resources\Ventas\CotizacionResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -18,7 +19,7 @@ class ListCotizaciones extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

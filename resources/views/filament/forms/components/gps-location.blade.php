@@ -1,176 +1,46 @@
 <div x-data="{
-    status: 'idle',
-    message: 'Por favor, haz clic en el botón para obtener tu ubicación',
-    error: null,
-    location: null,
-    deviceInfo: null,
-
+    status: 'idle', error: '', location: null,
     async getLocation() {
+        if (!navigator.geolocation) return this.fail('Este navegador no permite consultar la ubicación.');
+        this.status = 'loading'; this.error = '';
         try {
-            this.status = 'loading';
-            this.message = 'Solicitando acceso a GPS...';
-
-            if (!navigator.geolocation) {
-                throw new Error('Tu navegador no soporta geolocalización');
-            }
-
-            // Obtener información del dispositivo
-            this.deviceInfo = this.getDeviceInfo();
-
-            const position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(
-                    resolve,
-                    reject, {
-                        enableHighAccuracy: true,
-                        timeout: 15000,
-                        maximumAge: 0
-                    }
-                );
-            });
-
+            const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }));
+            this.location = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
             this.status = 'success';
-            this.location = `${position.coords.latitude}, ${position.coords.longitude}`;
-            this.updateLivewire(this.location, this.deviceInfo);
+            this.$wire.set('localizacion', this.location);
+            this.$wire.set('id_equipo', JSON.stringify({ platform: navigator.platform || 'unknown', mobile: /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent), agent: navigator.userAgent.slice(0, 160) }));
         } catch (error) {
-            this.status = 'error';
-            this.error = this.getErrorMessage(error);
-            this.clearLocation();
+            this.fail(({ 1: 'No se concedió permiso para usar la ubicación. Habilítalo en el navegador e inténtalo otra vez.', 2: 'No fue posible determinar la ubicación. Revisa que el GPS y la conexión estén activos.', 3: 'La ubicación tardó demasiado. Muévete a un lugar con mejor señal e inténtalo nuevamente.' })[error.code] || 'No se pudo obtener la ubicación actual.');
         }
     },
+    fail(message) { this.status = 'error'; this.error = message; this.location = null; this.$wire.set('localizacion', ''); this.$wire.set('id_equipo', ''); }
+}" class="sia-attendance-location">
+    <div class="sia-attendance-location__heading">
+        <span class="sia-attendance-location__step">1</span>
+        <div><h3>Confirma tu ubicación</h3><p>Usamos el GPS de este dispositivo para validar la marcación.</p></div>
+    </div>
 
-    getDeviceInfo() {
-        try {
-            const userAgent = navigator.userAgent;
-            const platform = navigator.platform;
-            const hardwareConcurrency = navigator.hardwareConcurrency || 'unknown';
-            const deviceMemory = navigator.deviceMemory || 'unknown';
-
-            // Detectar móvil/tablet
-            const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(userAgent);
-
-            // Crear hash del dispositivo
-            let hash = 0;
-            for (let i = 0; i < userAgent.length; i++) {
-                const char = userAgent.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash;
-            }
-
-            // Intentar obtener modelo en Android
-            let deviceModel = '';
-            if (/Android/i.test(userAgent)) {
-                const modelMatch = /; ([a-zA-Z0-9]+) Build/i.exec(userAgent);
-                if (modelMatch) {
-                    deviceModel = modelMatch[1].replace(/_/g, ' ');
-                }
-            }
-            // Intentar obtener modelo en iPhone
-            else if (/iPhone|iPod|iPad/i.test(userAgent)) {
-                const modelMatch = /iPhone(\d+,\d+)|iPhone (\d+)/i.exec(userAgent);
-                if (modelMatch) {
-                    deviceModel = 'iPhone ' + (modelMatch[1] ? modelMatch[1].replace(',', '.') : modelMatch[2]);
-                }
-            }
-
-            return {
-                userAgent: userAgent,
-                platform: platform,
-                hardwareConcurrency: hardwareConcurrency,
-                deviceMemory: deviceMemory,
-                deviceModel: deviceModel,
-                isMobile: isMobile,
-                deviceHash: hash.toString(16)
-            };
-        } catch (e) {
-            return {
-                error: 'No se pudo obtener información del dispositivo'
-            };
-        }
-    },
-
-    getErrorMessage(error) {
-        const errors = {
-            1: 'Permiso denegado. Por favor habilita la ubicación en tu navegador.',
-            2: 'Ubicación no disponible. Verifica tu conexión o configuración de GPS.',
-            3: 'Tiempo de espera agotado. Intenta nuevamente en un área con mejor recepción.'
-        };
-        return errors[error.code] || error.message || 'Error desconocido al obtener ubicación';
-    },
-
-    updateLivewire(location, deviceInfo) {
-        if (this.$wire) {
-            this.$wire.set('localizacion', location);
-
-            // Enviar información del dispositivo como string JSON
-            const deviceInfoString = JSON.stringify(deviceInfo);
-            this.$wire.set('id_equipo', deviceInfoString);
-        }
-    },
-
-    clearLocation() {
-        this.location = null;
-        this.updateLivewire('', null);
-    }
-}" class="space-y-4">
-    <!-- Botón para solicitar ubicación -->
-    <!-- Botón mejorado -->
-    <button x-show="status !== 'success'" @click="getLocation()" :disabled="status === 'loading'" type="button"
-        class="flex items-center justify-center w-full px-4 py-2 text-xs font-semibold tracking-widest text-white uppercase transition border border-transparent rounded-md bg-primary-600 hover:bg-primary-500 focus:outline-none focus:border-primary-700 focus:ring focus:ring-primary-200 active:bg-primary-600 disabled:opacity-50">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor"
-            x-show="status !== 'loading'">
-            <path fill-rule="evenodd"
-                d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                clip-rule="evenodd" />
-        </svg>
-        <span x-text="status === 'loading' ? 'Obteniendo ubicación...' : 'Obtener Ubicación GPS'"></span>
-    </button>
-
-    <!-- Estados -->
-    <template x-if="status === 'loading'">
-        <div class="flex items-center p-4 text-blue-800 rounded-lg bg-blue-50">
-            <svg class="w-5 h-5 mr-2 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none"
-                viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                </circle>
-                <path class="opacity-75" fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                </path>
-            </svg>
-            <span x-text="message"></span>
-        </div>
-    </template>
-
-    <template x-if="status === 'success'">
-        <div class="p-4 text-green-800 rounded-lg bg-green-50">
-            <div class="flex items-center">
-                <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clip-rule="evenodd" />
-                </svg>
-                <span>Ubicación verificada correctamente</span>
-            </div>
-            <div class="mt-2 text-sm">
-                <div class="font-medium">Coordenadas:</div>
-                <div x-text="location" class="opacity-75"></div>
-            </div>
-        </div>
-    </template>
-
-    <template x-if="status === 'error'">
-        <div class="p-4 text-red-800 rounded-lg bg-red-50">
-            <div class="flex items-center">
-                <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                        clip-rule="evenodd" />
-                </svg>
-                <span x-text="error"></span>
-            </div>
-            <button @click="getLocation()"
-                class="px-3 py-1 mt-2 text-sm font-medium text-red-700 transition bg-red-100 rounded hover:bg-red-200">
-                Reintentar
+    <template x-if="status !== 'success'">
+        <div class="sia-attendance-location__request" x-transition.opacity>
+            <div class="sia-attendance-location__request-icon"><x-filament::icon icon="heroicon-m-map-pin" /></div>
+            <div><strong>Marca desde tu ubicación actual</strong><span>Activa la ubicación del dispositivo cuando el navegador lo solicite.</span></div>
+            <button type="button" class="sia-attendance-location__button" @click="getLocation()" :disabled="status === 'loading'">
+                <svg x-show="status !== 'loading'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm1-12a1 1 0 1 0-2 0v3.586L7.293 11.293a1 1 0 1 0 1.414 1.414L10 11.414l1.293 1.293a1 1 0 0 0 1.414-1.414L11 9.586V6Z" clip-rule="evenodd" /></svg>
+                <svg x-show="status === 'loading'" class="sia-attendance-location__spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity=".3" /><path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
+                <span x-text="status === 'loading' ? 'Obteniendo ubicación' : 'Usar mi ubicación'"></span>
             </button>
         </div>
     </template>
+    <template x-if="status === 'loading'"><p class="sia-attendance-location__status sia-attendance-location__status--loading">Estamos consultando el GPS. Esto puede tardar unos segundos.</p></template>
+    <template x-if="status === 'success'">
+        <div class="sia-attendance-location__verified" x-transition.opacity>
+            <span class="sia-attendance-location__verified-icon"><x-filament::icon icon="heroicon-m-check" /></span>
+            <div><strong>Ubicación verificada</strong><span>Coordenadas registradas para esta marcación</span><code x-text="location"></code></div>
+        </div>
+    </template>
+    <template x-if="status === 'error'"><div class="sia-attendance-location__status sia-attendance-location__status--error"><span x-text="error"></span><button type="button" @click="getLocation()">Reintentar</button></div></template>
 </div>
+
+<style>
+ .sia-attendance-location{display:grid;gap:1rem;padding:.25rem 0}.sia-attendance-location__heading{display:flex;align-items:flex-start;gap:.7rem}.sia-attendance-location__heading h3{margin:.05rem 0 .2rem;color:var(--sia-text);font-size:.98rem;font-weight:750}.sia-attendance-location__heading p{margin:0;color:var(--sia-muted);font-size:.8rem;line-height:1.4}.sia-attendance-location__step{display:grid;place-items:center;flex:0 0 1.65rem;width:1.65rem;height:1.65rem;border-radius:999px;background:color-mix(in srgb,var(--sia-primary) 14%,transparent);color:var(--sia-primary);font-size:.75rem;font-weight:800}.sia-attendance-location__request{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:.8rem;padding:1rem;border:1px solid var(--sia-border);border-radius:.85rem;background:var(--sia-surface-subtle)}.sia-attendance-location__request-icon{display:grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:.7rem;background:color-mix(in srgb,var(--sia-primary) 12%,transparent);color:var(--sia-primary)}.sia-attendance-location__request-icon svg{width:1.25rem;height:1.25rem}.sia-attendance-location__request strong,.sia-attendance-location__request span{display:block}.sia-attendance-location__request strong{color:var(--sia-text);font-size:.86rem;font-weight:700}.sia-attendance-location__request span{margin-top:.16rem;color:var(--sia-muted);font-size:.76rem;line-height:1.35}.sia-attendance-location__button{grid-column:2;justify-self:start;display:inline-flex;align-items:center;gap:.45rem;min-height:2.45rem;margin-top:-.25rem;padding:.45rem .8rem;border:0;border-radius:.65rem;background:var(--sia-primary);color:#fff;font-size:.8rem;font-weight:700;box-shadow:0 .25rem .65rem color-mix(in srgb,var(--sia-primary) 23%,transparent);transition:transform .15s ease,filter .15s ease}.sia-attendance-location__button:hover{filter:brightness(1.06);transform:translateY(-1px)}.sia-attendance-location__button:disabled{cursor:wait;opacity:.8;transform:none}.sia-attendance-location__button svg{width:1rem;height:1rem}.sia-attendance-location__spinner{animation:sia-attendance-spin .8s linear infinite}.sia-attendance-location__status{margin:0;padding:.7rem .85rem;border-radius:.65rem;font-size:.78rem;line-height:1.4}.sia-attendance-location__status--loading{background:color-mix(in srgb,#3b82f6 10%,transparent);color:#2563eb}.sia-attendance-location__status--error{display:flex;align-items:center;justify-content:space-between;gap:.75rem;background:#fff1f2;color:#be123c}.sia-attendance-location__status--error button{flex:0 0 auto;border:0;background:transparent;color:inherit;font-size:.78rem;font-weight:750;text-decoration:underline;cursor:pointer}.sia-attendance-location__verified{display:flex;gap:.75rem;padding:1rem;border:1px solid #bbf7d0;border-radius:.85rem;background:#f0fdf4;color:#166534}.sia-attendance-location__verified-icon{display:grid;place-items:center;flex:0 0 2rem;width:2rem;height:2rem;border-radius:999px;background:#16a34a;color:#fff}.sia-attendance-location__verified-icon svg{width:1.15rem;height:1.15rem}.sia-attendance-location__verified strong,.sia-attendance-location__verified span,.sia-attendance-location__verified code{display:block}.sia-attendance-location__verified strong{font-size:.9rem;font-weight:750}.sia-attendance-location__verified span{margin-top:.1rem;font-size:.76rem}.sia-attendance-location__verified code{margin-top:.45rem;color:#15803d;font-size:.77rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.dark .sia-attendance-location__heading h3,.dark .sia-attendance-location__request strong{color:#f8fafc}.dark .sia-attendance-location__request{border-color:var(--sia-dark-border);background:var(--sia-dark-elevated)}.dark .sia-attendance-location__status--loading{color:#93c5fd}.dark .sia-attendance-location__status--error{background:rgb(136 19 55 / .25);color:#fda4af}@keyframes sia-attendance-spin{to{transform:rotate(360deg)}}@media(max-width:640px){.sia-attendance-location__button{grid-column:1/-1;justify-self:stretch;justify-content:center;margin-top:0}}
+</style>

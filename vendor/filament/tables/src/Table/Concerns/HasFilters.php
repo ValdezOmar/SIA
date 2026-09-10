@@ -3,14 +3,17 @@
 namespace Filament\Tables\Table\Concerns;
 
 use Closure;
-use Filament\Forms\Components\Group;
-use Filament\Forms\Form;
-use Filament\Support\Enums\ActionSize;
-use Filament\Support\Enums\MaxWidth;
+use Filament\Actions\Action;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\Size;
+use Filament\Support\Enums\Width;
 use Filament\Support\Facades\FilamentIcon;
-use Filament\Tables\Actions\Action;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Enums\FiltersResetActionPosition;
 use Filament\Tables\Filters\BaseFilter;
+use Filament\Tables\View\TablesIconAlias;
 
 trait HasFilters
 {
@@ -28,7 +31,7 @@ trait HasFilters
 
     protected string | Closure | null $filtersFormMaxHeight = null;
 
-    protected MaxWidth | string | Closure | null $filtersFormWidth = null;
+    protected Width | string | Closure | null $filtersFormWidth = null;
 
     protected FiltersLayout | Closure | null $filtersLayout = null;
 
@@ -38,9 +41,13 @@ trait HasFilters
 
     protected bool | Closure $shouldDeselectAllRecordsWhenFiltered = true;
 
-    protected bool | Closure $hasDeferredFilters = false;
+    protected bool | Closure $hasDeferredFilters = true;
 
     protected ?Closure $modifyFiltersApplyActionUsing = null;
+
+    protected ?Closure $modifyFiltersRemoveAllActionUsing = null;
+
+    protected FiltersResetActionPosition | Closure | null $filtersResetActionPosition = null;
 
     public function deferFilters(bool | Closure $condition = true): static
     {
@@ -57,6 +64,13 @@ trait HasFilters
     public function filtersApplyAction(?Closure $callback): static
     {
         $this->modifyFiltersApplyActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function filtersRemoveAllAction(?Closure $callback): static
+    {
+        $this->modifyFiltersRemoveAllActionUsing = $callback;
 
         return $this;
     }
@@ -114,11 +128,23 @@ trait HasFilters
         return $this;
     }
 
-    public function filtersFormWidth(MaxWidth | string | Closure | null $width): static
+    public function filtersFormWidth(Width | string | Closure | null $width): static
     {
         $this->filtersFormWidth = $width;
 
         return $this;
+    }
+
+    public function filtersResetActionPosition(FiltersResetActionPosition | Closure | null $position): static
+    {
+        $this->filtersResetActionPosition = $position;
+
+        return $this;
+    }
+
+    public function getFiltersResetActionPosition(): FiltersResetActionPosition
+    {
+        return $this->evaluate($this->filtersResetActionPosition) ?? FiltersResetActionPosition::Header;
     }
 
     public function filtersLayout(FiltersLayout | Closure | null $filtersLayout): static
@@ -162,7 +188,7 @@ trait HasFilters
         return $this->getFilters($withHidden)[$name] ?? null;
     }
 
-    public function getFiltersForm(): Form
+    public function getFiltersForm(): Schema
     {
         return $this->getLivewire()->getTableFiltersForm();
     }
@@ -183,7 +209,7 @@ trait HasFilters
 
         foreach ($this->getFilters() as $filterName => $filter) {
             $filters[$filterName] = Group::make()
-                ->schema($filter->getFormSchema())
+                ->schema($filter->getSchemaComponents())
                 ->statePath($filterName)
                 ->key($filterName)
                 ->columnSpan($filter->getColumnSpan())
@@ -199,7 +225,7 @@ trait HasFilters
         $action = Action::make('openFilters')
             ->label(__('filament-tables::table.actions.filter.label'))
             ->iconButton()
-            ->icon(FilamentIcon::resolve('tables::actions.filter') ?? 'heroicon-m-funnel')
+            ->icon(FilamentIcon::resolve(TablesIconAlias::ACTIONS_FILTER) ?? Heroicon::Funnel)
             ->color('gray')
             ->livewireClickHandlerEnabled(false)
             ->modalSubmitAction(false)
@@ -213,7 +239,8 @@ trait HasFilters
                     ->button(),
             ])
             ->modalCancelActionLabel(__('filament::components/modal.actions.close.label'))
-            ->table($this);
+            ->table($this)
+            ->authorize(true);
 
         if ($this->modifyFiltersTriggerActionUsing) {
             $action = $this->evaluate($this->modifyFiltersTriggerActionUsing, [
@@ -221,9 +248,7 @@ trait HasFilters
             ]) ?? $action;
         }
 
-        if ($action->getView() === Action::BUTTON_VIEW) {
-            $action->defaultSize(ActionSize::Small);
-        }
+        $action->extraAttributes(['class' => 'fi-force-enabled'], merge: true);
 
         return $action;
     }
@@ -235,10 +260,34 @@ trait HasFilters
             ->action('applyTableFilters')
             ->table($this)
             ->visible($this->hasDeferredFilters())
+            ->authorize(true)
             ->button();
 
         if ($this->modifyFiltersApplyActionUsing) {
             $action = $this->evaluate($this->modifyFiltersApplyActionUsing, [
+                'action' => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
+    }
+
+    public function getFiltersRemoveAllAction(): Action
+    {
+        $action = Action::make('removeAllFilters')
+            ->label(__('filament-tables::table.filters.actions.remove_all.label'))
+            ->tooltip(__('filament-tables::table.filters.actions.remove_all.tooltip'))
+            ->action('removeTableFilters')
+            ->livewireTarget('removeTableFilters,removeTableFilter')
+            ->iconButton()
+            ->icon(FilamentIcon::resolve(TablesIconAlias::FILTERS_REMOVE_ALL_BUTTON) ?? Heroicon::XMark)
+            ->color('gray')
+            ->defaultSize(Size::Small)
+            ->table($this)
+            ->authorize(true);
+
+        if ($this->modifyFiltersRemoveAllActionUsing) {
+            $action = $this->evaluate($this->modifyFiltersRemoveAllActionUsing, [
                 'action' => $action,
             ]) ?? $action;
         }
@@ -267,12 +316,12 @@ trait HasFilters
         return $this->evaluate($this->filtersFormMaxHeight);
     }
 
-    public function getFiltersFormWidth(): MaxWidth | string | null
+    public function getFiltersFormWidth(): Width | string | null
     {
         return $this->evaluate($this->filtersFormWidth) ?? match ($this->getFiltersFormColumns()) {
-            2 => MaxWidth::TwoExtraLarge,
-            3 => MaxWidth::FourExtraLarge,
-            4 => MaxWidth::SixExtraLarge,
+            2 => Width::TwoExtraLarge,
+            3 => Width::FourExtraLarge,
+            4 => Width::SixExtraLarge,
             default => null,
         };
     }

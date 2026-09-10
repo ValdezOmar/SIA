@@ -2,14 +2,19 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
 use App\Models\Inventario\Almacen;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -44,10 +49,10 @@ class SeriesRelationManager extends RelationManager
         return ! $record || ! $record->maneja_series;
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Información de la Serie')
                     ->icon('heroicon-o-identification')
                     ->description('Gestiona los números de serie de este artículo')
@@ -159,7 +164,7 @@ class SeriesRelationManager extends RelationManager
                             ]),
 
                         // Información del artículo
-                        Forms\Components\Placeholder::make('articulo_info')
+                        Placeholder::make('articulo_info')
                             ->label('')
                             ->content(function ($livewire) {
                                 $articulo = $livewire->getOwnerRecord();
@@ -262,7 +267,7 @@ class SeriesRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('almacen_id')
+                SelectFilter::make('almacen_id')
                     ->label('Almacén')
                     ->options(
                         fn () => Almacen::where('activo', true)
@@ -272,7 +277,7 @@ class SeriesRelationManager extends RelationManager
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\SelectFilter::make('estado')
+                SelectFilter::make('estado')
                     ->label('Estado')
                     ->options([
                         'disponible' => 'Disponible',
@@ -285,9 +290,9 @@ class SeriesRelationManager extends RelationManager
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\Filter::make('fecha_garantia')
+                Filter::make('fecha_garantia')
                     ->label('Garantía')
-                    ->form([
+                    ->schema([
                         DatePicker::make('garantia_hasta')
                             ->label('Garantía hasta')
                             ->native(),
@@ -299,16 +304,16 @@ class SeriesRelationManager extends RelationManager
                         );
                     }),
 
-                Tables\Filters\Filter::make('garantia_vencida')
+                Filter::make('garantia_vencida')
                     ->label('Garantía Vencida')
                     ->query(fn ($query) => $query->where('fecha_garantia', '<', now())->whereNotNull('fecha_garantia')),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl')
-                        ->mutateFormDataUsing(function (array $data): array {
+                        ->mutateDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                             return $data;

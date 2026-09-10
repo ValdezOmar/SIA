@@ -2,75 +2,41 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Pages\Auth\Login;
-use Filament\Forms\Components\Actions;
-use Filament\Actions\Action;
 use App\Models\Sistema\Parametro;
+use Filament\Actions\Action;
+use Filament\Auth\Pages\Login;
 
 class GoogleAuthProvider extends Login
 {
-
-
-    public function form(Form $form): Form
+    /**
+     * Conserva los campos y el envio nativos de Filament 4.
+     *
+     * @return array<Action>
+     */
+    protected function getFormActions(): array
     {
-        $parametros = Parametro::first();
-        $components = [];
+        $parametros = Parametro::query()->first();
+        $googleActivo = (bool) ($parametros?->google_activo ?? false);
+        $loginNativo = (bool) ($parametros?->login_nativo ?? true);
+        $actions = [];
 
-        if ($parametros->google_activo) {
-            $components[] = \Filament\Forms\Components\Actions::make([
-                \Filament\Forms\Components\Actions\Action::make('google-login')
-                    ->label('Ingresar con Google')
-                    ->icon('heroicon-o-check-badge')
-                    ->color('danger')
-                    ->size('lg')
-                    ->action(function () {
-                        return redirect()->route('google.redirect');
-                    }),
-            ])->fullWidth();
+        if ($googleActivo) {
+            $actions[] = Action::make('google-login')
+                ->label('Ingresar con Google')
+                ->icon('heroicon-o-check-badge')
+                ->color('danger')
+                ->url(route('google.redirect'));
         }
 
-        if ($parametros->login_nativo) {
-            $components[] = Section::make('Login con email')
-                ->collapsible($parametros->google_activo)
-                ->collapsed()
-                ->schema([
-                    TextInput::make('email')
-                        ->label('Email')
-                        ->email()
-                        ->required()
-                        ->autocomplete('email'),
-
-                    TextInput::make('password')
-                        ->label('Contraseña')
-                        ->password()
-                        ->required(),
-
-                    Actions::make([
-                        \Filament\Forms\Components\Actions\Action::make('login')
-                            ->label('Entrar')
-                            ->submit('login')
-                            ->color('primary')
-                            ->size('lg')
-                            ->extraAttributes(['class' => 'w-full']),
-                    ])->fullWidth(),
-                ]);
+        if ($loginNativo) {
+            $actions[] = $this->getAuthenticateFormAction();
         }
 
-        return $form->schema($components);
+        return $actions;
     }
-    //Deshabilitar el boton nativo de login
-    protected function getAuthenticateFormAction(): Action
-    {
-        return Action::make('authenticate')
-            ->hidden();  // Esto oculta el botón nativo
-    }
-    // Mensaje de bienvenida
+
     public function getHeading(): string
     {
-        // return 'SIA'; //
         return '';
     }
 }

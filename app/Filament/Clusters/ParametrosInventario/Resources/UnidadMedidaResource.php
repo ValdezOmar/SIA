@@ -2,17 +2,32 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Illuminate\Support\HtmlString;
+use Exception;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
+use App\Filament\Clusters\ParametrosInventario\Resources\UnidadMedidaResource\Pages\ListUnidadMedidas;
+use App\Filament\Clusters\ParametrosInventario\Resources\UnidadMedidaResource\Pages\CreateUnidadMedida;
+use App\Filament\Clusters\ParametrosInventario\Resources\UnidadMedidaResource\Pages\EditUnidadMedida;
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Concerns\ScopesEmpresa;
 use App\Filament\Clusters\ParametrosInventario\Resources\UnidadMedidaResource\Pages;
 use App\Models\Inventario\UnidadMedida;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -26,7 +41,7 @@ class UnidadMedidaResource extends Resource
     use ScopesEmpresa;
     protected static ?string $model = UnidadMedida::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-scale';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-scale';
 
     protected static ?string $cluster = ParametrosInventario::class;
 
@@ -38,16 +53,16 @@ class UnidadMedidaResource extends Resource
 
     protected static ?int $navigationSort = 7;
 
-    public static function form(Form $form): Form
+    public static function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 self::empresaField(),
                 Tabs::make('Gestión de Unidad')
                     ->tabs([
 
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
-                        Tabs\Tab::make('Información General')
+                        Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Unidad')
@@ -108,13 +123,13 @@ class UnidadMedidaResource extends Resource
                             ]),
 
                         // ========== TAB 2: ESTADÍSTICAS ==========
-                        Tabs\Tab::make('Estadísticas')
+                        Tab::make('Estadísticas')
                             ->icon('heroicon-o-chart-bar')
                             ->schema([
                                 Section::make('Resumen de la Unidad')
                                     ->icon('heroicon-o-chart-bar')
                                     ->schema([
-                                        Forms\Components\Placeholder::make('estadisticas')
+                                        Placeholder::make('estadisticas')
                                             ->label('')
                                             ->content(function ($record) {
                                                 if (! $record) {
@@ -125,7 +140,7 @@ class UnidadMedidaResource extends Resource
                                                     $totalArticulos = $record->articulos()->count();
                                                     $articulosActivos = $record->articulos()->where('activo', true)->count();
 
-                                                    return new \Illuminate\Support\HtmlString(
+                                                    return new HtmlString(
                                                         '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                                                 <div class="text-sm text-blue-600 font-medium">Total de Artículos</div>
@@ -139,7 +154,7 @@ class UnidadMedidaResource extends Resource
                                                             </div>
                                                         </div>'
                                                     );
-                                                } catch (\Exception $e) {
+                                                } catch (Exception $e) {
                                                     return '<div class="text-sm text-gray-500">No hay estadísticas disponibles.</div>';
                                                 }
                                             })
@@ -217,17 +232,17 @@ class UnidadMedidaResource extends Resource
                     ->placeholder('Todos')
                     ->visible(fn () => Schema::hasColumn('alm_unidades_medida', 'activo')),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('4xl'),
 
-                    Tables\Actions\Action::make('duplicate')
+                    Action::make('duplicate')
                         ->label('Duplicar')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
@@ -240,13 +255,13 @@ class UnidadMedidaResource extends Resource
                             $newRecord->updated_at = now();
                             $newRecord->save();
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Unidad duplicada exitosamente')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('toggle_active')
+                    Action::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->color(fn ($record) => $record->activo ?? true ? 'warning' : 'success')
@@ -254,22 +269,22 @@ class UnidadMedidaResource extends Resource
                             if (Schema::hasColumn('alm_unidades_medida', 'activo')) {
                                 $record->update(['activo' => ! $record->activo]);
                             }
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title($record->activo ? 'Unidad activada' : 'Unidad desactivada')
                                 ->success()
                                 ->send();
                         })
                         ->visible(fn () => Schema::hasColumn('alm_unidades_medida', 'activo')),
 
-                    Tables\Actions\DeleteAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('toggle_active_bulk')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
@@ -296,9 +311,9 @@ class UnidadMedidaResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUnidadMedidas::route('/'),
-            'create' => Pages\CreateUnidadMedida::route('/create'),
-            'edit' => Pages\EditUnidadMedida::route('/{record}/edit'),
+            'index' => ListUnidadMedidas::route('/'),
+            'create' => CreateUnidadMedida::route('/create'),
+            'edit' => EditUnidadMedida::route('/{record}/edit'),
         ];
     }
 }

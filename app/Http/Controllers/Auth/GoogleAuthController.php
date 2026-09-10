@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use Exception;
 use App\Http\Controllers\Controller;
 use App\Services\GoogleAuthService;
 use Laravel\Socialite\Facades\Socialite;
@@ -33,7 +34,7 @@ class GoogleAuthController extends Controller
             $this->logSession($user, $request);
 
             return redirect()->intended('/dashboard');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Añade el registro de error
             \Log::error('Error en autenticación Google: ' . $e->getMessage());
             return redirect('/dashboard/login')->withErrors([
@@ -76,7 +77,7 @@ class GoogleAuthController extends Controller
             // Escribir en el archivo
             file_put_contents($filePath, $logMessage, FILE_APPEND);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Error al registrar sesión: ' . $e->getMessage());
         }
     }
@@ -91,7 +92,7 @@ class GoogleAuthController extends Controller
 
             $data = json_decode($response, true);
             return $data['country'] ?? 'Desconocido';
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return 'Desconocido';
         }
     }

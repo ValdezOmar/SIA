@@ -2,6 +2,238 @@
 
 All notable changes to `filament-shield` will be documented in this file.
 
+## 4.3.0 - 2026-07-23
+
+### What's Changed
+
+* Detect PostgreSQL by driver in shield:setup --fresh by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/736
+* Add createSuperAdminUsing hook to shield:super-admin by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/737
+* Rework policy placement to mirror model structure by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/738
+* Key resources.manage lookups by resource class instead of basename by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/740
+* Custom permission key formatting by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/739
+* Harden CI supply chain by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/741
+* Fix random-order flake in the tenancy seeder tests by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/735
+* Remove vestigial npm tooling by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/744
+* Isolate parallel test processes with per-process skeleton clones by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/745
+* fix: zh_TW term translation by @hms5232 in https://github.com/bezhanSalleh/filament-shield/pull/718
+* fix HasWidgetShield to use canView instead of canAccess by @lucaheft in https://github.com/bezhanSalleh/filament-shield/pull/721
+* Allow spatie/laravel-permission ^8.0 too by @ziming in https://github.com/bezhanSalleh/filament-shield/pull/727
+* fix(lang/de): translate reorder and replicate by @grafst in https://github.com/bezhanSalleh/filament-shield/pull/728
+* feat: add Azerbaijani translation by @Elvin-Qulizade in https://github.com/bezhanSalleh/filament-shield/pull/730
+* Add Tajik and Uzbek translations by @komyor09 in https://github.com/bezhanSalleh/filament-shield/pull/734
+
+### New Contributors
+
+* @hms5232 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/718
+* @lucaheft made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/721
+* @ziming made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/727
+* @grafst made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/728
+* @Elvin-Qulizade made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/730
+* @komyor09 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/734
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/4.2.0...4.3.0
+
+## 4.2.0 - 2026-03-22
+
+### What's Changed
+
+* Update Indonesian Translations by @muzhawir in https://github.com/bezhanSalleh/filament-shield/pull/697
+* Add deleteAny to default policy methods by @sjwebb in https://github.com/bezhanSalleh/filament-shield/pull/707
+* Bump ramsey/composer-install from 3 to 4 by @dependabot[bot] in https://github.com/bezhanSalleh/filament-shield/pull/711
+* Laravel 13 Support by @aligulzar729 in https://github.com/bezhanSalleh/filament-shield/pull/712
+
+### New Contributors
+
+* @muzhawir made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/697
+* @sjwebb made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/707
+* @aligulzar729 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/712
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/4.1.0...4.2.0
+
+## 4.1.0 - 2026-01-19
+
+### What's Changed
+
+* Add support for Filament 5.x
+* Bump dependabot/fetch-metadata from 2.4.0 to 2.5.0 by @dependabot[bot] in https://github.com/bezhanSalleh/filament-shield/pull/691
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/4.0.4...4.1.0
+
+## 4.0.4 - 2025-12-26
+
+### What's Changed
+
+* Test Suite Setup, Enhancements and Fixes  by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/687
+* Fixes #678: Use tenant ID for team permissions and clear cached permissions by @rik5 in https://github.com/bezhanSalleh/filament-shield/pull/682
+* Sync all permissions to super_admin role regardless of tenancy setup by @Jamesking56 in https://github.com/bezhanSalleh/filament-shield/pull/683
+
+### New Contributors
+
+* @rik5 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/682
+* @Jamesking56 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/683
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/4.0.3...4.0.4
+
+## 4.0.3 - 2025-11-29
+
+### What's Changed
+
+#### Release Summary Highlights
+
+- Unified label resolution with consistent fallback chain:
+  
+  - User's translation file (when localization.enabled)
+  - Package's resource_permission_prefixes_labels
+  - Headline fallback - Fixed getLocalizedLabel() to use correct translation path
+  
+- `shield:translation` New Command to generate translation/lang file for the provided locale for permissions of the given panel
+  
+- Fixes setup on windows
+  
+- Fixes multiple guard issues when creating roles/permissions
+  
+
+* fix(stubs): correct custom stub path resolution by @TheSyriableDev in https://github.com/bezhanSalleh/filament-shield/pull/654
+* Update README.md by @jeffersongoncalves in https://github.com/bezhanSalleh/filament-shield/pull/657
+* Update transform custom permissions to use config case by @ShamarKellman in https://github.com/bezhanSalleh/filament-shield/pull/659
+* Fix: ensure selected Panel guard is respected and include guard when creating roles/permissions (fixes #647) by @LuizCristino in https://github.com/bezhanSalleh/filament-shield/pull/660
+* Update localization key in filament-shield config by @EG-Mohamed in https://github.com/bezhanSalleh/filament-shield/pull/663
+* Bump stefanzweifel/git-auto-commit-action from 6 to 7 by @dependabot[bot] in https://github.com/bezhanSalleh/filament-shield/pull/664
+* Update Spanish Translations by @luisprmat in https://github.com/bezhanSalleh/filament-shield/pull/669
+* Bump actions/checkout from 5 to 6 by @dependabot[bot] in https://github.com/bezhanSalleh/filament-shield/pull/672
+* Streamline permission label resolution system by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/675
+
+### New Contributors
+
+* @TheSyriableDev made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/654
+* @jeffersongoncalves made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/657
+* @ShamarKellman made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/659
+* @LuizCristino made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/660
+* @EG-Mohamed made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/663
+* @luisprmat made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/669
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/4.0.2...4.0.3
+
+## 4.0.2 - 2025-09-11
+
+### What's Changed
+
+* Includes features and fixes
+  - [Feat] Custom Permission Generation
+  - [Feat] Single Command to Prohibit Destructive Commands
+  - [Fix] `shield:seeder` command
+  - [Doc] Documenting:
+    - Installation & Setup
+    - Permissions and `buildPermissionKeyUsing()` documented with usage and example
+    - Policies
+    - Resources
+    - Pages & Widgets
+    - Custom Permissions
+    - Plugin & Resource
+    - Commands
+    - Localization
+    
+  
+
+By @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/621
+
+* Fix SimplePage #613 by @hamrak in https://github.com/bezhanSalleh/filament-shield/pull/614
+* [Fix:Bug:WindowsOS] Resource Specific Permissions by @tszulczewski in https://github.com/bezhanSalleh/filament-shield/pull/625
+* [Fix:#629] Edit/Create when tenancy is enabled by @Wsmallnews in https://github.com/bezhanSalleh/filament-shield/pull/630
+
+### New Contributors
+
+* @tszulczewski made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/625
+* @Wsmallnews made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/630
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/4.0.1...4.0.2
+
+## gp - 2025-09-08
+
+### What's Changed
+
+* [Fix] Tenancy Part of `shield:setup` command by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/611
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/4.0.0...4.0.1
+
+## 4.0.0 - 2025-09-07
+
+### What's Changed
+
+* Support for v4 stable release by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/592
+* Fixes #560 by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/572
+* Fixes artisan cache/optimize by @malzariey in https://github.com/bezhanSalleh/filament-shield/pull/559
+* Add missing CZ and SK translations (4.x) by @hamrak in https://github.com/bezhanSalleh/filament-shield/pull/574
+* Bump aglipanci/laravel-pint-action from 2.5 to 2.6 by @dependabot[bot] in https://github.com/bezhanSalleh/filament-shield/pull/601
+* Bump stefanzweifel/git-auto-commit-action from 5 to 6 by @dependabot[bot] in https://github.com/bezhanSalleh/filament-shield/pull/602
+* Bump actions/checkout from 4 to 5 by @dependabot[bot] in https://github.com/bezhanSalleh/filament-shield/pull/603
+
+### New Contributors
+
+* @malzariey made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/559
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/3.3.7...4.0.0
+
+## 3.3.7 - 2025-06-11
+
+### What's Changed
+
+* Bump dependabot/fetch-metadata from 2.3.0 to 2.4.0 by @dependabot in https://github.com/bezhanSalleh/filament-shield/pull/540
+* [Fix] widget permissions on super admin by @Dimas-Saputra-Me in https://github.com/bezhanSalleh/filament-shield/pull/539
+* Update Polish translation by @WierzbickiKrzysztof in https://github.com/bezhanSalleh/filament-shield/pull/532
+* Switch Negated Ternary in RoleResource by @alisalehi1380 in https://github.com/bezhanSalleh/filament-shield/pull/542
+* Feat: Improve custom permissions for third party packages. by @carloeusebi in https://github.com/bezhanSalleh/filament-shield/pull/547
+* [Fix] allow Resource to be part of the Filament Resource name by @haugen86 in https://github.com/bezhanSalleh/filament-shield/pull/549
+* [Fix] Commands for auto setup/installtion to be cross-os compatible by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/552
+
+### New Contributors
+
+* @Dimas-Saputra-Me made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/539
+* @WierzbickiKrzysztof made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/532
+* @alisalehi1380 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/542
+* @carloeusebi made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/547
+* @haugen86 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/549
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/3.3.6...3.3.7
+
+## 3.3.6 - 2025-05-03
+
+### What's Changed
+
+* [bug] Add optional Tenant to Role name unique rule by @Cyrille37 in https://github.com/bezhanSalleh/filament-shield/pull/517
+* refactor: Use dynamic policy namespace for RolePolicy registration by @arthurpar06 in https://github.com/bezhanSalleh/filament-shield/pull/518
+* Normalize filpath generation for cross-OS compatibility by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/523
+* Fix example methods on Pages Hooks docs by @eduardr10 in https://github.com/bezhanSalleh/filament-shield/pull/527
+* Added support for customizabile sub navigation position by @panservicesas in https://github.com/bezhanSalleh/filament-shield/pull/528
+* Fixes!!! by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/535
+
+### New Contributors
+
+* @Cyrille37 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/517
+* @arthurpar06 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/518
+* @eduardr10 made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/527
+* @panservicesas made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/528
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/3.3.5...3.3.6
+
+## 3.3.5 - 2025-02-17
+
+### What's Changed
+
+* Bump dependabot/fetch-metadata from 2.2.0 to 2.3.0 by @dependabot in https://github.com/bezhanSalleh/filament-shield/pull/497
+* Bump aglipanci/laravel-pint-action from 2.4 to 2.5 by @dependabot in https://github.com/bezhanSalleh/filament-shield/pull/498
+* [Fix] Handles Widget Permission Labels through `$heading` by @mahdimirhendi in https://github.com/bezhanSalleh/filament-shield/pull/473
+* [Fix] Remove double-pluralization from `getAllResourcePermissions` by @dissto in https://github.com/bezhanSalleh/filament-shield/pull/465
+* wire up checkbox column and column span config for resource by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/507
+* [Fix] tenant id type by @bezhanSalleh in https://github.com/bezhanSalleh/filament-shield/pull/508
+
+### New Contributors
+
+* @mahdimirhendi made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/473
+* @dissto made their first contribution in https://github.com/bezhanSalleh/filament-shield/pull/465
+
+**Full Changelog**: https://github.com/bezhanSalleh/filament-shield/compare/3.3.4...3.3.5
+
 ## 3.3.4 - 2024-11-14
 
 ### What's Changed

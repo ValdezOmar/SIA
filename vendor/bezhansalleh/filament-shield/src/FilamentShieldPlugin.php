@@ -4,22 +4,39 @@ declare(strict_types=1);
 
 namespace BezhanSalleh\FilamentShield;
 
+use BezhanSalleh\FilamentShield\Concerns\Plugin;
+use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
 use BezhanSalleh\FilamentShield\Support\Utils;
-use Filament\Contracts\Plugin;
+use BezhanSalleh\PluginEssentials\Concerns\Plugin as Essentials;
+use Filament\Contracts\Plugin as FilamentPlugin;
 use Filament\Panel;
 use Filament\Support\Concerns\EvaluatesClosures;
 
-class FilamentShieldPlugin implements Plugin
+class FilamentShieldPlugin implements FilamentPlugin
 {
-    use Concerns\CanBeCentralApp;
-    use Concerns\CanCustomizeColumns;
-    use Concerns\CanLocalizePermissionLabels;
-    use Concerns\HasSimpleResourcePermissionView;
+    use Essentials\BelongsToParent;
+    use Essentials\BelongsToTenant;
+    use Essentials\HasGlobalSearch;
+    use Essentials\HasLabels;
+    use Essentials\HasNavigation;
+    use Essentials\HasPluginDefaults;
     use EvaluatesClosures;
+    use Plugin\CanBeCentralApp;
+    use Plugin\CanCustomizeColumns;
+    use Plugin\CanLocalizePermissionLabels;
+    use Plugin\HasSimpleResourcePermissionView;
 
     public static function make(): static
     {
         return app(static::class);
+    }
+
+    public static function get(): static
+    {
+        /** @var static $plugin */
+        $plugin = filament(app(static::class)->getId());
+
+        return $plugin;
     }
 
     public function getId(): string
@@ -32,7 +49,7 @@ class FilamentShieldPlugin implements Plugin
 
         if (! Utils::isResourcePublished($panel)) {
             $panel->resources([
-                Resources\RoleResource::class,
+                RoleResource::class,
             ]);
         }
     }
@@ -42,11 +59,16 @@ class FilamentShieldPlugin implements Plugin
         //
     }
 
-    public static function get(): static
+    protected function getPluginDefaults(): array
     {
-        /** @var static $plugin */
-        $plugin = filament(app(static::class)->getId());
+        return [
+            'modelLabel' => __('filament-shield::filament-shield.resource.label.role'),
+            'pluralModelLabel' => __('filament-shield::filament-shield.resource.label.roles'),
 
-        return $plugin;
+            'navigationGroup' => __('filament-shield::filament-shield.nav.group'),
+            'navigationLabel' => __('filament-shield::filament-shield.nav.role.label'),
+            'navigationIcon' => __('filament-shield::filament-shield.nav.role.icon'),
+            'activeNavigationIcon' => 'heroicon-s-shield-check',
+        ];
     }
 }

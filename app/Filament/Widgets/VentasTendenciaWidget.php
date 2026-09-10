@@ -14,15 +14,15 @@ class VentasTendenciaWidget extends ChartWidget
 {
     use HasWidgetPermission;
 
-    protected static ?string $heading = 'Ventas y cobranza · Últimos 6 meses';
+    protected ?string $heading = 'Ventas y cobranza · Últimos 6 meses';
 
-    protected static ?string $description = 'Compara lo facturado con el efectivo realmente cobrado.';
+    protected ?string $description = 'Compara lo facturado con el efectivo realmente cobrado.';
 
     protected static ?int $sort = 40;
 
-    protected static ?string $pollingInterval = '5m';
+    protected ?string $pollingInterval = '60s';
 
-    protected static ?string $maxHeight = '320px';
+    protected ?string $maxHeight = '320px';
 
     protected int|string|array $columnSpan = ['md' => 1, 'xl' => 1];
 

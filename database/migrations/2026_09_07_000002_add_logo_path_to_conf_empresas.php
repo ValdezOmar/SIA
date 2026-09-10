@@ -8,11 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('conf_empresas', fn (Blueprint $table) => $table->string('logo_path')->nullable());
+        if (! Schema::hasColumn('conf_empresas', 'logo_path')) {
+            Schema::table('conf_empresas', fn (Blueprint $table) => $table->string('logo_path')->nullable());
+        }
     }
 
     public function down(): void
     {
-        Schema::table('conf_empresas', fn (Blueprint $table) => $table->dropColumn('logo_path'));
+        if (Schema::hasColumn('conf_empresas', 'logo_path')) {
+            Schema::table('conf_empresas', fn (Blueprint $table) => $table->dropColumn('logo_path'));
+        }
     }
 };

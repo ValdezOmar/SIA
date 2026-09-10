@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use Error;
 use App\Services\Sistema\NotificacionExcepcionOperativaService;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -22,6 +23,6 @@ class NotificacionExcepcionOperativaServiceTest extends TestCase
     {
         $servicio = new NotificacionExcepcionOperativaService;
 
-        $this->assertFalse($servicio->esOperativa(new \Error('Fallo de programación')));
+        $this->assertFalse($servicio->esOperativa(new Error('Fallo de programación')));
     }
 }

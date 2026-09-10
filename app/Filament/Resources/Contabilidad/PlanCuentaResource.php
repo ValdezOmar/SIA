@@ -2,20 +2,34 @@
 
 namespace App\Filament\Resources\Contabilidad;
 
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use DateTime;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\Contabilidad\PlanCuentaResource\Pages\ListPlanCuentas;
+use App\Filament\Resources\Contabilidad\PlanCuentaResource\Pages\CreatePlanCuenta;
+use App\Filament\Resources\Contabilidad\PlanCuentaResource\Pages\EditPlanCuenta;
 use App\Filament\Resources\Contabilidad\PlanCuentaResource\Pages;
 use App\Models\Contabilidad\PlanCuenta;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -30,9 +44,9 @@ class PlanCuentaResource extends Resource
 {
     protected static ?string $model = PlanCuenta::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-document-chart-bar';
 
-    protected static ?string $navigationGroup = 'Contabilidad';
+    protected static string | \UnitEnum | null $navigationGroup = 'Contabilidad';
 
     protected static ?string $navigationLabel = 'Plan de Cuentas';
 
@@ -45,7 +59,7 @@ class PlanCuentaResource extends Resource
     /**
      * Aplicar filtros de empresa y sucursal a la consulta
      */
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
 
@@ -62,7 +76,7 @@ class PlanCuentaResource extends Resource
         return $query;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
         $defaultEmpresaId = Auth::user()?->empresa_id ?: Empresa::query()->value('id');
@@ -70,8 +84,8 @@ class PlanCuentaResource extends Resource
             ->when($defaultEmpresaId, fn ($query) => $query->where('empresa_id', $defaultEmpresaId))
             ->value('id');
 
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Hidden::make('empresa_id')
                     ->default(fn () => Auth::user()?->empresa_id ?: $defaultEmpresaId)
                     ->dehydrated(),
@@ -82,7 +96,7 @@ class PlanCuentaResource extends Resource
 
                 Tabs::make('Gestión de Cuenta')
                     ->tabs([
-                        Tabs\Tab::make('General')
+                        Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Cuenta')
@@ -331,7 +345,7 @@ class PlanCuentaResource extends Resource
                                     ->columnSpanFull(),
                             ]),
 
-                        Tabs\Tab::make('Saldos')
+                        Tab::make('Saldos')
                             ->icon('heroicon-o-chart-bar')
                             ->schema([
                                 Section::make('Resumen de Saldos')
@@ -367,7 +381,7 @@ class PlanCuentaResource extends Resource
                                                 $html .= '<tbody class="divide-y divide-gray-200">';
 
                                                 foreach ($saldos as $saldo) {
-                                                    $nombreMes = \DateTime::createFromFormat('!m', $saldo->mes)->format('F');
+                                                    $nombreMes = DateTime::createFromFormat('!m', $saldo->mes)->format('F');
                                                     $saldoFinal = $record->naturaleza === 'deudora'
                                                         ? $saldo->saldo_final_debe - $saldo->saldo_final_haber
                                                         : $saldo->saldo_final_haber - $saldo->saldo_final_debe;
@@ -389,7 +403,7 @@ class PlanCuentaResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Auditoría')
+                        Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -574,37 +588,37 @@ class PlanCuentaResource extends Resource
                     ->falseLabel('Inactivas')
                     ->placeholder('Todas'),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('toggle_active')
+                    Action::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
                             $record->update(['activo' => ! $record->activo]);
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title($record->activo ? 'Cuenta activada' : 'Cuenta desactivada')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->visible(fn ($record) => ! $record->tieneMovimientos()),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('codigo')
@@ -623,9 +637,9 @@ class PlanCuentaResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPlanCuentas::route('/'),
-            'create' => Pages\CreatePlanCuenta::route('/create'),
-            'edit' => Pages\EditPlanCuenta::route('/{record}/edit'),
+            'index' => ListPlanCuentas::route('/'),
+            'create' => CreatePlanCuenta::route('/create'),
+            'edit' => EditPlanCuenta::route('/{record}/edit'),
         ];
     }
 }

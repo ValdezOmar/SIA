@@ -2,15 +2,21 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use App\Forms\Components\CalculoRepeater;
+use Filament\Forms\Components\Placeholder;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
 use App\Models\Inventario\Almacen;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -44,10 +50,10 @@ class LotesRelationManager extends RelationManager
         return ! $record || ! $record->maneja_lotes;
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Información del Lote')
                     ->icon('heroicon-o-beaker')
                     ->description('Gestiona los lotes de este artículo')
@@ -92,7 +98,7 @@ class LotesRelationManager extends RelationManager
                             ->icon('heroicon-o-cube')
                             ->description('Distribución del lote en diferentes almacenes')
                             ->schema([
-                                \App\Forms\Components\CalculoRepeater::make('stocks')
+                                CalculoRepeater::make('stocks')
                                     ->label('')
                                     ->relationship('stocks')
                                     ->schema([
@@ -135,7 +141,7 @@ class LotesRelationManager extends RelationManager
                             ]),
 
                         // Información del artículo
-                        Forms\Components\Placeholder::make('articulo_info')
+                        Placeholder::make('articulo_info')
                             ->label('')
                             ->content(function ($livewire) {
                                 $articulo = $livewire->getOwnerRecord();
@@ -229,9 +235,9 @@ class LotesRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\Filter::make('fecha_vencimiento')
+                Filter::make('fecha_vencimiento')
                     ->label('Vencimiento')
-                    ->form([
+                    ->schema([
                         DatePicker::make('vencimiento_hasta')
                             ->label('Vencimiento hasta')
                             ->native(),
@@ -243,11 +249,11 @@ class LotesRelationManager extends RelationManager
                         );
                     }),
 
-                Tables\Filters\Filter::make('lotes_vencidos')
+                Filter::make('lotes_vencidos')
                     ->label('Lotes Vencidos')
                     ->query(fn ($query) => $query->where('fecha_vencimiento', '<', now())->whereNotNull('fecha_vencimiento')),
 
-                Tables\Filters\Filter::make('lotes_proximos_vencer')
+                Filter::make('lotes_proximos_vencer')
                     ->label('Próximos a Vencer (30 días)')
                     ->query(function ($query) {
                         $fechaLimite = now()->addDays(30);
@@ -256,7 +262,7 @@ class LotesRelationManager extends RelationManager
                             ->where('fecha_vencimiento', '<=', $fechaLimite);
                     }),
 
-                Tables\Filters\SelectFilter::make('almacen_id')
+                SelectFilter::make('almacen_id')
                     ->label('Almacén con Stock')
                     ->options(
                         fn () => Almacen::where('activo', true)
@@ -275,12 +281,12 @@ class LotesRelationManager extends RelationManager
                         );
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('5xl')
-                        ->mutateFormDataUsing(function (array $data): array {
+                        ->mutateDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                             return $data;

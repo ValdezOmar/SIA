@@ -2,19 +2,28 @@
 
 namespace App\Filament\Resources\Inventario;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use App\Models\Inventario\Existencia;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use App\Filament\Resources\Inventario\KardexResource\Pages\ListKardexes;
+use App\Filament\Resources\Inventario\KardexResource\Pages\CreateKardex;
+use App\Filament\Resources\Inventario\KardexResource\Pages\EditKardex;
 use App\Filament\Resources\Inventario\KardexResource\Pages;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Kardex;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -29,9 +38,9 @@ class KardexResource extends Resource
 {
     protected static ?string $model = Kardex::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Inventario';
+    protected static string | \UnitEnum | null $navigationGroup = 'Inventario';
 
     protected static ?string $navigationLabel = 'Kardex';
 
@@ -114,13 +123,13 @@ class KardexResource extends Resource
             .'</div></div>';
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('Gestión Kardex')
                     ->tabs([
-                        Tabs\Tab::make('Información General')
+                        Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Movimiento')
@@ -395,7 +404,7 @@ class KardexResource extends Resource
                                                         $articuloId = $get('articulo_id');
                                                         $almacenId = $get('almacen_id');
                                                         if ($articuloId && $almacenId) {
-                                                            $existencia = \App\Models\Inventario\Existencia::where('articulo_id', $articuloId)
+                                                            $existencia = Existencia::where('articulo_id', $articuloId)
                                                                 ->where('almacen_id', $almacenId)
                                                                 ->first();
 
@@ -414,7 +423,7 @@ class KardexResource extends Resource
                                                         $direccion = $get('direccion');
 
                                                         if ($articuloId && $almacenId) {
-                                                            $existencia = \App\Models\Inventario\Existencia::where('articulo_id', $articuloId)
+                                                            $existencia = Existencia::where('articulo_id', $articuloId)
                                                                 ->where('almacen_id', $almacenId)
                                                                 ->first();
                                                             $saldoActual = $existencia?->cantidad_disponible ?? 0;
@@ -435,7 +444,7 @@ class KardexResource extends Resource
                                                         $articuloId = $get('articulo_id');
                                                         $almacenId = $get('almacen_id');
                                                         if ($articuloId && $almacenId) {
-                                                            $existencia = \App\Models\Inventario\Existencia::where('articulo_id', $articuloId)
+                                                            $existencia = Existencia::where('articulo_id', $articuloId)
                                                                 ->where('almacen_id', $almacenId)
                                                                 ->first();
 
@@ -451,7 +460,7 @@ class KardexResource extends Resource
                                                         $articuloId = $get('articulo_id');
                                                         $almacenId = $get('almacen_id');
                                                         if ($articuloId && $almacenId) {
-                                                            $existencia = \App\Models\Inventario\Existencia::where('articulo_id', $articuloId)
+                                                            $existencia = Existencia::where('articulo_id', $articuloId)
                                                                 ->where('almacen_id', $almacenId)
                                                                 ->first();
 
@@ -501,7 +510,7 @@ class KardexResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Auditoría')
+                        Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -765,9 +774,9 @@ class KardexResource extends Resource
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\Filter::make('fecha_movimiento')
+                Filter::make('fecha_movimiento')
                     ->label('Rango de Fechas')
-                    ->form([
+                    ->schema([
                         DatePicker::make('fecha_desde')
                             ->label('Desde')
                             ->native()
@@ -783,20 +792,20 @@ class KardexResource extends Resource
                             ->when($data['fecha_hasta'], fn ($q, $fecha) => $q->whereDate('fecha_movimiento', '<=', $fecha));
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('anular')
+                    Action::make('anular')
                         ->label('Anular')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
                         ->modalHeading('Revertir movimiento')
                         ->modalSubheading('Se creará un movimiento compensatorio y se actualizarán las existencias.')
-                        ->form([
+                        ->schema([
                             Textarea::make('motivo')
                                 ->label('Motivo')
                                 ->required()
@@ -831,9 +840,9 @@ class KardexResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListKardexes::route('/'),
-            'create' => Pages\CreateKardex::route('/create'),
-            'edit' => Pages\EditKardex::route('/{record}/edit'),
+            'index' => ListKardexes::route('/'),
+            'create' => CreateKardex::route('/create'),
+            'edit' => EditKardex::route('/{record}/edit'),
         ];
     }
 }

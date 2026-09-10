@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Exception;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
@@ -41,7 +42,7 @@ class InventarioNegativoTest extends TestCase
 
     public function test_almacen_sin_permiso_rechaza_la_salida_que_deja_stock_negativo(): void
     {
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $this->salida(1);
     }
 

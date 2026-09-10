@@ -2,13 +2,18 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\CreateAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use App\Models\Inventario\UnidadMedida;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -25,10 +30,10 @@ class UnidadesRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Unidades Alternas';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Configuración de Unidad Alterna')
                     ->icon('heroicon-o-scale')
                     ->description('Define unidades de medida alternas para este artículo')
@@ -145,38 +150,38 @@ class UnidadesRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('es_compra')
+                TernaryFilter::make('es_compra')
                     ->label('Para Compras')
                     ->boolean()
                     ->trueLabel('Sí')
                     ->falseLabel('No'),
 
-                Tables\Filters\TernaryFilter::make('es_venta')
+                TernaryFilter::make('es_venta')
                     ->label('Para Ventas')
                     ->boolean()
                     ->trueLabel('Sí')
                     ->falseLabel('No'),
 
-                Tables\Filters\TernaryFilter::make('es_inventario')
+                TernaryFilter::make('es_inventario')
                     ->label('Para Inventario')
                     ->boolean()
                     ->trueLabel('Sí')
                     ->falseLabel('No'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Agregar Unidad Alterna')
                     ->icon('heroicon-o-plus')
                     ->modalHeading('Agregar Unidad Alterna al Artículo')
                     ->modalWidth('4xl'),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl'),
 
-                    Tables\Actions\DeleteAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

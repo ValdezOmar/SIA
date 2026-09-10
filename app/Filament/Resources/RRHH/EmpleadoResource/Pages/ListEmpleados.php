@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RRHH\EmpleadoResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Resources\RRHH\EmpleadoResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -20,7 +21,7 @@ class ListEmpleados extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
+            CreateAction::make()
                 ->label('Registrar empleado')
                 ->icon('heroicon-o-user-plus'),
         ];

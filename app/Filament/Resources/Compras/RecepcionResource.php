@@ -2,6 +2,22 @@
 
 namespace App\Filament\Resources\Compras;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use App\Models\Compras\RecepcionDetalle;
+use App\Forms\Components\CalculoRepeater;
+use App\Models\Compras\OrdenCompraDetalle;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use App\Filament\Resources\Compras\RecepcionResource\Pages\ListRecepcions;
+use App\Filament\Resources\Compras\RecepcionResource\Pages\CreateRecepcion;
+use App\Filament\Resources\Compras\RecepcionResource\Pages\EditRecepcion;
 use App\Filament\Resources\Compras\RecepcionResource\Pages;
 use App\Models\Compras\OrdenCompra;
 use App\Models\Compras\Proveedor;
@@ -9,15 +25,11 @@ use App\Models\Compras\Recepcion;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -31,9 +43,9 @@ class RecepcionResource extends Resource
 {
     protected static ?string $model = Recepcion::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-inbox';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-inbox';
 
-    protected static ?string $navigationGroup = 'Compras';
+    protected static string | \UnitEnum | null $navigationGroup = 'Compras';
 
     protected static ?string $navigationLabel = 'Recepciones';
 
@@ -53,13 +65,13 @@ class RecepcionResource extends Resource
         return 'Bs '.number_format($monto ?? 0, 2);
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('Gestión de Recepción')
                     ->tabs([
-                        Tabs\Tab::make('General')
+                        Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Recepción')
@@ -145,7 +157,7 @@ class RecepcionResource extends Resource
 
                                                                 $detalles = [];
                                                                 foreach ($orden->detalles as $detalle) {
-                                                                    $recibido = \App\Models\Compras\RecepcionDetalle::where('orden_detalle_id', $detalle->id)->sum('cantidad_aceptada');
+                                                                    $recibido = RecepcionDetalle::where('orden_detalle_id', $detalle->id)->sum('cantidad_aceptada');
                                                                     $pendiente = $detalle->cantidad - $recibido;
 
                                                                     if ($pendiente > 0) {
@@ -219,7 +231,7 @@ class RecepcionResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Productos')
+                        Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
                                 if (! $record) {
@@ -233,11 +245,11 @@ class RecepcionResource extends Resource
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos recibidos')
                                     ->schema([
-                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('recepcion')
+                                        CalculoRepeater::make('detalles')->calculo('recepcion')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->schema([
-                                                Grid::make(12)
+                                                Grid::make(['default' => 1, 'lg' => 12])
                                                     ->schema([
                                                         Select::make('orden_detalle_id')
                                                             ->label('Producto')
@@ -253,7 +265,7 @@ class RecepcionResource extends Resource
                                                                 }
 
                                                                 return $orden->detalles->mapWithKeys(function ($detalle) {
-                                                                    $recibido = \App\Models\Compras\RecepcionDetalle::where('orden_detalle_id', $detalle->id)->sum('cantidad_aceptada');
+                                                                    $recibido = RecepcionDetalle::where('orden_detalle_id', $detalle->id)->sum('cantidad_aceptada');
                                                                     $pendiente = $detalle->cantidad - $recibido;
                                                                     if ($pendiente <= 0) {
                                                                         return [];
@@ -275,14 +287,14 @@ class RecepcionResource extends Resource
                                                             ->columnSpan(4)
                                                             ->afterStateUpdated(function ($state, callable $set) {
                                                                 if ($state) {
-                                                                    $detalle = \App\Models\Compras\OrdenCompraDetalle::with('articulo')->find($state);
+                                                                    $detalle = OrdenCompraDetalle::with('articulo')->find($state);
                                                                     if ($detalle) {
                                                                         $set('articulo_id', $detalle->articulo_id);
                                                                         $set('codigo_articulo', $detalle->codigo_articulo);
                                                                         $set('descripcion_articulo', $detalle->descripcion_articulo);
                                                                         $set('unidad_medida', $detalle->unidad_medida);
                                                                         $set('costo_unitario', $detalle->precio_unitario);
-                                                                        $recibido = \App\Models\Compras\RecepcionDetalle::where('orden_detalle_id', $state)->sum('cantidad_aceptada');
+                                                                        $recibido = RecepcionDetalle::where('orden_detalle_id', $state)->sum('cantidad_aceptada');
                                                                         $pendiente = $detalle->cantidad - $recibido;
                                                                         $set('cantidad', $pendiente);
                                                                     }
@@ -406,7 +418,7 @@ class RecepcionResource extends Resource
                                                 }
 
                                                 if (! $articulo && isset($data['orden_detalle_id']) && $data['orden_detalle_id']) {
-                                                    $ordenDetalle = \App\Models\Compras\OrdenCompraDetalle::with('articulo')->find($data['orden_detalle_id']);
+                                                    $ordenDetalle = OrdenCompraDetalle::with('articulo')->find($data['orden_detalle_id']);
                                                     if ($ordenDetalle) {
                                                         $data['articulo_id'] = $ordenDetalle->articulo_id;
                                                         $articulo = $ordenDetalle->articulo;
@@ -527,18 +539,18 @@ class RecepcionResource extends Resource
                     ->searchable()
                     ->preload(),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl')
                         ->visible(fn ($record) => ! $record->inventario_procesado_at),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('procesar_ingreso')
+                    Action::make('procesar_ingreso')
                         ->label('Procesar ingreso')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -555,7 +567,7 @@ class RecepcionResource extends Resource
                         })
                         ->visible(fn ($record) => ! $record->inventario_procesado_at && in_array($record->estado, ['pendiente', 'parcial'])),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->visible(fn ($record) => $record->estado === 'pendiente'),
                 ])
                     ->tooltip('Acciones')
@@ -577,9 +589,9 @@ class RecepcionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRecepcions::route('/'),
-            'create' => Pages\CreateRecepcion::route('/create'),
-            'edit' => Pages\EditRecepcion::route('/{record}/edit'),
+            'index' => ListRecepcions::route('/'),
+            'create' => CreateRecepcion::route('/create'),
+            'edit' => EditRecepcion::route('/{record}/edit'),
         ];
     }
 }

@@ -7,8 +7,9 @@ use Closure;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\Paginator;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 use function Filament\Support\get_model_label;
@@ -26,9 +27,34 @@ trait HasRecords
 
     protected string | Closure | null $recordTitleAttribute = null;
 
+    protected ?Closure $dataSource = null;
+
+    protected ?string $cachedModel = null;
+
+    protected bool $hasCachedModel = false;
+
+    protected ?bool $cachedHasPivotRecordKeys = null;
+
+    protected ?Closure $resolveSelectedRecordsUsing = null;
+
+    public function records(?Closure $dataSource): static
+    {
+        $this->dataSource = $dataSource;
+
+        return $this;
+    }
+
+    public function resolveSelectedRecordsUsing(?Closure $callback): static
+    {
+        $this->resolveSelectedRecordsUsing = $callback;
+
+        return $this;
+    }
+
     public function allowDuplicates(bool | Closure $condition = true): static
     {
         $this->allowsDuplicates = $condition;
+        $this->cachedHasPivotRecordKeys = null;
 
         return $this;
     }
@@ -66,14 +92,49 @@ trait HasRecords
         return $this->getLivewire()->getTableRecords();
     }
 
-    public function getRecordKey(Model $record): string
+    public function hasQuery(): bool
+    {
+        return ! $this->dataSource;
+    }
+
+    public function getDataSource(): ?Closure
+    {
+        return $this->dataSource;
+    }
+
+    public function getResolveSelectedRecordsCallback(): ?Closure
+    {
+        return $this->resolveSelectedRecordsUsing;
+    }
+
+    /**
+     * @param  Model | array<string, mixed>  $record
+     */
+    public function getRecordKey(Model | array $record): string
     {
         return $this->getLivewire()->getTableRecordKey($record);
     }
 
-    public function getModel(): string
+    /**
+     * @return class-string<Model>|null
+     */
+    public function getModel(): ?string
     {
-        return $this->getQuery()->getModel()::class;
+        if ($this->hasCachedModel) {
+            return $this->cachedModel;
+        }
+
+        $this->hasCachedModel = true;
+
+        if ($baseQuery = $this->evaluate($this->query)) {
+            return $this->cachedModel = $baseQuery->getModel()::class;
+        }
+
+        if ($relationshipQuery = $this->getRelationshipQuery()) {
+            return $this->cachedModel = $relationshipQuery->getModel()::class;
+        }
+
+        return $this->cachedModel = null;
     }
 
     public function allowsDuplicates(): bool
@@ -81,9 +142,30 @@ trait HasRecords
         return (bool) $this->evaluate($this->allowsDuplicates);
     }
 
+    /** Cached because both underlying calls evaluate Closures and this is hit per row. */
+    public function hasPivotRecordKeys(): bool
+    {
+        return $this->cachedHasPivotRecordKeys ??= (
+            ($this->getRelationship() instanceof BelongsToMany)
+            && $this->allowsDuplicates()
+        );
+    }
+
     public function getModelLabel(): string
     {
-        return $this->evaluate($this->modelLabel) ?? get_model_label($this->getModel());
+        $label = $this->evaluate($this->modelLabel);
+
+        if (filled($label)) {
+            return $label;
+        }
+
+        $model = $this->getModel();
+
+        if (filled($model)) {
+            return get_model_label($model);
+        }
+
+        return __('filament-tables::table.default_model_label');
     }
 
     public function getPluralModelLabel(): string

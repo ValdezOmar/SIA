@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use RuntimeException;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Kardex;
@@ -81,7 +82,7 @@ class PagoMixtoTest extends TestCase
         try {
             $this->factura->crearPagoAutomaticoSiEsContado(['tipo_pago' => 'mixto', 'monto_efectivo' => 30, 'monto_qr' => 70]);
             $this->fail('No hay almacén para entregar el producto.');
-        } catch (\RuntimeException $exception) {
+        } catch (RuntimeException $exception) {
             $this->assertStringContainsString('almacén', $exception->getMessage());
         }
         $this->assertSame(0, $this->factura->pagos()->count());

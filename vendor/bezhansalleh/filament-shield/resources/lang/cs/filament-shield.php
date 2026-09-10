@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -9,6 +11,7 @@ return [
 
     'column.name' => 'Název',
     'column.guard_name' => 'Název guardu',
+    'column.team' => 'Tým',
     'column.roles' => 'Role',
     'column.permissions' => 'Oprávnění',
     'column.updated_at' => 'Změněno dne',
@@ -22,6 +25,8 @@ return [
     'field.name' => 'Název',
     'field.guard_name' => 'Název guardu',
     'field.permissions' => 'Oprávnění',
+    'field.team' => 'Tým',
+    'field.team.placeholder' => 'Vyberte tým ...',
     'field.select_all.name' => 'Vybrat vše',
     'field.select_all.message' => 'Povolit všechny oprávnení právě <span class="text-primary font-medium">Dostupné</span> pro tuto roli',
 

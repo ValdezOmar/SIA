@@ -2,11 +2,9 @@
 
 namespace Filament\Actions\Exports\Downloaders;
 
+use Filament\Actions\Exports\ContentGenerators\XlsxExportContentGenerator;
 use Filament\Actions\Exports\Downloaders\Contracts\Downloader;
 use Filament\Actions\Exports\Models\Export;
-use League\Csv\Reader as CsvReader;
-use League\Csv\Statement;
-use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -24,39 +22,23 @@ class XlsxDownloader implements Downloader
         $fileName = $export->file_name . '.xlsx';
 
         if ($disk->exists($filePath = $directory . DIRECTORY_SEPARATOR . $fileName)) {
-            return $disk->download($filePath);
+            $response = $disk->download($filePath);
+
+            if (ob_get_length() > 0) {
+                ob_end_clean();
+            }
+
+            $response->headers->set('X-Vapor-Base64-Encode', 'True');
+
+            return $response;
         }
 
         $writer = app(Writer::class);
 
-        $csvDelimiter = $export->exporter::getCsvDelimiter();
-
-        $writeRowsFromFile = function (string $file) use ($csvDelimiter, $disk, $writer) {
-            $csvReader = CsvReader::createFromStream($disk->readStream($file));
-            $csvReader->setDelimiter($csvDelimiter);
-            $csvResults = Statement::create()->process($csvReader);
-
-            foreach ($csvResults->getRecords() as $row) {
-                $writer->addRow(Row::fromValues($row));
-            }
-        };
-
-        return response()->streamDownload(function () use ($disk, $directory, $fileName, $writer, $writeRowsFromFile) {
+        return response()->streamDownload(function () use ($export, $fileName, $writer): void {
             $writer->openToBrowser($fileName);
 
-            $writeRowsFromFile($directory . DIRECTORY_SEPARATOR . 'headers.csv');
-
-            foreach ($disk->files($directory) as $file) {
-                if (str($file)->endsWith('headers.csv')) {
-                    continue;
-                }
-
-                if (! str($file)->endsWith('.csv')) {
-                    continue;
-                }
-
-                $writeRowsFromFile($file);
-            }
+            app(XlsxExportContentGenerator::class)($export, $writer);
 
             $writer->close();
         }, $fileName, [

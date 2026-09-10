@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Schemas\Schema;
 use App\Forms\Components\CalculoRepeater;
 use App\Support\CalculoDetalle;
 use Filament\Forms\Components\Hidden;
@@ -9,7 +11,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Livewire\Component;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -32,7 +33,7 @@ class CalculoRepeaterTest extends TestCase
             ->set($path.'.descuento_porcentaje', '10')
             ->set($path.'._descuento_tipo', 'porcentaje')
             ->assertSet($path.'.total', 0)
-            ->call('mountFormComponentAction', 'detalles', 'calcular')
+            ->callAction(\Filament\Actions\Testing\TestAction::make('calcular')->schemaComponent('detalles', 'form'))
             ->assertSet($path.'.descuento', 153.75)
             ->assertSet($path.'.total', 1383.75);
     }
@@ -64,13 +65,13 @@ class CalculoRepeaterTest extends TestCase
         $path = 'data.detalles.'.array_key_first($test->get('data.detalles'));
         $test->set($path.'.cantidad', 2)->set($path.'.precio_unitario', 100)
             ->set($path.'.descuento_porcentaje', 10)->set($path.'._descuento_tipo', 'porcentaje')
-            ->call('mountFormComponentAction', 'detalles', 'calcular')
+            ->callAction(\Filament\Actions\Testing\TestAction::make('calcular')->schemaComponent('detalles', 'form'))
             ->assertSet($path.'.total', 180.0)
             ->set($path.'.cantidad', 3)
-            ->call('mountFormComponentAction', 'detalles', 'calcular')
+            ->callAction(\Filament\Actions\Testing\TestAction::make('calcular')->schemaComponent('detalles', 'form'))
             ->assertSet($path.'.descuento', 30.0)->assertSet($path.'.total', 270.0)
             ->set($path.'.descuento', 15)->set($path.'._descuento_tipo', 'importe')
-            ->call('mountFormComponentAction', 'detalles', 'calcular')
+            ->callAction(\Filament\Actions\Testing\TestAction::make('calcular')->schemaComponent('detalles', 'form'))
             ->assertSet($path.'.descuento_porcentaje', 5.0)->assertSet($path.'.total', 285.0)
             ->assertSet('data.total', 285.0);
     }
@@ -78,6 +79,7 @@ class CalculoRepeaterTest extends TestCase
 
 class FormularioCalculoPrueba extends Component implements HasForms
 {
+    use InteractsWithActions;
     use InteractsWithForms;
 
     public array $data = [];
@@ -89,9 +91,9 @@ class FormularioCalculoPrueba extends Component implements HasForms
         $this->form->fill(['detalles' => ['linea' => ['cantidad' => 1, 'precio_unitario' => 0, 'descuento' => 0, 'descuento_porcentaje' => 0, 'aplicar_iva' => false, 'total' => 0]]]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->statePath('data')->schema([
+        return $schema->statePath('data')->components([
             CalculoRepeater::make('detalles')->key('detalles')->calculo('venta')->live()->schema([
                 TextInput::make('cantidad')->numeric()->live()->afterStateUpdated(fn ($set) => $set('cantidad', 1)),
                 TextInput::make('precio_unitario')->numeric()->live(onBlur: true),

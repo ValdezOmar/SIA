@@ -2,14 +2,18 @@
 
 namespace App\Filament\Resources\Ventas\ClienteResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\CreateAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
 use App\Models\Ventas\Factura;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -56,10 +60,10 @@ class FacturasRelationManager extends RelationManager
         return in_array($estado, ['pagada', 'pagado', 'anulada'], true);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Datos de la Factura')
                     ->icon('heroicon-o-document-text')
                     ->schema([
@@ -282,7 +286,7 @@ class FacturasRelationManager extends RelationManager
                     ),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Nueva Factura')
                     ->icon('heroicon-o-plus')
                     ->modalHeading('Nueva Factura')
@@ -306,17 +310,17 @@ class FacturasRelationManager extends RelationManager
                         return $factura;
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('5xl'),
 
-                    Tables\Actions\Action::make('registrar_pago')
+                    Action::make('registrar_pago')
                         ->label('Registrar Pago')
                         ->icon('heroicon-o-credit-card')
                         ->color('success')
-                        ->form([
+                        ->schema([
                             TextInput::make('monto')
                                 ->label('Monto a Pagar')
                                 ->numeric()

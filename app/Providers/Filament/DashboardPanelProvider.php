@@ -3,7 +3,8 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource;
-use App\Filament\Pages\AnalisisComercial;
+use App\Support\PanelAppearance;
+use App\Filament\Widgets\AnalisisComercialWidget;
 use App\Filament\Widgets\ContabilidadResumenWidget;
 use App\Filament\Widgets\ContabilidadTendenciaWidget;
 use App\Filament\Widgets\GananciaBrutaWidget;
@@ -20,6 +21,7 @@ use Filament\Navigation\MenuItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -27,7 +29,6 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Nuxtifyts\DashStackTheme\DashStackThemePlugin;
 
 class DashboardPanelProvider extends PanelProvider
 {
@@ -39,11 +40,21 @@ class DashboardPanelProvider extends PanelProvider
      */
     public function panel(Panel $panel): Panel
     {
+        $appearance = PanelAppearance::values();
+
         return $panel
             // Identidad y acceso al panel.
             ->default() // Define este panel como el panel principal de Filament.
             ->id('dashboard') // Identificador interno único del panel.
             ->path('dashboard') // URL base desde la que se accede al sistema.
+            ->spa() // Conserva la estructura del panel al navegar entre recursos.
+            // El cierre de sesión redirige a una página fuera del shell autenticado.
+            // Estas excepciones fuerzan una carga completa y evitan que el login/404
+            // se monte encima de la página que se estaba editando.
+            ->spaUrlExceptions([
+                url('/dashboard/login'),
+                url('/dashboard/logout'),
+            ])
             ->login(GoogleAuthProvider::class) // Pantalla de acceso personalizada con Google y credenciales.
             ->authGuard('web') // Guardia de Laravel utilizada para autenticar a los usuarios.
 
@@ -51,7 +62,11 @@ class DashboardPanelProvider extends PanelProvider
             ->brandLogo(asset('/images/logo.png')) // Logo mostrado en la cabecera y barra lateral.
             ->brandLogoHeight('3rem') // Altura visual del logo dentro del panel.
             ->favicon(asset('/images/favicon.ico')) // Ícono mostrado en la pestaña del navegador.
+            ->colors(['primary' => Color::hex($appearance['primary']), 'secondary' => Color::hex($appearance['secondary'])])
+            ->font('Nunito Sans')
             ->sidebarCollapsibleOnDesktop(true) // Permite contraer la barra lateral en escritorio.
+            ->collapsibleNavigationGroups()
+            ->breadcrumbs(false)
 
             // Recursos, grupos y páginas disponibles.
             ->discoverResources(
@@ -75,7 +90,9 @@ class DashboardPanelProvider extends PanelProvider
             ->databaseNotificationsPolling('30s') // Consulta nuevas notificaciones cada 30 segundos.
             ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_AFTER, fn () => view('filament.components.empresa-mail-link'))
             ->renderHook(PanelsRenderHook::HEAD_END, fn () => view('filament.components.ventas-importes-script'))
-            ->plugins($this->plugins()) // Activa permisos y el tema visual del sistema.
+            ->renderHook(PanelsRenderHook::HEAD_END, fn () => view('filament.components.barcode-assets'))
+            ->renderHook(PanelsRenderHook::HEAD_END, fn () => view('filament.components.sia-panel-theme', ['appearance' => $appearance]))
+            ->plugins($this->plugins()) // Activa permisos y el tema del panel.
             ->userMenuItems($this->userMenuItems()); // Configura las opciones del menú del avatar.
     }
 
@@ -88,7 +105,6 @@ class DashboardPanelProvider extends PanelProvider
     {
         return [
             Dashboard::class,
-            AnalisisComercial::class,
         ];
     }
 
@@ -103,6 +119,7 @@ class DashboardPanelProvider extends PanelProvider
             ContabilidadResumenWidget::class,
             VentasResumenWidget::class,
             InventarioResumenWidget::class,
+            AnalisisComercialWidget::class,
             GananciaBrutaWidget::class,
             VentasTendenciaWidget::class,
             ContabilidadTendenciaWidget::class,
@@ -161,7 +178,6 @@ class DashboardPanelProvider extends PanelProvider
     {
         return [
             FilamentShieldPlugin::make(), // Gestiona roles y permisos de los recursos.
-            DashStackThemePlugin::make(), // Aplica el tema visual personalizado.
         ];
     }
 

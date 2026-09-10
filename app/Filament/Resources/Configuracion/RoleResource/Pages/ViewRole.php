@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Configuracion\RoleResource\Pages;
 
+use Filament\Actions\EditAction;
 use App\Filament\Resources\Configuracion\RoleResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
@@ -13,7 +14,7 @@ class ViewRole extends ViewRecord
     protected function getActions(): array
     {
         return [
-            Actions\EditAction::make(),
+            EditAction::make(),
         ];
     }
 }

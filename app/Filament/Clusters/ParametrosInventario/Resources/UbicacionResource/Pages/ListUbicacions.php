@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources\UbicacionResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Clusters\ParametrosInventario\Resources\UbicacionResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -18,7 +19,7 @@ class ListUbicacions extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->label('Nueva ubicación'),
+            CreateAction::make()->label('Nueva ubicación'),
         ];
     }
 }

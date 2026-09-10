@@ -21,9 +21,20 @@ class GananciaBrutaWidget extends TableWidget
 
     protected static ?int $sort = 15;
 
-    protected static ?string $pollingInterval = '5m';
+    protected static ?string $pollingInterval = '60s';
 
     protected int|string|array $columnSpan = ['md' => 2, 'xl' => 2];
+
+    /**
+     * El resultado se agrupa por periodo. Filament agrega por defecto la clave
+     * primaria como segundo orden para paginar, pero esa columna no pertenece
+     * al GROUP BY y MySQL estricto la rechaza.
+     */
+    protected function makeTable(): \Filament\Tables\Table
+    {
+        return parent::makeTable()
+            ->defaultKeySort(false);
+    }
 
     protected function getTableQuery(): Builder
     {

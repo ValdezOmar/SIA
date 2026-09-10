@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources\GrupoArticuloResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Clusters\ParametrosInventario\Resources\GrupoArticuloResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -18,7 +19,7 @@ class ListGrupoArticulos extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->label('Nuevo grupo'),
+            CreateAction::make()->label('Nuevo grupo'),
         ];
     }
 }

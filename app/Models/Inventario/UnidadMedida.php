@@ -2,12 +2,13 @@
 
 namespace App\Models\Inventario;
 
+use App\Models\Inventario\Concerns\GeneraCodigoInventario;
 use App\Models\Sistema\Empresa;
 use Illuminate\Database\Eloquent\Model;
 
 class UnidadMedida extends Model
 {
-    use Concerns\GeneraCodigoInventario;
+    use GeneraCodigoInventario;
 
     protected $table = 'alm_unidades_medida';
 

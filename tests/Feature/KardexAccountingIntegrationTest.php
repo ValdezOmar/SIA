@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\RRHH\Empleado;
+use App\Models\RRHH\HistorialLaboral;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Inventario\Kardex;
 use App\Models\User;
@@ -30,8 +32,8 @@ class KardexAccountingIntegrationTest extends TestCase
             'pais' => 'Bolivia', 'empresa_activo' => true, 'created_at' => now(), 'updated_at' => now(),
         ]);
         $this->user = User::factory()->create();
-        $this->user->setRelation('empleado', (new \App\Models\RRHH\Empleado)->setRelation('historialActivo',
-            (new \App\Models\RRHH\HistorialLaboral)->forceFill(['empresa_id' => $this->empresaId])));
+        $this->user->setRelation('empleado', (new Empleado)->setRelation('historialActivo',
+            (new HistorialLaboral)->forceFill(['empresa_id' => $this->empresaId])));
         $this->actingAs($this->user);
         $this->almacenId = DB::table('alm_almacenes')->insertGetId([
             'codigo' => 'ALM-001', 'nombre' => 'Almacén principal', 'direccion' => 'Calle 1',

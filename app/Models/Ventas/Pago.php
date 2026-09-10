@@ -2,6 +2,7 @@
 
 namespace App\Models\Ventas;
 
+use RuntimeException;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -63,7 +64,7 @@ class Pago extends Model
                 return $pago;
             }
             if (in_array($pago->estado, ['rechazado', 'anulado'], true)) {
-                throw new \RuntimeException('No se puede confirmar un pago rechazado o anulado.');
+                throw new RuntimeException('No se puede confirmar un pago rechazado o anulado.');
             }
 
             $pago->update(['estado' => 'confirmado']);

@@ -2,6 +2,25 @@
 
 namespace App\Filament\Resources\Configuracion;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Placeholder;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\Configuracion\UserResource\Pages\ListUsers;
+use App\Filament\Resources\Configuracion\UserResource\Pages\CreateUser;
+use App\Filament\Resources\Configuracion\UserResource\Pages\EditUser;
 use App\Filament\Resources\Configuracion\UserResource\Pages;
 use App\Models\RRHH\Empleado;
 use App\Models\RRHH\HistorialLaboral;
@@ -10,9 +29,6 @@ use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -25,7 +41,7 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-circle';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-circle';
 
     protected static ?string $modelLabel = 'Usuario';
 
@@ -33,7 +49,7 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'Usuarios';
 
-    protected static ?string $navigationGroup = 'Configuración';
+    protected static string | \UnitEnum | null $navigationGroup = 'Configuración';
 
     protected static ?int $navigationSort = 1;
 
@@ -54,19 +70,19 @@ class UserResource extends Resource
         return 'Usuarios registrados';
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Datos de acceso')
+        return $schema->components([
+            Section::make('Datos de acceso')
                 ->description('Estos datos permiten identificar e iniciar sesión en el sistema.')
                 ->schema([
-                    Forms\Components\TextInput::make('name')
+                    TextInput::make('name')
                         ->label('Nombre completo')
                         ->placeholder('Ej. María Pérez')
                         ->autofocus()
                         ->required()
                         ->maxLength(255),
-                    Forms\Components\TextInput::make('email')
+                    TextInput::make('email')
                         ->label('Correo corporativo')
                         ->placeholder('nombre@empresa.com')
                         ->email()
@@ -74,7 +90,7 @@ class UserResource extends Resource
                         ->unique(ignoreRecord: true)
                         ->required()
                         ->maxLength(255),
-                    Forms\Components\TextInput::make('password')
+                    TextInput::make('password')
                         ->label('Contraseña')
                         ->password()
                         ->revealable()
@@ -87,10 +103,10 @@ class UserResource extends Resource
                         ->dehydrated(fn (?string $state): bool => filled($state)),
                 ])->columns(2),
 
-            Forms\Components\Section::make('Nivel de acceso')
+            Section::make('Nivel de acceso')
                 ->description('El rol define a qué módulos y acciones puede acceder esta persona.')
                 ->schema([
-                    Forms\Components\Select::make('roles')
+                    Select::make('roles')
                         ->label('Rol del usuario')
                         ->relationship('roles', 'name')
                         ->multiple()
@@ -103,7 +119,7 @@ class UserResource extends Resource
                         ->live()
                         ->helperText('Seleccione un único rol. Por defecto se asigna Empleado.')
                         ->columnSpanFull(),
-                    Forms\Components\Placeholder::make('role_description')
+                    Placeholder::make('role_description')
                         ->label('Acceso seleccionado')
                         ->content(fn (Get $get): string => self::getRoleDescription($get('roles')))
                         ->columnSpanFull(),
@@ -115,7 +131,7 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('empleado.foto_url')
+                ImageColumn::make('empleado.foto_url')
                     ->label('')
                     ->circular()
                     ->getStateUsing(fn (User $record): ?string => $record->empleado?->foto_url)
@@ -123,14 +139,14 @@ class UserResource extends Resource
                     ->width(40)
                     ->height(40)
                     ->tooltip(fn (User $record): string => $record->empleado ? 'Perfil de empleado vinculado' : 'Sin perfil de empleado vinculado'),
-                Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->label('Usuario')
                     ->searchable()
                     ->sortable()
                     ->description(fn (User $record): string => $record->email)
                     ->icon('heroicon-o-envelope')
                     ->iconColor('gray'),
-                Tables\Columns\TextColumn::make('roles.name')
+                TextColumn::make('roles.name')
                     ->label('Nivel de acceso')
                     ->badge()
                     ->color(fn (?string $state) => match (true) {
@@ -141,20 +157,20 @@ class UserResource extends Resource
                         in_array($state, ['Almacenes', 'Comercial', 'Licitaciones', 'Soporte Técnico', 'Operativo']) => 'primary',
                         default => 'gray',
                     }),
-                Tables\Columns\TextColumn::make('empleado.full_name')
+                TextColumn::make('empleado.full_name')
                     ->label('Perfil de empleado')
                     ->getStateUsing(fn (User $record): string => $record->empleado?->full_name ?? 'Sin vincular')
                     ->description(fn (User $record): string => $record->empleado?->historialActivo?->cargo?->nombre ?? 'El correo aún no coincide con un empleado')
                     ->icon(fn (User $record): string => $record->empleado ? 'heroicon-o-link' : 'heroicon-o-exclamation-circle')
                     ->iconColor(fn (User $record): string => $record->empleado ? 'success' : 'warning')
                     ->color(fn (User $record): string => $record->empleado ? 'success' : 'warning'),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Creado')
                     ->since()
                     ->dateTimeTooltip()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                TextColumn::make('updated_at')
                     ->label('Último cambio')
                     ->since()
                     ->dateTimeTooltip()
@@ -162,12 +178,12 @@ class UserResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('roles')
+                SelectFilter::make('roles')
                     ->label('Nivel de acceso')
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload(),
-                Tables\Filters\TernaryFilter::make('perfil_empleado')
+                TernaryFilter::make('perfil_empleado')
                     ->label('Perfil de empleado')
                     ->placeholder('Todos')
                     ->trueLabel('Vinculado')
@@ -177,8 +193,8 @@ class UserResource extends Resource
                         false: fn (Builder $query): Builder => $query->whereDoesntHave('empleado'),
                     ),
             ])
-            ->actions([
-                Tables\Actions\Action::make('vincular_empleado')
+            ->recordActions([
+                Action::make('vincular_empleado')
                     ->label('Vincular empleado')
                     ->tooltip('Vincular esta cuenta con un empleado existente')
                     ->icon('heroicon-o-link')
@@ -186,12 +202,12 @@ class UserResource extends Resource
                     ->modalHeading('Vincular empleado existente')
                     ->modalDescription('Seleccione el empleado que corresponde a esta cuenta. Su correo corporativo se actualizará con el correo del usuario.')
                     ->modalSubmitActionLabel('Vincular empleado')
-                    ->form([
-                        Forms\Components\Placeholder::make('usuario_vinculo')
+                    ->schema([
+                        Placeholder::make('usuario_vinculo')
                             ->label('Cuenta de usuario')
                             ->content(fn (User $record): string => $record->name.' — '.$record->email),
 
-                        Forms\Components\Select::make('empleado_id')
+                        Select::make('empleado_id')
                             ->label('Empleado existente')
                             ->options(fn (): array => self::getEmployeeOptions())
                             ->required()
@@ -203,7 +219,7 @@ class UserResource extends Resource
                     ->action(fn (User $record, array $data) => self::linkExistingEmployee($record, (int) $data['empleado_id']))
                     ->visible(fn (User $record): bool => $record->empleado === null),
 
-                Tables\Actions\Action::make('crear_perfil_empleado')
+                Action::make('crear_perfil_empleado')
                     ->label('Crear perfil')
                     ->tooltip('Registrar y vincular los datos básicos del empleado')
                     ->icon('heroicon-o-user-plus')
@@ -213,33 +229,33 @@ class UserResource extends Resource
                     ->modalSubmitActionLabel('Crear y vincular perfil')
                     ->modalWidth('4xl')
                     ->fillForm(fn (User $record): array => self::getInitialEmployeeData($record))
-                    ->form([
-                        Forms\Components\Section::make('Datos personales básicos')
+                    ->schema([
+                        Section::make('Datos personales básicos')
                             ->description('Información necesaria para identificar al empleado.')
                             ->icon('heroicon-o-identification')
                             ->schema([
-                                Forms\Components\TextInput::make('nombres')
+                                TextInput::make('nombres')
                                     ->label('Nombres')
                                     ->required()
                                     ->maxLength(255),
 
-                                Forms\Components\TextInput::make('apellidos')
+                                TextInput::make('apellidos')
                                     ->label('Apellidos')
                                     ->required()
                                     ->maxLength(255),
 
-                                Forms\Components\TextInput::make('ci')
+                                TextInput::make('ci')
                                     ->label('Cédula de identidad')
                                     ->required()
                                     ->unique(table: 'rh_empleados', column: 'ci')
                                     ->maxLength(50),
 
-                                Forms\Components\DatePicker::make('fecha_nacimiento')
+                                DatePicker::make('fecha_nacimiento')
                                     ->label('Fecha de nacimiento')
                                     ->native()
                                     ->maxDate(now()),
 
-                                Forms\Components\Select::make('genero')
+                                Select::make('genero')
                                     ->label('Género')
                                     ->options([
                                         'hombre' => 'Hombre',
@@ -248,23 +264,23 @@ class UserResource extends Resource
                                     ])
                                     ->native(),
 
-                                Forms\Components\TextInput::make('telefono_personal')
+                                TextInput::make('telefono_personal')
                                     ->label('Teléfono personal')
                                     ->tel()
                                     ->maxLength(50),
                             ])
                             ->columns(3),
 
-                        Forms\Components\Section::make('Asignación laboral')
+                        Section::make('Asignación laboral')
                             ->description('Crea el historial laboral activo que enlaza al empleado con esta cuenta.')
                             ->icon('heroicon-o-briefcase')
                             ->schema([
-                                Forms\Components\Placeholder::make('correo_corporativo_info')
+                                Placeholder::make('correo_corporativo_info')
                                     ->label('Correo corporativo')
                                     ->content(fn (User $record): string => $record->email)
                                     ->helperText('Este correo se usará para vincular la cuenta y el perfil.'),
 
-                                Forms\Components\Select::make('empresa_id')
+                                Select::make('empresa_id')
                                     ->label('Empresa')
                                     ->options(fn (): array => Empresa::query()
                                         ->where('empresa_activo', true)
@@ -284,7 +300,7 @@ class UserResource extends Resource
                                         $set('cargo_id', null);
                                     }),
 
-                                Forms\Components\Select::make('sucursal_id')
+                                Select::make('sucursal_id')
                                     ->label('Sucursal')
                                     ->options(fn (Get $get): array => filled($get('empresa_id'))
                                         ? Sucursal::query()
@@ -298,7 +314,7 @@ class UserResource extends Resource
                                     ->preload()
                                     ->disabled(fn (Get $get): bool => blank($get('empresa_id'))),
 
-                                Forms\Components\Select::make('cargo_id')
+                                Select::make('cargo_id')
                                     ->label('Cargo')
                                     ->options(fn (Get $get): array => filled($get('empresa_id'))
                                         ? Cargo::query()
@@ -311,14 +327,14 @@ class UserResource extends Resource
                                     ->preload()
                                     ->disabled(fn (Get $get): bool => blank($get('empresa_id'))),
 
-                                Forms\Components\DatePicker::make('fecha_inicio')
+                                DatePicker::make('fecha_inicio')
                                     ->label('Fecha de ingreso')
                                     ->default(now()->toDateString())
                                     ->displayFormat('d/m/Y')
                                     ->required()
                                     ->native(),
 
-                                Forms\Components\Select::make('tipo_contrato')
+                                Select::make('tipo_contrato')
                                     ->label('Tipo de contrato')
                                     ->options([
                                         'Contrato indefinido' => 'Contrato indefinido',
@@ -339,13 +355,13 @@ class UserResource extends Resource
                     ->action(fn (User $record, array $data) => self::createAndLinkEmployee($record, $data))
                     ->visible(fn (User $record): bool => $record->empleado === null),
 
-                Tables\Actions\EditAction::make()
+                EditAction::make()
                     ->label('Editar')
                     ->tooltip('Editar usuario'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('name')
@@ -370,9 +386,9 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUsers::route('/'),
-            'create' => Pages\CreateUser::route('/create'),
-            'edit' => Pages\EditUser::route('/{record}/edit'),
+            'index' => ListUsers::route('/'),
+            'create' => CreateUser::route('/create'),
+            'edit' => EditUser::route('/{record}/edit'),
         ];
     }
 

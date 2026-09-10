@@ -149,6 +149,40 @@ class DuskBrowserMacros
         };
     }
 
+    public function waitForQueryString()
+    {
+        return function ($key, $expected) {
+            /** @var \Laravel\Dusk\Browser $this */
+            $this->waitUsing(6, 25, function () use ($key, $expected) {
+                $search = $this->driver->executeScript('return window.location.search');
+
+                parse_str(ltrim($search, '?'), $params);
+
+                return ($params[$key] ?? null) === $expected;
+            }, "Query string [{$key}] never had expected value [{$expected}].");
+
+            PHPUnit::assertTrue(true);
+
+            return $this;
+        };
+    }
+
+    public function waitForScript()
+    {
+        return function ($js, $expected = true) {
+            /** @var \Laravel\Dusk\Browser $this */
+            $this->waitUsing(6, 25, function () use ($js, $expected) {
+                return head($this->script(
+                    str($js)->start('return ')
+                )) === $expected;
+            }, "Script [{$js}] never returned expected value.");
+
+            PHPUnit::assertTrue(true);
+
+            return $this;
+        };
+    }
+
     public function waitForLivewireToLoad()
     {
         return function () {
@@ -393,7 +427,7 @@ class DuskBrowserMacros
 
                 return $this->waitUsing(6, 25, function () use ($id) {
                     return $this->driver->executeScript("return window.duskIsWaitingForLivewireNavigateRequestStarted{$id}");
-                }, 'Livewire navigate request was never completed');
+                }, 'Livewire navigate request was completed');
             }
 
             // If no callback is passed, make ->waitForNavigate a higher-order method.
@@ -414,6 +448,116 @@ class DuskBrowserMacros
                         $browser->waitUsing(6, 25, function () use ($browser) {
                             return $browser->driver->executeScript("return window.duskIsWaitingForLivewireNavigateRequestStarted{$this->id}");
                         }, 'Livewire navigate request was completed');
+                    });
+                }
+            };
+        };
+    }
+
+    public function waitForNavigatePrefetchRequest()
+    {
+        return function ($callback = null) {
+            /** @var \Laravel\Dusk\Browser $this */
+            $id = str()->random();
+
+            $this->script([
+                "window.duskIsWaitingForLivewireNavigatePrefetchRequest{$id} = true",
+                'let cleanupPrefetchRequest = () => {}',
+                "cleanupPrefetchRequest = Livewire.hook('navigate.request', () => {
+                    window.duskIsWaitingForLivewireNavigatePrefetchRequest{$id} = true
+
+                    cleanupPrefetchRequest()
+
+                    queueMicrotask(() => {
+                        delete window.duskIsWaitingForLivewireNavigatePrefetchRequest{$id}
+                    })
+                })",
+            ]);
+
+            if ($callback) {
+                $callback($this);
+
+                return $this->waitUsing(6, 25, function () use ($id) {
+                    return $this->driver->executeScript("return window.duskIsWaitingForLivewireNavigatePrefetchRequest{$id} === undefined");
+                }, 'Livewire navigate prefetch request was never triggered');
+            }
+
+            // If no callback is passed, make ->waitForNavigatePrefetchRequest a higher-order method.
+            return new class($this, $id)
+            {
+                protected $browser;
+                protected $id;
+
+                public function __construct($browser, $id)
+                {
+                    $this->browser = $browser;
+                    $this->id = $id;
+                }
+
+                public function __call($method, $params)
+                {
+                    return tap($this->browser->{$method}(...$params), function ($browser) {
+                        $browser->waitUsing(6, 25, function () use ($browser) {
+                            return $browser->driver->executeScript("return window.duskIsWaitingForLivewireNavigatePrefetchRequest{$this->id} === undefined");
+                        }, 'Livewire navigate prefetch request was never triggered');
+                    });
+                }
+            };
+        };
+    }
+
+    public function waitForNoNavigatePrefetchRequest()
+    {
+        // 60ms is the minimum delay for a hover event to trigger a prefetch plus a buffer...
+        return function ($callback = null, $prefetchDelay = 70) {
+            /** @var \Laravel\Dusk\Browser $this */
+            $id = str()->random();
+
+            $this->script([
+                "window.duskIsWaitingForLivewireNavigatePrefetchRequest{$id} = true",
+                "Livewire.hook('navigate.request', () => {
+                    window.duskIsWaitingForLivewireNavigatePrefetchRequest{$id} = true
+
+                    queueMicrotask(() => {
+                        delete window.duskIsWaitingForLivewireNavigatePrefetchRequest{$id}
+                    })
+                })",
+            ]);
+
+            if ($callback) {
+                $callback($this);
+
+                // Wait for the specified prefetch delay before checking
+                $this->pause($prefetchDelay);
+
+                return $this->waitUsing(6, 25, function () use ($id) {
+                    return $this->driver->executeScript("return window.duskIsWaitingForLivewireNavigatePrefetchRequest{$id}");
+                }, 'Livewire navigate prefetch request was triggered');
+            }
+
+            // If no callback is passed, make ->waitForNoNavigatePrefetchRequest a higher-order method.
+            return new class($this, $id, $prefetchDelay)
+            {
+                protected $browser;
+                protected $id;
+                protected $prefetchDelay;
+
+                public function __construct($browser, $id, $prefetchDelay)
+                {
+                    $this->browser = $browser;
+                    $this->id = $id;
+                    $this->prefetchDelay = $prefetchDelay;
+                }
+
+                public function __call($method, $params)
+                {
+                    return tap($this->browser->{$method}(...$params), function ($browser) {
+                        // Wait for the specified prefetch delay before checking
+                        $browser->pause($this->prefetchDelay);
+
+                        $browser->waitUsing(6, 25, function () use ($browser) {
+                            return $browser->driver->executeScript("return window.duskIsWaitingForLivewireNavigatePrefetchRequest{$this->id}");
+                        }, 'Livewire navigate prefetch request was triggered');
                     });
                 }
             };
@@ -501,6 +645,48 @@ class DuskBrowserMacros
             }
 
             PHPUnit::assertFalse($containsError, "Console log error message \"{$expectedMessage}\" was found");
+
+            return $this;
+        };
+    }
+
+    public function assertConsoleLogHasNoErrors()
+    {
+        return function(){
+            $logs = $this->driver->manage()->getLog('browser');
+
+            $errors = [];
+            foreach ($logs as $log) {
+                if (! isset($log['message']) || ! isset($log['level']) || $log['level'] !== 'SEVERE') continue;
+
+                // Ignore favicon.ico
+                if(str($log['message'])->contains('favicon.ico')) continue;
+
+                $errors[] = $log['message'];
+            }
+
+            PHPUnit::assertEmpty($errors, "Console log contained errors: " . implode(", ", $errors));
+
+            return $this;
+        };
+    }
+
+    public function assertConsoleLogHasErrors()
+    {
+        return function(){
+            $logs = $this->driver->manage()->getLog('browser');
+
+            $errors = [];
+            foreach ($logs as $log) {
+                if (! isset($log['message']) || ! isset($log['level']) || $log['level'] !== 'SEVERE') continue;
+
+                // Ignore favicon.ico
+                if(str($log['message'])->contains('favicon.ico')) continue;
+
+                $errors[] = $log['message'];
+            }
+
+            PHPUnit::assertNotEmpty($errors, "Console log contained no errors");
 
             return $this;
         };

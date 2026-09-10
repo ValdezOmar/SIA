@@ -1,0 +1,85 @@
+/* Inicio de sesión nativo de SIA para Filament 4. */
+.fi-simple-layout > .fi-simple-main-ctn {
+    position: relative;
+}
+
+.fi-simple-layout > .fi-simple-main-ctn::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-color: #100c1d;
+    background-image: var(--sia-login-background), linear-gradient(135deg, var(--sia-primary, #009ba4), #100c1d);
+    background-position: center;
+    background-size: cover;
+    content: '';
+}
+
+.fi-simple-layout > .fi-simple-main-ctn > .fi-simple-main {
+    position: relative;
+    z-index: 1;
+    border-radius: 1.5rem;
+    background: var(--sia-login-surface, rgb(255 255 255 / 0.50));
+    box-shadow: 0 1.5rem 3.5rem rgb(16 12 29 / 0.32);
+    backdrop-filter: none;
+    color: #0f172a;
+}
+
+.dark .fi-simple-layout > .fi-simple-main-ctn > .fi-simple-main {
+    background: #fff;
+    color: #0f172a;
+}
+
+.fi-simple-main .fi-simple-header-heading,
+.fi-simple-main label,
+.fi-simple-main legend {
+    color: #0f172a;
+}
+
+.fi-simple-main .fi-simple-header-subheading,
+.fi-simple-main [class*="hint"],
+.fi-simple-main [class*="helper"] {
+    color: #475569;
+}
+
+.fi-simple-main input,
+.fi-simple-main select,
+.fi-simple-main textarea {
+    color: #0f172a;
+}
+
+.fi-simple-main input::placeholder,
+.fi-simple-main textarea::placeholder {
+    color: #64748b;
+}
+
+.dark .fi-simple-main .fi-simple-header-heading,
+.dark .fi-simple-main label,
+.dark .fi-simple-main legend {
+    color: #0f172a;
+}
+
+.dark .fi-simple-main .fi-simple-header-subheading,
+.dark .fi-simple-main [class*="hint"],
+.dark .fi-simple-main [class*="helper"] {
+    color: #475569;
+}
+
+.dark .fi-simple-main input,
+.dark .fi-simple-main select,
+.dark .fi-simple-main textarea {
+    color: #0f172a;
+    background: #fff;
+}
+
+.dark .fi-simple-main .fi-input-wrp,
+.dark .fi-simple-main .fi-select-input,
+.dark .fi-simple-main .fi-fo-field-wrp-input {
+    background: #fff;
+    border-color: #cbd5e1;
+}
+
+.dark .fi-simple-main input::placeholder,
+.dark .fi-simple-main textarea::placeholder {
+    color: #64748b;
+}
+

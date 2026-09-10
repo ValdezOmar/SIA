@@ -2,6 +2,25 @@
 
 namespace App\Filament\Resources\Ventas;
 
+use Illuminate\Database\Eloquent\Builder;
+use App\Support\CalculoDetalle;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Actions\Action;
+use App\Forms\Components\ImporteVenta;
+use App\Forms\Components\CalculoRepeater;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use RuntimeException;
+use Filament\Actions\DeleteAction;
+use App\Filament\Resources\Ventas\PedidoResource\Pages\ListPedidos;
+use App\Filament\Resources\Ventas\PedidoResource\Pages\CreatePedido;
+use App\Filament\Resources\Ventas\PedidoResource\Pages\EditPedido;
 use App\Filament\Resources\Ventas\PedidoResource\Pages;
 use App\Filament\Resources\Ventas\PedidoResource\RelationManagers\PedidoPagosRelationManager;
 use App\Models\Inventario\Articulo;
@@ -12,18 +31,12 @@ use App\Models\Ventas\Pedido;
 use App\Support\ArticuloSelectOptions;
 use App\Support\ClienteRegistroForm;
 use App\Support\ClienteSelectOptions;
-use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -40,9 +53,9 @@ class PedidoResource extends Resource
 {
     protected static ?string $model = Pedido::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static ?string $navigationGroup = 'Ventas';
+    protected static string | \UnitEnum | null $navigationGroup = 'Ventas';
 
     protected static ?string $navigationLabel = 'Pedidos/Reservas';
 
@@ -52,7 +65,7 @@ class PedidoResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
         $usuario = Auth::user();
@@ -131,7 +144,7 @@ class PedidoResource extends Resource
             $detalles = $record?->detalles()->get() ?? [];
         }
 
-        return \App\Support\CalculoDetalle::totales($detalles);
+        return CalculoDetalle::totales($detalles);
     }
 
     private static function formatearNumero($valor, $decimales = 2): string
@@ -175,10 +188,10 @@ class PedidoResource extends Resource
         );
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Empresa y sucursal')
                     ->description('El empleado no tiene una asignación laboral activa. Indique dónde se registrará este pedido.')
                     ->visible(fn (): bool => blank(Auth::user()?->empresa_id) || blank(Auth::user()?->sucursal_id))
@@ -200,7 +213,7 @@ class PedidoResource extends Resource
                     ->tabs([
 
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
-                        Tabs\Tab::make('General')
+                        Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Pedido')
@@ -286,7 +299,7 @@ class PedidoResource extends Resource
                                                         }
                                                     })
                                                     ->createOptionForm(ClienteRegistroForm::schema())
-                                                    ->createOptionAction(fn (FormAction $action): FormAction => $action
+                                                    ->createOptionAction(fn (Action $action): Action => $action
                                                         ->modalHeading('Registrar o reutilizar cliente')
                                                         ->modalDescription('Si el celular ya pertenece a un cliente, se usará ese registro y no se creará un duplicado.')
                                                         ->modalSubmitActionLabel('Continuar con este cliente'))
@@ -440,9 +453,9 @@ class PedidoResource extends Resource
                                 Section::make('Totales')
                                     ->icon('heroicon-o-calculator')
                                     ->schema([
-                                        Grid::make(5)
+                                        Grid::make(['default' => 1, 'sm' => 2, 'xl' => 5])
                                             ->schema([
-                                                \App\Forms\Components\ImporteVenta::make('subtotal')
+                                                ImporteVenta::make('subtotal')
                                                     ->label('Subtotal neto')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -451,7 +464,7 @@ class PedidoResource extends Resource
                                                         return self::formatearMonto($totales['subtotal'], $moneda);
                                                     }),
 
-                                                \App\Forms\Components\ImporteVenta::make('descuento')
+                                                ImporteVenta::make('descuento')
                                                     ->label('Descuento')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -460,7 +473,7 @@ class PedidoResource extends Resource
                                                         return self::formatearMonto($totales['descuento'], $moneda);
                                                     }),
 
-                                                \App\Forms\Components\ImporteVenta::make('impuesto')
+                                                ImporteVenta::make('impuesto')
                                                     ->label('Impuesto')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -478,7 +491,7 @@ class PedidoResource extends Resource
                                                         return self::formatearMonto($costoEnvio, $moneda);
                                                     }),
 
-                                                \App\Forms\Components\ImporteVenta::make('total')
+                                                ImporteVenta::make('total')
                                                     ->label('Total')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -498,7 +511,7 @@ class PedidoResource extends Resource
                             ]),
 
                         // ========== TAB 2: PRODUCTOS ==========
-                        Tabs\Tab::make('Productos')
+                        Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
                                 if (! $record) {
@@ -512,16 +525,17 @@ class PedidoResource extends Resource
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos incluidos en el pedido')
                                     ->schema([
-                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('venta')
+                                        CalculoRepeater::make('detalles')->calculo('venta')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()
                                             ->disabledOn('edit')
                                             ->schema([
-                                                Grid::make(16)
+                                                Grid::make(['default' => 1, 'lg' => 16])
                                                     ->schema([
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
+                                                            ->allowHtml()
                                                             ->options(fn () => ArticuloSelectOptions::ventas())
                                                             ->getSearchResultsUsing(fn (string $search): array => ArticuloSelectOptions::ventas($search))
                                                             ->getOptionLabelUsing(fn ($value): ?string => ArticuloSelectOptions::label($value))
@@ -624,7 +638,7 @@ class PedidoResource extends Resource
                                                             })
                                                             ->columnSpan(2),
 
-                                                        \App\Forms\Components\ImporteVenta::make('subtotal_linea')
+                                                        ImporteVenta::make('subtotal_linea')
                                                             ->label('Subtotal neto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
@@ -635,7 +649,7 @@ class PedidoResource extends Resource
                                                             ->columnSpan(2),
                                                     ]),
 
-                                                Grid::make(16)
+                                                Grid::make(['default' => 1, 'lg' => 16])
                                                     ->schema([
                                                         TextInput::make('descuento_porcentaje')
                                                             ->label('Descuento %')
@@ -694,7 +708,7 @@ class PedidoResource extends Resource
                                                             })
                                                             ->columnSpan(4),
 
-                                                        \App\Forms\Components\ImporteVenta::make('impuesto_linea')
+                                                        ImporteVenta::make('impuesto_linea')
                                                             ->label('Impuesto')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
@@ -703,7 +717,7 @@ class PedidoResource extends Resource
                                                             })
                                                             ->columnSpan(4),
 
-                                                        \App\Forms\Components\ImporteVenta::make('total_con_iva')
+                                                        ImporteVenta::make('total_con_iva')
                                                             ->label('Total')
                                                             ->content(function ($get) {
                                                                 $moneda = $get('../../moneda') ?? 'BOB';
@@ -782,7 +796,7 @@ class PedidoResource extends Resource
                             ]),
 
                         // ========== TAB 3: INFORMACIÓN ADICIONAL ==========
-                        Tabs\Tab::make('Notas')
+                        Tab::make('Notas')
                             ->icon('heroicon-o-clipboard-document')
                             ->schema([
                                 Section::make('Observaciones e Instrucciones')
@@ -805,7 +819,7 @@ class PedidoResource extends Resource
                             ]),
 
                         // ========== TAB 4: AUDITORÍA ==========
-                        Tabs\Tab::make('Auditoría')
+                        Tab::make('Auditoría')
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
@@ -1062,17 +1076,17 @@ class PedidoResource extends Resource
                 Group::make('empresa.nombre_comercial')->label('Empresa')->collapsible(),
                 Group::make('sucursal.nombre')->label('Sucursal')->collapsible(),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('reservar_stock')
+                    Action::make('reservar_stock')
                         ->label('Reservar stock')
                         ->icon('heroicon-o-lock-closed')
                         ->color('warning')
@@ -1083,7 +1097,7 @@ class PedidoResource extends Resource
                                 $record->reservarInventario();
                                 $record->update(['estado' => 'reservado']);
                                 Notification::make()->title('Stock reservado')->success()->send();
-                            } catch (\RuntimeException $exception) {
+                            } catch (RuntimeException $exception) {
                                 Notification::make()
                                     ->title('No se pudo reservar el stock')
                                     ->body($exception->getMessage())
@@ -1094,7 +1108,7 @@ class PedidoResource extends Resource
                         })
                         ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente'], true)),
 
-                    Tables\Actions\Action::make('preparar')
+                    Action::make('preparar')
                         ->label('Preparar entrega')
                         ->icon('heroicon-o-archive-box')
                         ->color('info')
@@ -1103,7 +1117,7 @@ class PedidoResource extends Resource
                         ->action(fn ($record) => $record->update(['estado' => 'pendiente']))
                         ->visible(fn ($record): bool => $record->estado === 'reservado'),
 
-                    Tables\Actions\Action::make('confirmar_entrega')
+                    Action::make('confirmar_entrega')
                         ->label('Confirmar entrega')
                         ->icon('heroicon-o-truck')
                         ->color('primary')
@@ -1112,26 +1126,26 @@ class PedidoResource extends Resource
                         ->action(function ($record): void {
                             $factura = $record->facturas()->where('estado', '!=', 'anulada')->latest('id')->first();
                             if (! $factura) {
-                                throw new \RuntimeException('Debe asociar una factura al pedido antes de confirmar la entrega.');
+                                throw new RuntimeException('Debe asociar una factura al pedido antes de confirmar la entrega.');
                             }
                             $factura->procesarVentaAutomatica();
                             Notification::make()->title('Entrega confirmada')->success()->send();
                         })
                         ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente'], true)),
 
-                    Tables\Actions\Action::make('cancelar')
+                    Action::make('cancelar')
                         ->label('Cancelar pedido')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->form([Textarea::make('motivo')->label('Motivo de la cancelación')->required()->maxLength(2000)])
+                        ->schema([Textarea::make('motivo')->label('Motivo de la cancelación')->required()->maxLength(2000)])
                         ->action(function (array $data, $record): void {
                             $record->liberarReservaInventario();
                             $record->update(['estado' => 'cancelado', 'observaciones' => trim(($record->observaciones ? $record->observaciones."\n" : '').'Cancelado: '.$data['motivo'])]);
                         })
                         ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente', 'parcial'], true)),
 
-                    Tables\Actions\Action::make('duplicate')
+                    Action::make('duplicate')
                         ->label('Duplicar')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
@@ -1148,13 +1162,13 @@ class PedidoResource extends Resource
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->visible(fn ($record): bool => $record->estado === 'cancelado'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([])
+            ->toolbarActions([])
             ->defaultSort('created_at', 'desc')
             ->searchPlaceholder('Buscar pedido por código, cliente...')
             ->emptyStateHeading('No hay pedidos registrados')
@@ -1171,9 +1185,9 @@ class PedidoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPedidos::route('/'),
-            'create' => Pages\CreatePedido::route('/create'),
-            'edit' => Pages\EditPedido::route('/{record}/edit'),
+            'index' => ListPedidos::route('/'),
+            'create' => CreatePedido::route('/create'),
+            'edit' => EditPedido::route('/{record}/edit'),
         ];
     }
 }

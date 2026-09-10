@@ -23,6 +23,7 @@ use Illuminate\Testing\Constraints\SeeInOrder;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Illuminate\Testing\TestResponseAssert as PHPUnit;
 use LogicException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\StreamedJsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -132,6 +133,21 @@ class TestResponse implements ArrayAccess
     }
 
     /**
+     * Assert that the response is a client error.
+     *
+     * @return $this
+     */
+    public function assertClientError()
+    {
+        PHPUnit::withResponse($this)->assertTrue(
+            $this->isClientError(),
+            $this->statusMessageWithDetails('>=400, < 500', $this->getStatusCode())
+        );
+
+        return $this;
+    }
+
+    /**
      * Assert that the response is a server error.
      *
      * @return $this
@@ -214,6 +230,54 @@ class TestResponse implements ArrayAccess
     }
 
     /**
+     * Assert whether the response is redirecting back to the previous location.
+     *
+     * @return $this
+     */
+    public function assertRedirectBack()
+    {
+        PHPUnit::withResponse($this)->assertTrue(
+            $this->isRedirect(),
+            $this->statusMessageWithDetails('201, 301, 302, 303, 307, 308', $this->getStatusCode()),
+        );
+
+        $this->assertLocation(app('url')->previous());
+
+        return $this;
+    }
+
+    /**
+     * Assert whether the response is redirecting back to the previous location with the given errors in the session.
+     *
+     * @param  string|array  $keys
+     * @param  mixed  $format
+     * @param  string  $errorBag
+     * @return $this
+     */
+    public function assertRedirectBackWithErrors($keys = [], $format = null, $errorBag = 'default')
+    {
+        $this->assertRedirectBack();
+
+        $this->assertSessionHasErrors($keys, $format, $errorBag);
+
+        return $this;
+    }
+
+    /**
+     * Assert whether the response is redirecting back to the previous location with no errors in the session.
+     *
+     * @return $this
+     */
+    public function assertRedirectBackWithoutErrors()
+    {
+        $this->assertRedirectBack();
+
+        $this->assertSessionHasNoErrors();
+
+        return $this;
+    }
+
+    /**
      * Assert whether the response is redirecting to a given route.
      *
      * @param  \BackedEnum|string  $name
@@ -274,6 +338,27 @@ class TestResponse implements ArrayAccess
     }
 
     /**
+     * Assert whether the response is redirecting to a given controller action.
+     *
+     * @param  string|array  $name
+     * @param  array  $parameters
+     * @return $this
+     */
+    public function assertRedirectToAction($name, $parameters = [])
+    {
+        $uri = action($name, $parameters);
+
+        PHPUnit::withResponse($this)->assertTrue(
+            $this->isRedirect(),
+            $this->statusMessageWithDetails('201, 301, 302, 303, 307, 308', $this->getStatusCode()),
+        );
+
+        $this->assertLocation($uri);
+
+        return $this;
+    }
+
+    /**
      * Asserts that the response contains the given header and equals the optional value.
      *
      * @param  string  $headerName
@@ -289,11 +374,34 @@ class TestResponse implements ArrayAccess
         $actual = $this->headers->get($headerName);
 
         if (! is_null($value)) {
-            PHPUnit::withResponse($this)->assertEquals(
+            PHPUnit::withResponse($this)->assertEqualsIgnoringCase(
                 $value, $this->headers->get($headerName),
                 "Header [{$headerName}] was found, but value [{$actual}] does not match [{$value}]."
             );
         }
+
+        return $this;
+    }
+
+    /**
+     * Asserts that the response contains the given header and that its value contains the given string.
+     *
+     * @param  string  $headerName
+     * @param  string  $value
+     * @return $this
+     */
+    public function assertHeaderContains($headerName, $value)
+    {
+        PHPUnit::withResponse($this)->assertTrue(
+            $this->headers->has($headerName), "Header [{$headerName}] not present on response."
+        );
+
+        $actual = $this->headers->get($headerName, '');
+
+        PHPUnit::withResponse($this)->assertTrue(
+            Str::contains($actual, $value),
+            "Header [{$headerName}] was found, but [{$actual}] does not contain [{$value}]."
+        );
 
         return $this;
     }
@@ -588,7 +696,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert that the given string or array of strings are contained within the response.
      *
-     * @param  string|array  $value
+     * @param  string|list<string>  $value
      * @param  bool  $escape
      * @return $this
      */
@@ -608,7 +716,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert that the given HTML string or array of HTML strings are contained within the response.
      *
-     * @param  array|string  $value
+     * @param  string|list<string>  $value
      * @return $this
      */
     public function assertSeeHtml($value)
@@ -619,7 +727,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert that the given strings are contained in order within the response.
      *
-     * @param  array  $values
+     * @param  list<string>  $values
      * @param  bool  $escape
      * @return $this
      */
@@ -635,7 +743,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert that the given HTML strings are contained in order within the response.
      *
-     * @param  array  $values
+     * @param  list<string>  $values
      * @return $this
      */
     public function assertSeeHtmlInOrder(array $values)
@@ -646,7 +754,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert that the given string or array of strings are contained within the response text.
      *
-     * @param  string|array  $value
+     * @param  string|list<string>  $value
      * @param  bool  $escape
      * @return $this
      */
@@ -668,7 +776,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert that the given strings are contained in order within the response text.
      *
-     * @param  array  $values
+     * @param  list<string>  $values
      * @param  bool  $escape
      * @return $this
      */
@@ -684,7 +792,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert that the given string or array of strings are not contained within the response.
      *
-     * @param  string|array  $value
+     * @param  string|list<string>  $value
      * @param  bool  $escape
      * @return $this
      */
@@ -704,7 +812,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert that the given HTML string or array of HTML strings are not contained within the response.
      *
-     * @param  array|string  $value
+     * @param  string|list<string>  $value
      * @return $this
      */
     public function assertDontSeeHtml($value)
@@ -715,7 +823,7 @@ class TestResponse implements ArrayAccess
     /**
      * Assert that the given string or array of strings are not contained within the response text.
      *
-     * @param  string|array  $value
+     * @param  string|list<string>  $value
      * @param  bool  $escape
      * @return $this
      */
@@ -889,7 +997,7 @@ class TestResponse implements ArrayAccess
      * @param  array|null  $responseData
      * @return $this
      */
-    public function assertJsonStructure(?array $structure = null, $responseData = null)
+    public function assertJsonStructure(?array $structure = null, ?array $responseData = null)
     {
         $this->decodeResponseJson()->assertStructure($structure, $responseData);
 
@@ -903,7 +1011,7 @@ class TestResponse implements ArrayAccess
      * @param  array|null  $responseData
      * @return $this
      */
-    public function assertExactJsonStructure(?array $structure = null, $responseData = null)
+    public function assertExactJsonStructure(?array $structure = null, ?array $responseData = null)
     {
         $this->decodeResponseJson()->assertStructure($structure, $responseData, true);
 
@@ -1152,7 +1260,7 @@ class TestResponse implements ArrayAccess
     }
 
     /**
-     * Get the JSON decoded body of the response as a collection.
+     * Get the decoded JSON body of the response as a collection.
      *
      * @param  string|null  $key
      * @return \Illuminate\Support\Collection
@@ -1192,21 +1300,21 @@ class TestResponse implements ArrayAccess
 
         $this->ensureResponseHasView();
 
-        if (is_null($value)) {
-            PHPUnit::withResponse($this)->assertTrue(Arr::has($this->original->gatherData(), $key));
-        } elseif ($value instanceof Closure) {
-            PHPUnit::withResponse($this)->assertTrue($value(Arr::get($this->original->gatherData(), $key)));
-        } elseif ($value instanceof Model) {
-            PHPUnit::withResponse($this)->assertTrue($value->is(Arr::get($this->original->gatherData(), $key)));
-        } elseif ($value instanceof EloquentCollection) {
-            $actual = Arr::get($this->original->gatherData(), $key);
+        $actual = Arr::get($this->original->gatherData(), $key);
 
+        if (is_null($value)) {
+            PHPUnit::withResponse($this)->assertTrue(Arr::has($this->original->gatherData(), $key), "Failed asserting that the data contains the key [{$key}].");
+        } elseif ($value instanceof Closure) {
+            PHPUnit::withResponse($this)->assertTrue($value($actual), "Failed asserting that the value at [{$key}] fulfills the expectations defined by the closure.");
+        } elseif ($value instanceof Model) {
+            PHPUnit::withResponse($this)->assertTrue($value->is($actual), "Failed asserting that the model at [{$key}] matches the given model.");
+        } elseif ($value instanceof EloquentCollection) {
             PHPUnit::withResponse($this)->assertInstanceOf(EloquentCollection::class, $actual);
             PHPUnit::withResponse($this)->assertSameSize($value, $actual);
 
-            $value->each(fn ($item, $index) => PHPUnit::withResponse($this)->assertTrue($actual->get($index)->is($item)));
+            $value->each(fn ($item, $index) => PHPUnit::withResponse($this)->assertTrue($actual->get($index)->is($item), "Failed asserting that the collection at [{$key}.[{$index}]]' matches the given collection."));
         } else {
-            PHPUnit::withResponse($this)->assertEquals($value, Arr::get($this->original->gatherData(), $key));
+            PHPUnit::withResponse($this)->assertEquals($value, $actual, "Failed asserting that [{$key}] matches the expected value.");
         }
 
         return $this;
@@ -1234,14 +1342,20 @@ class TestResponse implements ArrayAccess
     /**
      * Get a piece of data from the original view.
      *
-     * @param  string  $key
+     * @param  string|null  $key
      * @return mixed
      */
-    public function viewData($key)
+    public function viewData($key = null)
     {
         $this->ensureResponseHasView();
 
-        return $this->original->gatherData()[$key];
+        $data = $this->original->gatherData();
+
+        if (is_null($key)) {
+            return $data;
+        }
+
+        return $data[$key];
     }
 
     /**
@@ -1451,12 +1565,22 @@ class TestResponse implements ArrayAccess
      */
     public function assertSessionHasAll(array $bindings)
     {
+        $actual = [];
+        $expected = [];
+
         foreach ($bindings as $key => $value) {
             if (is_int($key)) {
                 $this->assertSessionHas($value);
-            } else {
+            } elseif ($value instanceof Closure) {
                 $this->assertSessionHas($key, $value);
+            } else {
+                $expected[$key] = $value;
+                $actual[$key] = $this->session()->get($key);
             }
+        }
+
+        if (! empty($expected)) {
+            PHPUnit::withResponse($this)->assertEquals($expected, $actual);
         }
 
         return $this;
@@ -1608,19 +1732,28 @@ class TestResponse implements ArrayAccess
      * Assert that the session does not have a given key.
      *
      * @param  string|array  $key
+     * @param  mixed  $value
      * @return $this
      */
-    public function assertSessionMissing($key)
+    public function assertSessionMissing($key, $value = null)
     {
         if (is_array($key)) {
             foreach ($key as $value) {
                 $this->assertSessionMissing($value);
             }
-        } else {
+
+            return $this;
+        }
+
+        if (is_null($value)) {
             PHPUnit::withResponse($this)->assertFalse(
                 $this->session()->has($key),
                 "Session has unexpected key [{$key}]."
             );
+        } elseif ($value instanceof Closure) {
+            PHPUnit::withResponse($this)->assertFalse($value($this->session()->get($key)));
+        } else {
+            PHPUnit::withResponse($this)->assertNotEquals($value, $this->session()->get($key));
         }
 
         return $this;
@@ -1664,7 +1797,7 @@ class TestResponse implements ArrayAccess
     {
         $content = $this->content();
 
-        if (function_exists('json_validate') && json_validate($content)) {
+        if (json_validate($content)) {
             $this->ddJson($key);
         }
 
@@ -1675,6 +1808,7 @@ class TestResponse implements ArrayAccess
      * Dump the JSON payload from the response and end the script.
      *
      * @param  string|null  $key
+     * @return never
      */
     public function ddJson($key = null)
     {
@@ -1762,7 +1896,7 @@ class TestResponse implements ArrayAccess
         }
 
         if (! $this->baseResponse instanceof StreamedResponse
-            && ! $this->baseResponse instanceof StreamedJsonResponse) {
+            && ! $this->baseResponse instanceof BinaryFileResponse) {
             PHPUnit::withResponse($this)->fail('The response is not a streamed response.');
         }
 

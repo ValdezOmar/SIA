@@ -5,13 +5,15 @@ namespace pxlrbt\FilamentExcel\Exports\Concerns;
 use Closure;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Form;
 use Filament\Resources\Table;
+use Filament\Schemas\Components\Form;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Collection;
 use pxlrbt\FilamentExcel\Columns\Column;
+use ReflectionFunction;
 
 use function Livewire\invade;
 
@@ -98,37 +100,93 @@ trait WithColumns
 
     protected function createFieldMappingFromForm(): Collection
     {
-        $form = $this->getResourceClass()::form(new Form($this->getLivewire()));
+        /**
+         * @var Form $form
+         */
+        $form = $this->getResourceClass()::form(new Schema($this->getLivewire()));
+        $form->model($this->getModelInstance());
+
         $components = collect($form->getComponents());
         $extracted = collect();
 
-        while (($component = $components->shift()) !== null) {
-            $children = $component->getChildComponents();
+        $extractComponents = function ($components, $parentPath = '') use (&$extractComponents, &$extracted) {
+            foreach ($components as $component) {
+                $children = $component->getChildComponents();
 
-            if (
-                $component instanceof Repeater
-                || $component instanceof Builder
-            ) {
-                $extracted->push($component);
+                if (
+                    $component instanceof Repeater
+                    || $component instanceof Builder
+                ) {
+                    continue;
+                }
 
-                continue;
+                if (count($children) > 0) {
+                    $relationshipName = method_exists($component, 'getRelationshipName')
+                        ? $component->getRelationshipName()
+                        : null;
+
+                    $newPath = $relationshipName
+                        ? ($parentPath ? $parentPath.'.'.$relationshipName : $relationshipName)
+                        : $parentPath;
+
+                    $extractComponents($children, $newPath);
+
+                    continue;
+                }
+
+                if ($component instanceof Field) {
+                    $fieldName = $component->getName();
+                    $fullPath = $parentPath ? $parentPath.'.'.$fieldName : $fieldName;
+
+                    $extracted->put($fullPath, [
+                        'field' => $component,
+                        'path' => $fullPath,
+                    ]);
+                }
             }
+        };
 
-            if (count($children) > 0) {
-                $components = $components->merge($children);
-
-                continue;
-            }
-
-            $extracted->push($component);
-        }
+        $extractComponents($components);
 
         return $extracted
-            ->filter(fn ($field) => $field instanceof Field)
-            ->mapWithKeys(fn (Field $field) => [
-                $field->getName() => Column::make($field->getName())
-                    ->heading($field->getLabel()),
+            ->mapWithKeys(fn ($data) => [
+                $data['path'] => Column::make($data['path'])
+                    ->heading($data['field']->getLabel()),
             ]);
+    }
+
+    protected function rebindFormatStateUsingForClosuresWithFallback($invadedColumn)
+    {
+        if ($invadedColumn->formatStateUsing === null) {
+            return;
+        }
+
+        $reflect = new ReflectionFunction($invadedColumn->formatStateUsing);
+        $vars = $reflect->getClosureUsedVariables();
+
+        foreach ($vars as $name => $value) {
+            if (! is_null($value)) {
+                continue;
+            }
+
+            $vars[$name] = match ($name) {
+                'currency' => $invadedColumn->getTable()->getDefaultCurrency(),
+                'locale' => $invadedColumn->getTable()->getDefaultNumberLocale() ?? config('app.locale'),
+                'format' => $invadedColumn->isDate()
+                    ? $invadedColumn->getTable()->getDefaultDateDisplayFormat()
+                    : $invadedColumn->getTable()->getDefaultTimeDisplayFormat(),
+                default => $value,
+            };
+        }
+
+        match (true) {
+            $invadedColumn->isMoney() => $invadedColumn->money(...$vars),
+            $invadedColumn->isNumeric() => $invadedColumn->numeric(...$vars),
+            $invadedColumn->isDate() => $invadedColumn->date(...$vars),
+            $invadedColumn->isTime() => $invadedColumn->time(...$vars),
+
+            default => null,
+        };
     }
 
     protected function createFieldMappingFromTable(): Collection
@@ -154,6 +212,8 @@ trait WithColumns
 
                 // Invade for protected properties
                 $invadedColumn = invade($clonedCol);
+
+                $this->rebindFormatStateUsingForClosuresWithFallback($invadedColumn);
 
                 $exportColumn = Column::make($column->getName())
                     ->heading($column->getLabel())

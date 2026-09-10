@@ -2,19 +2,20 @@
 
 namespace App\Filament\Resources\RRHH;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Grid;
+use App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages\ViewPerfilEmpleado;
+use App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages\EditPerfilEmpleado;
 use App\Filament\Resources\RRHH\PerfilEmpleadoResource\Pages;
 use App\Models\RRHH\PerfilEmpleado;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -23,15 +24,15 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
-class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
+class PerfilEmpleadoResource extends Resource
 {
     protected static ?string $model = PerfilEmpleado::class;
 
     protected static ?string $modelLabel = 'Perfil del empleado';
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-circle';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-circle';
 
-    protected static ?string $navigationGroup = 'Recursos Humanos';
+    protected static string | \UnitEnum | null $navigationGroup = 'Recursos Humanos';
 
     protected static ?string $navigationLabel = 'Mi Perfil';
 
@@ -93,10 +94,10 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
         return (int) $record->getKey() === static::getCurrentEmployeeId();
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make(fn (Get $get): HtmlString => static::sectionHeading('Mi perfil', $get, [
                     'foto', 'nombres', 'apellidos',
                 ]))
@@ -446,8 +447,8 @@ class PerfilEmpleadoResource extends Resource implements HasShieldPermissions
     public static function getPages(): array
     {
         return [
-            'view' => Pages\ViewPerfilEmpleado::route('/{record}'),
-            'edit' => Pages\EditPerfilEmpleado::route('/{record}/edit'),
+            'view' => ViewPerfilEmpleado::route('/{record}'),
+            'edit' => EditPerfilEmpleado::route('/{record}/edit'),
         ];
     }
 }

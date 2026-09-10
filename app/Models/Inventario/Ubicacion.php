@@ -2,12 +2,13 @@
 
 namespace App\Models\Inventario;
 
+use App\Models\Inventario\Concerns\GeneraCodigoInventario;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
 class Ubicacion extends Model
 {
-    use Concerns\GeneraCodigoInventario;
+    use GeneraCodigoInventario;
 
     protected $table = 'alm_ubicaciones';
 

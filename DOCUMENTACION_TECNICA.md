@@ -13,7 +13,7 @@ El acceso operativo ocurre principalmente en el panel Filament **dashboard**, di
 | Capa | Tecnología |
 | --- | --- |
 | Backend | PHP 8.2+, Laravel 12 |
-| Panel administrativo | Filament 3.3 |
+| Panel administrativo | Filament 4 |
 | Autorización | Spatie Laravel Permission + Filament Shield |
 | Base de datos | MySQL/MariaDB mediante `pdo_mysql` |
 | Plantillas | Blade + componentes Livewire/Filament |
@@ -21,7 +21,7 @@ El acceso operativo ocurre principalmente en el panel Filament **dashboard**, di
 | PDF | `barryvdh/laravel-dompdf` |
 | Exportaciones | `pxlrbt/filament-excel` |
 | Autenticación externa | Laravel Socialite / Google |
-| Estilos del panel | DashStack Theme |
+| Estilos del panel | Tema nativo de SIA para Filament 4 |
 
 Dependencias y versiones declaradas: `composer.json`, `package.json`.
 
@@ -384,7 +384,11 @@ php artisan test
 vendor/bin/pint --test
 ```
 
-Las pruebas configuradas usan SQLite. El entorno de ejecución debe tener habilitado `pdo_sqlite`; el entorno local revisado dispone de `pdo_mysql` pero no de `pdo_sqlite`, por lo que esas pruebas no pueden ejecutarse allí hasta instalar/habilitar la extensión.
+Las pruebas configuradas usan SQLite. El entorno de ejecución debe tener habilitado `pdo_sqlite` y `sqlite3`. En el PHP local las DLL están disponibles y pueden cargarse temporalmente para ejecutar la suite:
+
+```powershell
+php -d extension=pdo_sqlite -d extension=sqlite3 artisan test
+```
 
 ## 13. Convenciones de desarrollo
 

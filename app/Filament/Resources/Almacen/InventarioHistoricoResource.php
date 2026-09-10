@@ -74,7 +74,7 @@ class InventarioHistoricoResource extends Resource
                 TextColumn::make('usuario')->label('Usuario'),
             ])->filters([
                 SelectFilter::make('empresa')->label('Empresa')->options(fn () => static::getEloquentQuery()->whereNotNull('empresa')->distinct()->pluck('empresa', 'empresa')),
-            ])->actions([])->bulkActions([])->defaultSort('fecha_conteo_inventario', 'desc');
+            ])->recordActions([])->toolbarActions([])->defaultSort('fecha_conteo_inventario', 'desc');
     }
 
     public static function getPages(): array

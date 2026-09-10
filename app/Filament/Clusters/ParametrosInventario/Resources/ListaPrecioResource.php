@@ -2,17 +2,29 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
+use App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\Pages\ListListaPrecios;
+use App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\Pages\CreateListaPrecio;
+use App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\Pages\EditListaPrecio;
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Concerns\ScopesEmpresa;
 use App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\Pages;
 use App\Filament\Clusters\ParametrosInventario\Resources\ListaPrecioResource\RelationManagers\PreciosRelationManager;
 use App\Models\Inventario\ListaPrecio;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -24,7 +36,7 @@ class ListaPrecioResource extends Resource
     use ScopesEmpresa;
     protected static ?string $model = ListaPrecio::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $cluster = ParametrosInventario::class;
 
@@ -36,9 +48,9 @@ class ListaPrecioResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             self::empresaField(),
             Section::make('Identificación de la lista')
                 ->description('Use una lista por política comercial, tipo de cliente o moneda.')
@@ -79,23 +91,23 @@ class ListaPrecioResource extends Resource
             TextColumn::make('precios_count')->label('Precios asignados')->counts('precios')->badge()->color('info')->toggleable(),
             TextColumn::make('updated_at')->label('Actualizado')->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])->filters([
-            Tables\Filters\SelectFilter::make('moneda')->label('Moneda')->options(['BOB' => 'Bolivianos', 'USD' => 'Dólares']),
-            Tables\Filters\TernaryFilter::make('activo')->label('Disponibilidad')->boolean()->trueLabel('Activas')->falseLabel('Inactivas')->placeholder('Todas'),
-        ])->actions([
-            Tables\Actions\ActionGroup::make([
-                Tables\Actions\EditAction::make()->label('Editar')->slideOver()->modalWidth('4xl'),
-                Tables\Actions\Action::make('duplicate')->label('Duplicar')->icon('heroicon-o-document-duplicate')->color('info')
+            SelectFilter::make('moneda')->label('Moneda')->options(['BOB' => 'Bolivianos', 'USD' => 'Dólares']),
+            TernaryFilter::make('activo')->label('Disponibilidad')->boolean()->trueLabel('Activas')->falseLabel('Inactivas')->placeholder('Todas'),
+        ])->recordActions([
+            ActionGroup::make([
+                EditAction::make()->label('Editar')->slideOver()->modalWidth('4xl'),
+                Action::make('duplicate')->label('Duplicar')->icon('heroicon-o-document-duplicate')->color('info')
                     ->action(function ($record): void {
                         $newRecord = $record->replicate();
                         $newRecord->codigo = $record->codigo.'-COPY-'.time();
                         $newRecord->save();
                     }),
-                Tables\Actions\DeleteAction::make(),
+                DeleteAction::make(),
             ])->tooltip('Acciones')->icon('heroicon-o-ellipsis-vertical'),
-        ])->bulkActions([
-            Tables\Actions\BulkActionGroup::make([
-                Tables\Actions\DeleteBulkAction::make(),
-                Tables\Actions\BulkAction::make('toggle_active')->label('Cambiar disponibilidad')->icon('heroicon-o-power')
+        ])->toolbarActions([
+            BulkActionGroup::make([
+                DeleteBulkAction::make(),
+                BulkAction::make('toggle_active')->label('Cambiar disponibilidad')->icon('heroicon-o-power')
                     ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))->requiresConfirmation(),
             ]),
         ])->defaultSort('nombre')->searchPlaceholder('Buscar lista de precios...')
@@ -112,9 +124,9 @@ class ListaPrecioResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListListaPrecios::route('/'),
-            'create' => Pages\CreateListaPrecio::route('/create'),
-            'edit' => Pages\EditListaPrecio::route('/{record}/edit'),
+            'index' => ListListaPrecios::route('/'),
+            'create' => CreateListaPrecio::route('/create'),
+            'edit' => EditListaPrecio::route('/{record}/edit'),
         ];
     }
 }

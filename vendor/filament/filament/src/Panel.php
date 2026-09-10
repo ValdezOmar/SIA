@@ -3,7 +3,8 @@
 namespace Filament;
 
 use Closure;
-use Filament\Actions\MountableAction;
+use Filament\Actions\Action;
+use Filament\Resources\ResourceConfiguration;
 use Filament\Support\Components\Component;
 use Filament\Support\Facades\FilamentColor;
 use Filament\Support\Facades\FilamentIcon;
@@ -24,6 +25,7 @@ class Panel extends Component
     use Panel\Concerns\HasComponents;
     use Panel\Concerns\HasDarkMode;
     use Panel\Concerns\HasDatabaseTransactions;
+    use Panel\Concerns\HasErrorNotifications;
     use Panel\Concerns\HasFavicon;
     use Panel\Concerns\HasFont;
     use Panel\Concerns\HasGlobalSearch;
@@ -38,6 +40,7 @@ class Panel extends Component
     use Panel\Concerns\HasRoutes;
     use Panel\Concerns\HasSidebar;
     use Panel\Concerns\HasSpaMode;
+    use Panel\Concerns\HasSubNavigation;
     use Panel\Concerns\HasTenancy;
     use Panel\Concerns\HasTheme;
     use Panel\Concerns\HasTopbar;
@@ -45,7 +48,7 @@ class Panel extends Component
     use Panel\Concerns\HasUnsavedChangesAlerts;
     use Panel\Concerns\HasUserMenu;
 
-    protected bool $isDefault = false;
+    protected bool | Closure $isDefault = false;
 
     /**
      * @var array<array-key, Closure>
@@ -57,7 +60,7 @@ class Panel extends Component
         return app(static::class);
     }
 
-    public function default(bool $condition = true): static
+    public function default(bool | Closure $condition = true): static
     {
         $this->isDefault = $condition;
 
@@ -81,20 +84,35 @@ class Panel extends Component
 
     public function boot(): void
     {
+        if ($this->hasTenancy()) {
+            $resourceClasses = array_unique([
+                ...$this->getResources(),
+                ...array_map(
+                    static fn (ResourceConfiguration $configuration): string => $configuration->getResource(),
+                    $this->getResourceConfigurations(),
+                ),
+            ]);
+
+            foreach ($resourceClasses as $resource) {
+                $resource::observeTenancyModelCreation($this);
+                $resource::registerTenancyModelGlobalScope($this);
+            }
+        }
+
         $this->registerAssets();
 
         FilamentColor::register($this->getColors());
 
         FilamentIcon::register($this->getIcons());
 
-        FilamentView::spa($this->hasSpaMode());
+        FilamentView::spa($this->hasSpaMode(), $this->hasSpaPrefetching());
         FilamentView::spaUrlExceptions($this->getSpaUrlExceptions());
 
         $this->registerRenderHooks();
 
         if ($this->hasDatabaseTransactions()) {
-            MountableAction::configureUsing(
-                fn (MountableAction $action) => $action->databaseTransaction(),
+            Action::configureUsing(
+                fn (Action $action) => $action->databaseTransaction(),
             );
         }
 
@@ -116,6 +134,6 @@ class Panel extends Component
 
     public function isDefault(): bool
     {
-        return $this->isDefault;
+        return (bool) $this->evaluate($this->isDefault);
     }
 }

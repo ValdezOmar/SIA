@@ -2,9 +2,21 @@
 
 return [
 
-    'column_toggle' => [
+    'column_manager' => [
 
         'heading' => 'Kolom',
+
+        'actions' => [
+
+            'apply' => [
+                'label' => 'Terapkan kolom',
+            ],
+
+            'reset' => [
+                'label' => 'Atur ulang',
+            ],
+
+        ],
 
     ],
 
@@ -12,6 +24,22 @@ return [
 
         'actions' => [
             'label' => 'Aksi|Aksi',
+        ],
+
+        'select' => [
+
+            'loading_message' => 'Memuat...',
+
+            'no_options_message' => 'Tidak ada opsi yang tersedia.',
+
+            'no_search_results_message' => 'Tidak ada hasil yang sesuai dengan pencarian Anda.',
+
+            'placeholder' => 'Pilih salah satu opsi',
+
+            'searching_message' => 'Sedang mencari...',
+
+            'search_prompt' => 'Ketik untuk mencari...',
+
         ],
 
         'text' => [
@@ -99,7 +127,7 @@ return [
             'label' => 'Tindakan',
         ],
 
-        'toggle_columns' => [
+        'column_manager' => [
             'label' => 'Pilih kolom',
         ],
 
@@ -145,7 +173,13 @@ return [
         ],
 
         'select' => [
+
             'placeholder' => 'Semua',
+
+            'relationship' => [
+                'empty_option_label' => 'Tidak ada',
+            ],
+
         ],
 
         'trashed' => [
@@ -168,7 +202,6 @@ return [
 
             'group' => [
                 'label' => 'Kelompokkan berdasar',
-                'placeholder' => 'Kelompokkan berdasar',
             ],
 
             'direction' => [
@@ -228,5 +261,7 @@ return [
         ],
 
     ],
+
+    'default_model_label' => 'data',
 
 ];

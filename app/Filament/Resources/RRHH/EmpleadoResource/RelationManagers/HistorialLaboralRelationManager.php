@@ -2,6 +2,14 @@
 
 namespace App\Filament\Resources\RRHH\EmpleadoResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\CreateAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
 use App\Models\RRHH\HistorialLaboral;
 use App\Models\Sistema\Cargo;
 use App\Models\Sistema\Empresa;
@@ -9,19 +17,11 @@ use App\Models\Sistema\Sucursal;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables\Actions\CreateAction;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -35,11 +35,11 @@ class HistorialLaboralRelationManager extends RelationManager
 
     protected static ?string $title = 'Historial laboral';
 
-    protected static ?string $icon = 'heroicon-o-briefcase';
+    protected static string | \BackedEnum | null $icon = 'heroicon-o-briefcase';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             Section::make('Asignación laboral')
                 ->description('Defina la empresa, sucursal y cargo correspondientes a este vínculo.')
                 ->icon('heroicon-o-building-office-2')
@@ -193,7 +193,7 @@ class HistorialLaboralRelationManager extends RelationManager
                     ->modalDescription('El nuevo vínculo quedará activo. Si existe otro vigente, será cerrado automáticamente.')
                     ->createAnother(false)
                     ->visible(fn (): bool => (bool) $this->getOwnerRecord()->activo)
-                    ->mutateFormDataUsing(fn (array $data): array => $this->normalizarDatos($data))
+                    ->mutateDataUsing(fn (array $data): array => $this->normalizarDatos($data))
                     ->before(function (array $data): void {
                         $fechaFin = Carbon::parse($data['fecha_inicio'])->subDay()->toDateString();
                         $this->getOwnerRecord()->historialLaboral()->where('activo', true)->get()
@@ -207,7 +207,7 @@ class HistorialLaboralRelationManager extends RelationManager
                     })
                     ->successNotification(Notification::make()->success()->title('Vínculo laboral registrado')),
             ])
-            ->actions([
+            ->recordActions([
                 ViewAction::make()->label('Ver'),
                 EditAction::make()->label('Editar')
                     ->visible(fn (HistorialLaboral $record): bool => $record->activo)
@@ -219,7 +219,7 @@ class HistorialLaboralRelationManager extends RelationManager
 
                         return $data;
                     })
-                    ->mutateFormDataUsing(fn (array $data): array => $this->normalizarDatos($data)),
+                    ->mutateDataUsing(fn (array $data): array => $this->normalizarDatos($data)),
             ])
             ->emptyStateHeading('Sin historial laboral')
             ->emptyStateDescription('Registre la empresa, sucursal, cargo y condiciones del primer vínculo.')

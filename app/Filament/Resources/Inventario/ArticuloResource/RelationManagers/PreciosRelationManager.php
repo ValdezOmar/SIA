@@ -2,14 +2,24 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use App\Models\Inventario\PrecioArticulo;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\CreateAction;
+use Exception;
+use Filament\Notifications\Notification;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use App\Models\Inventario\ListaPrecio;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -26,10 +36,10 @@ class PreciosRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Precios';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Configuración del Precio')
                     ->icon('heroicon-o-tag')
                     ->description('Asigna un precio a este artículo en una lista específica')
@@ -53,7 +63,7 @@ class PreciosRelationManager extends RelationManager
                                         if ($primera) {
                                             $articuloId = request()->route('record');
                                             if ($articuloId) {
-                                                $existe = \App\Models\Inventario\PrecioArticulo::where('articulo_id', $articuloId)
+                                                $existe = PrecioArticulo::where('articulo_id', $articuloId)
                                                     ->where('lista_precio_id', $primera->id)
                                                     ->exists();
                                                 $set('precio_disabled', $existe);
@@ -71,7 +81,7 @@ class PreciosRelationManager extends RelationManager
                                     ->afterStateUpdated(function ($state, callable $set) {
                                         $articuloId = request()->route('record');
                                         if ($articuloId && $state) {
-                                            $existe = \App\Models\Inventario\PrecioArticulo::where('articulo_id', $articuloId)
+                                            $existe = PrecioArticulo::where('articulo_id', $articuloId)
                                                 ->where('lista_precio_id', $state)
                                                 ->exists();
                                             $set('precio_disabled', $existe);
@@ -93,7 +103,7 @@ class PreciosRelationManager extends RelationManager
                                             return true;
                                         }
 
-                                        return ! \App\Models\Inventario\PrecioArticulo::query()
+                                        return ! PrecioArticulo::query()
                                             ->where('articulo_id', $this->getOwnerRecord()->id)
                                             ->where('lista_precio_id', $lista)
                                             ->exists();
@@ -106,7 +116,7 @@ class PreciosRelationManager extends RelationManager
                     ->schema([
                         Grid::make(2)
                             ->schema([
-                                Forms\Components\Placeholder::make('lista_info')
+                                Placeholder::make('lista_info')
                                     ->label('')
                                     ->content(function ($get) {
                                         $listaId = $get('lista_precio_id');
@@ -122,7 +132,7 @@ class PreciosRelationManager extends RelationManager
                                         $articuloId = request()->route('record');
                                         $tienePrecio = false;
                                         if ($articuloId && $listaId) {
-                                            $tienePrecio = \App\Models\Inventario\PrecioArticulo::where('articulo_id', $articuloId)
+                                            $tienePrecio = PrecioArticulo::where('articulo_id', $articuloId)
                                                 ->where('lista_precio_id', $listaId)
                                                 ->exists();
                                         }
@@ -189,7 +199,7 @@ class PreciosRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('lista_precio_id')
+                SelectFilter::make('lista_precio_id')
                     ->label('Filtrar por Lista')
                     ->options(
                         fn() => ListaPrecio::where('activo', true)
@@ -199,9 +209,9 @@ class PreciosRelationManager extends RelationManager
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\Filter::make('precio_mayor_que')
+                Filter::make('precio_mayor_que')
                     ->label('Precio mayor que')
-                    ->form([
+                    ->schema([
                         TextInput::make('precio_minimo')
                             ->label('Precio mínimo')
                             ->numeric()
@@ -215,9 +225,9 @@ class PreciosRelationManager extends RelationManager
                         );
                     }),
 
-                Tables\Filters\Filter::make('precio_menor_que')
+                Filter::make('precio_menor_que')
                     ->label('Precio menor que')
-                    ->form([
+                    ->schema([
                         TextInput::make('precio_maximo')
                             ->label('Precio máximo')
                             ->numeric()
@@ -232,12 +242,12 @@ class PreciosRelationManager extends RelationManager
                     }),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Nuevo Precio')
                     ->icon('heroicon-o-plus')
                     ->modalHeading('Agregar Precio')
                     ->modalWidth('4xl')
-                    ->mutateFormDataUsing(function (array $data): array {
+                    ->mutateDataUsing(function (array $data): array {
                         $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                         return $data;
@@ -247,27 +257,27 @@ class PreciosRelationManager extends RelationManager
                         $listaPrecioId = $data['lista_precio_id'] ?? null;
 
                         if (! $listaPrecioId) {
-                            throw new \Exception('Debes seleccionar una lista de precios.');
+                            throw new Exception('Debes seleccionar una lista de precios.');
                         }
 
-                        $exists = \App\Models\Inventario\PrecioArticulo::where('articulo_id', $articuloId)
+                        $exists = PrecioArticulo::where('articulo_id', $articuloId)
                             ->where('lista_precio_id', $listaPrecioId)
                             ->exists();
 
                         if ($exists) {
-                            $listaNombre = \App\Models\Inventario\ListaPrecio::find($listaPrecioId)?->nombre ?? 'seleccionada';
-                            throw new \Exception("El artículo ya tiene un precio en la lista \"{$listaNombre}\".");
+                            $listaNombre = ListaPrecio::find($listaPrecioId)?->nombre ?? 'seleccionada';
+                            throw new Exception("El artículo ya tiene un precio en la lista \"{$listaNombre}\".");
                         }
                     })
                     ->failureNotificationTitle('No se puede asignar el precio')
-                    ->failureNotification(function (\Exception $e) {
-                        return \Filament\Notifications\Notification::make()
+                    ->failureNotification(function (Exception $e) {
+                        return Notification::make()
                             ->title('No se puede asignar el precio')
                             ->body($e->getMessage())
                             ->danger()
                             ->persistent()
                             ->actions([
-                                \Filament\Notifications\Actions\Action::make('ok')
+                                Action::make('ok')
                                     ->label('Entendido')
                                     ->button()
                                     ->color('danger')
@@ -276,33 +286,33 @@ class PreciosRelationManager extends RelationManager
                             ->send();
                     })
                     ->after(function ($record) {
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Precio agregado exitosamente')
                             ->body("El precio de {$record->precio} ha sido asignado a {$record->listaPrecio->nombre}")
                             ->success()
                             ->send();
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl')
-                        ->mutateFormDataUsing(function (array $data): array {
+                        ->mutateDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                             return $data;
                         })
                         ->after(function ($record) {
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Precio actualizado')
                                 ->body("El precio ha sido actualizado a {$record->precio}")
                                 ->success()
                                 ->send();
                         }),
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->before(function ($record) {
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Precio eliminado')
                                 ->body("El precio de {$record->listaPrecio->nombre} ha sido eliminado")
                                 ->warning()

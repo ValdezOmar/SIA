@@ -63,17 +63,19 @@ class ArticuloSelectOptions
         $nombre = e($articulo->nombre_comercial ?: $articulo->descripcion ?: 'Sin nombre');
         $marca = e($articulo->fabricante?->nombre ?: 'Sin marca');
         $stock = (float) ($articulo->stock_disponible ?? 0);
-        $miniatura = filled($articulo->foto_catalogo)
-            ? '<img src="'.e(Storage::disk('public')->url($articulo->foto_catalogo)).'" alt="" class="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-white/10">'
-            : '<span class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-2xl dark:bg-gray-800">&#128230;</span>';
+        $fotoPredeterminada = asset('images/default-product.jpg');
+        $foto = self::fotoUrl($articulo->foto_catalogo) ?? $fotoPredeterminada;
+        $miniatura = '<img src="'.e($foto).'" alt="'.e($nombre).'"'
+            .' style="width:4rem;height:4rem;flex:0 0 4rem;border-radius:.5rem;object-fit:cover;background:#f1f5f9"'
+            .' onerror="this.onerror=null;this.src=\''.e($fotoPredeterminada).'\';">';
 
-        return '<div class="flex items-center gap-3 py-2">'.$miniatura
-            .'<div class="min-w-0 flex-1 leading-tight">'
-            .'<div class="truncate text-sm font-semibold text-gray-950 dark:text-white">'.$codigo.'</div>'
-            .'<div class="truncate text-xs text-gray-600 dark:text-gray-300">Modelo: '.$modelo.'</div>'
-            .'<div class="truncate text-xs text-gray-600 dark:text-gray-300">'.$nombre.'</div>'
+        return '<div style="display:flex;align-items:center;gap:.7rem;padding:.3rem 0;min-width:0">'.$miniatura
+            .'<div style="min-width:0;flex:1;line-height:1.3">'
+            .'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-size:.82rem;font-weight:800">'.$codigo.'</div>'
+            .'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569;font-size:.72rem">Modelo: '.$modelo.'</div>'
+            .'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.74rem;font-weight:650">'.$nombre.'</div>'
             .self::stockHtml($articulo->inventariable, $stock)
-            .'<div class="truncate text-xs text-gray-500 dark:text-gray-400">Marca: '.$marca.'</div>'
+            .'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:.7rem">Marca: '.$marca.'</div>'
             .'</div></div>';
     }
 
@@ -83,15 +85,37 @@ class ArticuloSelectOptions
             return '<div class="text-xs font-medium text-gray-500 dark:text-gray-400">Servicio · sin stock</div>';
         }
 
-        if ($stock <= 0) {
-            return '<div class="text-xs font-semibold text-danger-600 dark:text-danger-400">Stock: Sin stock</div>';
+        if ($stock <= 1) {
+            return '<div class="text-danger-600" style="margin-top:.08rem;color:#dc2626;font-size:.72rem;font-weight:800">Stock: '.($stock <= 0 ? 'Sin stock' : '1 unidad').'</div>';
         }
 
-        $color = $stock > 5
-            ? 'text-success-600 dark:text-success-400'
-            : ($stock > 1 ? 'text-warning-600 dark:text-warning-400' : 'text-danger-600 dark:text-danger-400');
+        $color = $stock > 5 ? '#15803d' : '#d97706';
+        $class = $stock > 5 ? 'text-success-600' : 'text-warning-600';
 
-        return '<div class="text-xs font-semibold '.$color.'">Stock: '.e(number_format($stock, 2, ',', '.')).'</div>';
+        return '<div class="'.$class.'" style="margin-top:.08rem;color:'.$color.';font-size:.72rem;font-weight:800">Stock: '.e(number_format($stock, 2, ',', '.')).'</div>';
+    }
+
+    private static function fotoUrl(?string $foto): ?string
+    {
+        if (blank($foto)) {
+            return null;
+        }
+
+        $foto = trim($foto);
+
+        if (str_starts_with($foto, 'http://') || str_starts_with($foto, 'https://')) {
+            return $foto;
+        }
+
+        if (str_starts_with($foto, '/')) {
+            return asset(ltrim($foto, '/'));
+        }
+
+        if (is_file(public_path($foto))) {
+            return asset($foto);
+        }
+
+        return Storage::disk('public')->url($foto);
     }
 
     private static function almacenVentaId(): ?int

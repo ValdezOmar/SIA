@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources\RRHH;
 
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use App\Filament\Resources\RRHH\DirectorioResource\Pages\ListDirectorio;
 use App\Models\RRHH\Directorio;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -14,11 +16,11 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class DirectorioResource extends Resource implements HasShieldPermissions
+class DirectorioResource extends Resource
 {
     protected static ?string $model = Directorio::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-user-group';
 
     protected static ?string $modelLabel = 'Directorio';
 
@@ -26,7 +28,7 @@ class DirectorioResource extends Resource implements HasShieldPermissions
 
     protected static ?string $navigationLabel = 'Directorio';
 
-    protected static ?string $navigationGroup = 'Recursos Humanos';
+    protected static string | \UnitEnum | null $navigationGroup = 'Recursos Humanos';
 
     protected static ?int $navigationSort = 2;
 
@@ -87,15 +89,15 @@ class DirectorioResource extends Resource implements HasShieldPermissions
                     ->tooltip(fn (Directorio $record): string => $record->historialActivo ? 'Contrato laboral vigente' : 'Sin contrato laboral vigente'),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('empresa_id')
+                SelectFilter::make('empresa_id')
                     ->label('Empresa')
                     ->options(Empresa::query()->where('empresa_activo', true)->orderBy('razon_social')->pluck('razon_social', 'id')->all())
                     ->query(fn (Builder $query, array $data): Builder => $query->when($data['value'] ?? null, fn (Builder $query, $empresaId): Builder => $query->whereHas('historialActivo', fn (Builder $query): Builder => $query->where('empresa_id', $empresaId)))),
-                Tables\Filters\SelectFilter::make('sucursal_id')
+                SelectFilter::make('sucursal_id')
                     ->label('Sucursal')
                     ->options(Sucursal::query()->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all())
                     ->query(fn (Builder $query, array $data): Builder => $query->when($data['value'] ?? null, fn (Builder $query, $sucursalId): Builder => $query->whereHas('historialActivo', fn (Builder $query): Builder => $query->where('sucursal_id', $sucursalId)))),
-                Tables\Filters\TernaryFilter::make('con_vinculo_laboral')
+                TernaryFilter::make('con_vinculo_laboral')
                     ->label('Vínculo laboral')
                     ->placeholder('Todos')
                     ->trueLabel('Con contrato vigente')
@@ -105,7 +107,7 @@ class DirectorioResource extends Resource implements HasShieldPermissions
                         false: fn (Builder $query): Builder => $query->whereDoesntHave('historialActivo'),
                     ),
             ])
-            ->actions([])
+            ->recordActions([])
             ->recordUrl(null)
             ->defaultSort('apellidos')
             ->emptyStateHeading('No hay empleados activos')
@@ -114,7 +116,7 @@ class DirectorioResource extends Resource implements HasShieldPermissions
             ->paginated([10, 25, 50, 100])
             ->defaultPaginationPageOption(25)
             ->striped()
-            ->bulkActions([]);
+            ->toolbarActions([]);
     }
 
     public static function getPermissionPrefixes(): array
@@ -125,7 +127,7 @@ class DirectorioResource extends Resource implements HasShieldPermissions
     public static function getPages(): array
     {
         return [
-            'index' => \App\Filament\Resources\RRHH\DirectorioResource\Pages\ListDirectorio::route('/'),
+            'index' => ListDirectorio::route('/'),
         ];
     }
 }

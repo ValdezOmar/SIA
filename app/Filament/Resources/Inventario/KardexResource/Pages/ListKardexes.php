@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Inventario\KardexResource\Pages;
 
+use Filament\Actions\Action;
+use Filament\Actions\CreateAction;
 use App\Filament\Resources\Inventario\KardexResource;
 use App\Services\Contabilidad\RegularizacionKardexService;
 use Carbon\Carbon;
@@ -17,14 +19,14 @@ class ListKardexes extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('regularizar_contabilidad')
+            Action::make('regularizar_contabilidad')
                 ->label('Regularizar contabilidad')
                 ->icon('heroicon-o-calculator')
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading('Regularizar Kardex históricos')
                 ->modalDescription('Se revisarán todos los movimientos confirmados de la empresa. Los asientos existentes y los generados por facturas no se duplicarán.')
-                ->form([
+                ->schema([
                     DatePicker::make('fecha_contable')
                         ->label('Fecha contable de regularización')
                         ->default(now())
@@ -54,7 +56,7 @@ class ListKardexes extends ListRecords
                     empty($resultado['errores']) ? $notificacion->success() : $notificacion->warning();
                     $notificacion->send();
                 }),
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

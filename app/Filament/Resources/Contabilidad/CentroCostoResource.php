@@ -2,19 +2,29 @@
 
 namespace App\Filament\Resources\Contabilidad;
 
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\Contabilidad\CentroCostoResource\Pages\ListCentroCostos;
+use App\Filament\Resources\Contabilidad\CentroCostoResource\Pages\CreateCentroCosto;
+use App\Filament\Resources\Contabilidad\CentroCostoResource\Pages\EditCentroCosto;
 use App\Filament\Resources\Contabilidad\CentroCostoResource\Pages;
 use App\Models\Contabilidad\CentroCosto;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -28,9 +38,9 @@ class CentroCostoResource extends Resource
 {
     protected static ?string $model = CentroCosto::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    protected static ?string $navigationGroup = 'Contabilidad';
+    protected static string | \UnitEnum | null $navigationGroup = 'Contabilidad';
 
     protected static ?string $navigationLabel = 'Centros de Costo';
 
@@ -43,7 +53,7 @@ class CentroCostoResource extends Resource
     /**
      * Aplicar filtros de empresa y sucursal a la consulta
      */
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
 
@@ -60,7 +70,7 @@ class CentroCostoResource extends Resource
         return $query;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
         $defaultEmpresaId = Auth::user()?->empresa_id ?: Empresa::query()->value('id');
@@ -68,8 +78,8 @@ class CentroCostoResource extends Resource
             ->when($defaultEmpresaId, fn($query) => $query->where('empresa_id', $defaultEmpresaId))
             ->value('id');
 
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Datos del Centro de Costo')
                     ->icon('heroicon-o-rectangle-stack')
                     ->description('Información del centro de costo')
@@ -333,24 +343,24 @@ class CentroCostoResource extends Resource
                     ->falseLabel('Inactivos')
                     ->placeholder('Todos'),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('4xl'),
 
-                    Tables\Actions\DeleteAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('codigo')
@@ -364,9 +374,9 @@ class CentroCostoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCentroCostos::route('/'),
-            'create' => Pages\CreateCentroCosto::route('/create'),
-            'edit' => Pages\EditCentroCosto::route('/{record}/edit'),
+            'index' => ListCentroCostos::route('/'),
+            'create' => CreateCentroCosto::route('/create'),
+            'edit' => EditCentroCosto::route('/{record}/edit'),
         ];
     }
 }

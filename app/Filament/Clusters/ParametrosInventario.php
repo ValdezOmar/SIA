@@ -3,14 +3,13 @@
 namespace App\Filament\Clusters;
 
 use Filament\Clusters\Cluster;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class ParametrosInventario extends Cluster implements HasShieldPermissions
+class ParametrosInventario extends Cluster
 {
     protected static ?string $slug = 'parametros inventario';
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-cog-6-tooth';
     protected static ?string $navigationLabel = 'Parámetros de Inventario';
-    protected static ?string $navigationGroup = 'Inventario';
+    protected static string | \UnitEnum | null $navigationGroup = 'Inventario';
     protected static ?int $navigationSort = 5;
     
     //Evitar que Shield genere permisos para este cluster

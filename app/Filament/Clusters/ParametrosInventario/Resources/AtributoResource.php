@@ -2,14 +2,26 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
+use App\Filament\Clusters\ParametrosInventario\Resources\AtributoResource\Pages\ListAtributos;
+use App\Filament\Clusters\ParametrosInventario\Resources\AtributoResource\Pages\CreateAtributo;
+use App\Filament\Clusters\ParametrosInventario\Resources\AtributoResource\Pages\EditAtributo;
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Clusters\ParametrosInventario\Resources\AtributoResource\Pages;
 use App\Models\Inventario\Atributo;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -21,7 +33,7 @@ class AtributoResource extends Resource
 {
     protected static ?string $model = Atributo::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-tag';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-tag';
 
     protected static ?string $cluster = ParametrosInventario::class;
 
@@ -33,10 +45,10 @@ class AtributoResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Datos del Atributo')
                     ->icon('heroicon-o-tag')
                     ->description('Configuración del atributo')
@@ -145,9 +157,9 @@ class AtributoResource extends Resource
                     ->falseLabel('Inactivos')
                     ->placeholder('Todos'),
 
-                Tables\Filters\Filter::make('nombre')
+                Filter::make('nombre')
                     ->label('Buscar por nombre')
-                    ->form([
+                    ->schema([
                         TextInput::make('nombre')
                             ->label('Nombre')
                             ->placeholder('Buscar atributo...'),
@@ -159,13 +171,13 @@ class AtributoResource extends Resource
                         );
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl'),
 
-                    Tables\Actions\Action::make('duplicate')
+                    Action::make('duplicate')
                         ->label('Duplicar')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
@@ -176,21 +188,21 @@ class AtributoResource extends Resource
                             $newRecord->updated_at = now();
                             $newRecord->save();
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Atributo duplicado exitosamente')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('toggle_active')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    BulkAction::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
@@ -216,9 +228,9 @@ class AtributoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAtributos::route('/'),
-            'create' => Pages\CreateAtributo::route('/create'),
-            'edit' => Pages\EditAtributo::route('/{record}/edit'),
+            'index' => ListAtributos::route('/'),
+            'create' => CreateAtributo::route('/create'),
+            'edit' => EditAtributo::route('/{record}/edit'),
         ];
     }
 }

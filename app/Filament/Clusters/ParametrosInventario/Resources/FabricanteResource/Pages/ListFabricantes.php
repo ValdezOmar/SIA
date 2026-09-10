@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources\FabricanteResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Clusters\ParametrosInventario\Resources\FabricanteResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -18,7 +19,7 @@ class ListFabricantes extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->label('Nuevo fabricante'),
+            CreateAction::make()->label('Nuevo fabricante'),
         ];
     }
 }

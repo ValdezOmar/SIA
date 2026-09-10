@@ -50,3 +50,7 @@ Las reglas nuevas no reescriben asientos históricos confirmados. La revisión d
 Cuando cambien estados, permisos, fechas, formularios o efectos sobre otros módulos, actualizar la guía correspondiente y sus referencias. Las pruebas mencionadas son comandos reproducibles; no significan que se haya ejecutado toda la suite ni que se hayan comprobado cámaras, dispositivos biométricos o cuentas externas.
 
 Volver al [README del proyecto](../README.md).
+
+## Actualizaciones
+
+- [Cambios de septiembre de 2026](actualizacion-2026-09-10.md): Filament 4, tema nativo, migraciones e integridad de operaciones.

@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
-use Filament\Forms\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
@@ -37,10 +37,10 @@ class CapasCostosRelationManager extends RelationManager
         return 'Bs '.number_format($monto ?? 0, 2);
     }
 
-    public function form(Form $form): Form
+    public function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Información de la Capa')
                     ->schema([
                         Grid::make(3)
@@ -158,8 +158,8 @@ class CapasCostosRelationManager extends RelationManager
                     ->label('Capas Inactivas')
                     ->query(fn ($query) => $query->where('activo', false)->orWhere('cantidad_disponible', '<=', 0)),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ViewAction::make()
                     ->slideOver()
                     ->modalWidth('3xl'),
             ])

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Ventas\ClienteResource\Pages;
 
+use Filament\Actions\Action;
+use Filament\Actions\CreateAction;
 use App\Filament\Resources\Ventas\ClienteResource;
 use App\Services\Ventas\ExportarContactosService;
 use Filament\Actions;
@@ -21,12 +23,12 @@ class ListClientes extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('descargarContactos')
+            Action::make('descargarContactos')
                 ->label('Descargar contactos')
                 ->icon('heroicon-o-arrow-down-tray')
                 ->modalHeading('Descargar contactos para móvil')
                 ->modalDescription('Los contactos tendrán el formato 26001 JUAN QUISPE. Se exportan los celulares de los clientes del listado filtrado; los números locales usan +591 (Bolivia). Para evitar repetir contactos, adjunte los archivos VCF ya importados en ese teléfono. Importar el mismo archivo varias veces puede crear duplicados.')
-                ->form([
+                ->schema([
                     FileUpload::make('archivos_anteriores')
                         ->label('Archivos VCF ya importados (opcional)')
                         ->multiple()
@@ -63,7 +65,7 @@ class ListClientes extends ListRecords
                         ['Content-Type' => 'text/vcard; charset=UTF-8'],
                     );
                 }),
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

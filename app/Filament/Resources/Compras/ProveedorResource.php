@@ -2,16 +2,32 @@
 
 namespace App\Filament\Resources\Compras;
 
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Placeholder;
+use Exception;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
+use App\Filament\Resources\Compras\ProveedorResource\Pages\ListProveedors;
+use App\Filament\Resources\Compras\ProveedorResource\Pages\CreateProveedor;
+use App\Filament\Resources\Compras\ProveedorResource\Pages\EditProveedor;
 use App\Filament\Resources\Compras\ProveedorResource\Pages;
 use App\Models\Compras\Proveedor;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -24,9 +40,9 @@ class ProveedorResource extends Resource
 {
     protected static ?string $model = Proveedor::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
 
-    protected static ?string $navigationGroup = 'Compras';
+    protected static string | \UnitEnum | null $navigationGroup = 'Compras';
 
     protected static ?string $navigationLabel = 'Proveedores';
 
@@ -36,15 +52,15 @@ class ProveedorResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-    public static function form(Form $form): Form
+    public static function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('Gestión de Proveedor')
                     ->tabs([
 
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
-                        Tabs\Tab::make('Información General')
+                        Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos Básicos')
@@ -127,7 +143,7 @@ class ProveedorResource extends Resource
                             ]),
 
                         // ========== TAB 2: INFORMACIÓN DE CONTACTO ==========
-                        Tabs\Tab::make('Contacto')
+                        Tab::make('Contacto')
                             ->icon('heroicon-o-phone')
                             ->schema([
                                 Section::make('Datos de Contacto')
@@ -172,7 +188,7 @@ class ProveedorResource extends Resource
                             ]),
 
                         // ========== TAB 3: INFORMACIÓN COMERCIAL ==========
-                        Tabs\Tab::make('Comercial')
+                        Tab::make('Comercial')
                             ->icon('heroicon-o-shopping-bag')
                             ->schema([
                                 Section::make('Datos Comerciales')
@@ -181,7 +197,7 @@ class ProveedorResource extends Resource
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
-                                                Forms\Components\Select::make('tipo_proveedor')
+                                                Select::make('tipo_proveedor')
                                                     ->label('Tipo de Proveedor')
                                                     ->options([
                                                         'nacional' => 'Nacional',
@@ -194,7 +210,7 @@ class ProveedorResource extends Resource
                                                     ->columnSpan(1)
                                                     ->visible(fn () => Schema::hasColumn('cmp_proveedores', 'tipo_proveedor')),
 
-                                                Forms\Components\Select::make('calificacion')
+                                                Select::make('calificacion')
                                                     ->label('Calificación')
                                                     ->options([
                                                         1 => 'Muy Bajo',
@@ -243,13 +259,13 @@ class ProveedorResource extends Resource
                             ]),
 
                         // ========== TAB 4: ESTADÍSTICAS ==========
-                        Tabs\Tab::make('Estadísticas')
+                        Tab::make('Estadísticas')
                             ->icon('heroicon-o-chart-bar')
                             ->schema([
                                 Section::make('Resumen del Proveedor')
                                     ->icon('heroicon-o-chart-bar')
                                     ->schema([
-                                        Forms\Components\Placeholder::make('estadisticas')
+                                        Placeholder::make('estadisticas')
                                             ->label('')
                                             ->content(function ($record) {
                                                 if (! $record) {
@@ -263,7 +279,7 @@ class ProveedorResource extends Resource
                                                 try {
                                                     $totalArticulos = $record->articulos()->count();
                                                     $articulosPrincipales = $record->articulos()->where('es_principal', true)->count();
-                                                } catch (\Exception $e) {
+                                                } catch (Exception $e) {
                                                     // Si la relación no existe, ignorar
                                                 }
 
@@ -356,7 +372,7 @@ class ProveedorResource extends Resource
                     ->falseLabel('Inactivos')
                     ->placeholder('Todos'),
 
-                Tables\Filters\SelectFilter::make('tipo_proveedor')
+                SelectFilter::make('tipo_proveedor')
                     ->label('Tipo de Proveedor')
                     ->options([
                         'nacional' => 'Nacional',
@@ -365,7 +381,7 @@ class ProveedorResource extends Resource
                     ])
                     ->visible(fn () => Schema::hasColumn('cmp_proveedores', 'tipo_proveedor')),
 
-                Tables\Filters\SelectFilter::make('calificacion')
+                SelectFilter::make('calificacion')
                     ->label('Calificación')
                     ->options([
                         1 => 'Muy Bajo',
@@ -376,17 +392,17 @@ class ProveedorResource extends Resource
                     ])
                     ->visible(fn () => Schema::hasColumn('cmp_proveedores', 'calificacion')),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('5xl'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('5xl'),
 
-                    Tables\Actions\Action::make('duplicate')
+                    Action::make('duplicate')
                         ->label('Duplicar')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
@@ -397,33 +413,33 @@ class ProveedorResource extends Resource
                             $newRecord->updated_at = now();
                             $newRecord->save();
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Proveedor duplicado exitosamente')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('toggle_active')
+                    Action::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
                             $record->update(['activo' => ! $record->activo]);
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title($record->activo ? 'Proveedor activado' : 'Proveedor desactivado')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('toggle_active_bulk')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
@@ -450,9 +466,9 @@ class ProveedorResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListProveedors::route('/'),
-            'create' => Pages\CreateProveedor::route('/create'),
-            'edit' => Pages\EditProveedor::route('/{record}/edit'),
+            'index' => ListProveedors::route('/'),
+            'create' => CreateProveedor::route('/create'),
+            'edit' => EditProveedor::route('/{record}/edit'),
         ];
     }
 }

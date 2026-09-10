@@ -2,6 +2,7 @@
 
 namespace App\Models\Inventario\Concerns;
 
+use RuntimeException;
 use Illuminate\Support\Str;
 
 trait GeneraCodigoInventario
@@ -26,7 +27,7 @@ trait GeneraCodigoInventario
         $palabras = array_values(array_filter(preg_split('/[^A-Za-z]+/', $nombre)));
 
         if (empty($palabras)) {
-            throw new \RuntimeException('No se puede generar un código: el nombre debe contener letras.');
+            throw new RuntimeException('No se puede generar un código: el nombre debe contener letras.');
         }
 
         $primeraInicial = strtoupper($palabras[0][0]);
@@ -64,6 +65,6 @@ trait GeneraCodigoInventario
             }
         }
 
-        throw new \RuntimeException('No hay una combinación de dos letras disponible para este nombre.');
+        throw new RuntimeException('No hay una combinación de dos letras disponible para este nombre.');
     }
 }

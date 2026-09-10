@@ -2,8 +2,16 @@
 
 namespace App\Filament\Clusters\Sistema\Resources\EmpresaResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Repeater;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Actions\AttachAction;
+use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DetachAction;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -18,13 +26,14 @@ class AreasRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'áreas';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make('Datos del área')
+        return $schema->components([
+            Section::make('Datos del área')
+                ->icon('heroicon-o-user-group')
                 ->description('El área puede compartirse entre empresas y contiene sus cargos organizacionales.')
                 ->schema([
-                    Forms\Components\TextInput::make('nombre')
+                    TextInput::make('nombre')
                         ->label('Nombre del área')
                         ->placeholder('Ej. Recursos Humanos, Ventas, Tecnología')
                         ->helperText('Use un nombre corto y fácil de identificar.')
@@ -32,14 +41,15 @@ class AreasRelationManager extends RelationManager
                         ->maxLength(150),
                 ]),
 
-            Forms\Components\Section::make('Cargos del área')
+            Section::make('Cargos del área')
+                ->icon('heroicon-o-briefcase')
                 ->description('Agregue los puestos de trabajo que pertenecen a esta área.')
                 ->schema([
-                    \App\Forms\Components\CalculoRepeater::make('cargos')
+                    Repeater::make('cargos')
                         ->relationship('cargos')
                         ->label('')
                         ->schema([
-                            Forms\Components\TextInput::make('nombre')
+                            TextInput::make('nombre')
                                 ->label('Nombre del cargo')
                                 ->placeholder('Ej. Gerente, Analista, Asistente')
                                 ->helperText('Use el nombre del puesto, no el nombre de una persona.')
@@ -62,19 +72,19 @@ class AreasRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('nombre')
             ->columns([
-                Tables\Columns\TextColumn::make('nombre')
+                TextColumn::make('nombre')
                     ->label('Área')
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
 
-                Tables\Columns\TextColumn::make('cargos_count')
+                TextColumn::make('cargos_count')
                     ->counts('cargos')
                     ->label('Cargos')
                     ->badge()
                     ->color('primary'),
 
-                Tables\Columns\TextColumn::make('cargos.nombre')
+                TextColumn::make('cargos.nombre')
                     ->label('Detalle de cargos')
                     ->badge()
                     ->separator(',')
@@ -82,7 +92,7 @@ class AreasRelationManager extends RelationManager
                     ->toggleable(),
             ])
             ->headerActions([
-                Tables\Actions\AttachAction::make()
+                AttachAction::make()
                     ->label('Asociar área existente')
                     ->icon('heroicon-o-link')
                     ->preloadRecordSelect()
@@ -92,19 +102,22 @@ class AreasRelationManager extends RelationManager
                         ->placeholder('Busque un área por nombre')
                         ->helperText('Seleccione un área ya registrada en el sistema.')),
 
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Crear y asociar área')
-                    ->icon('heroicon-o-plus'),
+                    ->icon('heroicon-o-plus')
+                    ->modalHeading('Nueva área')
+                    ->modalWidth('3xl')
+                    ->modalSubmitActionLabel('Crear área'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()
+            ->recordActions([
+                EditAction::make()
                     ->label('Administrar cargos')
                     ->icon('heroicon-o-briefcase')
                     ->modalHeading('Administrar área y cargos')
                     ->modalSubmitActionLabel('Guardar cambios')
                     ->modalWidth('4xl'),
 
-                Tables\Actions\DetachAction::make()
+                DetachAction::make()
                     ->label('Desvincular'),
             ])
             ->emptyStateHeading('Esta empresa aún no tiene áreas')

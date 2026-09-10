@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use App\Models\Inventario\Kardex;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ class KardexDefaultsTest extends TestCase
 
     public function test_kardex_sets_missing_document_and_audit_defaults_before_save(): void
     {
-        $user = \App\Models\User::factory()->create();
+        $user = User::factory()->create();
         Auth::login($user);
 
         $empresaId = DB::table('conf_empresas')->insertGetId([

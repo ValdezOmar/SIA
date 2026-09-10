@@ -6,6 +6,7 @@ use App\Filament\Resources\Ventas\CotizacionResource;
 use App\Filament\Resources\Ventas\FacturaResource;
 use App\Filament\Resources\Ventas\PedidoResource;
 use App\Filament\Widgets\Concerns\HasWidgetPermission;
+use App\Filament\Widgets\Concerns\RendersDashboardSummaryCards;
 use App\Models\Ventas\Cotizacion;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\Pago;
@@ -18,10 +19,15 @@ use Illuminate\Support\Facades\Auth;
 class VentasResumenWidget extends BaseWidget
 {
     use HasWidgetPermission;
+    use RendersDashboardSummaryCards;
 
     protected static ?int $sort = 20;
 
-    protected static ?string $pollingInterval = '5m';
+    protected string $view = 'filament.widgets.dashboard-summary-cards';
+
+    protected ?string $pollingInterval = '30s';
+
+    protected int|string|array $columnSpan = 'full';
 
     protected function getHeading(): string
     {

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Almacen\InventarioResource\Pages;
 
+use App\Services\Inventario\InventarioPdfService;
 use App\Filament\Resources\Almacen\InventarioResource;
 use App\Services\Inventario\InventarioFisicoService as Servicio;
 use Filament\Actions\Action;
@@ -30,7 +31,7 @@ class ViewInventario extends ViewRecord
         $programador = fn () => auth()->user()->can(Servicio::PROGRAMAR);
         $acciones = [
             Action::make('exportarPdf')->label('Descargar PDF')->icon('heroicon-o-document-arrow-down')
-                ->action(fn () => app(\App\Services\Inventario\InventarioPdfService::class)->descargar($this->record)),
+                ->action(fn () => app(InventarioPdfService::class)->descargar($this->record)),
             Action::make('iniciar')->label('Iniciar conteo')->icon('heroicon-o-play')->requiresConfirmation()
                 ->modalDescription('Se guardará el stock de referencia de este almacén. Coordine la pausa de movimientos durante el conteo.')
                 ->visible(fn () => $programador() && $this->record->estado === 'programado')
@@ -64,7 +65,7 @@ class ViewInventario extends ViewRecord
         ];
         foreach (['cerrar' => 'Cerrar inventario', 'devolver' => 'Devolver a conteo', 'cancelar' => 'Cancelar inventario'] as $accion => $label) {
             $acciones[] = Action::make($accion)->label($label)->color($accion === 'cancelar' ? 'danger' : 'warning')
-                ->form([Textarea::make('motivo')->label('Motivo / conclusión de auditoría')->required()->maxLength(4000)])
+                ->schema([Textarea::make('motivo')->label('Motivo / conclusión de auditoría')->required()->maxLength(4000)])
                 ->visible(fn () => $programador() && ($accion === 'cancelar'
                     ? in_array($this->record->estado, ['programado', 'en_conteo', 'en_revision']) : $this->record->estado === 'en_revision'))
                 ->action(function (array $data) use ($accion) {

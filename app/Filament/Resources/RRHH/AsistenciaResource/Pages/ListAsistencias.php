@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\RRHH\AsistenciaResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Resources\RRHH\AsistenciaResource;
 use App\Models\RRHH\Empleado;
 use Filament\Actions;
@@ -19,15 +20,17 @@ class ListAsistencias extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
+            CreateAction::make()
                 ->label('Registrar Asistencia')        //  Cambia el texto del botón
                 ->icon('heroicon-m-finger-print')      //  Cambia el ícono
                 ->color('success')                     //  Cambia el color (opcional: primary, success, danger, etc.)
                 ->tooltip('Registrar nueva asistencia') //  Tooltip opcional
-                ->modalHeading('Nueva Asistencia')     //  Título del modal
+                ->modalHeading('Nueva Asistencia')
+                ->modalWidth('7xl')
+                ->modalSubmitActionLabel('Crear')
 
                 ->createAnother(false) // Esto desactiva el botón "Crear y crear otro"
-                ->mutateFormDataUsing(function (array $data): array {
+                ->mutateDataUsing(function (array $data): array {
                     // Obtener el CI del empleado asociado al usuario autenticado
                     $user = Auth::user();
                     $empleado = Empleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();

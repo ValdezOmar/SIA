@@ -3,14 +3,13 @@
 namespace App\Filament\Clusters;
 
 use Filament\Clusters\Cluster;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 
-class Sistema extends Cluster implements HasShieldPermissions
+class Sistema extends Cluster
 {
     protected static ?string $slug = 'configuracion';
-    protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-cog-6-tooth';
     protected static ?string $navigationLabel = 'Sistema';
-    protected static ?string $navigationGroup = 'Configuración';
+    protected static string | \UnitEnum | null $navigationGroup = 'Configuración';
     protected static ?int $navigationSort = 2;
     
     //Evitar que Shield genere permisos para este cluster

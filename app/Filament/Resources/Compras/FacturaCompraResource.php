@@ -2,6 +2,21 @@
 
 namespace App\Filament\Resources\Compras;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use App\Forms\Components\CalculoRepeater;
+use App\Support\CalculoDetalle;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use Filament\Actions\ViewAction;
+use Filament\Actions\DeleteAction;
+use App\Filament\Resources\Compras\FacturaCompraResource\Pages\ListFacturaCompras;
+use App\Filament\Resources\Compras\FacturaCompraResource\Pages\CreateFacturaCompra;
+use App\Filament\Resources\Compras\FacturaCompraResource\Pages\EditFacturaCompra;
 use App\Filament\Resources\Compras\FacturaCompraResource\Pages;
 use App\Filament\Resources\Compras\FacturaCompraResource\RelationManagers\PagosProveedorRelationManager;
 use App\Models\Compras\FacturaCompra;
@@ -12,14 +27,10 @@ use App\Models\Contabilidad\AsientoContable;
 use App\Models\Inventario\Articulo;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -33,9 +44,9 @@ class FacturaCompraResource extends Resource
 {
     protected static ?string $model = FacturaCompra::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationGroup = 'Compras';
+    protected static string | \UnitEnum | null $navigationGroup = 'Compras';
 
     protected static ?string $navigationLabel = 'Facturas de Compra';
 
@@ -69,13 +80,13 @@ class FacturaCompraResource extends Resource
         );
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Tabs::make('Gestión de Factura')
                     ->tabs([
-                        Tabs\Tab::make('General')
+                        Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Factura')
@@ -231,7 +242,7 @@ class FacturaCompraResource extends Resource
                                 Section::make('Totales')
                                     ->icon('heroicon-o-calculator')
                                     ->schema([
-                                        Grid::make(6)
+                                        Grid::make(['default' => 1, 'sm' => 2, 'xl' => 6])
                                             ->schema([
                                                 Placeholder::make('subtotal')
                                                     ->label('Subtotal neto')
@@ -332,7 +343,7 @@ class FacturaCompraResource extends Resource
                                     ->columnSpanFull(),
                             ]),
 
-                        Tabs\Tab::make('Productos')
+                        Tab::make('Productos')
                             ->icon('heroicon-o-shopping-bag')
                             ->badge(function ($record) {
                                 if (! $record) {
@@ -346,12 +357,12 @@ class FacturaCompraResource extends Resource
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Productos incluidos en la factura')
                                     ->schema([
-                                        \App\Forms\Components\CalculoRepeater::make('detalles')->calculo('compra')
+                                        CalculoRepeater::make('detalles')->calculo('compra')
                                             ->relationship('detalles')
                                             ->label('')
                                             ->live()
                                             ->schema([
-                                                Grid::make(12)
+                                                Grid::make(['default' => 1, 'lg' => 12])
                                                     ->schema([
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
@@ -481,7 +492,7 @@ class FacturaCompraResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Pagos')
+                        Tab::make('Pagos')
                             ->icon('heroicon-o-credit-card')
                             ->schema([
                                 Section::make('Información de Pagos')
@@ -536,7 +547,7 @@ class FacturaCompraResource extends Resource
             $detalles = $record?->detalles()->get() ?? [];
         }
 
-        return \App\Support\CalculoDetalle::totales($detalles);
+        return CalculoDetalle::totales($detalles);
     }
 
     private static function recalcularTotales(callable $set, callable $get): void
@@ -645,19 +656,19 @@ class FacturaCompraResource extends Resource
                     ->searchable()
                     ->preload(),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('asociar_recepcion')
+                    Action::make('asociar_recepcion')
                         ->label('Asociar recepción')
                         ->icon('heroicon-o-link')
                         ->color('gray')
                         ->modalHeading('Asociar recepción física')
                         ->modalDescription('Seleccione la recepción que confirma la entrega física. El stock continuará sin cambios hasta que esa recepción sea procesada en Almacén.')
-                        ->form([
+                        ->schema([
                             Select::make('recepcion_id')
                                 ->label('Recepción confirmada')
                                 ->options(fn ($record) => Recepcion::query()
@@ -674,7 +685,7 @@ class FacturaCompraResource extends Resource
                             && (bool) $record->orden_compra_id
                             && in_array($record->estado, ['registrada', 'parcial', 'pagada'], true)),
 
-                    Tables\Actions\Action::make('contabilizar')
+                    Action::make('contabilizar')
                         ->label('Generar asiento')
                         ->icon('heroicon-o-calculator')
                         ->color('info')
@@ -695,15 +706,15 @@ class FacturaCompraResource extends Resource
                             && $record->recepcion?->inventario_procesado_at
                             && ! AsientoContable::where('documento_tipo', 'compra')->where('documento_id', $record->id)->exists()),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('registrar_pago')
+                    Action::make('registrar_pago')
                         ->label('Registrar Pago')
                         ->icon('heroicon-o-credit-card')
                         ->color('success')
-                        ->form([
+                        ->schema([
                             TextInput::make('monto')
                                 ->label('Monto a Pagar')
                                 ->numeric()
@@ -742,12 +753,12 @@ class FacturaCompraResource extends Resource
                         })
                         ->visible(fn () => false),
 
-                    Tables\Actions\Action::make('anular')
+                    Action::make('anular')
                         ->label('Anular factura')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->form([
+                        ->schema([
                             Textarea::make('motivo')->label('Motivo de la anulación')->required()->maxLength(2000),
                         ])
                         ->modalHeading('Anular Factura')
@@ -761,7 +772,7 @@ class FacturaCompraResource extends Resource
                         })
                         ->visible(fn ($record) => $record->estado !== 'anulada'),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->visible(fn ($record) => $record->estado === 'borrador'),
                 ])
                     ->tooltip('Acciones')
@@ -784,9 +795,9 @@ class FacturaCompraResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListFacturaCompras::route('/'),
-            'create' => Pages\CreateFacturaCompra::route('/create'),
-            'edit' => Pages\EditFacturaCompra::route('/{record}/edit'),
+            'index' => ListFacturaCompras::route('/'),
+            'create' => CreateFacturaCompra::route('/create'),
+            'edit' => EditFacturaCompra::route('/{record}/edit'),
         ];
     }
 }

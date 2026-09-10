@@ -2,14 +2,21 @@
 
 namespace App\Filament\Resources\Ventas\FacturaResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\CreateAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 use App\Models\Ventas\Pago;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -54,10 +61,10 @@ class PagosRelationManager extends RelationManager
         return in_array($estado, ['pagada', 'pagado', 'anulada'], true);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Datos del Pago')
                     ->icon('heroicon-o-credit-card')
                     ->description('Registrar pago para la factura')
@@ -313,7 +320,7 @@ class PagosRelationManager extends RelationManager
                     ->preload(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Nuevo Pago')
                     ->icon('heroicon-o-plus')
                     ->modalHeading('Registrar Pago')
@@ -329,7 +336,7 @@ class PagosRelationManager extends RelationManager
 
                         return $data;
                     })
-                    ->mutateFormDataUsing(function (array $data, $livewire): array {
+                    ->mutateDataUsing(function (array $data, $livewire): array {
                         $factura = $livewire->getOwnerRecord();
 
                         if ($this->facturaBloqueada($factura)) {
@@ -358,13 +365,13 @@ class PagosRelationManager extends RelationManager
                             ->send();
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\ViewAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('3xl'),
 
-                    Tables\Actions\Action::make('confirmar')
+                    Action::make('confirmar')
                         ->label('Confirmar')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
@@ -378,7 +385,7 @@ class PagosRelationManager extends RelationManager
                         })
                         ->visible(fn ($record) => $record->estado === 'pendiente'),
 
-                    Tables\Actions\Action::make('rechazar')
+                    Action::make('rechazar')
                         ->label('Rechazar')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
@@ -392,15 +399,15 @@ class PagosRelationManager extends RelationManager
                         })
                         ->visible(fn ($record) => $record->estado === 'pendiente'),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->visible(fn ($record) => in_array($record->estado, ['pendiente', 'rechazado'])),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -9,6 +11,7 @@ return [
 
     'column.name' => 'Meno',
     'column.guard_name' => 'Názov ochrany',
+    'column.team' => 'Tím',
     'column.roles' => 'Roly',
     'column.permissions' => 'Oprávnenia',
     'column.updated_at' => 'Aktualizované',
@@ -22,6 +25,8 @@ return [
     'field.name' => 'Meno',
     'field.guard_name' => 'Názov ochrany',
     'field.permissions' => 'Oprávnenia',
+    'field.team' => 'Tím',
+    'field.team.placeholder' => 'Vyberte tím ...',
     'field.select_all.name' => 'Vybrať všetko',
     'field.select_all.message' => 'Povoliť všetky oprávnenia aktuálne <span class="text-primary font-medium">Povolené</span> pre túto rolu',
 

@@ -4,8 +4,6 @@ namespace Illuminate\Foundation\Support\Providers;
 
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use App\Models\RRHH\Empleado;
-use app\Policies\RRHH\EmpleadoPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -14,9 +12,8 @@ class AuthServiceProvider extends ServiceProvider
      *
      * @var array<class-string, class-string>
      */
-    protected $policies = [
-        // Empleado::class => EmpleadoPolicy::class, // Por defecto para el modelo
-    ];
+    protected $policies = [];
+
     /**
      * Register the application's policies.
      *

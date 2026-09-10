@@ -25,8 +25,8 @@ class PedidoPagosRelationManager extends RelationManager
                 TextColumn::make('estado')->label('Estado')->badge(),
             ])
             ->headerActions([])
-            ->actions([])
-            ->bulkActions([])
+            ->recordActions([])
+            ->toolbarActions([])
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('No hay pagos registrados')
             ->emptyStateDescription('Los pagos aparecerán aquí después de registrarlos en la factura asociada.');

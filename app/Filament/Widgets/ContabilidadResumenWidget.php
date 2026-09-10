@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Filament\Resources\Contabilidad\AsientoContableResource;
 use App\Filament\Resources\Contabilidad\PlanCuentaResource;
 use App\Filament\Widgets\Concerns\HasWidgetPermission;
+use App\Filament\Widgets\Concerns\RendersDashboardSummaryCards;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Contabilidad\PeriodoContable;
 use App\Models\Contabilidad\PlanCuenta;
@@ -16,10 +17,15 @@ use Illuminate\Support\Facades\Auth;
 class ContabilidadResumenWidget extends BaseWidget
 {
     use HasWidgetPermission;
+    use RendersDashboardSummaryCards;
 
     protected static ?int $sort = 10;
 
-    protected static ?string $pollingInterval = '5m';
+    protected string $view = 'filament.widgets.dashboard-summary-cards';
+
+    protected ?string $pollingInterval = '30s';
+
+    protected int|string|array $columnSpan = 'full';
 
     protected function getHeading(): string
     {

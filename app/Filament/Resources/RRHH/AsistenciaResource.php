@@ -2,24 +2,25 @@
 
 namespace App\Filament\Resources\RRHH;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\View;
+use Filament\Forms\Components\Textarea;
+use Exception;
+use Filament\Actions\Action;
+use App\Filament\Resources\RRHH\AsistenciaResource\Pages\ListAsistencias;
 use App\Filament\Resources\RRHH\AsistenciaResource\Pages;
 use App\Models\RRHH\Asistencia;
 use App\Models\RRHH\Empleado;
 use App\Services\RRHH\AsistenciaHorarioService;
 use Barryvdh\DomPDF\Facade\Pdf;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Carbon\CarbonPeriod;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\View;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ViewColumn;
@@ -31,37 +32,36 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 
-class AsistenciaResource extends Resource implements HasShieldPermissions
+class AsistenciaResource extends Resource
 {
     protected static ?string $model = Asistencia::class;
 
     protected static ?string $modelLabel = 'Registros de Asistencia'; // Seccion para configurar el nombre en Filament-Shield
 
-    protected static ?string $navigationIcon = 'heroicon-o-clock';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-clock';
 
     protected static ?string $pluralModelLabel = 'Asistencias';
 
     protected static ?string $navigationLabel = 'Registro de Asistencias';
 
-    protected static ?string $navigationGroup = 'Recursos Humanos';
+    protected static string | \UnitEnum | null $navigationGroup = 'Recursos Humanos';
 
     protected static ?int $navigationSort = 2;
 
     // Formulario de registro de asistencias remotas
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $user = Auth::user();
         $empleado = Empleado::whereHas('historialActivo', fn ($query) => $query->where('correo_corporativo', $user->email))->first();
         $ciEmpleado = $empleado ? $empleado->ci : null;
 
-        return $form
-            ->schema([
-                Grid::make(2)
+        return $schema
+            ->components([
+                Grid::make(['default' => 1, 'lg' => 2])
+                    ->columnSpanFull()
                     ->schema([
-                        // Columna izquierda: ubicación + CI
                         Group::make([
-                            View::make('filament.forms.components.gps-location'),
-
+                                View::make('filament.forms.components.gps-location'),
                             TextInput::make('user_id')
                                 ->label('CI/Número de Identificación')
                                 ->required()
@@ -73,7 +73,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                                 })
                                 ->disabled(true),
 
-                            Forms\Components\Textarea::make('justificacion')
+                            Textarea::make('justificacion')
                                 ->label('Justificación del Registro Remoto')                                
                                 ->columnSpanFull()
                                 ->maxLength(255)
@@ -82,12 +82,9 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                                     return empty($livewire->localizacion);
                                 })
                                 ->extraAttributes(['class' => 'h-32']),
-
                         ])->columnSpan(1),
 
-                        // Columna derecha: mapa
                         View::make('filament.forms.components.gps-map')
-                            ->extraAttributes(['class' => 'rounded-xl overflow-hidden h-48 border border-gray-300'])
                             ->columnSpan(1),
                     ]),
 
@@ -129,7 +126,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                                 if (strlen($state) > 255) {
                                     $set('id_equipo', substr($state, 0, 255));
                                 }
-                            } catch (\Exception $e) {
+                            } catch (Exception $e) {
                                 $set('id_equipo', '');
                             }
                         }
@@ -144,17 +141,6 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                     ->extraAttributes(['class' => 'hidden'])
                     ->disabled(true),
 
-                Placeholder::make('')
-                    ->content('Los registros de asistencia remotos necesitan ser validados por la ubicación del GPS. Por favor haz clic en el botón "Obtener Ubicación GPS", activa la geolocalización y permite el acceso a tu ubicación.')
-                    ->hint('Solo los registros realizados con teléfonos moviles son válidos')
-                    ->hintIcon('heroicon-m-map-pin')
-                    ->columnSpanFull()
-                    ->hidden(function ($get, $livewire) {
-                        return empty(! ($livewire->localizacion));
-                    })
-                    ->extraAttributes([
-                        'class' => 'bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800',
-                    ]),
             ]);
     } // Fin Formulario de registro de asistencias remotas
 
@@ -268,7 +254,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                 ->query(Empleado::query()->whereRaw('0 = 1')) // siempre vacío
                 ->columns([])
                 ->filters([])
-                ->actions([])
+                ->recordActions([])
                 ->emptyStateHeading('No hay marcaciones disponibles')
                 ->emptyStateDescription('Actualmente no cuenta con permisos asociados a su cuenta')
                 ->emptyStateIcon('heroicon-o-exclamation-circle');
@@ -564,7 +550,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
                             }, 'asistencias_'.$periodo['inicio']->format('Y-m-d').'_'.$periodo['fin']->format('Y-m-d').'.pdf', [
                                 'Content-Type' => 'application/pdf',
                             ]);
-                        } catch (\Exception $e) {
+                        } catch (Exception $e) {
                             Log::error('Error generando PDF de asistencias: '.$e->getMessage(), [
                                 'trace' => $e->getTraceAsString(),
                             ]);
@@ -628,7 +614,7 @@ class AsistenciaResource extends Resource implements HasShieldPermissions
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListAsistencias::route('/'),
+            'index' => ListAsistencias::route('/'),
         ];
     }
 }

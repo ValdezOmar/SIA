@@ -8,12 +8,17 @@ use Illuminate\Support\Facades\Validator;
 
 class FileUploadController implements HasMiddleware
 {
+    public static array $defaultMiddleware = ['web'];
+
     public static function middleware()
     {
         $middleware = (array) FileUploadConfiguration::middleware();
 
-        if (! in_array('web', $middleware)) {
-            $middleware = array_merge(['web'], $middleware);
+        // Prepend the default middleware to the middleware array if it's not already present...
+        foreach (array_reverse(static::$defaultMiddleware) as $defaultMiddleware) {
+            if (! in_array($defaultMiddleware, $middleware)) {
+                array_unshift($middleware, $defaultMiddleware);
+            }
         }
 
         return array_map(fn ($middleware) => new Middleware($middleware), $middleware);
@@ -21,7 +26,7 @@ class FileUploadController implements HasMiddleware
 
     public function handle()
     {
-        abort_unless(request()->hasValidSignature(), 401);
+        abort_unless(request()->hasValidRelativeSignature(), 401);
 
         $disk = FileUploadConfiguration::disk();
 
@@ -45,6 +50,8 @@ class FileUploadController implements HasMiddleware
         });
 
         // Strip out the temporary upload directory from the paths.
-        return $fileHashPaths->map(function ($path) { return str_replace(FileUploadConfiguration::path('/'), '', $path); });
+        return $fileHashPaths->map(function ($path) {
+            return TemporaryUploadedFile::signPath(str_replace(FileUploadConfiguration::path('/'), '', $path));
+        });
     }
 }

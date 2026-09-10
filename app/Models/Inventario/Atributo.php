@@ -2,11 +2,12 @@
 
 namespace App\Models\Inventario;
 
+use App\Models\Inventario\Concerns\GeneraCodigoInventario;
 use Illuminate\Database\Eloquent\Model;
 
 class Atributo extends Model
 {
-    use Concerns\GeneraCodigoInventario;
+    use GeneraCodigoInventario;
 
     protected $table = 'alm_atributos';
 

@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\Compras\FacturaCompraResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Actions\CreateAction;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -19,9 +21,9 @@ class PagosProveedorRelationManager extends RelationManager
 
     protected static ?string $title = 'Pagos y respaldos';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
+        return $schema->components([
             DatePicker::make('fecha_pago')->label('Fecha de pago')->default(today())->required(),
             Select::make('tipo_pago')->label('Método de pago')->options([
                 'efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'cheque' => 'Cheque',
@@ -57,26 +59,26 @@ class PagosProveedorRelationManager extends RelationManager
                 TextColumn::make('estado')->label('Estado')->badge(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make('registrarPago')
+                CreateAction::make('registrarPago')
                     ->label('Registrar pago')
                     ->visible(fn () => ! in_array($this->getOwnerRecord()->estado, ['pagada', 'anulada'], true))
                     ->using(fn (array $data) => $this->getOwnerRecord()->registrarPago($data)),
             ])
-            ->actions([
-                Tables\Actions\Action::make('anular')
+            ->recordActions([
+                Action::make('anular')
                     ->label('Anular pago')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
                     ->modalHeading('Anular pago')
                     ->modalDescription('Se revertirá el asiento contable asociado y se recalculará el saldo de la factura.')
-                    ->form([
+                    ->schema([
                         Textarea::make('motivo')->label('Motivo de la anulación')->required()->maxLength(2000),
                     ])
                     ->action(fn (array $data, $record) => $record->anular($data['motivo']))
                     ->visible(fn ($record): bool => $record->estado === 'confirmado' && $this->getOwnerRecord()->estado !== 'anulada'),
             ])
-            ->bulkActions([])
+            ->toolbarActions([])
             ->emptyStateHeading('Aún no hay pagos')
             ->emptyStateDescription('Registre el pago y adjunte su respaldo para actualizar el saldo.');
     }

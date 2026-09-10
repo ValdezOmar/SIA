@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Inventario\KardexResource\Pages;
 
+use Illuminate\Database\Eloquent\Model;
 use App\Filament\Resources\Inventario\KardexResource;
 use App\Models\Inventario\Kardex;
 use Filament\Actions;
@@ -22,7 +23,7 @@ class CreateKardex extends CreateRecord
         return $data;
     }
 
-    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
+    protected function handleRecordCreation(array $data): Model
     {
         return Kardex::registrarMovimiento($data);
     }

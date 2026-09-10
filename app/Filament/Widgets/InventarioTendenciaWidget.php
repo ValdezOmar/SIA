@@ -14,15 +14,15 @@ class InventarioTendenciaWidget extends ChartWidget
 {
     use HasWidgetPermission;
 
-    protected static ?string $heading = 'Flujo de inventario · Últimos 6 meses';
+    protected ?string $heading = 'Flujo de inventario · Últimos 6 meses';
 
-    protected static ?string $description = 'Unidades confirmadas que ingresaron y salieron de los almacenes.';
+    protected ?string $description = 'Unidades confirmadas que ingresaron y salieron de los almacenes.';
 
     protected static ?int $sort = 42;
 
-    protected static ?string $pollingInterval = '5m';
+    protected ?string $pollingInterval = '60s';
 
-    protected static ?string $maxHeight = '320px';
+    protected ?string $maxHeight = '320px';
 
     protected int|string|array $columnSpan = ['md' => 1, 'xl' => 1];
 

@@ -1,23 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace BezhanSalleh\FilamentShield;
 
+use BezhanSalleh\FilamentShield\Commands\GenerateCommand;
+use BezhanSalleh\FilamentShield\Commands\InstallCommand;
+use BezhanSalleh\FilamentShield\Commands\PublishCommand;
+use BezhanSalleh\FilamentShield\Commands\SeederCommand;
+use BezhanSalleh\FilamentShield\Commands\SetupCommand;
+use BezhanSalleh\FilamentShield\Commands\SuperAdminCommand;
+use BezhanSalleh\FilamentShield\Commands\TranslationCommand;
+use BezhanSalleh\FilamentShield\Concerns\HasAboutCommand;
 use BezhanSalleh\FilamentShield\Support\Utils;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Gate;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
 class FilamentShieldServiceProvider extends PackageServiceProvider
 {
-    use Concerns\HasAboutCommand;
+    use HasAboutCommand;
 
+    public static string $name = 'filament-shield';
+
+    public static string $viewNamespace = 'filament-shield';
+
+    /** {@inheritDoc} */
     public function configurePackage(Package $package): void
     {
+        /**
+         * @var Package $package
+         */
         $package
-            ->name('filament-shield')
+            ->name(static::$name)
             ->hasConfigFile()
             ->hasTranslations()
-            ->hasViews()
             ->hasCommands($this->getCommands());
     }
 
@@ -25,9 +43,7 @@ class FilamentShieldServiceProvider extends PackageServiceProvider
     {
         parent::packageRegistered();
 
-        $this->app->scoped('filament-shield', function (): FilamentShield {
-            return new FilamentShield;
-        });
+        $this->app->scoped('filament-shield', fn (): FilamentShield => new FilamentShield);
     }
 
     public function packageBooted(): void
@@ -37,29 +53,35 @@ class FilamentShieldServiceProvider extends PackageServiceProvider
         $this->initAboutCommand();
 
         if (Utils::isSuperAdminDefinedViaGate()) {
-            Gate::{Utils::getSuperAdminGateInterceptionStatus()}(function ($user, $ability) {
-                return match (Utils::getSuperAdminGateInterceptionStatus()) {
-                    'before' => $user->hasRole(Utils::getSuperAdminName()) ? true : null,
-                    'after' => $user->hasRole(Utils::getSuperAdminName()),
-                    default => false
-                };
+            Gate::{Utils::getSuperAdminGateInterceptionStatus()}(fn (object $user, string $ability): ?bool => match (Utils::getSuperAdminGateInterceptionStatus()) {
+                'before' => $user->hasRole(Utils::getSuperAdminName()) ? true : null,
+                'after' => $user->hasRole(Utils::getSuperAdminName()),
+                default => false
             });
         }
 
         if (Utils::isRolePolicyRegistered()) {
-            Gate::policy(Utils::getRoleModel(), 'App\Policies\RolePolicy');
+            Gate::policy(Utils::getRoleModel(), Utils::getRolePolicyPath());
         }
+
+        Filament::serving(function (): void {
+            $this->app->make('filament-shield')->registerEnforcedPolicies();
+        });
     }
 
+    /**
+     * @return array<class-string>
+     */
     protected function getCommands(): array
     {
         return [
-            Commands\GenerateCommand::class,
-            Commands\InstallCommand::class,
-            Commands\PublishCommand::class,
-            Commands\SeederCommand::class,
-            Commands\SetupCommand::class,
-            Commands\SuperAdminCommand::class,
+            GenerateCommand::class,
+            InstallCommand::class,
+            PublishCommand::class,
+            SeederCommand::class,
+            SetupCommand::class,
+            SuperAdminCommand::class,
+            TranslationCommand::class,
         ];
     }
 }

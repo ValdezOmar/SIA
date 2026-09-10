@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Ventas\FacturaResource\Pages;
 
+use Filament\Actions\Action;
+use Filament\Forms\Components\Textarea;
 use App\Filament\Resources\Ventas\FacturaResource;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -18,15 +20,15 @@ class EditFactura extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('anular')
+            Action::make('anular')
                 ->label('Anular')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('Anular Factura')
                 ->modalSubheading('Se revertirán inventario, pagos y contabilidad.')
-                ->form([
-                    \Filament\Forms\Components\Textarea::make('motivo')
+                ->schema([
+                    Textarea::make('motivo')
                         ->label('Motivo')
                         ->required()
                         ->maxLength(500),

@@ -2,13 +2,21 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\CreateAction;
+use Filament\Notifications\Notification;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use App\Models\Inventario\Atributo;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -24,10 +32,10 @@ class AtributosRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Atributos';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Asignación de Atributo')
                     ->icon('heroicon-o-tag')
                     ->description('Asigna un valor a un atributo para este artículo')
@@ -58,7 +66,7 @@ class AtributosRelationManager extends RelationManager
                             ]),
 
                         // Mostrar información del atributo seleccionado
-                        Forms\Components\Placeholder::make('atributo_info')
+                        Placeholder::make('atributo_info')
                             ->label('')
                             ->content(function ($get) {
                                 $atributoId = $get('atributo_id');
@@ -124,7 +132,7 @@ class AtributosRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('atributo_id')
+                SelectFilter::make('atributo_id')
                     ->label('Atributo')
                     ->options(fn () => Atributo::where('activo', true)
                         ->pluck('nombre', 'id')
@@ -133,9 +141,9 @@ class AtributosRelationManager extends RelationManager
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\Filter::make('valor')
+                Filter::make('valor')
                     ->label('Buscar por valor')
-                    ->form([
+                    ->schema([
                         TextInput::make('valor')
                             ->label('Valor')
                             ->placeholder('Buscar valor...'),
@@ -148,40 +156,40 @@ class AtributosRelationManager extends RelationManager
                     }),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Agregar Atributo')
                     ->icon('heroicon-o-plus')
                     ->modalHeading('Agregar Atributo al Artículo')
                     ->modalWidth('4xl')
-                    ->mutateFormDataUsing(function (array $data): array {
+                    ->mutateDataUsing(function (array $data): array {
                         $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                         return $data;
                     })
                     ->after(function ($record) {
                         $atributo = Atributo::find($record->atributo_id);
-                        \Filament\Notifications\Notification::make()
+                        Notification::make()
                             ->title('Atributo agregado exitosamente')
                             ->body("El atributo {$atributo->nombre} ha sido asignado al artículo")
                             ->success()
                             ->send();
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl')
-                        ->mutateFormDataUsing(function (array $data): array {
+                        ->mutateDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                             return $data;
                         }),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->before(function ($record) {
                             $atributo = Atributo::find($record->atributo_id);
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Atributo eliminado')
                                 ->body("El atributo {$atributo->nombre} ha sido desvinculado del artículo")
                                 ->warning()

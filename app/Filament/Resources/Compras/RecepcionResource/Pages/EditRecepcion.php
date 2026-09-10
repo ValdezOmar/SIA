@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Compras\RecepcionResource\Pages;
 
+use Filament\Actions\DeleteAction;
 use App\Filament\Resources\Compras\RecepcionResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
@@ -18,7 +19,7 @@ class EditRecepcion extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            DeleteAction::make(),
         ];
     }
 }

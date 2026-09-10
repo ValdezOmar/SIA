@@ -1,99 +1,161 @@
+@props([
+    'position' => null,
+])
+
 @php
+    use Filament\Actions\Action;
+    use Filament\Enums\UserMenuPosition;
+    use Filament\Support\Facades\FilamentView;
+    use Filament\Support\Icons\Heroicon;
+    use Filament\Support\View\ComponentAttributeBag;
+    use Filament\View\PanelsIconAlias;
+    use Filament\View\PanelsRenderHook;
+    use Illuminate\Support\Arr;
+
     $user = filament()->auth()->user();
-    $items = filament()->getUserMenuItems();
 
-    $profileItem = $items['profile'] ?? $items['account'] ?? null;
-    $profileItemUrl = $profileItem?->getUrl();
-    $profilePage = filament()->getProfilePage();
-    $hasProfileItem = filament()->hasProfile() || filled($profileItemUrl);
+    $userName = filament()->getUserName($user);
 
-    $logoutItem = $items['logout'] ?? null;
+    $items = $this->getUserMenuItems();
 
-    $items = \Illuminate\Support\Arr::except($items, ['account', 'logout', 'profile']);
+    $itemsBeforeAndAfterThemeSwitcher = collect($items)
+        ->groupBy(fn (Action $item): bool => $item->getSort() < 0, preserveKeys: true)
+        ->all();
+    $itemsBeforeThemeSwitcher = $itemsBeforeAndAfterThemeSwitcher[true] ?? collect();
+    $itemsAfterThemeSwitcher = $itemsBeforeAndAfterThemeSwitcher[false] ?? collect();
+
+    $hasProfileHeader = $itemsBeforeThemeSwitcher->has('profile') &&
+        blank(($item = Arr::first($itemsBeforeThemeSwitcher))->getUrl()) &&
+        (! $item->hasAction());
+
+    if ($itemsBeforeThemeSwitcher->has('profile')) {
+        $itemsBeforeThemeSwitcher = $itemsBeforeThemeSwitcher->prepend($itemsBeforeThemeSwitcher->pull('profile'), 'profile');
+    }
+
+    $multiGroupAfterTheme = $this->hasMultipleUserMenuItemGroups();
+    $afterThemeItemGroups = $multiGroupAfterTheme ? $this->getUserMenuItemGroupsAfterTheme() : [];
+
+    $position ??= filament()->getUserMenuPosition();
+
+    $isSidebarCollapsibleOnDesktop = filament()->isSidebarCollapsibleOnDesktop();
 @endphp
 
-{{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::USER_MENU_BEFORE) }}
+{{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_BEFORE) }}
 
 <x-filament::dropdown
-    placement="bottom-end"
-    teleport
+    :placement="($position === UserMenuPosition::Topbar) ? 'bottom-end' : 'top-end'"
+    :teleport="$position === UserMenuPosition::Topbar"
     :attributes="
         \Filament\Support\prepare_inherited_attributes($attributes)
             ->class(['fi-user-menu'])
     "
 >
     <x-slot name="trigger">
-        <button
-            aria-label="{{ __('filament-panels::layout.actions.open_user_menu.label') }}"
-            type="button"
-            class="shrink-0"
-        >
-            <x-filament-panels::avatar.user :user="$user" />
-        </button>
+        @if ($position === UserMenuPosition::Topbar)
+            <button
+                aria-label="{{ __('filament-panels::layout.actions.open_user_menu.label') }}"
+                type="button"
+                class="fi-user-menu-trigger"
+            >
+                <x-filament-panels::avatar.user :user="$user" loading="lazy" />
+            </button>
+        @else
+            <button
+                aria-label="{{ filled($userName) ? $userName : __('filament-panels::layout.actions.open_user_menu.label') }}"
+                type="button"
+                class="fi-user-menu-trigger"
+            >
+                <x-filament-panels::avatar.user :user="$user" loading="lazy" />
+
+                <span
+                    @if ($isSidebarCollapsibleOnDesktop)
+                        x-show="$store.sidebar.isOpen"
+                    @endif
+                    class="fi-user-menu-trigger-text"
+                >
+                    {{ $userName }}
+                </span>
+
+                {{
+                    \Filament\Support\generate_icon_html(Heroicon::ChevronUp, alias: PanelsIconAlias::USER_MENU_TOGGLE_BUTTON, attributes: new ComponentAttributeBag([
+                        'x-show' => $isSidebarCollapsibleOnDesktop ? '$store.sidebar.isOpen' : null,
+                    ]))
+                }}
+            </button>
+        @endif
     </x-slot>
 
-    @if ($profileItem?->isVisible() ?? true)
-        {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::USER_MENU_PROFILE_BEFORE) }}
+    @if ($hasProfileHeader)
+        @php
+            $item = $itemsBeforeThemeSwitcher['profile'];
+            $itemColor = $item->getColor();
+            $itemIcon = $item->getIcon();
 
-        @if ($hasProfileItem)
-            <x-filament::dropdown.list>
-                <x-filament::dropdown.list.item
-                    :color="$profileItem?->getColor()"
-                    :icon="$profileItem?->getIcon() ?? \Filament\Support\Facades\FilamentIcon::resolve('panels::user-menu.profile-item') ?? 'heroicon-m-user-circle'"
-                    :href="$profileItemUrl ?? filament()->getProfileUrl()"
-                    :target="($profileItem?->shouldOpenUrlInNewTab() ?? false) ? '_blank' : null"
-                    tag="a"
-                >
-                    {{ $profileItem?->getLabel() ?? ($profilePage ? $profilePage::getLabel() : null) ?? filament()->getUserName($user) }}
-                </x-filament::dropdown.list.item>
-            </x-filament::dropdown.list>
-        @else
-            <x-filament::dropdown.header
-                :color="$profileItem?->getColor()"
-                :icon="$profileItem?->getIcon() ?? \Filament\Support\Facades\FilamentIcon::resolve('panels::user-menu.profile-item') ?? 'heroicon-m-user-circle'"
-            >
-                {{ $profileItem?->getLabel() ?? filament()->getUserName($user) }}
-            </x-filament::dropdown.header>
-        @endif
+            unset($itemsBeforeThemeSwitcher['profile']);
+        @endphp
 
-        {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::USER_MENU_PROFILE_AFTER) }}
+        {{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_PROFILE_BEFORE) }}
+
+        <x-filament::dropdown.header :color="$itemColor" :icon="$itemIcon">
+            {{ $item->getLabel() }}
+        </x-filament::dropdown.header>
+
+        {{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_PROFILE_AFTER) }}
     @endif
 
-    @if (filament()->hasDarkMode() && (! filament()->hasDarkModeForced()))
+    @if ($itemsBeforeThemeSwitcher->isNotEmpty())
+        <x-filament::dropdown.list>
+            @foreach ($itemsBeforeThemeSwitcher as $key => $item)
+                @if ($key === 'profile')
+                    {{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_PROFILE_BEFORE) }}
+
+                    {{ $item }}
+
+                    {{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_PROFILE_AFTER) }}
+                @else
+                    {{ $item }}
+                @endif
+            @endforeach
+        </x-filament::dropdown.list>
+    @endif
+
+    @if (filament()->hasDarkMode() && (! filament()->hasDarkModeForced()) && filament()->hasThemeSwitcher())
         <x-filament::dropdown.list>
             <x-filament-panels::theme-switcher />
         </x-filament::dropdown.list>
     @endif
 
-    <x-filament::dropdown.list>
-        @foreach ($items as $key => $item)
-            @php
-                $itemPostAction = $item->getPostAction();
-            @endphp
+    @if ($multiGroupAfterTheme && $afterThemeItemGroups !== [])
+        @foreach ($afterThemeItemGroups as $afterThemeGroup)
+            <x-filament::dropdown.list>
+                @foreach ($afterThemeGroup as $key => $item)
+                    @if ($key === 'profile')
+                        {{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_PROFILE_BEFORE) }}
 
-            <x-filament::dropdown.list.item
-                :action="$itemPostAction"
-                :color="$item->getColor()"
-                :href="$item->getUrl()"
-                :icon="$item->getIcon()"
-                :method="filled($itemPostAction) ? 'post' : null"
-                :tag="filled($itemPostAction) ? 'form' : 'a'"
-                :target="$item->shouldOpenUrlInNewTab() ? '_blank' : null"
-            >
-                {{ $item->getLabel() }}
-            </x-filament::dropdown.list.item>
+                        {{ $item }}
+
+                        {{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_PROFILE_AFTER) }}
+                    @else
+                        {{ $item }}
+                    @endif
+                @endforeach
+            </x-filament::dropdown.list>
         @endforeach
+    @elseif ($itemsAfterThemeSwitcher->isNotEmpty())
+        <x-filament::dropdown.list>
+            @foreach ($itemsAfterThemeSwitcher as $key => $item)
+                @if ($key === 'profile')
+                    {{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_PROFILE_BEFORE) }}
 
-        <x-filament::dropdown.list.item
-            :action="$logoutItem?->getUrl() ?? filament()->getLogoutUrl()"
-            :color="$logoutItem?->getColor()"
-            :icon="$logoutItem?->getIcon() ?? \Filament\Support\Facades\FilamentIcon::resolve('panels::user-menu.logout-button') ?? 'heroicon-m-arrow-left-on-rectangle'"
-            method="post"
-            tag="form"
-        >
-            {{ $logoutItem?->getLabel() ?? __('filament-panels::layout.actions.logout.label') }}
-        </x-filament::dropdown.list.item>
-    </x-filament::dropdown.list>
+                    {{ $item }}
+
+                    {{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_PROFILE_AFTER) }}
+                @else
+                    {{ $item }}
+                @endif
+            @endforeach
+        </x-filament::dropdown.list>
+    @endif
 </x-filament::dropdown>
 
-{{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::USER_MENU_AFTER) }}
+{{ FilamentView::renderHook(PanelsRenderHook::USER_MENU_AFTER) }}

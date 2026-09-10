@@ -10,7 +10,7 @@ class InventarioStats extends Widget
 {
     use InteractsWithPageTable;
 
-    protected static string $view = 'filament.widgets.inventario-stats';
+    protected string $view = 'filament.widgets.inventario-stats';
     protected static ?string $pollingInterval = null; // Desactivamos polling ya que usaremos eventos
     public int $diferenciaPositiva = 0;
     public int $diferenciaNegativa = 0;

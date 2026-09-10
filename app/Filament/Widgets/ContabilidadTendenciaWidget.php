@@ -14,15 +14,15 @@ class ContabilidadTendenciaWidget extends ChartWidget
 {
     use HasWidgetPermission;
 
-    protected static ?string $heading = 'Movimiento contable · Últimos 6 meses';
+    protected ?string $heading = 'Movimiento contable · Últimos 6 meses';
 
-    protected static ?string $description = 'Control mensual de cargos y abonos confirmados.';
+    protected ?string $description = 'Control mensual de cargos y abonos confirmados.';
 
     protected static ?int $sort = 41;
 
-    protected static ?string $pollingInterval = '5m';
+    protected ?string $pollingInterval = '60s';
 
-    protected static ?string $maxHeight = '320px';
+    protected ?string $maxHeight = '320px';
 
     protected int|string|array $columnSpan = ['md' => 1, 'xl' => 1];
 

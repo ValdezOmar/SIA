@@ -18,6 +18,8 @@ class Parametro extends Model
         'fondo_path',
         'color_principal',
         'color_secundario',
+        'escala_interfaz',
+        'estilo_login',
         'login_nativo',
 
         // Integraciones externas

@@ -2,19 +2,29 @@
 
 namespace App\Filament\Resources\Inventario;
 
+use Exception;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Grid;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
 use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource;
 use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\EditStockAlmacens;
 use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\ListStockAlmacens;
 use App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers\ArticulosStockAlmacenRelationManager;
 use App\Models\Inventario\Almacen;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables;
@@ -29,9 +39,9 @@ class StockAlmacenResource extends Resource
 {
     protected static ?string $model = Almacen::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-building-storefront';
 
-    protected static ?string $navigationGroup = 'Inventario';
+    protected static string | \UnitEnum | null $navigationGroup = 'Inventario';
 
     protected static ?string $navigationLabel = 'Stock de Almacenes';
 
@@ -53,7 +63,7 @@ class StockAlmacenResource extends Resource
         }
         try {
             return in_array('almacen_id', Schema::getColumnListing('alm_ubicaciones'));
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -65,15 +75,15 @@ class StockAlmacenResource extends Resource
         }
         try {
             return in_array('almacen_id', Schema::getColumnListing('alm_existencias'));
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return false;
         }
     }
 
-    public static function form(Form $form): Form
+    public static function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Cómo usar esta pantalla')
                     ->description('Revise el almacén, sus ubicaciones y el stock disponible. El stock se modifica desde Compras, Ventas o Kardex para mantener el historial correcto.')
                     ->icon('heroicon-o-information-circle')
@@ -87,7 +97,7 @@ class StockAlmacenResource extends Resource
 
                 Tabs::make('')
                     ->tabs([
-                        Tabs\Tab::make('Datos básicos')
+                        Tab::make('Datos básicos')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Almacén')
@@ -150,7 +160,7 @@ class StockAlmacenResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Dónde se guarda')
+                        Tab::make('Dónde se guarda')
                             ->icon('heroicon-o-map-pin')
                             ->schema([
                                 Section::make('Ubicaciones del Almacén')
@@ -198,7 +208,7 @@ class StockAlmacenResource extends Resource
                                                             <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">Gestiona las ubicaciones en la sección de relaciones.</p>
                                                         </div>'
                                                     );
-                                                } catch (\Exception $e) {
+                                                } catch (Exception $e) {
                                                     return new HtmlString('<div class="text-sm text-gray-500">Error al cargar ubicaciones.</div>');
                                                 }
                                             })
@@ -206,7 +216,7 @@ class StockAlmacenResource extends Resource
                                     ]),
                             ]),
 
-                        Tabs\Tab::make('Estadísticas')
+                        Tab::make('Estadísticas')
                             ->icon('heroicon-o-chart-bar')
                             ->schema([
                                 Section::make('Resumen del Almacén')
@@ -271,7 +281,7 @@ class StockAlmacenResource extends Resource
                                                             </div>
                                                         </div>'
                                                     );
-                                                } catch (\Exception $e) {
+                                                } catch (Exception $e) {
                                                     return new HtmlString('<div class="text-sm text-gray-500">Error al cargar estadísticas.</div>');
                                                 }
                                             })
@@ -374,25 +384,25 @@ class StockAlmacenResource extends Resource
                     ->falseLabel('Inactivos')
                     ->placeholder('Todos'),
 
-                Tables\Filters\SelectFilter::make('sucursal_id')
+                SelectFilter::make('sucursal_id')
                     ->label('Sucursal')
                     ->relationship('sucursal', 'nombre')
                     ->searchable()
                     ->preload()
                     ->visible(fn () => Schema::hasTable('conf_sucursales')),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl')
                         ->label('Ver Detalles'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
 
-                    Tables\Actions\Action::make('duplicate')
+                    Action::make('duplicate')
                         ->label('Duplicar')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
@@ -403,7 +413,7 @@ class StockAlmacenResource extends Resource
                             $newRecord->updated_at = now();
                             $newRecord->save();
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Almacén duplicado exitosamente')
                                 ->success()
                                 ->send();
@@ -412,10 +422,10 @@ class StockAlmacenResource extends Resource
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('toggle_active_bulk')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))

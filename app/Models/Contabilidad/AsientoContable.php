@@ -2,6 +2,8 @@
 
 namespace App\Models\Contabilidad;
 
+use Exception;
+use Illuminate\Support\Facades\Log;
 use App\Models\Inventario\Kardex;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
@@ -202,7 +204,7 @@ class AsientoContable extends Model
             $this->validarAntesDeConfirmar();
 
             if (! $this->esta_balanceado) {
-                throw new \Exception('El asiento no está balanceado. Total Debe: '.$this->total_debe.', Total Haber: '.$this->total_haber);
+                throw new Exception('El asiento no está balanceado. Total Debe: '.$this->total_debe.', Total Haber: '.$this->total_haber);
             }
 
             $this->estado = 'confirmado';
@@ -574,7 +576,7 @@ class AsientoContable extends Model
         $subtotal = round($total - $impuesto, 6);
 
         if (abs(($subtotalDeclarado + $impuestoDeclarado) - $total) > 0.005) {
-            \Illuminate\Support\Facades\Log::warning('Se normalizaron importes al contabilizar una venta desbalanceada.', [
+            Log::warning('Se normalizaron importes al contabilizar una venta desbalanceada.', [
                 'factura_id' => $venta->id,
                 'subtotal_declarado' => $subtotalDeclarado,
                 'impuesto_declarado' => $impuestoDeclarado,
@@ -582,7 +584,7 @@ class AsientoContable extends Model
                 'ingreso_neto_contabilizado' => $subtotal,
             ]);
         }
-        $costoTotal = (float) \App\Models\Inventario\Kardex::where('documento_tipo', 'venta')
+        $costoTotal = (float) Kardex::where('documento_tipo', 'venta')
             ->where('documento_id', $venta->id)
             ->sum('costo_total');
 
@@ -680,7 +682,7 @@ class AsientoContable extends Model
 
         $compra->loadMissing('recepcion');
         if (! $compra->recepcion?->inventario_procesado_at || $compra->recepcion->estado !== 'completada') {
-            throw new \RuntimeException('La factura solo puede contabilizarse como inventario después de que la recepción física esté completada y su ingreso a almacén haya sido procesado.');
+            throw new RuntimeException('La factura solo puede contabilizarse como inventario después de que la recepción física esté completada y su ingreso a almacén haya sido procesado.');
         }
 
         $cuentaInventario = self::obtenerOCrearCuenta('1.1.5', 'Inventario', 'activo', 'deudora');

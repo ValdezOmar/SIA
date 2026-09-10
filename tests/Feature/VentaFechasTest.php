@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use RuntimeException;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
@@ -87,7 +88,7 @@ class VentaFechasTest extends TestCase
         try {
             $this->factura->crearPagoAutomaticoSiEsContado();
             $this->fail('Debió rechazar el período cerrado.');
-        } catch (\RuntimeException $e) {
+        } catch (RuntimeException $e) {
             $this->assertStringContainsString('cerrado o bloqueado', $e->getMessage());
         }
         $this->assertSame(0, $this->factura->pagos()->count());

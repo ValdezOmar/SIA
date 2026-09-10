@@ -2,6 +2,7 @@
 
 namespace App\Models\Ventas;
 
+use Illuminate\Validation\ValidationException;
 use App\Models\Inventario\ListaPrecio;
 use App\Models\Sistema\Empresa;
 use App\Models\User;
@@ -133,7 +134,7 @@ class Cliente extends Model
             $duplicado = static::buscarPorCelularNormalizado($celular, (int) $model->empresa_id);
 
             if ($duplicado && ! $duplicado->is($model)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'celular' => "Este celular ya pertenece al cliente {$duplicado->nombre} ({$duplicado->codigo}).",
                 ]);
             }

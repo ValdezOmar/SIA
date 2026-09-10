@@ -2,20 +2,31 @@
 
 namespace App\Filament\Resources\Contabilidad;
 
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use App\Filament\Resources\Contabilidad\ProyectoResource\Pages\ListProyectos;
+use App\Filament\Resources\Contabilidad\ProyectoResource\Pages\CreateProyecto;
+use App\Filament\Resources\Contabilidad\ProyectoResource\Pages\EditProyecto;
 use App\Filament\Resources\Contabilidad\ProyectoResource\Pages;
 use App\Models\Contabilidad\Proyecto;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\Ventas\Cliente;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -30,9 +41,9 @@ class ProyectoResource extends Resource
 {
     protected static ?string $model = Proyecto::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-flag';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-flag';
 
-    protected static ?string $navigationGroup = 'Contabilidad';
+    protected static string | \UnitEnum | null $navigationGroup = 'Contabilidad';
 
     protected static ?string $navigationLabel = 'Proyectos';
 
@@ -50,7 +61,7 @@ class ProyectoResource extends Resource
     /**
      * Aplicar filtros de empresa y sucursal a la consulta
      */
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
 
@@ -67,7 +78,7 @@ class ProyectoResource extends Resource
         return $query;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $isAdmin = Auth::user()?->hasRole('admin') || Auth::user()?->hasRole('super_admin');
         $defaultEmpresaId = Auth::user()?->empresa_id ?: Empresa::query()->value('id');
@@ -75,8 +86,8 @@ class ProyectoResource extends Resource
             ->when($defaultEmpresaId, fn ($query) => $query->where('empresa_id', $defaultEmpresaId))
             ->value('id');
 
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Datos del Proyecto')
                     ->icon('heroicon-o-flag')
                     ->description('Información del proyecto')
@@ -422,21 +433,21 @@ class ProyectoResource extends Resource
                     ->searchable()
                     ->preload(),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('4xl'),
 
-                    Tables\Actions\Action::make('cambiar_estado')
+                    Action::make('cambiar_estado')
                         ->label('Cambiar Estado')
                         ->icon('heroicon-o-arrow-path')
                         ->color('warning')
-                        ->form([
+                        ->schema([
                             Select::make('estado')
                                 ->label('Nuevo Estado')
                                 ->options([
@@ -461,15 +472,15 @@ class ProyectoResource extends Resource
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->visible(fn ($record) => $record->estado === 'planeacion'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('created_at', 'desc')
@@ -483,9 +494,9 @@ class ProyectoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListProyectos::route('/'),
-            'create' => Pages\CreateProyecto::route('/create'),
-            'edit' => Pages\EditProyecto::route('/{record}/edit'),
+            'index' => ListProyectos::route('/'),
+            'create' => CreateProyecto::route('/create'),
+            'edit' => EditProyecto::route('/{record}/edit'),
         ];
     }
 }

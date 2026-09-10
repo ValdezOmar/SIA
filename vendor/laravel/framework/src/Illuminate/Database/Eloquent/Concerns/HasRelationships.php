@@ -47,6 +47,13 @@ trait HasRelationships
     protected $relationAutoloadCallback = null;
 
     /**
+     * The relationship autoloader callback context.
+     *
+     * @var mixed
+     */
+    protected $relationAutoloadContext = null;
+
+    /**
      * The many to many relationship methods.
      *
      * @var string[]
@@ -118,10 +125,16 @@ trait HasRelationships
      */
     public function autoloadRelationsUsing(Closure $callback, $context = null)
     {
+        // Prevent circular relation autoloading...
+        if ($context && $this->relationAutoloadContext === $context) {
+            return $this;
+        }
+
         $this->relationAutoloadCallback = $callback;
+        $this->relationAutoloadContext = $context;
 
         foreach ($this->relations as $key => $value) {
-            $this->propagateRelationAutoloadCallbackToRelation($key, $value, $context);
+            $this->propagateRelationAutoloadCallbackToRelation($key, $value);
         }
 
         return $this;
@@ -162,11 +175,10 @@ trait HasRelationships
      * Propagate the relationship autoloader callback to the given related models.
      *
      * @param  string  $key
-     * @param  mixed  $values
-     * @param  mixed  $context
+     * @param  mixed  $models
      * @return void
      */
-    protected function propagateRelationAutoloadCallbackToRelation($key, $models, $context = null)
+    protected function propagateRelationAutoloadCallbackToRelation($key, $models)
     {
         if (! $this->hasRelationAutoloadCallback() || ! $models) {
             return;
@@ -183,10 +195,7 @@ trait HasRelationships
         $callback = fn (array $tuples) => $this->invokeRelationAutoloadCallbackFor($key, $tuples);
 
         foreach ($models as $model) {
-            // Check if relation autoload contexts are different to avoid circular relation autoload...
-            if (is_null($context) || $context !== $model) {
-                $model->autoloadRelationsUsing($callback, $context);
-            }
+            $model->autoloadRelationsUsing($callback, $this->relationAutoloadContext);
         }
     }
 
@@ -482,7 +491,7 @@ trait HasRelationships
      */
     protected function guessBelongsToRelation()
     {
-        [$one, $two, $caller] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
+        [, , $caller] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3);
 
         return $caller['function'];
     }
@@ -903,7 +912,7 @@ trait HasRelationships
             );
         });
 
-        return ! is_null($caller) ? $caller['function'] : null;
+        return $caller['function'] ?? null;
     }
 
     /**
@@ -1086,7 +1095,7 @@ trait HasRelationships
     {
         $this->relations[$relation] = $value;
 
-        $this->propagateRelationAutoloadCallbackToRelation($relation, $value, $this);
+        $this->propagateRelationAutoloadCallbackToRelation($relation, $value);
 
         return $this;
     }
@@ -1118,6 +1127,18 @@ trait HasRelationships
     }
 
     /**
+     * Enable relationship autoloading for this model.
+     *
+     * @return $this
+     */
+    public function withRelationshipAutoloading()
+    {
+        $this->newCollection([$this])->withRelationshipAutoloading();
+
+        return $this;
+    }
+
+    /**
      * Duplicate the instance and unset all the loaded relations.
      *
      * @return $this
@@ -1127,6 +1148,23 @@ trait HasRelationships
         $model = clone $this;
 
         return $model->unsetRelations();
+    }
+
+    /**
+     * Duplicate the instance and unset the given loaded relations.
+     *
+     * @param  array|string  $relations
+     * @return $this
+     */
+    public function withoutRelation($relations)
+    {
+        $model = clone $this;
+
+        foreach ((array) $relations as $relation) {
+            $model->unsetRelation($relation);
+        }
+
+        return $model;
     }
 
     /**

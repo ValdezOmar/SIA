@@ -2,6 +2,7 @@
 
 namespace App\Models\Inventario;
 
+use App\Models\Compras\Proveedor;
 use App\Models\Compras\ArticuloProveedor;
 use App\Models\Sistema\Empresa;
 use App\Models\Ventas\CotizacionDetalle;
@@ -280,7 +281,7 @@ class Articulo extends Model
     public function proveedoresDirectos()
     {
         return $this->belongsToMany(
-            \App\Models\Compras\Proveedor::class,
+            Proveedor::class,
             'cmp_articulos_proveedores',
             'articulo_id',
             'proveedor_id'

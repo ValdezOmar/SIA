@@ -2,17 +2,31 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
+use App\Filament\Clusters\ParametrosInventario\Resources\UbicacionResource\Pages\ListUbicacions;
+use App\Filament\Clusters\ParametrosInventario\Resources\UbicacionResource\Pages\CreateUbicacion;
+use App\Filament\Clusters\ParametrosInventario\Resources\UbicacionResource\Pages\EditUbicacion;
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Clusters\ParametrosInventario\Resources\UbicacionResource\Pages;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Ubicacion;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -25,7 +39,7 @@ class UbicacionResource extends Resource
 {
     protected static ?string $model = Ubicacion::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-map-pin';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-map-pin';
 
     protected static ?string $cluster = ParametrosInventario::class;
 
@@ -53,10 +67,10 @@ class UbicacionResource extends Resource
             ->all();
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Datos de la Ubicación')
                     ->icon('heroicon-o-map-pin')
                     ->description('Configuración de la ubicación dentro del almacén')
@@ -130,7 +144,7 @@ class UbicacionResource extends Resource
                     ]),
 
                 // Información del almacén seleccionado
-                Forms\Components\Placeholder::make('almacen_info')
+                Placeholder::make('almacen_info')
                     ->label('')
                     ->content(function ($get) {
                         $almacenId = $get('almacen_id');
@@ -257,7 +271,7 @@ class UbicacionResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('almacen_id')
+                SelectFilter::make('almacen_id')
                     ->label('Almacén')
                     ->options(fn () => self::almacenesDisponibles())
                     ->searchable()
@@ -270,19 +284,19 @@ class UbicacionResource extends Resource
                     ->falseLabel('Inactivos')
                     ->placeholder('Todos'),
 
-                Tables\Filters\Filter::make('con_stock')
+                Filter::make('con_stock')
                     ->label('Con Stock')
                     ->query(fn ($query) => $query->whereHas('existencias', function ($q) {
                         $q->where('cantidad', '>', 0);
                     })),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl'),
 
-                    Tables\Actions\Action::make('duplicate')
+                    Action::make('duplicate')
                         ->label('Duplicar')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
@@ -293,33 +307,33 @@ class UbicacionResource extends Resource
                             $newRecord->updated_at = now();
                             $newRecord->save();
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Ubicación duplicada exitosamente')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('toggle_active')
+                    Action::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
                             $record->update(['activo' => ! $record->activo]);
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title($record->activo ? 'Ubicación activada' : 'Ubicación desactivada')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('toggle_active')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    BulkAction::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
@@ -345,9 +359,9 @@ class UbicacionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListUbicacions::route('/'),
-            'create' => Pages\CreateUbicacion::route('/create'),
-            'edit' => Pages\EditUbicacion::route('/{record}/edit'),
+            'index' => ListUbicacions::route('/'),
+            'create' => CreateUbicacion::route('/create'),
+            'edit' => EditUbicacion::route('/{record}/edit'),
         ];
     }
 }

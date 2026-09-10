@@ -2,6 +2,7 @@
 
 namespace App\Models\Sistema;
 
+use App\Models\Contabilidad\CentroCosto;
 use Illuminate\Database\Eloquent\Model;
 
 class Area extends Model
@@ -26,6 +27,6 @@ class Area extends Model
     // Relación con centros de costo
     public function centrosCostos()
     {
-        return $this->hasMany(\App\Models\Contabilidad\CentroCosto::class);
+        return $this->hasMany(CentroCosto::class);
     }
 }

@@ -2,13 +2,23 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Illuminate\Support\HtmlString;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\CreateAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -26,10 +36,10 @@ class CodigosBarrasRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Códigos de Barras';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make('Gestión de Código de Barras')
                    // ->icon('heroicon-o-barcode')
                     ->description('Administra los códigos de barras asociados a este artículo')
@@ -94,7 +104,7 @@ class CodigosBarrasRelationManager extends RelationManager
                                         }
                                     }),
 
-                                Forms\Components\Placeholder::make('info')
+                                Placeholder::make('info')
                                     ->label('')
                                     ->content(function ($get) {
                                         $codigo = $get('codigo_barras');
@@ -115,7 +125,7 @@ class CodigosBarrasRelationManager extends RelationManager
                                             $tipoSugerido = ' (UPC-A)';
                                         }
 
-                                        return new \Illuminate\Support\HtmlString(
+                                        return new HtmlString(
                                             '<div class="text-sm text-gray-500">
                                                 <span class="font-medium">Longitud:</span> '.$longitud.' dígitos'.$tipoSugerido.'
                                             </div>'
@@ -182,7 +192,7 @@ class CodigosBarrasRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('tipo')
+                SelectFilter::make('tipo')
                     ->label('Tipo de Código')
                     ->options([
                         'EAN-13' => 'EAN-13',
@@ -200,16 +210,16 @@ class CodigosBarrasRelationManager extends RelationManager
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\TernaryFilter::make('principal')
+                TernaryFilter::make('principal')
                     ->label('Código Principal')
                     ->boolean()
                     ->trueLabel('Sí')
                     ->falseLabel('No')
                     ->placeholder('Todos'),
 
-                Tables\Filters\Filter::make('longitud')
+                Filter::make('longitud')
                     ->label('Longitud del código')
-                    ->form([
+                    ->schema([
                         TextInput::make('longitud')
                             ->label('Longitud')
                             ->numeric()
@@ -225,7 +235,7 @@ class CodigosBarrasRelationManager extends RelationManager
                     }),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->label('Nuevo Código de Barras')
                     ->icon('heroicon-o-plus')
                     ->modalHeading('Agregar Código de Barras')
@@ -259,9 +269,9 @@ class CodigosBarrasRelationManager extends RelationManager
                             ->send();
                     }),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('4xl')
                         ->after(function ($record) {
@@ -272,7 +282,7 @@ class CodigosBarrasRelationManager extends RelationManager
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('set_principal')
+                    Action::make('set_principal')
                         ->label('Marcar como Principal')
                         ->icon('heroicon-o-star')
                         ->color('warning')
@@ -293,7 +303,7 @@ class CodigosBarrasRelationManager extends RelationManager
                         })
                         ->visible(fn ($record) => ! $record->principal),
 
-                    Tables\Actions\DeleteAction::make()
+                    DeleteAction::make()
                         ->before(function ($record) {
                             // Si es el código principal y hay otros códigos, mostrar advertencia
                             if ($record->principal && $this->getOwnerRecord()->codigosBarras()->count() > 1) {

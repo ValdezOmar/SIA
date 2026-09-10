@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Ventas\PedidoResource\Pages;
 
+use Filament\Actions\CreateAction;
 use App\Filament\Resources\Ventas\PedidoResource;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -18,7 +19,7 @@ class ListPedidos extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            CreateAction::make(),
         ];
     }
 }

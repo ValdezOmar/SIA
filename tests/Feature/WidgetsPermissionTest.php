@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use ReflectionMethod;
 use App\Filament\Widgets\ContabilidadResumenWidget;
 use App\Filament\Widgets\ContabilidadTendenciaWidget;
 use App\Filament\Widgets\GananciaBrutaWidget;
@@ -35,7 +36,7 @@ class WidgetsPermissionTest extends TestCase
             VentasResumenWidget::class,
             VentasTendenciaWidget::class,
         ] as $widget) {
-            $method = new \ReflectionMethod($widget, 'canViewWithShieldPermission');
+            $method = new ReflectionMethod($widget, 'canViewWithShieldPermission');
             $method->setAccessible(true);
             $this->assertFalse($method->invoke(null), $widget);
 

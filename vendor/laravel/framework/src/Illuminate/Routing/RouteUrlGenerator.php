@@ -7,6 +7,7 @@ use Illuminate\Contracts\Routing\UrlRoutable;
 use Illuminate\Routing\Exceptions\UrlGenerationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Stringable;
 
 class RouteUrlGenerator
 {
@@ -117,7 +118,7 @@ class RouteUrlGenerator
      *
      * @param  \Illuminate\Routing\Route  $route
      * @param  array  $parameters
-     * @return string
+     * @return string|null
      */
     protected function getRouteDomain($route, &$parameters)
     {
@@ -197,9 +198,14 @@ class RouteUrlGenerator
                 unset($parameters[$name]);
 
                 continue;
-            } elseif (! isset($this->defaultParameters[$name]) && ! isset($optionalParameters[$name])) {
-                // No named parameter or default value for a required parameter, try to match to positional parameter below...
-                array_push($requiredRouteParametersWithoutDefaultsOrNamedParameters, $name);
+            } else {
+                $bindingField = $route->bindingFieldFor($name);
+                $defaultParameterKey = $bindingField ? "$name:$bindingField" : $name;
+
+                if (! isset($this->defaultParameters[$defaultParameterKey]) && ! isset($optionalParameters[$name])) {
+                    // No named parameter or default value for a required parameter, try to match to positional parameter below...
+                    array_push($requiredRouteParametersWithoutDefaultsOrNamedParameters, $name);
+                }
             }
 
             $namedParameters[$name] = '';
@@ -336,7 +342,7 @@ class RouteUrlGenerator
 
             return (! isset($parameters[0]) && ! str_ends_with($match[0], '?}'))
                 ? $match[0]
-                : Arr::pull($parameters, 0);
+                : $this->encodeParameter(Arr::pull($parameters, 0));
         }, $path);
 
         return trim(preg_replace('/\{.*?\?\}/', '', $path), '/');
@@ -353,9 +359,9 @@ class RouteUrlGenerator
     {
         return preg_replace_callback('/\{(.*?)(\?)?\}/', function ($m) use (&$parameters) {
             if (isset($parameters[$m[1]]) && $parameters[$m[1]] !== '') {
-                return Arr::pull($parameters, $m[1]);
+                return $this->encodeParameter(Arr::pull($parameters, $m[1]));
             } elseif (isset($this->defaultParameters[$m[1]])) {
-                return $this->defaultParameters[$m[1]];
+                return $this->encodeParameter($this->defaultParameters[$m[1]]);
             } elseif (isset($parameters[$m[1]])) {
                 Arr::pull($parameters, $m[1]);
             }
@@ -365,11 +371,24 @@ class RouteUrlGenerator
     }
 
     /**
+     * Encode a parameter value that is being substituted into a route URI.
+     *
+     * @param  mixed  $value
+     * @return mixed
+     */
+    protected function encodeParameter($value)
+    {
+        return is_string($value) || $value instanceof Stringable
+            ? strtr((string) $value, ['%' => '%25', '?' => '%3F', '#' => '%23'])
+            : $value;
+    }
+
+    /**
      * Add a query string to the URI.
      *
      * @param  string  $uri
      * @param  array  $parameters
-     * @return mixed|string
+     * @return mixed
      */
     protected function addQueryString($uri, array $parameters)
     {

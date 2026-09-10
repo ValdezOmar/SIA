@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use ReflectionMethod;
 use App\Filament\Widgets\GananciaBrutaWidget;
 use App\Models\User;
 use App\Models\Ventas\Cliente;
@@ -43,7 +44,7 @@ class GananciaBrutaWidgetTest extends TestCase
         $this->kardexVenta($borrador->id, $articulo, $almacen, $empresa, 999);
 
         $widget = app(GananciaBrutaWidget::class);
-        $method = new \ReflectionMethod($widget, 'getTableQuery');
+        $method = new ReflectionMethod($widget, 'getTableQuery');
         $method->setAccessible(true);
         $fila = $method->invoke($widget)->firstOrFail();
 

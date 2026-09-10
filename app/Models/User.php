@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use App\Models\RRHH\Empleado;
 use App\Models\RRHH\HistorialLaboral;
 use Filament\Models\Contracts\HasAvatar;
@@ -13,7 +14,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements HasAvatar
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 
     /**
@@ -59,8 +60,8 @@ class User extends Authenticatable implements HasAvatar
     public function empleado()
     {
         return $this->hasOneThrough(
-            \App\Models\RRHH\Empleado::class,
-            \App\Models\RRHH\HistorialLaboral::class,
+            Empleado::class,
+            HistorialLaboral::class,
             'correo_corporativo',
             'id',
             'email',

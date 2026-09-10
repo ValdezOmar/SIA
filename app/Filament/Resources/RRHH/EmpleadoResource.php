@@ -2,30 +2,33 @@
 
 namespace App\Filament\Resources\RRHH;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Actions\EditAction;
+use App\Filament\Resources\RRHH\EmpleadoResource\Pages\ListEmpleados;
+use App\Filament\Resources\RRHH\EmpleadoResource\Pages\CreateEmpleado;
+use App\Filament\Resources\RRHH\EmpleadoResource\Pages\EditEmpleado;
+use Filament\Actions\Action;
 use App\Filament\Resources\RRHH\EmpleadoResource\Pages;
 use App\Filament\Resources\RRHH\EmpleadoResource\RelationManagers\HistorialLaboralRelationManager;
 use App\Models\RRHH\Empleado;
 use App\Models\RRHH\HistorialLaboral;
 use App\Models\Sistema\Empresa;
-use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Carbon\Carbon;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\Tabs\Tab;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -43,11 +46,11 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
-class EmpleadoResource extends Resource implements HasShieldPermissions
+class EmpleadoResource extends Resource
 {
     protected static ?string $model = Empleado::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-users';
 
     protected static ?string $modelLabel = 'Empleado';
 
@@ -55,15 +58,15 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
 
     protected static ?string $navigationLabel = 'Empleados';
 
-    protected static ?string $navigationGroup = 'Recursos Humanos';
+    protected static string | \UnitEnum | null $navigationGroup = 'Recursos Humanos';
 
     protected static ?int $navigationSort = 1;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Grid::make(12)
+        return $schema
+            ->components([
+                Grid::make(['default' => 1, 'lg' => 12])
                     ->schema([
                         Section::make('Perfil del empleado')
                             ->description('Identificación rápida y estado actual.')
@@ -498,14 +501,14 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
                     ->falseLabel('Solo inactivos')
                     ->default(true),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make()
+            ->recordActions([
+                EditAction::make()
                     ->label('Administrar')
                     ->icon('heroicon-o-pencil-square')
                     ->tooltip('Editar datos personales e historial laboral'),
             ])
             ->recordUrl(fn (Empleado $record): string => static::getUrl('edit', ['record' => $record]))
-            ->bulkActions([])
+            ->toolbarActions([])
             ->defaultSort('created_at', 'desc')
             ->paginationPageOptions([25, 50, 100, 'all'])
             ->defaultPaginationPageOption(25)
@@ -547,9 +550,9 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListEmpleados::route('/'),
-            'create' => Pages\CreateEmpleado::route('/create'),
-            'edit' => Pages\EditEmpleado::route('/{record}/edit'),
+            'index' => ListEmpleados::route('/'),
+            'create' => CreateEmpleado::route('/create'),
+            'edit' => EditEmpleado::route('/{record}/edit'),
         ];
     }
 
@@ -590,7 +593,7 @@ class EmpleadoResource extends Resource implements HasShieldPermissions
             ->modalHeading('Confirmar desvinculación')
             ->modalDescription('Se cerrará el historial laboral activo y el empleado quedará inactivo. Esta acción conservará todo su historial.')
             ->modalSubmitActionLabel('Confirmar desvinculación')
-            ->form([
+            ->schema([
                 Textarea::make('motivo')
                     ->label('Motivo')
                     ->placeholder('Ej. Renuncia voluntaria, conclusión de contrato...')

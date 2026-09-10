@@ -2,18 +2,35 @@
 
 namespace App\Filament\Clusters\ParametrosInventario\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Placeholder;
+use Illuminate\Support\HtmlString;
+use Exception;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\BulkAction;
+use App\Filament\Clusters\ParametrosInventario\Resources\GrupoArticuloResource\Pages\ListGrupoArticulos;
+use App\Filament\Clusters\ParametrosInventario\Resources\GrupoArticuloResource\Pages\CreateGrupoArticulo;
+use App\Filament\Clusters\ParametrosInventario\Resources\GrupoArticuloResource\Pages\EditGrupoArticulo;
 use App\Filament\Clusters\ParametrosInventario;
 use App\Filament\Concerns\ScopesEmpresa;
 use App\Filament\Clusters\ParametrosInventario\Resources\GrupoArticuloResource\Pages;
 use App\Models\Inventario\GrupoArticulo;
 use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
@@ -26,7 +43,7 @@ class GrupoArticuloResource extends Resource
     use ScopesEmpresa;
     protected static ?string $model = GrupoArticulo::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-folder';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-folder';
 
     protected static ?string $cluster = ParametrosInventario::class;
 
@@ -38,16 +55,16 @@ class GrupoArticuloResource extends Resource
 
     protected static ?int $navigationSort = 6;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 self::empresaField(),
                 Tabs::make('Gestión de Grupo')
                     ->tabs([
 
                         // ========== TAB 1: INFORMACIÓN GENERAL ==========
-                        Tabs\Tab::make('Información General')
+                        Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Grupo')
@@ -112,14 +129,14 @@ class GrupoArticuloResource extends Resource
                             ]),
 
                         // ========== TAB 2: ESTRUCTURA ==========
-                        Tabs\Tab::make('Estructura')
+                        Tab::make('Estructura')
                             // ->icon('heroicon-o-sitemap')
                             ->schema([
                                 Section::make('Jerarquía del Grupo')
                                     // ->icon('heroicon-o-sitemap')
                                     ->description('Visualización de la estructura jerárquica')
                                     ->schema([
-                                        Forms\Components\Placeholder::make('estructura_info')
+                                        Placeholder::make('estructura_info')
                                             ->label('')
                                             ->content(function ($record) {
                                                 if (! $record) {
@@ -146,8 +163,8 @@ class GrupoArticuloResource extends Resource
                                                     $html .= '</ul>';
                                                     $html .= '</div>';
 
-                                                    return new \Illuminate\Support\HtmlString($html);
-                                                } catch (\Exception $e) {
+                                                    return new HtmlString($html);
+                                                } catch (Exception $e) {
                                                     return '<div class="text-sm text-gray-500">No hay información de estructura disponible.</div>';
                                                 }
                                             })
@@ -156,13 +173,13 @@ class GrupoArticuloResource extends Resource
                             ]),
 
                         // ========== TAB 3: ESTADÍSTICAS ==========
-                        Tabs\Tab::make('Estadísticas')
+                        Tab::make('Estadísticas')
                             ->icon('heroicon-o-chart-bar')
                             ->schema([
                                 Section::make('Resumen del Grupo')
                                     ->icon('heroicon-o-chart-bar')
                                     ->schema([
-                                        Forms\Components\Placeholder::make('estadisticas')
+                                        Placeholder::make('estadisticas')
                                             ->label('')
                                             ->content(function ($record) {
                                                 if (! $record) {
@@ -175,7 +192,7 @@ class GrupoArticuloResource extends Resource
                                                     $totalSubgrupos = $record->subgrupos()->count();
                                                     $subgruposActivos = $record->subgrupos()->where('activo', true)->count();
 
-                                                    return new \Illuminate\Support\HtmlString(
+                                                    return new HtmlString(
                                                         '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                                                 <div class="text-sm text-blue-600 font-medium">Total de Artículos</div>
@@ -199,7 +216,7 @@ class GrupoArticuloResource extends Resource
                                                             </div>
                                                         </div>'
                                                     );
-                                                } catch (\Exception $e) {
+                                                } catch (Exception $e) {
                                                     return '<div class="text-sm text-gray-500">No hay estadísticas disponibles.</div>';
                                                 }
                                             })
@@ -282,7 +299,7 @@ class GrupoArticuloResource extends Resource
                     ->falseLabel('Inactivos')
                     ->placeholder('Todos'),
 
-                Tables\Filters\SelectFilter::make('grupo_padre_id')
+                SelectFilter::make('grupo_padre_id')
                     ->label('Grupo Padre')
                     ->options(fn () => GrupoArticulo::whereNull('grupo_padre_id')
                         ->pluck('nombre', 'id')
@@ -291,17 +308,17 @@ class GrupoArticuloResource extends Resource
                     ->searchable()
                     ->preload(),
             ])
-            ->actions([
-                Tables\Actions\ActionGroup::make([
-                    Tables\Actions\EditAction::make()
+            ->recordActions([
+                ActionGroup::make([
+                    EditAction::make()
                         ->slideOver()
                         ->modalWidth('5xl'),
 
-                    Tables\Actions\ViewAction::make()
+                    ViewAction::make()
                         ->slideOver()
                         ->modalWidth('5xl'),
 
-                    Tables\Actions\Action::make('duplicate')
+                    Action::make('duplicate')
                         ->label('Duplicar')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
@@ -312,33 +329,33 @@ class GrupoArticuloResource extends Resource
                             $newRecord->updated_at = now();
                             $newRecord->save();
 
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title('Grupo duplicado exitosamente')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\Action::make('toggle_active')
+                    Action::make('toggle_active')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->color(fn ($record) => $record->activo ? 'warning' : 'success')
                         ->action(function ($record) {
                             $record->update(['activo' => ! $record->activo]);
-                            \Filament\Notifications\Notification::make()
+                            Notification::make()
                                 ->title($record->activo ? 'Grupo activado' : 'Grupo desactivado')
                                 ->success()
                                 ->send();
                         }),
 
-                    Tables\Actions\DeleteAction::make(),
+                    DeleteAction::make(),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\BulkAction::make('toggle_active_bulk')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    BulkAction::make('toggle_active_bulk')
                         ->label('Activar/Desactivar')
                         ->icon('heroicon-o-power')
                         ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
@@ -364,9 +381,9 @@ class GrupoArticuloResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListGrupoArticulos::route('/'),
-            'create' => Pages\CreateGrupoArticulo::route('/create'),
-            'edit' => Pages\EditGrupoArticulo::route('/{record}/edit'),
+            'index' => ListGrupoArticulos::route('/'),
+            'create' => CreateGrupoArticulo::route('/create'),
+            'edit' => EditGrupoArticulo::route('/{record}/edit'),
         ];
     }
 }
