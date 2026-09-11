@@ -28,6 +28,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -555,6 +556,13 @@ class KardexResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->width('60px'),
 
+                ImageColumn::make('articulo.foto_catalogo')
+                    ->label('')
+                    ->disk('public')
+                    ->square()
+                    ->size(44)
+                    ->defaultImageUrl(fn (Kardex $record): string => 'https://ui-avatars.com/api/?name='.urlencode($record->articulo?->nombre_comercial ?? $record->articulo?->codigo ?? 'Artículo').'&color=7F9CF5&background=EBF4FF')
+                    ->toggleable(),
                 TextColumn::make('articulo.codigo')
                     ->label('Código')
                     ->searchable()
