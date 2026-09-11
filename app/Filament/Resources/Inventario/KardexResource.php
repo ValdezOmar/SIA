@@ -33,6 +33,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\HtmlString;
 
 class KardexResource extends Resource
 {
@@ -42,7 +43,7 @@ class KardexResource extends Resource
 
     protected static string | \UnitEnum | null $navigationGroup = 'Inventario';
 
-    protected static ?string $navigationLabel = 'Kardex';
+    protected static ?string $navigationLabel = 'Registros Kardex';
 
     protected static ?string $modelLabel = 'Registro Kardex';
 
@@ -73,6 +74,30 @@ class KardexResource extends Resource
     private static function formatearMonto($monto, $moneda = 'BOB'): string
     {
         return self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2);
+    }
+
+    private static function guiaTipoMovimiento(?string $tipo): HtmlString
+    {
+        $guias = [
+            'compra' => ['Compra', 'Registra mercadería recibida de un proveedor.', 'El stock y el costo promedio aumentan; genera asiento de inventario.', 'Use la recepción o factura como respaldo.'],
+            'venta' => ['Venta', 'Registra la salida física de artículos vendidos.', 'Baja stock, consume costo y registra costo de ventas.', 'La factura normalmente la genera automáticamente.'],
+            'transferencia_entrada' => ['Transferencia recibida', 'Confirma la llegada desde otro almacén.', 'Aumenta stock en este almacén; no crea asiento contable.', 'Vincule el documento de transferencia.'],
+            'transferencia_salida' => ['Transferencia enviada', 'Registra artículos enviados a otro almacén.', 'Baja stock aquí; no crea asiento contable.', 'Registre luego la entrada en destino.'],
+            'ajuste_incremento' => ['Ajuste positivo', 'Corrige unidades encontradas que no estaban en el sistema.', 'Aumenta stock y reconoce ganancia por ajuste.', 'Úselo tras un conteo autorizado.'],
+            'ajuste_decremento' => ['Ajuste negativo', 'Corrige unidades que el sistema muestra pero no existen.', 'Baja stock y reconoce pérdida por ajuste.', 'Explique la diferencia y adjunte respaldo.'],
+            'ajuste_fisico' => ['Ajuste físico', 'Corrige una diferencia de inventario físico.', 'Entrada aumenta stock; salida lo disminuye.', 'Seleccione dirección según el conteo.'],
+            'devolucion_compra' => ['Devolución al proveedor', 'Registra mercancía devuelta al proveedor.', 'Baja stock y revierte el efecto de la compra.', 'Vincule compra o recepción original.'],
+            'devolucion_venta' => ['Devolución del cliente', 'Registra artículos devueltos por un cliente.', 'Aumenta stock y revierte costo de la venta.', 'Vincule la factura original.'],
+            'produccion_entrada' => ['Producción terminada', 'Ingresa productos elaborados.', 'Aumenta stock y reclasifica valor desde producción.', 'Use la orden de producción como respaldo.'],
+            'produccion_salida' => ['Consumo de producción', 'Registra insumos usados para fabricar.', 'Baja stock y lleva el valor a producción.', 'Registre la orden de producción.'],
+            'inventario_inicial' => ['Inventario inicial', 'Carga saldos al iniciar o migrar el sistema.', 'Aumenta stock y genera contrapartida de apertura.', 'Úselo solo con respaldo de apertura.'],
+            'merma' => ['Merma', 'Registra pérdida por daño, vencimiento o deterioro.', 'Baja stock y reconoce gasto por merma.', 'Indique motivo y evidencia.'],
+            'despacho' => ['Despacho', 'Registra artículos preparados para entrega.', 'Baja stock y reclasifica a inventario en tránsito.', 'Vincule pedido o comprobante de despacho.'],
+            'consignacion' => ['Consignación', 'Registra mercancía de terceros recibida para vender.', 'Aumenta stock físico; no crea asiento contable.', 'Documente el acuerdo de propiedad.'],
+        ];
+        [$titulo, $uso, $consecuencia, $resultado] = $guias[$tipo] ?? ['Seleccione un tipo', 'Elija el movimiento que describe lo ocurrido.', 'Aquí verá el efecto en existencias y contabilidad.', 'Revise la guía antes de guardar.'];
+
+        return new HtmlString('<div class="rounded-xl border border-primary-200 bg-primary-50 p-4 text-sm dark:border-primary-800 dark:bg-primary-950/30"><p class="font-bold text-primary-900 dark:text-primary-100">'.$titulo.'</p><div class="mt-2 grid gap-2 md:grid-cols-3"><p><strong>¿Para qué sirve?</strong><br>'.$uso.'</p><p><strong>Consecuencia</strong><br>'.$consecuencia.'</p><p><strong>Resultado esperado</strong><br>'.$resultado.'</p></div></div>');
     }
 
     private static function getArticuloOptions(?string $search = null): array
@@ -115,65 +140,14 @@ class KardexResource extends Resource
                         Tab::make('Información General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
-                                Section::make('Datos del Movimiento')
+                                Section::make('Registro del movimiento')
                                     ->icon('heroicon-o-archive-box')
-                                    ->description('Define qué ocurrió con el inventario. Los movimientos confirmados actualizan existencias y quedan en el historial.')
+                                    ->description('Primero indique qué ocurrió; después seleccione el artículo y el almacén. Los cálculos se actualizan antes de guardar.')
                                     ->schema([
-                                        Grid::make(4)
+                                        Grid::make(6)
                                             ->schema([
-                                                Select::make('articulo_id')
-                                                    ->label('Artículo')
-                                                    ->options(fn () => self::getArticuloOptions())
-                                                    ->getSearchResultsUsing(fn (string $search): array => self::getArticuloOptions($search))
-                                                    ->getOptionLabelUsing(function ($value): ?string {
-                                                        $articulo = Articulo::with('fabricante:id,nombre,codigo')->find($value);
-
-                                                        return $articulo ? self::formatArticuloOption($articulo) : null;
-                                                    })
-                                                    ->required()
-                                                    ->searchable()
-                                                    ->allowHtml()
-                                                    ->preload()
-                                                    ->placeholder('Busque por artículo, código o marca')
-                                                    ->prefixIcon('heroicon-o-cube')
-                                                    ->helperText('Puede buscar por código, modelo, nombre, descripción o marca.')
-                                                    ->reactive()
-                                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                                        if ($state) {
-                                                            $articulo = Articulo::find($state);
-                                                            if ($articulo) {
-                                                                $set('unidad_medida', $articulo->unidadMedida?->abreviatura ?? 'UND');
-                                                                $set('costo_unitario', $articulo->ultimo_costo ?? 0);
-                                                            }
-                                                        }
-                                                    }),
-
-                                                Select::make('almacen_id')
-                                                    ->label('Almacén')
-                                                    ->live()
-                                                    ->options(
-                                                        fn () => Almacen::where('activo', true)
-                                                            ->pluck('nombre', 'id')
-                                                            ->toArray()
-                                                    )
-                                                    ->required()
-                                                    ->searchable()
-                                                    ->preload()
-                                                    ->placeholder('Seleccione un almacén')
-                                                    ->prefixIcon('heroicon-o-building-storefront')
-                                                    ->helperText('Ubicación física donde aumentará o disminuirá el stock.'),
-
-                                                DatePicker::make('fecha_movimiento')
-                                                    ->label('Fecha Movimiento')
-                                                    ->required()
-                                                    ->default(now())
-                                                    ->native()
-                                                    ->extraInputAttributes(['lang' => 'es-BO'])
-                                                    ->helperText('Puede escribir, pegar o elegir la fecha en el calendario. Se usa para ordenar el Kardex y el costo FIFO.')
-                                                    ->prefixIcon('heroicon-o-calendar'),
-
-                                                Select::make('tipo_movimiento')
-                                                    ->label('Tipo de Movimiento')
+                                                                                                Select::make('tipo_movimiento')
+                                                    ->label('1. Tipo de movimiento')
                                                     ->options([
                                                         'compra' => 'Compra',
                                                         'venta' => 'Venta',
@@ -198,6 +172,7 @@ class KardexResource extends Resource
                                                     ->prefixIcon('heroicon-o-tag')
                                                     ->helperText('El tipo determina automáticamente si entra o sale inventario. Usa ajustes solo para corregir diferencias reales.')
                                                     ->reactive()
+                                                    ->columnSpan(3)
                                                     ->afterStateUpdated(function ($state, callable $set) {
                                                         $direccion = match ($state) {
                                                             'compra', 'transferencia_entrada', 'ajuste_incremento',
@@ -210,35 +185,72 @@ class KardexResource extends Resource
                                                         };
                                                         $set('direccion', $direccion);
                                                     }),
+
+                                                Select::make('articulo_id')
+                                                    ->label('2. Artículo')
+                                                    ->options(fn () => self::getArticuloOptions())
+                                                    ->getSearchResultsUsing(fn (string $search): array => self::getArticuloOptions($search))
+                                                    ->getOptionLabelUsing(function ($value): ?string {
+                                                        $articulo = Articulo::with('fabricante:id,nombre,codigo')->find($value);
+
+                                                        return $articulo ? self::formatArticuloOption($articulo) : null;
+                                                    })
+                                                    ->required()
+                                                    ->searchable()
+                                                    ->allowHtml()
+                                                    ->preload()
+                                                    ->placeholder('Busque por artículo, código o marca')
+                                                    ->prefixIcon('heroicon-o-cube')
+                                                    ->helperText('Puede buscar por código, modelo, nombre, descripción o marca.')
+                                                    ->reactive()
+                                                    ->columnSpan(3)
+                                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                        if ($state) {
+                                                            $articulo = Articulo::find($state);
+                                                            if ($articulo) {
+                                                                $set('unidad_medida', $articulo->unidadMedida?->abreviatura ?? 'UND');
+                                                                $set('costo_unitario', $articulo->ultimo_costo ?? 0);
+                                                            }
+                                                        }
+                                                    }),
+
+                                                Select::make('almacen_id')
+                                                    ->label('3. Almacén')
+                                                    ->live()
+                                                    ->options(
+                                                        fn () => Almacen::where('activo', true)
+                                                            ->pluck('nombre', 'id')
+                                                            ->toArray()
+                                                    )
+                                                    ->required()
+                                                    ->searchable()
+                                                    ->preload()
+                                                    ->placeholder('Seleccione un almacén')
+                                                    ->prefixIcon('heroicon-o-building-storefront')
+                                                    ->helperText('Ubicación física donde aumentará o disminuirá el stock.')
+                                                    ->columnSpan(3),
+
+                                                DatePicker::make('fecha_movimiento')
+                                                    ->label('Fecha del movimiento')
+                                                    ->required()
+                                                    ->default(now())
+                                                    ->native()
+                                                    ->extraInputAttributes(['lang' => 'es-BO'])
+                                                    ->helperText('Puede escribir, pegar o elegir la fecha en el calendario. Se usa para ordenar el Kardex y el costo FIFO.')
+                                                    ->prefixIcon('heroicon-o-calendar')
+                                                    ->columnSpan(3),
+
                                             ]),
 
                                         Grid::make(3)
                                             ->schema([
 
                                                 Placeholder::make('guia_tipo_movimiento')
-                                                    ->label('Guía rápida')
-                                                    ->content(function ($get) {
-                                                        return match ($get('tipo_movimiento')) {
-                                                            'compra' => 'Entrada por recepción de proveedor. Vincula la recepción y usa el costo de compra.',
-                                                            'venta' => 'Salida por venta. Normalmente la genera Factura; no la registres manualmente si ya existe una venta.',
-                                                            'transferencia_entrada', 'transferencia_salida' => 'Usa ambos movimientos y relaciona el documento de transferencia para mantener trazabilidad entre almacenes.',
-                                                            'ajuste_incremento' => 'Entrada para corregir un faltante positivo después de un conteo autorizado.',
-                                                            'ajuste_decremento' => 'Salida para corregir un excedente registrado después de un conteo autorizado.',
-                                                            'ajuste_fisico' => 'Corrección por inventario físico. Selecciona Entrada o Salida según el resultado del conteo.',
-                                                            'devolucion_compra' => 'Salida de mercancía devuelta al proveedor. Vincula la compra o recepción original.',
-                                                            'devolucion_venta' => 'Entrada de mercancía devuelta por un cliente. Vincula la factura original.',
-                                                            'produccion_entrada' => 'Entrada de producto terminado generado por producción.',
-                                                            'produccion_salida' => 'Salida de insumos consumidos por producción.',
-                                                            'inventario_inicial' => 'Carga inicial al migrar existencias. Debe tener respaldo del inventario de apertura.',
-                                                            'merma' => 'Salida por pérdida, daño o vencimiento. Registra el motivo y evidencia.',
-                                                            'despacho' => 'Salida física preparada para entrega. Vincula pedido o documento de despacho.',
-                                                            'consignacion' => 'Entrada de mercancía recibida en consignación. Documenta el acuerdo de propiedad.',
-                                                            default => 'Selecciona un tipo para ver cuándo corresponde usarlo.',
-                                                        };
-                                                    })
-                                                    ->columnSpan(2),
+                                                    ->label('Impacto del movimiento')
+                                                    ->content(fn ($get) => self::guiaTipoMovimiento($get('tipo_movimiento')))
+                                                    ->columnSpanFull(),
                                             ]),
-                                        Grid::make(2)
+                                        Grid::make(6)
                                             ->schema([
                                                 Select::make('direccion')
                                                     ->label('Dirección')
@@ -251,10 +263,11 @@ class KardexResource extends Resource
                                                     ->prefixIcon('heroicon-o-arrow-path')
                                                     ->helperText('Entrada suma stock; Salida lo descuenta. En otros tipos se calcula automáticamente.')
                                                     ->disabled(fn ($get) => $get('tipo_movimiento') !== 'ajuste_fisico')
-                                                    ->dehydrated(),
+                                                    ->dehydrated()
+                                                    ->columnSpan(2),
 
                                                 TextInput::make('cantidad')
-                                                    ->label('Cantidad')
+                                                    ->label('4. Cantidad')
                                                     ->numeric()
                                                     ->type('text')
                                                     ->required()
@@ -272,7 +285,8 @@ class KardexResource extends Resource
                                                         $cantidad = floatval($state);
                                                         $costoUnitario = floatval($get('costo_unitario') ?? 0);
                                                         $set('costo_total', $cantidad * $costoUnitario);
-                                                    }),
+                                                    })
+                                                    ->columnSpan(2),
 
                                                 DatePicker::make('fecha_contable')
                                                     ->label('Fecha contable')
@@ -280,12 +294,13 @@ class KardexResource extends Resource
                                                     ->native()
                                                     ->extraInputAttributes(['lang' => 'es-BO'])
                                                     ->helperText('Puede escribir, pegar o elegir la fecha en el calendario. Debe pertenecer a un período contable abierto.')
-                                                    ->prefixIcon('heroicon-o-calculator'),
+                                                    ->prefixIcon('heroicon-o-calculator')
+                                                    ->columnSpan(2),
                                             ]),
-                                        Grid::make(2)
+                                        Grid::make(6)
                                             ->schema([
                                                 TextInput::make('costo_unitario')
-                                                    ->label('Costo Unitario')
+                                                    ->label('5. Costo unitario')
                                                     ->numeric()
                                                     ->type('text')
                                                     ->required()
@@ -303,10 +318,11 @@ class KardexResource extends Resource
                                                         $cantidad = floatval($get('cantidad') ?? 0);
                                                         $costoUnitario = floatval($state);
                                                         $set('costo_total', $cantidad * $costoUnitario);
-                                                    }),
+                                                    })
+                                                    ->columnSpan(3),
 
                                                 TextInput::make('costo_total')
-                                                    ->label('Costo Total')
+                                                    ->label('Total calculado')
                                                     ->numeric()
                                                     ->required()
                                                     ->minValue(0)
@@ -314,11 +330,12 @@ class KardexResource extends Resource
                                                     ->placeholder('0.00')
                                                     ->prefix(fn ($get) => self::getSimboloMoneda('BOB'))
                                                     ->helperText('Costo total del movimiento')
-                                                    ->disabled(),
+                                                    ->disabled()
+                                                    ->columnSpan(3),
 
                                             ]),
 
-                                        Section::make('Trazabilidad del origen')
+                                        Section::make('6. Referencia y trazabilidad')
                                             ->icon('heroicon-o-link')
                                             ->description('Relaciona este movimiento con la operación que lo originó. Para movimientos manuales deja Tipo en manual e ID en 0.')
                                             ->schema([
@@ -356,7 +373,7 @@ class KardexResource extends Resource
                                                     ->prefixIcon('heroicon-o-document-text'),
                                             ]),
 
-                                        Section::make('Series y lotes')
+                                        Section::make('7. Series y lotes')
                                             ->icon('heroicon-o-qr-code')
                                             ->description('Completa solo el control que utiliza el artículo seleccionado. La cantidad debe coincidir exactamente con el movimiento.')
                                             ->schema([
@@ -376,7 +393,7 @@ class KardexResource extends Resource
                                             ]),
                                     ]),
 
-                                Section::make('Saldos y Costos')
+                                Section::make('Resumen antes de guardar')
                                     ->icon('heroicon-o-chart-bar')
                                     ->description('Consulta el impacto calculado antes de guardar. El saldo posterior debe coincidir con la operación física.')
                                     ->schema([
@@ -456,7 +473,7 @@ class KardexResource extends Resource
                                             ]),
                                     ]),
 
-                                Section::make('Información Adicional')
+                                Section::make('8. Notas y confirmación')
                                     ->icon('heroicon-o-clipboard-document')
                                     ->description('Deja evidencia suficiente para que otra persona pueda revisar o revertir el movimiento.')
                                     ->schema([

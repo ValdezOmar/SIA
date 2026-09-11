@@ -12,6 +12,60 @@ use Throwable;
 
 class RegularizacionKardexService
 {
+    public function diagnosticar(?int $empresaId = null): array
+    {
+        $movimientos = Kardex::query()
+            ->where('estado', 'confirmado')
+            ->when($empresaId, fn ($query) => $query->where('empresa_id', $empresaId));
+        $sinEfecto = ['transferencia_entrada', 'transferencia_salida', 'consignacion'];
+
+        $sinMovimientoInventario = (clone $movimientos)
+            ->whereDoesntHave('movimientoInventario')
+            ->count();
+        $pendientesContables = (clone $movimientos)
+            ->whereNotIn('tipo_movimiento', $sinEfecto)
+            ->where('costo_total', '>', 0)
+            ->whereDoesntHave('asientoContable')
+            ->count();
+        $asientosDesbalanceados = AsientoContable::query()
+            ->where('estado', 'confirmado')
+            ->whereRaw('ABS(COALESCE(total_debe, 0) - COALESCE(total_haber, 0)) >= 0.01')
+            ->when($empresaId, fn ($query) => $query->where('empresa_id', $empresaId))
+            ->count();
+        $ventasSinFactura = (clone $movimientos)
+            ->where('documento_tipo', 'venta')
+            ->where('documento_id', '>', 0)
+            ->whereNotExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('ven_facturas')
+                    ->whereColumn('ven_facturas.id', 'alm_kardex.documento_id')
+                    ->whereNull('ven_facturas.deleted_at');
+            })
+            ->count();
+        $comprasSinFactura = (clone $movimientos)
+            ->where('documento_tipo', 'compra')
+            ->where('documento_id', '>', 0)
+            ->whereNotExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('cmp_facturas_compra')
+                    ->whereColumn('cmp_facturas_compra.id', 'alm_kardex.documento_id')
+                    ->whereNull('cmp_facturas_compra.deleted_at');
+            })
+            ->count();
+        $bloqueantes = $sinMovimientoInventario + $asientosDesbalanceados + $ventasSinFactura + $comprasSinFactura;
+
+        return [
+            'confirmados' => (clone $movimientos)->count(),
+            'sin_movimiento_inventario' => $sinMovimientoInventario,
+            'asientos_desbalanceados' => $asientosDesbalanceados,
+            'ventas_sin_factura' => $ventasSinFactura,
+            'compras_sin_factura' => $comprasSinFactura,
+            'pendientes_contables' => $pendientesContables,
+            'bloqueantes' => $bloqueantes,
+            'integro' => $bloqueantes === 0,
+        ];
+    }
+
     public function ejecutar(CarbonInterface $fechaContable, ?int $empresaId = null): array
     {
         $resultado = [
