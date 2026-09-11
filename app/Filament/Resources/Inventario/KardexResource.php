@@ -19,6 +19,7 @@ use App\Filament\Resources\Inventario\KardexResource\Pages;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Kardex;
+use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -28,12 +29,10 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\BadgeColumn;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class KardexResource extends Resource
 {
@@ -105,25 +104,8 @@ class KardexResource extends Resource
 
     private static function formatArticuloOption(Articulo $articulo): string
     {
-        $codigo = e($articulo->codigo);
-        $modelo = e($articulo->codigo_alterno ?? 'Sin modelo');
-        $nombre = e($articulo->nombre_comercial ?? 'Sin nombre comercial');
-        $marca = e($articulo->fabricante?->nombre ?? 'Sin marca');
-
-        $miniatura = filled($articulo->foto_catalogo)
-            ? '<img src="'.e(Storage::disk('public')->url($articulo->foto_catalogo)).'" alt="" class="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-gray-200 dark:ring-white/10">'
-            : '<span class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-2xl dark:bg-gray-800">&#128230;</span>';
-
-        return '<div class="flex items-center gap-3 py-2">'
-            .$miniatura
-            .'<div class="min-w-0 flex-1 leading-tight">'
-            .'<div class="truncate text-sm font-semibold text-gray-950 dark:text-white">'.$codigo.'</div>'
-            .'<div class="truncate text-xs text-gray-600 dark:text-gray-300">'.$modelo.'</div>'
-            .'<div class="truncate text-xs text-gray-600 dark:text-gray-300">'.$nombre.'</div>'
-            .'<div class="truncate text-xs text-gray-500 dark:text-gray-400">'.$marca.'</div>'
-            .'</div></div>';
+        return ArticuloSelectOptions::format($articulo);
     }
-
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -556,13 +538,7 @@ class KardexResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->width('60px'),
 
-                ImageColumn::make('articulo.foto_catalogo')
-                    ->label('')
-                    ->disk('public')
-                    ->square()
-                    ->size(44)
-                    ->defaultImageUrl(fn (Kardex $record): string => 'https://ui-avatars.com/api/?name='.urlencode($record->articulo?->nombre_comercial ?? $record->articulo?->codigo ?? 'Artículo').'&color=7F9CF5&background=EBF4FF')
-                    ->toggleable(),
+
                 TextColumn::make('articulo.codigo')
                     ->label('Código')
                     ->searchable()
