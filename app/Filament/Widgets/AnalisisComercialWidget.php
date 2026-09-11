@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Exports\AnalisisComercialVentasExport;
 use App\Filament\Resources\Ventas\FacturaResource;
 use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use Filament\Widgets\Widget;
@@ -9,6 +10,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AnalisisComercialWidget extends Widget
 {
@@ -47,6 +49,18 @@ class AnalisisComercialWidget extends Widget
     public function updatedPeriodo(): void
     {
         $this->cargar();
+    }
+
+    public function exportarVentas()
+    {
+        $periodo = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $this->periodo)
+            ? $this->periodo
+            : now()->format('Y-m');
+
+        return Excel::download(
+            new AnalisisComercialVentasExport($periodo, Auth::user()?->empresa_id),
+            "analisis-comercial-ventas-{$periodo}.xlsx",
+        );
     }
 
     public function periodos(): array
