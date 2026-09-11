@@ -51,6 +51,8 @@ class MovimientoInventario extends Model
         return $query->whereIn('tipo', [
             'entrada_compra',
             'entrada_devolucion',
+            'entrada_inventario_inicial',
+            'entrada_consignacion',
             'ajuste_positivo',
             'transferencia_entrada',
             'produccion_entrada',
@@ -87,6 +89,8 @@ class MovimientoInventario extends Model
             'salida_devolucion' => 'Devolución Salida',
             'salida_merma' => 'Merma',
             'salida_despacho' => 'Despacho',
+            'entrada_inventario_inicial' => 'Inventario inicial',
+            'entrada_consignacion' => 'Consignación',
             default => $this->tipo,
         };
     }

@@ -13,6 +13,8 @@ use App\Services\Inventario\TrazabilidadInventarioService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class Kardex extends Model
 {
@@ -201,7 +203,9 @@ class Kardex extends Model
 
     public static function registrarMovimiento(array $data): self
     {
-        return DB::transaction(function () use ($data) {
+        $omitirContabilizacion = ! empty($data['omitir_contabilizacion']);
+
+        $kardex = DB::transaction(function () use ($data) {
             $tipo = $data['tipo_movimiento'] ?? null;
             $direcciones = [
                 'compra' => 'entrada',
@@ -235,10 +239,19 @@ class Kardex extends Model
             $documentoDetalleId = $data['documento_detalle_id'] ?? null;
             $existente = null;
 
-            if ($documentoTipo !== 'manual' || $documentoId !== 0 || $documentoDetalleId !== null) {
+            // Solo los documentos ya persistidos son idempotentes. El formulario de
+            // Kardex permite elegir "compra" como tipo de movimiento sin que exista
+            // una factura de compra vinculada (documento_id = 0). Considerar ese
+            // caso como documento repetido devolvía el primer movimiento encontrado
+            // y hacía que la interfaz anunciara siempre el mismo Kardex.
+            $documentoPersistido = $documentoTipo !== 'manual' && (int) $documentoId > 0;
+
+            if ($documentoPersistido) {
                 $existente = self::where('documento_tipo', $documentoTipo)
                     ->where('documento_id', $documentoId)
                     ->where('documento_detalle_id', $documentoDetalleId)
+                    ->where('articulo_id', $data['articulo_id'])
+                    ->where('almacen_id', $data['almacen_id'])
                     ->where('tipo_movimiento', $tipo)
                     ->where('estado', 'confirmado')
                     ->first();
@@ -283,12 +296,28 @@ class Kardex extends Model
                 }
             }
 
-            if (empty($data['omitir_contabilizacion'])) {
-                AsientoContable::crearDesdeKardex($kardex);
-            }
-
             return $kardex;
         });
+
+        if (! $omitirContabilizacion) {
+            try {
+                DB::transaction(fn () => AsientoContable::crearDesdeKardex($kardex));
+            } catch (Throwable $exception) {
+                $datosAdicionales = $kardex->datos_adicionales ?? [];
+                $datosAdicionales['contabilizacion_pendiente'] = true;
+                $datosAdicionales['error_contabilizacion'] = $exception->getMessage();
+                $kardex->forceFill(['datos_adicionales' => $datosAdicionales])->saveQuietly();
+
+                Log::warning('Kardex registrado con contabilización pendiente.', [
+                    'kardex_id' => $kardex->id,
+                    'tipo_movimiento' => $kardex->tipo_movimiento,
+                    'empresa_id' => $kardex->empresa_id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        return $kardex->fresh();
     }
 
     private static function getTipoMovimientoAuxiliar(string $tipo, string $direccion): string
@@ -296,14 +325,17 @@ class Kardex extends Model
         return match ($tipo) {
             'compra' => 'entrada_compra',
             'venta' => 'salida_venta',
-            'ajuste_incremento', 'ajuste_fisico' => 'ajuste_positivo',
+            'ajuste_incremento' => 'ajuste_positivo',
+            'ajuste_fisico' => $direccion === 'entrada' ? 'ajuste_positivo' : 'ajuste_negativo',
             'ajuste_decremento' => 'ajuste_negativo',
             'transferencia_entrada' => 'transferencia_entrada',
             'transferencia_salida' => 'transferencia_salida',
             'produccion_entrada' => 'produccion_entrada',
             'produccion_salida' => 'produccion_salida',
+            'inventario_inicial' => 'entrada_inventario_inicial',
             'merma' => 'salida_merma',
             'despacho' => 'salida_despacho',
+            'consignacion' => 'entrada_consignacion',
             default => $direccion === 'entrada' ? 'entrada_devolucion' : 'salida_devolucion',
         };
     }

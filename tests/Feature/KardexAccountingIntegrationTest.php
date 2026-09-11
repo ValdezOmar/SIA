@@ -81,6 +81,40 @@ class KardexAccountingIntegrationTest extends TestCase
         $this->assertFalse(AsientoContable::query()->where('documento_tipo', 'kardex')->where('documento_id', $kardex->id)->exists());
     }
 
+    public function test_direct_purchases_without_a_persisted_source_document_create_independent_kardex_and_entries(): void
+    {
+        $first = Kardex::registrarMovimiento([
+            'articulo_id' => $this->articuloId,
+            'almacen_id' => $this->almacenId,
+            'tipo_movimiento' => 'compra',
+            'cantidad' => 1,
+            'costo_unitario' => 20,
+            'documento_tipo' => 'compra',
+            'documento_id' => 0,
+            'fecha_movimiento' => now(),
+            'fecha_contable' => now(),
+            'empresa_id' => $this->empresaId,
+            'motivo' => 'Compra directa sin factura vinculada',
+        ]);
+        $second = Kardex::registrarMovimiento([
+            'articulo_id' => $this->articuloId,
+            'almacen_id' => $this->almacenId,
+            'tipo_movimiento' => 'compra',
+            'cantidad' => 1,
+            'costo_unitario' => 25,
+            'documento_tipo' => 'compra',
+            'documento_id' => 0,
+            'fecha_movimiento' => now(),
+            'fecha_contable' => now(),
+            'empresa_id' => $this->empresaId,
+            'motivo' => 'Segunda compra directa sin factura vinculada',
+        ]);
+
+        $this->assertNotSame($first->id, $second->id);
+        $this->assertSame(2, Kardex::query()->where('documento_tipo', 'compra')->where('documento_id', 0)->count());
+        $this->assertSame(2, AsientoContable::query()->where('documento_tipo', 'kardex')->count());
+    }
+
     private function movimiento(string $tipo, float $cantidad, float $costo, bool $prepararStock = false): Kardex
     {
         if ($prepararStock) {

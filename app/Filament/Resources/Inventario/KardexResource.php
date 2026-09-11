@@ -150,6 +150,7 @@ class KardexResource extends Resource
 
                                                 Select::make('almacen_id')
                                                     ->label('Almacén')
+                                                    ->live()
                                                     ->options(
                                                         fn () => Almacen::where('activo', true)
                                                             ->pluck('nombre', 'id')

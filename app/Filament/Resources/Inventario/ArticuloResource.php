@@ -738,28 +738,6 @@ class ArticuloResource extends Resource
                     })
                     ->tooltip('Método utilizado para calcular el costo de cada salida')
                     ->toggleable(),
-
-                TextColumn::make('stock_total')
-                    ->label('Stock')
-                    ->getStateUsing(fn ($record) => $record->stock_total ?? 0)
-                    ->numeric(0)
-                    ->sortable()
-                    ->color(fn ($state) => $state <= 0 ? 'danger' : ($state <= 10 ? 'warning' : 'success'))
-                    ->badge()
-                    ->tooltip(function ($record) {
-                        $stockPorAlmacen = $record->stock_por_almacen ?? [];
-                        if (empty($stockPorAlmacen)) {
-                            return 'Sin stock disponible';
-                        }
-                        $tooltip = "Stock por almacén:\n";
-                        foreach ($stockPorAlmacen as $almacen => $cantidad) {
-                            $tooltip .= "• {$almacen}: {$cantidad} unidades\n";
-                        }
-
-                        return $tooltip;
-                    })
-                    ->toggleable(),
-
                 IconColumn::make('activo')
                     ->label('Estado')
                     ->boolean()
