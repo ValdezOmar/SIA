@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Inventario\KardexResource\Pages;
 
 use Filament\Actions\Action;
-use Filament\Actions\CreateAction;
 use App\Filament\Resources\Inventario\KardexResource;
 use App\Services\Contabilidad\RegularizacionKardexService;
 use Carbon\Carbon;
@@ -56,7 +55,11 @@ class ListKardexes extends ListRecords
                     empty($resultado['errores']) ? $notificacion->success() : $notificacion->warning();
                     $notificacion->send();
                 }),
-            CreateAction::make(),
+            Action::make('crear_movimiento')
+                ->label('Registrar movimiento')
+                ->icon('heroicon-o-plus')
+                ->color('primary')
+                ->url(KardexResource::getUrl('create')),
         ];
     }
 }
