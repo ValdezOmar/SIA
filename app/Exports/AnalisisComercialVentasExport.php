@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AnalisisComercialVentasExport implements FromCollection, ShouldAutoSize, WithHeadings, WithStyles
+class AnalisisComercialVentasExport implements FromCollection, ShouldAutoSize, WithHeadings, WithStrictNullComparison, WithStyles
 {
     public function __construct(
         private readonly string $periodo,
@@ -72,12 +73,13 @@ class AnalisisComercialVentasExport implements FromCollection, ShouldAutoSize, W
             ->get([
                 'f.id as factura_id', 'f.fecha_emision', 'f.serie as serie_factura',
                 'art.codigo as codigo_articulo', DB::raw('COALESCE(art.nombre_comercial, d.descripcion_articulo) as nombre_comercial'), 'd.precio_unitario',
-                'd.cantidad', 'd.total', 'd.descuento', 'c.nombre as cliente', 'c.celular',
+                'd.cantidad', 'd.total', 'd.subtotal', 'd.descuento', 'f.tasa_cambio', 'c.nombre as cliente', 'c.celular',
                 DB::raw('COALESCE(k.costo_total, 0) as costo'),
             ])
             ->map(function (object $fila) use ($pagos): array {
                 $total = (float) $fila->total;
                 $costo = (float) $fila->costo;
+                $ventaNeta = (float) $fila->subtotal * (float) $fila->tasa_cambio;
 
                 return [
                     Carbon::parse($fila->fecha_emision)->format('d/m/Y'),
@@ -88,7 +90,7 @@ class AnalisisComercialVentasExport implements FromCollection, ShouldAutoSize, W
                     (float) $fila->descuento,
                     $total,
                     $costo,
-                    $total - $costo,
+                    max(0.0, $ventaNeta - $costo),
                     $pagos->get($fila->factura_id, 'Pendiente'),
                     $fila->serie_factura,
                     $fila->cliente,

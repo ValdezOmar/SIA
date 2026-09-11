@@ -16,7 +16,7 @@ class AnalisisComercialWidget extends Widget
 {
     use HasWidgetPermission;
 
-    protected static ?int $sort = 25;
+    protected static ?int $sort = 40;
 
     protected static ?string $pollingInterval = '60s';
 

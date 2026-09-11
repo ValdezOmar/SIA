@@ -18,7 +18,7 @@ class ContabilidadTendenciaWidget extends ChartWidget
 
     protected ?string $description = 'Control mensual de cargos y abonos confirmados.';
 
-    protected static ?int $sort = 41;
+    protected static ?int $sort = 70;
 
     protected ?string $pollingInterval = '60s';
 

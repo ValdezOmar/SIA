@@ -18,7 +18,7 @@ class InventarioTendenciaWidget extends ChartWidget
 
     protected ?string $description = 'Unidades confirmadas que ingresaron y salieron de los almacenes.';
 
-    protected static ?int $sort = 42;
+    protected static ?int $sort = 80;
 
     protected ?string $pollingInterval = '60s';
 

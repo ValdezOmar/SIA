@@ -19,7 +19,7 @@ class ContabilidadResumenWidget extends BaseWidget
     use HasWidgetPermission;
     use RendersDashboardSummaryCards;
 
-    protected static ?int $sort = 10;
+    protected static ?int $sort = 50;
 
     protected string $view = 'filament.widgets.dashboard-summary-cards';
 

@@ -116,11 +116,11 @@ class DashboardPanelProvider extends PanelProvider
     private function widgets(): array
     {
         return [
-            ContabilidadResumenWidget::class,
-            VentasResumenWidget::class,
             InventarioResumenWidget::class,
-            AnalisisComercialWidget::class,
+            VentasResumenWidget::class,
             GananciaBrutaWidget::class,
+            AnalisisComercialWidget::class,
+            ContabilidadResumenWidget::class,
             VentasTendenciaWidget::class,
             ContabilidadTendenciaWidget::class,
             InventarioTendenciaWidget::class,

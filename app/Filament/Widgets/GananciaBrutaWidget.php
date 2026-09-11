@@ -19,7 +19,7 @@ class GananciaBrutaWidget extends TableWidget
 
     protected static ?string $description = 'Ventas contabilizadas, expresadas en bolivianos y sin impuestos indirectos.';
 
-    protected static ?int $sort = 15;
+    protected static ?int $sort = 30;
 
     protected static ?string $pollingInterval = '60s';
 
@@ -42,6 +42,13 @@ class GananciaBrutaWidget extends TableWidget
         $fin = now()->endOfMonth();
         $empresaId = Auth::user()?->empresa_id;
         $periodoFactura = $this->periodoSql('ven_facturas.fecha_emision');
+        $ingresoPorDetalle = 'COALESCE(detalles.subtotal, 0) * COALESCE(ven_facturas.tasa_cambio, 1)';
+        $costoPorDetalle = 'COALESCE(costos.total_costo, 0)';
+        $ingresos = "SUM({$ingresoPorDetalle})";
+        $costos = "SUM({$costoPorDetalle})";
+        $gananciaSinNegativos = DB::connection()->getDriverName() === 'sqlite'
+            ? "SUM(MAX(0, {$ingresoPorDetalle} - {$costoPorDetalle}))"
+            : "SUM(GREATEST(0, {$ingresoPorDetalle} - {$costoPorDetalle}))";
 
         // El asiento confirmado identifica las ventas ya reconocidas; evita
         // incluir borradores, anulaciones o facturas sin efecto contable.
@@ -53,19 +60,23 @@ class GananciaBrutaWidget extends TableWidget
 
         // Se agrupa por factura, no por fecha física de entrega. Así el costo
         // queda en el mismo período comercial de la venta que lo originó.
-        $costosPorFactura = DB::table('alm_kardex')
-            ->selectRaw('documento_id, SUM(costo_total) as total_costo')
+        $costosPorDetalle = DB::table('alm_kardex')
+            ->selectRaw('documento_id, documento_detalle_id, SUM(costo_total) as total_costo')
             ->where('documento_tipo', 'venta')
             ->where('tipo_movimiento', 'venta')
             ->where('direccion', 'salida')
             ->where('estado', 'confirmado')
-            ->groupBy('documento_id');
+            ->groupBy('documento_id', 'documento_detalle_id');
 
         return Factura::query()
-            ->selectRaw("\n                MIN(ven_facturas.id) as id,\n                {$periodoFactura} as periodo,\n                SUM(COALESCE(ven_facturas.subtotal, 0) * COALESCE(ven_facturas.tasa_cambio, 1)) as ingresos_netos,\n                SUM(COALESCE(ven_facturas.descuento, 0) * COALESCE(ven_facturas.tasa_cambio, 1)) as descuentos,\n                SUM(COALESCE(costos.total_costo, 0)) as costo_ventas,\n                SUM(COALESCE(ven_facturas.subtotal, 0) * COALESCE(ven_facturas.tasa_cambio, 1))\n                    - SUM(COALESCE(costos.total_costo, 0)) as ganancia_despues_costo\n            ")
+            ->selectRaw("\n                MIN(ven_facturas.id) as id,\n                {$periodoFactura} as periodo,\n                {$ingresos} as ingresos_netos,\n                SUM(COALESCE(detalles.descuento, 0) * COALESCE(ven_facturas.tasa_cambio, 1)) as descuentos,\n                {$costos} as costo_ventas,\n                {$gananciaSinNegativos} as ganancia_despues_costo\n            ")
             ->joinSub($ventasContabilizadas, 'ventas_contabilizadas', fn ($join) => $join->on('ven_facturas.id', '=', 'ventas_contabilizadas.documento_id'))
-            ->leftJoinSub($costosPorFactura, 'costos', fn ($join) => $join->on('ven_facturas.id', '=', 'costos.documento_id'))
+            ->join('ven_facturas_detalle as detalles', 'detalles.factura_id', '=', 'ven_facturas.id')
+            ->leftJoinSub($costosPorDetalle, 'costos', fn ($join) => $join
+                ->on('ven_facturas.id', '=', 'costos.documento_id')
+                ->on('detalles.id', '=', 'costos.documento_detalle_id'))
             ->where('ven_facturas.estado', '!=', 'anulada')
+            ->whereNull('detalles.deleted_at')
             ->whereBetween('ven_facturas.fecha_emision', [$inicio, $fin])
             ->when($empresaId, fn ($query) => $query->where('ven_facturas.empresa_id', $empresaId))
             ->groupByRaw($periodoFactura)
@@ -96,7 +107,7 @@ class GananciaBrutaWidget extends TableWidget
                 ->label('Ganancia después del costo')
                 ->money('BOB', divideBy: 1, locale: 'es')
                 ->alignEnd()
-                ->color(fn ($record): string => (float) $record->ganancia_despues_costo >= 0 ? 'success' : 'danger'),
+                ->color('success'),
             TextColumn::make('rendimiento')
                 ->label('Rendimiento')
                 ->tooltip('Ganancia después del costo dividida entre ventas netas.')
@@ -104,7 +115,7 @@ class GananciaBrutaWidget extends TableWidget
                     ? number_format(((float) $record->ganancia_despues_costo / (float) $record->ingresos_netos) * 100, 2, ',', '.').' %'
                     : '0,00 %')
                 ->alignEnd()
-                ->color(fn ($record): string => (float) $record->ganancia_despues_costo >= 0 ? 'success' : 'danger'),
+                ->color('success'),
         ];
     }
 

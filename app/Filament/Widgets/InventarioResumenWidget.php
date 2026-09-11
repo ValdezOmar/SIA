@@ -20,7 +20,7 @@ class InventarioResumenWidget extends BaseWidget
     use HasWidgetPermission;
     use RendersDashboardSummaryCards;
 
-    protected static ?int $sort = 30;
+    protected static ?int $sort = 10;
 
     protected string $view = 'filament.widgets.dashboard-summary-cards';
 

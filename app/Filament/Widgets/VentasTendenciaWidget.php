@@ -18,7 +18,7 @@ class VentasTendenciaWidget extends ChartWidget
 
     protected ?string $description = 'Compara lo facturado con el efectivo realmente cobrado.';
 
-    protected static ?int $sort = 40;
+    protected static ?int $sort = 60;
 
     protected ?string $pollingInterval = '60s';
 
