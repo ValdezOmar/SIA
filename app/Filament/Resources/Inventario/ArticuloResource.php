@@ -283,6 +283,7 @@ class ArticuloResource extends Resource
                                             ->schema([
                                                 FileUpload::make('foto_catalogo')
                                                     ->label('Foto de Catálogo')
+                                                    ->disk('public')
                                                     ->image()
                                                     ->openable()
                                                     ->downloadable()
@@ -620,6 +621,7 @@ class ArticuloResource extends Resource
             ->columns([
                 ImageColumn::make('foto_catalogo')
                     ->label('')
+                    ->disk('public')
                     ->square()
                     ->size(40)
                     ->defaultImageUrl(function ($record) {
