@@ -257,7 +257,8 @@ class ArticuloResource extends Resource
                                                     ->placeholder('Descripción detallada del artículo...')
                                                     ->rows(6)
                                                     ->maxLength(255)
-                                                    ->helperText('Máximo 255 caracteres')
+                                                    ->live(debounce: 250)
+                                                    ->helperText(fn (Get $get): string => 'Quedan '.max(0, 255 - mb_strlen((string) ($get('descripcion') ?? ''))).' de 255 caracteres')
                                                     // ->prefixIcon('heroicon-o-document')
                                                     ->columnSpan(1),
 

@@ -129,7 +129,7 @@ class KardexResource extends Resource
 
     private static function formatArticuloOption(Articulo $articulo): string
     {
-        return ArticuloSelectOptions::format($articulo);
+        return ArticuloSelectOptions::formatSinStock($articulo);
     }
     public static function form(Schema $schema): Schema
     {

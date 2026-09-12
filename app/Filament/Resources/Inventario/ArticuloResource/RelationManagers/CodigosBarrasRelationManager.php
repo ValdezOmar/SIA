@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
 use Filament\Schemas\Schema;
+use App\Models\Inventario\CodigoBarras;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Placeholder;
@@ -40,11 +41,11 @@ class CodigosBarrasRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                Section::make('Gestión de Código de Barras')
+                Section::make('Identificación y uso del código')
                    // ->icon('heroicon-o-barcode')
-                    ->description('Administra los códigos de barras asociados a este artículo')
+                    ->description('Registre cada identificador que puede leerse en etiquetas, empaques o puntos de venta. El código principal se usará como referencia predeterminada.')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(6)
                             ->schema([
                                 TextInput::make('codigo_barras')
                                     ->label('Código de Barras')
@@ -52,8 +53,11 @@ class CodigosBarrasRelationManager extends RelationManager
                                     ->maxLength(100)
                                     ->unique(ignoreRecord: true)
                                     ->placeholder('Ej: 7701234567890')
-                                    ->helperText('Código de barras único del artículo')
-                                    ->columnSpan(1),
+                                    ->helperText('Código único del artículo; puede capturarse con lector.')
+                                    ->autofocus()
+                                    ->live(onBlur: true)
+                                    ->suffixIcon('heroicon-o-qr-code')
+                                    ->columnSpan(4),
 
                                 Select::make('tipo')
                                     ->label('Tipo de Código')
@@ -73,11 +77,12 @@ class CodigosBarrasRelationManager extends RelationManager
                                     ->searchable()
                                     ->preload()
                                     ->placeholder('Seleccione un tipo')
-                                    ->helperText('Tipo de código de barras')
-                                    ->columnSpan(1),
+                                    ->helperText('Seleccione el estándar impreso en la etiqueta.')
+                                    ->default('EAN-13')
+                                    ->columnSpan(2),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(6)
                             ->schema([
                                 Toggle::make('principal')
                                     ->label('Es el código principal')
@@ -102,35 +107,35 @@ class CodigosBarrasRelationManager extends RelationManager
                                                 }
                                             }
                                         }
-                                    }),
+                                    })
+                                    ->columnSpan(2),
 
                                 Placeholder::make('info')
-                                    ->label('')
+                                    ->label('Verificación del identificador')
                                     ->content(function ($get) {
-                                        $codigo = $get('codigo_barras');
+                                        $codigo = trim((string) ($get('codigo_barras') ?? ''));
                                         $tipo = $get('tipo');
 
-                                        if (! $codigo) {
-                                            return 'Ingrese un código de barras para verificar su formato.';
+                                        if ($codigo === '') {
+                                            return new HtmlString('<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">Ingrese o escanee el código. El sistema verificará la longitud según el tipo seleccionado.</div>');
                                         }
 
                                         $longitud = strlen($codigo);
-                                        $tipoSugerido = '';
+                                        $sugerido = match ($longitud) { 13 => 'EAN-13', 12 => 'UPC-A', 8 => 'EAN-8', 6 => 'UPC-E', default => 'Código de longitud libre' };
+                                        $valido = ! $tipo || CodigoBarras::validarFormato($codigo, $tipo);
+                                        $estado = $valido ? 'Formato compatible' : 'Revise la longitud para '.e($tipo);
+                                        $color = $valido ? 'text-success-700 dark:text-success-300' : 'text-danger-700 dark:text-danger-300';
 
-                                        if ($longitud === 13) {
-                                            $tipoSugerido = ' (EAN-13)';
-                                        } elseif ($longitud === 8) {
-                                            $tipoSugerido = ' (EAN-8)';
-                                        } elseif ($longitud === 12) {
-                                            $tipoSugerido = ' (UPC-A)';
-                                        }
-
-                                        return new HtmlString(
-                                            '<div class="text-sm text-gray-500">
-                                                <span class="font-medium">Longitud:</span> '.$longitud.' dígitos'.$tipoSugerido.'
-                                            </div>'
-                                        );
+                                        return new HtmlString('<div class="rounded-lg border border-primary-200 bg-primary-50 p-3 text-sm dark:border-primary-800 dark:bg-primary-950/30"><div class="grid gap-2 sm:grid-cols-3"><div><span class="font-medium">Longitud</span><br>'.$longitud.' caracteres</div><div><span class="font-medium">Formato detectado</span><br>'.e($sugerido).'</div><div class="'.$color.'"><span class="font-medium">Estado</span><br>'.$estado.'</div></div></div>');
                                     })
+                                    ->columnSpanFull(),
+
+                                TextInput::make('descripcion')
+                                    ->label('Uso o presentación')
+                                    ->maxLength(255)
+                                    ->placeholder('Ej.: etiqueta de unidad, caja de 12 unidades o código del proveedor')
+                                    ->helperText('Aclara dónde se encuentra o cuándo debe usarse este identificador.')
+                                    ->prefixIcon('heroicon-o-tag')
                                     ->columnSpanFull(),
                             ]),
                     ]),
@@ -168,6 +173,19 @@ class CodigosBarrasRelationManager extends RelationManager
                         'Interno' => 'gray',
                         default => 'gray',
                     })
+                    ->toggleable(),
+
+                TextColumn::make('descripcion')
+                    ->label('Uso / presentación')
+                    ->placeholder('Sin descripción')
+                    ->limit(45)
+                    ->tooltip(fn ($record) => $record->descripcion)
+                    ->toggleable(),
+
+                TextColumn::make('longitud')
+                    ->label('Dígitos')
+                    ->getStateUsing(fn ($record) => $record->longitud)
+                    ->alignCenter()
                     ->toggleable(),
 
                 IconColumn::make('principal')
@@ -236,9 +254,10 @@ class CodigosBarrasRelationManager extends RelationManager
             ])
             ->headerActions([
                 CreateAction::make()
-                    ->label('Nuevo Código de Barras')
+                    ->label('Agregar código')
                     ->icon('heroicon-o-plus')
-                    ->modalHeading('Agregar Código de Barras')
+                    ->modalHeading('Agregar identificador del artículo')
+                    ->modalDescription('Registre el código tal como aparece en la etiqueta. Marque Principal cuando sea el identificador preferido para búsqueda y lectura.')
                     ->modalWidth('4xl')
                     ->beforeFormFilled(function ($livewire) {
                         // Si el artículo ya tiene un código principal, sugerir no principal

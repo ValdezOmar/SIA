@@ -1,0 +1,1 @@
+<livewire:inventario.stock-articulo-ficha :existencia-id="$existenciaId" :key="'stock-articulo-ficha-'.$existenciaId" />

@@ -4,13 +4,14 @@ namespace App\Support;
 
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class ArticuloSelectOptions
 {
     public static function ventas(?string $search = null): array
     {
-        $user = auth()->user();
+        $user = Auth::user();
         $almacenId = self::almacenVentaId();
 
         return Articulo::query()
@@ -58,6 +59,20 @@ class ArticuloSelectOptions
 
     public static function format(Articulo $articulo): string
     {
+        return self::formatArticulo($articulo, mostrarStock: true);
+    }
+
+    /**
+     * Formatea la identificación visual del artículo sin disponibilidad.
+     * Úselo cuando el contexto ya muestra el stock por separado.
+     */
+    public static function formatSinStock(Articulo $articulo): string
+    {
+        return self::formatArticulo($articulo, mostrarStock: false);
+    }
+
+    private static function formatArticulo(Articulo $articulo, bool $mostrarStock): string
+    {
         $codigo = e($articulo->codigo ?: 'Sin código');
         $modelo = e($articulo->codigo_alterno ?: 'Sin modelo');
         $nombre = e($articulo->nombre_comercial ?: $articulo->descripcion ?: 'Sin nombre');
@@ -74,7 +89,7 @@ class ArticuloSelectOptions
             .'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0f172a;font-size:.82rem;font-weight:800">'.$codigo.'</div>'
             .'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#475569;font-size:.72rem">Modelo: '.$modelo.'</div>'
             .'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334155;font-size:.74rem;font-weight:650">'.$nombre.'</div>'
-            .self::stockHtml($articulo->inventariable, $stock)
+            .($mostrarStock ? self::stockHtml($articulo->inventariable, $stock) : '')
             .'<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:.7rem">Marca: '.$marca.'</div>'
             .'</div></div>';
     }
@@ -120,7 +135,7 @@ class ArticuloSelectOptions
 
     private static function almacenVentaId(): ?int
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         return Almacen::query()
             ->where('activo', true)

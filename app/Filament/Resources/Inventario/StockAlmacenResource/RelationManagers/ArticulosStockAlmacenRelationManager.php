@@ -3,12 +3,14 @@
 namespace App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers;
 
 use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Livewire as LivewireSchema;
+use App\Filament\Resources\Inventario\StockAlmacenResource\Widgets\StockFichaResumenWidget;
+use App\Filament\Resources\Inventario\StockAlmacenResource\Widgets\StockFichaReservasWidget;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Actions\Action;
 use App\Support\ArticuloSelectOptions;
 use Filament\Forms\Components\Placeholder;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -49,7 +51,7 @@ class ArticulosStockAlmacenRelationManager extends RelationManager
                 TextColumn::make('articulo_resumen')
                     ->label('Artículo')
                     ->getStateUsing(fn ($record): string => $record->articulo
-                        ? ArticuloSelectOptions::format($record->articulo)
+                        ? ArticuloSelectOptions::formatSinStock($record->articulo)
                         : 'Artículo no disponible')
                     ->html()
                     ->searchable(query: function (Builder $query, string $search): Builder {
@@ -153,25 +155,21 @@ class ArticulosStockAlmacenRelationManager extends RelationManager
             ->recordActions([
                 Action::make('ficha')
                     ->label('Ver ficha')
-                    ->icon('heroicon-o-information-circle')
+                    ->icon('heroicon-o-sparkles')
+                    ->color('primary')
                     ->slideOver()
-                    ->modalHeading('Información del artículo')
+                    ->modalHeading('Ficha operativa de stock')
+                    ->modalDescription('Disponibilidad, compromisos comerciales, pagos y movimientos del artículo en este almacén.')
+                    ->modalWidth('7xl')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar')
                     ->schema([
-                        TextEntry::make('articulo.codigo')->label('Código')->copyable(),
-                        TextEntry::make('articulo.nombre_comercial')->label('Nombre'),
-                        TextEntry::make('articulo.codigo_alterno')->label('Modelo')->placeholder('Sin modelo'),
-                        TextEntry::make('articulo.fabricante.nombre')->label('Marca')->placeholder('Sin marca'),
-                        TextEntry::make('articulo.grupoArticulo.nombre')->label('Grupo'),
-                        TextEntry::make('articulo.unidadMedida.nombre')->label('Unidad'),
-                        TextEntry::make('articulo.activo')->label('Artículo activo')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-                        TextEntry::make('articulo.vendible')->label('Habilitado para venta')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-                        TextEntry::make('articulo.descripcion')->label('Descripción')->placeholder('Sin descripción')->columnSpanFull(),
-                        TextEntry::make('articulo.caracteristicas')->label('Características')->placeholder('Sin características')->columnSpanFull(),
-                        TextEntry::make('articulo.codigosBarras.codigo_barras')->label('Códigos de barras')->listWithLineBreaks(),
-                        TextEntry::make('ultima_entrada')->label('Última entrada')->dateTime('d/m/Y H:i')->placeholder('Sin registros'),
-                        TextEntry::make('ultima_salida')->label('Última salida')->dateTime('d/m/Y H:i')->placeholder('Sin registros'),
+                        LivewireSchema::make(StockFichaResumenWidget::class, data: fn ($record) => [
+                            'record' => $record,
+                        ])->columnSpanFull(),
+                        LivewireSchema::make(StockFichaReservasWidget::class, data: fn ($record) => [
+                            'record' => $record,
+                        ])->columnSpanFull(),
                     ]),
             ])
             ->toolbarActions([])

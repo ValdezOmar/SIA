@@ -82,218 +82,21 @@ class StockAlmacenResource extends Resource
 
     public static function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
-        return $schema
-            ->components([
-                Section::make('Cómo usar esta pantalla')
-                    ->description('Revise el almacén, sus ubicaciones y el stock disponible. El stock se modifica desde Compras, Ventas o Kardex para mantener el historial correcto.')
-                    ->icon('heroicon-o-information-circle')
-                    ->compact()
-                    ->schema([
-                        Placeholder::make('guia_almacen')
-                            ->label('')
-                            ->content('1. Seleccione un almacén. 2. Revise dónde se guarda la mercadería. 3. Consulte el resumen. Para corregir cantidades, use Kardex.'),
-                    ])
-                    ->columnSpanFull(),
-
-                Tabs::make('')
-                    ->tabs([
-                        Tab::make('Datos básicos')
-                            ->icon('heroicon-o-document-text')
-                            ->schema([
-                                Section::make('Datos del Almacén')
-                                    ->icon('heroicon-o-building-storefront')
-                                    ->description('Información principal del almacén')
-                                    ->schema([
-                                        Grid::make(2)
-                                            ->schema([
-                                                TextInput::make('codigo')
-                                                    ->label('Código')
-                                                    ->disabled()
-                                                    ->placeholder('Sin código registrado')
-                                                    ->helperText('Código único del almacén')
-                                                    ->prefixIcon('heroicon-o-hashtag')
-                                                    ->formatStateUsing(fn ($state) => $state ?? 'Sin datos registrados')
-                                                    ->columnSpan(1),
-
-                                                TextInput::make('nombre')
-                                                    ->label('Nombre')
-                                                    ->disabled()
-                                                    ->placeholder('Sin nombre registrado')
-                                                    ->helperText('Nombre del almacén')
-                                                    ->prefixIcon('heroicon-o-building-office')
-                                                    ->formatStateUsing(fn ($state) => $state ?? 'Sin datos registrados')
-                                                    ->columnSpan(1),
-                                            ]),
-
-                                        Grid::make(2)
-                                            ->schema([
-                                                TextInput::make('sucursal.nombre')
-                                                    ->label('Sucursal')
-                                                    ->disabled()
-                                                    ->placeholder('Sin sucursal asignada')
-                                                    ->helperText('Sucursal a la que pertenece')
-                                                    ->prefixIcon('heroicon-o-map-pin')
-                                                    ->formatStateUsing(fn ($state) => $state ?? 'Sin datos registrados')
-                                                    ->visible(fn () => Schema::hasTable('conf_sucursales'))
-                                                    ->columnSpan(1),
-
-                                                Textarea::make('direccion')
-                                                    ->label('Dirección')
-                                                    ->disabled()
-                                                    ->placeholder('Sin dirección registrada')
-                                                    ->rows(2)
-                                                    ->helperText('Ubicación física del almacén')
-                                                    ->formatStateUsing(fn ($state) => $state ?? 'Sin datos registrados')
-                                                    ->columnSpan(1),
-                                            ]),
-
-                                        Grid::make(1)
-                                            ->schema([
-                                                Toggle::make('activo')
-                                                    ->label('Estado')
-                                                    ->disabled()
-                                                    ->default(true)
-                                                    ->helperText('Estado del almacén')
-                                                    ->formatStateUsing(fn ($state) => $state ? 'Activo' : 'Inactivo')
-                                                    ->columnSpan(1),
-                                            ]),
-                                    ]),
-                            ]),
-
-                        Tab::make('Dónde se guarda')
-                            ->icon('heroicon-o-map-pin')
-                            ->schema([
-                                Section::make('Ubicaciones del Almacén')
-                                    ->icon('heroicon-o-map-pin')
-                                    ->description('Organización espacial del almacén')
-                                    ->schema([
-                                        Placeholder::make('ubicaciones_info')
-                                            ->label('')
-                                            ->content(function ($record) {
-                                                if (! $record) {
-                                                    return new HtmlString(
-                                                        '<div class="text-sm text-gray-500 dark:text-gray-400">Guardar el almacén para gestionar ubicaciones.</div>'
-                                                    );
-                                                }
-
-                                                try {
-                                                    $totalUbicaciones = $record->ubicaciones()->count();
-                                                    $ubicacionesActivas = $record->ubicaciones()->where('activo', true)->count();
-
-                                                    if ($totalUbicaciones === 0) {
-                                                        return new HtmlString(
-                                                            '<div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800">
-                                                                <div class="flex items-center gap-2">
-                                                                    <div>
-                                                                        <p class="text-sm text-yellow-700 dark:text-yellow-400">No hay ubicaciones registradas</p>
-                                                                        <p class="text-xs text-yellow-600 dark:text-yellow-500 mt-1">Gestiona las ubicaciones en la pestaña "Ubicaciones" en relaciones.</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>'
-                                                        );
-                                                    }
-
-                                                    return new HtmlString(
-                                                        '<div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                                                            <div class="grid grid-cols-2 gap-4">
-                                                                <div class="text-center">
-                                                                    <p class="text-sm text-gray-600 dark:text-gray-400">Total Ubicaciones</p>
-                                                                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">'.$totalUbicaciones.'</p>
-                                                                </div>
-                                                                <div class="text-center">
-                                                                    <p class="text-sm text-gray-600 dark:text-gray-400">Ubicaciones Activas</p>
-                                                                    <p class="text-2xl font-bold text-green-600 dark:text-green-400">'.$ubicacionesActivas.'</p>
-                                                                </div>
-                                                            </div>
-                                                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">Gestiona las ubicaciones en la sección de relaciones.</p>
-                                                        </div>'
-                                                    );
-                                                } catch (Exception $e) {
-                                                    return new HtmlString('<div class="text-sm text-gray-500">Error al cargar ubicaciones.</div>');
-                                                }
-                                            })
-                                            ->columnSpanFull(),
-                                    ]),
-                            ]),
-
-                        Tab::make('Estadísticas')
-                            ->icon('heroicon-o-chart-bar')
-                            ->schema([
-                                Section::make('Resumen del Almacén')
-                                    ->icon('heroicon-o-chart-bar')
-                                    ->schema([
-                                        Placeholder::make('estadisticas')
-                                            ->label('')
-                                            ->content(function ($record) {
-                                                if (! $record) {
-                                                    return new HtmlString(
-                                                        '<div class="text-sm text-gray-500 dark:text-gray-400">Guardar el almacén para ver estadísticas.</div>'
-                                                    );
-                                                }
-
-                                                try {
-                                                    $totalArticulos = 0;
-                                                    $totalMovimientos = 0;
-                                                    $totalExistencias = 0;
-                                                    $totalUbicaciones = $record->ubicaciones()->count();
-
-                                                    if (self::existenciasTieneAlmacenId()) {
-                                                        $totalExistencias = $record->existencias()->sum('cantidad_disponible');
-                                                        $totalArticulos = $record->existencias()->distinct('articulo_id')->count();
-                                                    }
-
-                                                    if (Schema::hasTable('alm_movimientos_inventario')) {
-                                                        $totalMovimientos = $record->movimientos()->count();
-                                                    }
-
-                                                    $noData = $totalArticulos === 0 && $totalExistencias === 0 && $totalMovimientos === 0 && $totalUbicaciones === 0;
-
-                                                    if ($noData) {
-                                                        return new HtmlString(
-                                                            '<div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 text-center">
-                                                                <p class="text-sm text-gray-500 dark:text-gray-400">Sin datos estadísticos disponibles</p>
-                                                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Agrega productos y movimientos para ver estadísticas.</p>
-                                                            </div>'
-                                                        );
-                                                    }
-
-                                                    return new HtmlString(
-                                                        '<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800 text-center">
-                                                                <p class="text-sm text-blue-600 dark:text-blue-400 font-medium">Artículos</p>
-                                                                <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">'.number_format($totalArticulos).'</p>
-                                                                <p class="text-xs text-blue-500 dark:text-blue-400 mt-1">Productos en stock</p>
-                                                            </div>
-                                                            <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-xl border border-green-200 dark:border-green-800 text-center">
-                                                                <p class="text-sm text-green-600 dark:text-green-400 font-medium">Existencias</p>
-                                                                <p class="text-2xl font-bold text-green-900 dark:text-green-100">'.number_format($totalExistencias, 0).'</p>
-                                                                <p class="text-xs text-green-500 dark:text-green-400 mt-1">Unidades disponibles</p>
-                                                            </div>
-                                                            <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800 text-center">
-                                                                <p class="text-sm text-purple-600 dark:text-purple-400 font-medium">Movimientos</p>
-                                                                <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">'.number_format($totalMovimientos).'</p>
-                                                                <p class="text-xs text-purple-500 dark:text-purple-400 mt-1">Transacciones registradas</p>
-                                                            </div>
-                                                            <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-xl border border-orange-200 dark:border-orange-800 text-center">
-                                                                <p class="text-sm text-orange-600 dark:text-orange-400 font-medium">Ubicaciones</p>
-                                                                <p class="text-2xl font-bold text-orange-900 dark:text-orange-100">'.number_format($totalUbicaciones).'</p>
-                                                                <p class="text-xs text-orange-500 dark:text-orange-400 mt-1">Espacios físicos</p>
-                                                            </div>
-                                                        </div>'
-                                                    );
-                                                } catch (Exception $e) {
-                                                    return new HtmlString('<div class="text-sm text-gray-500">Error al cargar estadísticas.</div>');
-                                                }
-                                            })
-                                            ->columnSpanFull(),
-                                    ]),
-                            ]),
-                    ])
-                    ->activeTab(1)
-                    ->columnSpanFull(),
-            ]);
+        return $schema->components([
+            Section::make('Resumen del almacén')
+                ->description('Este módulo consulta disponibilidad por artículo. Las cantidades se registran desde Compras, Ventas o Kardex para conservar su historial.')
+                ->icon('heroicon-o-building-storefront')
+                ->columnSpanFull()
+                ->schema([
+                    Grid::make(3)->schema([
+                        TextInput::make('codigo')->label('Código')->disabled()->columnSpan(1),
+                        TextInput::make('nombre')->label('Nombre del almacén')->disabled()->columnSpan(1),
+                        TextInput::make('sucursal.nombre')->label('Sucursal')->disabled()->visible(fn () => Schema::hasTable('conf_sucursales'))->columnSpan(1),
+                    ]),
+                    Textarea::make('direccion')->label('Ubicación física')->disabled()->rows(2)->placeholder('Sin dirección registrada')->columnSpanFull(),
+                ]),
+        ]);
     }
-
     public static function table(Table $table): Table
     {
         $ubicacionesExiste = self::ubicacionesTieneAlmacenId();
@@ -327,12 +130,6 @@ class StockAlmacenResource extends Resource
                 ->placeholder('-')
                 ->visible(fn () => Schema::hasTable('conf_sucursales')),
 
-            TextColumn::make('direccion')
-                ->label('Dirección')
-                ->searchable()
-                ->toggleable()
-                ->limit(30)
-                ->placeholder('-'),
         ];
 
         if ($ubicacionesExiste) {
@@ -390,49 +187,8 @@ class StockAlmacenResource extends Resource
                     ->searchable()
                     ->preload()
                     ->visible(fn () => Schema::hasTable('conf_sucursales')),
-            ])
-            ->recordActions([
-                ActionGroup::make([
-                    EditAction::make()
-                        ->slideOver()
-                        ->modalWidth('7xl')
-                        ->label('Ver Detalles'),
-
-                    ViewAction::make()
-                        ->slideOver()
-                        ->modalWidth('7xl'),
-
-                    Action::make('duplicate')
-                        ->label('Duplicar')
-                        ->icon('heroicon-o-document-duplicate')
-                        ->color('info')
-                        ->action(function ($record) {
-                            $newRecord = $record->replicate();
-                            $newRecord->codigo = $record->codigo.'-COPY-'.time();
-                            $newRecord->created_at = now();
-                            $newRecord->updated_at = now();
-                            $newRecord->save();
-
-                            Notification::make()
-                                ->title('Almacén duplicado exitosamente')
-                                ->success()
-                                ->send();
-                        }),
-                ])
-                    ->tooltip('Acciones')
-                    ->icon('heroicon-o-ellipsis-vertical'),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    BulkAction::make('toggle_active_bulk')
-                        ->label('Activar/Desactivar')
-                        ->icon('heroicon-o-power')
-                        ->action(fn ($records) => $records->each->update(['activo' => ! $records->first()->activo]))
-                        ->requiresConfirmation()
-                        ->modalHeading('Cambiar estado de almacenes'),
-                ]),
-            ])
+            ])           
+           
             ->defaultSort('nombre')
             ->searchPlaceholder('Buscar almacén...')
             ->emptyStateHeading('No hay almacenes registrados')
