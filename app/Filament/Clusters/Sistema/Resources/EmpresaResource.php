@@ -53,24 +53,31 @@ class EmpresaResource extends Resource
                 Section::make('Identificación')
                     ->icon('heroicon-o-building-office-2')
                     ->description('Registre los nombres legal y comercial que identifican a la empresa.')
+                    ->columnSpanFull()
                     ->schema([
                         TextInput::make('razon_social')
                             ->label('Razón Social')
                             ->placeholder('Ej. Novanexa S.R.L.')
                             ->required()
                             ->maxLength(255)
-                            ->helperText('Nombre legal usado en documentos y reportes.'),
+                            ->helperText('Nombre legal usado en documentos y reportes.')
+                            ->prefixIcon('heroicon-o-building-office-2')
+                            ->columnSpan(3),
 
                         TextInput::make('nombre_comercial')
                             ->label('Nombre Comercial')
                             ->placeholder('Ej. Novanexa')
                             ->maxLength(255)
-                            ->helperText('Nombre visible para clientes y personal.'),
+                            ->helperText('Nombre visible para clientes y personal.')
+                            ->prefixIcon('heroicon-o-tag')
+                            ->columnSpan(3),
 
                         TextInput::make('nit')
                             ->label('NIT')
                             ->maxLength(50)
-                            ->helperText('Número de identificación tributaria de la empresa.'),
+                            ->helperText('Número de identificación tributaria de la empresa.')
+                            ->prefixIcon('heroicon-o-identification')
+                            ->columnSpan(2),
 
                         FileUpload::make('logo_path')
                             ->label('Logo de la empresa')
@@ -79,12 +86,16 @@ class EmpresaResource extends Resource
                             ->disk('public')
                             ->directory('empresas/logos')
                             ->maxSize(2048)
-                            ->helperText('PNG o JPG, máximo 2 MB. Se utiliza en los reportes PDF de inventario.'),
+                            ->helperText('PNG o JPG, máximo 2 MB. Se utiliza en los reportes PDF de inventario.')
+                            ->imagePreviewHeight('110')
+                            ->columnSpan(2),
 
                         TextInput::make('nro_matricula')
                             ->label('Nro. Matrícula')
                             ->maxLength(50)
-                            ->helperText('Número de matrícula de comercio, si corresponde.'),
+                            ->helperText('Número de matrícula de comercio, si corresponde.')
+                            ->prefixIcon('heroicon-o-document-text')
+                            ->columnSpan(2),
 
                         Placeholder::make('estructura_organizacional')
                             ->label('Estructura organizacional')
@@ -92,57 +103,71 @@ class EmpresaResource extends Resource
                             ->helperText('Las áreas contienen los cargos; las sucursales representan las ubicaciones de la empresa.')
                             ->columnSpanFull(),
                     ])
-                    ->columns(['default' => 1, 'lg' => 2]),
+                    ->columns(['default' => 1, 'lg' => 6]),
 
                 Section::make('Datos de Contacto')
                     ->icon('heroicon-o-phone')
                     ->description('Incluya solo los canales de contacto vigentes.')
+                    ->columnSpanFull()
                     ->schema([
                         Textarea::make('direccion')
                             ->label('Dirección')
                             ->rows(2)
-                            ->helperText('Dirección legal o principal de la empresa.'),
+                            ->helperText('Dirección legal o principal de la empresa.')
+                            ->columnSpanFull(),
 
                         TextInput::make('ciudad')
                             ->label('Ciudad')
                             ->maxLength(150)
-                            ->helperText('Ciudad de la oficina principal.'),
+                            ->helperText('Ciudad de la oficina principal.')
+                            ->prefixIcon('heroicon-o-map-pin')
+                            ->columnSpan(2),
 
                         TextInput::make('pais')
                             ->label('País')
                             ->default('Bolivia')
                             ->maxLength(100)
-                            ->helperText('País donde está registrada la empresa.'),
+                            ->helperText('País donde está registrada la empresa.')
+                            ->columnSpan(2),
 
                         TextInput::make('telefono')
                             ->label('Teléfono')
                             ->maxLength(50)
-                            ->helperText('Número fijo o central telefónica.'),
+                            ->helperText('Número fijo o central telefónica.')
+                            ->prefixIcon('heroicon-o-phone')
+                            ->columnSpan(2),
 
                         TextInput::make('celular')
                             ->label('Celular')
                             ->maxLength(50)
-                            ->helperText('Número móvil principal de contacto.'),
+                            ->helperText('Número móvil principal de contacto.')
+                            ->prefixIcon('heroicon-o-device-phone-mobile')
+                            ->columnSpan(2),
 
                         TextInput::make('email')
                             ->label('Email')
                             ->placeholder('contacto@empresa.com')
                             ->email()
                             ->maxLength(150)
-                            ->helperText('Correo general utilizado para comunicaciones empresariales.'),
+                            ->helperText('Correo general utilizado para comunicaciones empresariales.')
+                            ->prefixIcon('heroicon-o-envelope')
+                            ->columnSpan(2),
 
                         TextInput::make('sitio_web')
                             ->label('Sitio Web')
                             ->placeholder('https://empresa.com')
                             ->url()
                             ->maxLength(150)
-                            ->helperText('Dirección web pública de la empresa.'),
+                            ->helperText('Dirección web pública de la empresa.')
+                            ->prefixIcon('heroicon-o-globe-alt')
+                            ->columnSpan(2),
                         TextInput::make('seguro_medico')
                             ->label('Caja de Salud')
                             ->helperText('Entidad de salud que corresponde a sus empleados.')
-                            ->hintIcon('heroicon-o-heart'),
+                            ->hintIcon('heroicon-o-heart')
+                            ->columnSpan(2),
                     ])
-                    ->columns(['default' => 1, 'lg' => 2]),
+                    ->columns(['default' => 1, 'lg' => 6]),
 
                 Section::make('Estado')
                     ->icon('heroicon-o-check-circle')
