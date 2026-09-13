@@ -411,3 +411,69 @@
 .dark .fi-simple-main textarea::placeholder {
     color: #64748b;
 }
+
+/* Detalle de factura: bandas alternadas para separar cada ítem. */
+.sia-factura-items-striped.fi-in-repeatable > .fi-in-repeatable-item {
+    margin-block: 0.35rem;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    padding: 0.85rem;
+}
+.sia-factura-items-striped.fi-in-repeatable > .fi-in-repeatable-item:nth-child(odd) {
+    background: color-mix(in srgb, var(--sia-primary) 5%, var(--sia-surface));
+    border-color: color-mix(in srgb, var(--sia-primary) 13%, var(--sia-border));
+}
+.sia-factura-items-striped.fi-in-repeatable > .fi-in-repeatable-item:nth-child(even) {
+    background: var(--sia-surface-subtle);
+    border-color: var(--sia-border);
+}
+.dark .sia-factura-items-striped.fi-in-repeatable > .fi-in-repeatable-item:nth-child(odd) {
+    background: color-mix(in srgb, var(--sia-primary) 13%, var(--sia-dark-surface));
+    border-color: color-mix(in srgb, var(--sia-primary) 28%, var(--sia-dark-border));
+}
+.dark .sia-factura-items-striped.fi-in-repeatable > .fi-in-repeatable-item:nth-child(even) {
+    background: var(--sia-dark-elevated);
+    border-color: var(--sia-dark-border);
+}
+/* Tarjetas Livewire de la pestaña Comercial del cliente. */
+.sia-cliente-comercial { display: grid; gap: 1rem; }
+.sia-cliente-comercial-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.sia-cliente-comercial-heading h3 { margin: 0; color: var(--sia-text, #0f172a); font-size: 1rem; font-weight: 750; }
+.sia-cliente-comercial-heading p { margin: .2rem 0 0; color: var(--sia-muted, #64748b); font-size: .875rem; }
+.sia-cliente-comercial-live { display: inline-flex; align-items: center; gap: .35rem; color: var(--sia-primary); font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.sia-cliente-comercial-live svg { width: 1rem; height: 1rem; }
+.sia-cliente-comercial-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .85rem; }
+.sia-cliente-metric { min-width: 0; border: 1px solid var(--sia-border); border-radius: .9rem; padding: 1rem; background: var(--sia-surface); box-shadow: 0 .15rem .55rem rgb(15 23 42 / .04); }
+.sia-cliente-metric p, .sia-cliente-metric small { display: block; margin: 0; color: var(--sia-muted, #64748b); }
+.sia-cliente-metric p { margin-top: .85rem; font-size: .8rem; font-weight: 650; }
+.sia-cliente-metric strong { display: block; margin: .3rem 0; color: var(--sia-text, #0f172a); font-size: 1.25rem; letter-spacing: -.025em; }
+.sia-cliente-metric small { font-size: .72rem; line-height: 1.2; }
+.sia-cliente-metric-icon { display: inline-grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: .7rem; }
+.sia-cliente-metric-icon svg { width: 1.2rem; height: 1.2rem; }
+.sia-cliente-metric-primary { border-color: color-mix(in srgb, var(--sia-primary) 25%, var(--sia-border)); background: color-mix(in srgb, var(--sia-primary) 6%, var(--sia-surface)); }
+.sia-cliente-metric-primary .sia-cliente-metric-icon { color: var(--sia-primary); background: color-mix(in srgb, var(--sia-primary) 14%, transparent); }
+.sia-cliente-metric-success { border-color: #86efac; background: #f0fdf4; }
+.sia-cliente-metric-success .sia-cliente-metric-icon { color: #15803d; background: #dcfce7; }
+.sia-cliente-metric-warning { border-color: #fcd34d; background: #fffbeb; }
+.sia-cliente-metric-warning .sia-cliente-metric-icon { color: #b45309; background: #fef3c7; }
+.sia-cliente-metric-info { border-color: #93c5fd; background: #eff6ff; }
+.sia-cliente-metric-info .sia-cliente-metric-icon { color: #1d4ed8; background: #dbeafe; }
+.sia-cliente-metric-neutral .sia-cliente-metric-icon { color: #475569; background: #e2e8f0; }
+.sia-cliente-ultima-factura { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; padding: .75rem 1rem; border-radius: .75rem; background: var(--sia-surface-subtle); color: var(--sia-muted, #64748b); font-size: .8rem; }
+.sia-cliente-ultima-factura svg { width: 1.05rem; height: 1.05rem; color: var(--sia-primary); }
+.sia-cliente-ultima-factura strong { color: var(--sia-text, #0f172a); }
+.sia-cliente-ultima-factura small { margin-left: auto; }
+.sia-cliente-comercial-empty { display: flex; align-items: center; gap: .75rem; border: 1px dashed var(--sia-border); border-radius: .9rem; padding: 1.2rem; color: var(--sia-muted, #64748b); }
+.sia-cliente-comercial-empty svg { width: 1.5rem; height: 1.5rem; color: var(--sia-primary); }
+.sia-cliente-comercial-empty strong { color: var(--sia-text, #0f172a); }
+.sia-cliente-comercial-empty p { margin: .2rem 0 0; font-size: .8rem; }
+.dark .sia-cliente-metric { border-color: var(--sia-dark-border); background: var(--sia-dark-surface); }
+.dark .sia-cliente-metric strong, .dark .sia-cliente-comercial-heading h3, .dark .sia-cliente-ultima-factura strong, .dark .sia-cliente-comercial-empty strong { color: #f8fafc; }
+.dark .sia-cliente-metric-success { border-color: #166534; background: rgb(20 83 45 / .32); }
+.dark .sia-cliente-metric-success .sia-cliente-metric-icon { color: #86efac; background: rgb(22 163 74 / .20); }
+.dark .sia-cliente-metric-warning { border-color: #92400e; background: rgb(120 53 15 / .28); }
+.dark .sia-cliente-metric-warning .sia-cliente-metric-icon { color: #fcd34d; background: rgb(245 158 11 / .18); }
+.dark .sia-cliente-metric-info { border-color: #1e40af; background: rgb(30 58 138 / .25); }
+.dark .sia-cliente-metric-info .sia-cliente-metric-icon { color: #93c5fd; background: rgb(59 130 246 / .18); }
+@media (max-width: 1024px) { .sia-cliente-comercial-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .sia-cliente-comercial-grid { grid-template-columns: 1fr; } .sia-cliente-comercial-heading { align-items: flex-start; flex-direction: column; } .sia-cliente-ultima-factura small { width: 100%; margin-left: 1.5rem; } }

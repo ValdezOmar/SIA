@@ -8,6 +8,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Livewire as LivewireSchema;
 use Exception;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Actions\ActionGroup;
@@ -22,6 +23,7 @@ use App\Filament\Resources\Ventas\ClienteResource\Pages;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\CotizacionesRelationManager;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\FacturasRelationManager;
 use App\Filament\Resources\Ventas\ClienteResource\RelationManagers\PedidosRelationManager;
+use App\Livewire\Ventas\ClienteResumenComercial;
 use App\Models\Inventario\ListaPrecio;
 use App\Models\Sistema\Empresa;
 use App\Models\Ventas\Cliente;
@@ -40,7 +42,6 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\HtmlString;
 
 class ClienteResource extends Resource
 {
@@ -389,38 +390,8 @@ class ClienteResource extends Resource
                                             ]),
                                     ]),
 
-                                Section::make('Información Comercial')
-                                    ->icon('heroicon-o-chart-bar')
-                                    ->schema([
-                                        Placeholder::make('comercial_info')
-                                            ->label('')
-                                            ->content(function ($record) {
-                                                if (! $record) {
-                                                    return 'La información comercial se mostrará después de guardar el cliente.';
-                                                }
-
-                                                return new HtmlString(
-                                                    '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                        <div class="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-lg border border-primary-200 dark:border-primary-800">
-                                                            <p class="text-sm text-primary-600 dark:text-primary-400 font-medium">Total Compras</p>
-                                                            <p class="text-2xl font-bold text-primary-900 dark:text-primary-100">$0.00</p>
-                                                            <p class="text-xs text-primary-500 dark:text-primary-400 mt-1">Histórico de compras</p>
-                                                        </div>
-                                                        <div class="bg-success-50 dark:bg-success-900/20 p-4 rounded-lg border border-success-200 dark:border-success-800">
-                                                            <p class="text-sm text-success-600 dark:text-success-400 font-medium">Compras Realizadas</p>
-                                                            <p class="text-2xl font-bold text-success-900 dark:text-success-100">0</p>
-                                                            <p class="text-xs text-success-500 dark:text-success-400 mt-1">Número de transacciones</p>
-                                                        </div>
-                                                        <div class="bg-warning-50 dark:bg-warning-900/20 p-4 rounded-lg border border-warning-200 dark:border-warning-800">
-                                                            <p class="text-sm text-warning-600 dark:text-warning-400 font-medium">Saldo Pendiente</p>
-                                                            <p class="text-2xl font-bold text-warning-900 dark:text-warning-100">$0.00</p>
-                                                            <p class="text-xs text-warning-500 dark:text-warning-400 mt-1">Facturas pendientes de pago</p>
-                                                        </div>
-                                                    </div>'
-                                                );
-                                            })
-                                            ->columnSpanFull(),
-                                    ]),
+                                LivewireSchema::make(ClienteResumenComercial::class, data: fn (?Cliente $record): array => ['record' => $record])
+                                    ->columnSpanFull(),
                             ]),
 
                         // ========== TAB 4: AUDITORÍA ==========

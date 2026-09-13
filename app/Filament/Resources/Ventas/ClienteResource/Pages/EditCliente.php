@@ -15,5 +15,5 @@ class EditCliente extends EditRecord
         return [
             // Actions\DeleteAction::make(),
         ];
-    }    
+    }
 }

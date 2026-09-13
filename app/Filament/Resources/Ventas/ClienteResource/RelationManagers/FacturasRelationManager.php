@@ -14,6 +14,8 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -312,9 +314,80 @@ class FacturasRelationManager extends RelationManager
             ])
             ->recordActions([
                 ActionGroup::make([
-                    ViewAction::make()
+                    ViewAction::make('ver_factura')
+                        ->label('Ver factura')
+                        ->icon('heroicon-o-eye')
                         ->slideOver()
-                        ->modalWidth('5xl'),
+                        ->modalWidth('7xl')
+                        ->modalHeading(fn (Factura $record): string => 'Factura '.$record->numero)
+                        ->modalDescription('Cabecera comercial, ítems facturados y cobros registrados.')
+                        ->schema([
+                            Section::make('Documento y resumen de cobro')
+                                ->icon('heroicon-o-document-text')
+                                ->schema([
+                                    TextEntry::make('numero')->label('N.º factura')->copyable()->weight('bold'),
+                                    TextEntry::make('serie')->label('Serie')->placeholder('Sin serie'),
+                                    TextEntry::make('fecha_emision')->label('Emitida')->dateTime('d/m/Y H:i'),
+                                    TextEntry::make('fecha_vencimiento')->label('Vencimiento')->date('d/m/Y')->placeholder('Sin vencimiento'),
+                                    TextEntry::make('condicion_pago')->label('Condición')->badge(),
+                                    TextEntry::make('estado')->label('Estado')->badge()->formatStateUsing(fn ($state) => match ($state) {
+                                        'borrador' => 'Borrador', 'emitida' => 'Emitida', 'pagada' => 'Pagada', 'parcial' => 'Parcial', 'vencida' => 'Vencida', 'anulada' => 'Anulada', default => $state,
+                                    })->color(fn ($state) => match ($state) {
+                                        'pagada' => 'success', 'parcial' => 'warning', 'vencida', 'anulada' => 'danger', 'emitida' => 'info', default => 'gray',
+                                    }),
+                                    TextEntry::make('total')->label('Total facturado')->getStateUsing(fn (Factura $record) => self::formatearMonto($record->total, $record->moneda))->weight('bold')->color('primary'),
+                                    TextEntry::make('monto_pagado')->label('Cobrado')->getStateUsing(fn (Factura $record) => self::formatearMonto($record->monto_pagado, $record->moneda))->color('success'),
+                                    TextEntry::make('saldo')->label('Saldo pendiente')->getStateUsing(fn (Factura $record) => self::formatearMonto(max(0, (float) $record->saldo), $record->moneda))->weight('bold')->color(fn (Factura $record) => (float) $record->saldo <= 0 ? 'success' : 'danger'),
+                                    TextEntry::make('moneda')->label('Moneda')->badge(),
+                                    TextEntry::make('tasa_cambio')->label('Tipo de cambio')->numeric(decimalPlaces: 2),
+                                    TextEntry::make('numero_pedido')->label('Pedido vinculado')->placeholder('Venta directa'),
+                                ])->columns(4),
+                            Section::make('Ítems facturados')
+                                ->icon('heroicon-o-shopping-cart')
+                                ->description(fn (Factura $record): string => $record->detalles()->count().' línea(s) de venta.')
+                                ->schema([
+                                    RepeatableEntry::make('detalles')
+                                        ->label('')
+                                        ->contained(false)
+                                        ->extraAttributes(['class' => 'sia-factura-items-striped'])
+                                        ->schema([
+                                            TextEntry::make('codigo_articulo')->label('Código')->weight('bold')->copyable(),
+                                            TextEntry::make('descripcion_articulo')->label('Artículo')->columnSpan(3)->weight('medium'),
+                                            TextEntry::make('cantidad')->label('Cantidad')->numeric(decimalPlaces: 2)->suffix(fn ($record) => ' '.($record->unidad_medida ?: 'UND')),
+                                            TextEntry::make('total')->label('Total línea')->getStateUsing(fn ($record) => self::formatearMonto($record->total, $record->factura?->moneda ?? 'BOB'))->weight('bold')->color('primary'),
+                                            TextEntry::make('precio_unitario')->label('Precio unitario')->getStateUsing(fn ($record) => self::formatearMonto($record->precio_unitario, $record->factura?->moneda ?? 'BOB'))->columnSpan(2),
+                                            TextEntry::make('descuento')->label('Descuento')->getStateUsing(fn ($record) => self::formatearMonto($record->descuento, $record->factura?->moneda ?? 'BOB'))->color('warning'),
+                                            TextEntry::make('impuesto')->label('Impuesto')->getStateUsing(fn ($record) => self::formatearMonto($record->impuesto, $record->factura?->moneda ?? 'BOB')),
+                                            TextEntry::make('series')->label('Series / lote')->getStateUsing(fn ($record) => filled($record->series) ? collect($record->series)->flatten()->implode(', ') : 'Sin serie')->columnSpan(2),
+                                        ])->columns(6),
+                                ]),
+                            Section::make('Cobros registrados')
+                                ->icon('heroicon-o-credit-card')
+                                ->schema([
+                                    RepeatableEntry::make('pagos')
+                                        ->label('')
+                                        ->contained(false)
+                                        ->schema([
+                                            TextEntry::make('numero')->label('Recibo')->copyable()->weight('bold'),
+                                            TextEntry::make('fecha_pago')->label('Fecha')->date('d/m/Y'),
+                                            TextEntry::make('tipo_pago')->label('Método')->badge(),
+                                            TextEntry::make('monto')->label('Importe')->getStateUsing(fn ($record) => self::formatearMonto($record->monto, $record->moneda))->weight('bold')->color('success'),
+                                            TextEntry::make('estado')->label('Estado')->badge()->color(fn ($state) => $state === 'confirmado' ? 'success' : ($state === 'pendiente' ? 'warning' : 'danger')),
+                                            TextEntry::make('referencia')->label('Referencia')->placeholder('Sin referencia')->columnSpan(2),
+                                            TextEntry::make('banco')->label('Banco')->placeholder('No aplica'),
+                                        ])->columns(7),
+                                ])
+                                ->visible(fn (Factura $record): bool => $record->pagos()->exists()),
+                            Section::make('Contexto y observaciones')
+                                ->icon('heroicon-o-chat-bubble-left-ellipsis')
+                                ->schema([
+                                    TextEntry::make('vendedor.name')->label('Vendedor')->placeholder('No asignado'),
+                                    TextEntry::make('cobrador.name')->label('Cobrador')->placeholder('No asignado'),
+                                    TextEntry::make('empresa.nombre_comercial')->label('Empresa')->placeholder('No asignada'),
+                                    TextEntry::make('sucursal.nombre')->label('Sucursal')->placeholder('No asignada'),
+                                    TextEntry::make('observaciones')->label('Observaciones')->placeholder('Sin observaciones registradas.')->columnSpanFull(),
+                                ])->columns(4),
+                        ]),
 
                     Action::make('registrar_pago')
                         ->label('Registrar Pago')
