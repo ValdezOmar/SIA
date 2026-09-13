@@ -25,6 +25,7 @@ class Recepcion extends Model
     protected $casts = [
         'fecha_recepcion' => 'date',
         'inventario_procesado_at' => 'datetime',
+        'tasa_cambio' => 'decimal:6',
     ];
 
     // ========== BOOT ==========
@@ -75,6 +76,11 @@ class Recepcion extends Model
     public function detalles()
     {
         return $this->hasMany(RecepcionDetalle::class)->orderBy('linea');
+    }
+
+    public function gastosAdicionales()
+    {
+        return $this->hasMany(GastoAdicionalCompra::class, 'recepcion_id');
     }
 
     public function creador()
@@ -166,6 +172,11 @@ class Recepcion extends Model
                 throw new RuntimeException('Registre al menos una cantidad aceptada antes de procesar el ingreso.');
             }
 
+            $detallesInventariables = $this->detalles
+                ->filter(fn (RecepcionDetalle $detalle): bool => (float) $detalle->cantidad_aceptada > 0 && (bool) $detalle->articulo?->inventariable)
+                ->values();
+            $gastosProrrateados = $this->prorratearGastosCapitalizables($detallesInventariables);
+
             foreach ($this->detalles as $detalle) {
                 if ($detalle->cantidad_aceptada <= 0) {
                     continue;
@@ -182,13 +193,18 @@ class Recepcion extends Model
                     continue;
                 }
 
-                // Registrar entrada en kardex
+                $gastoAsignado = (float) ($gastosProrrateados[$detalle->id] ?? 0);
+                $costoBase = (float) ($detalle->costo_unitario_base ?: ((float) $detalle->costo_unitario * (float) $this->tasa_cambio));
+                $costoUnitarioInventario = round($costoBase + ($gastoAsignado / max((float) $detalle->cantidad_aceptada, 1)), 6);
+                $detalle->updateQuietly(['costo_unitario_base' => $costoBase, 'gasto_adicional_base' => $gastoAsignado]);
+
+                // Kardex siempre se valoriza en BOB; el detalle conserva el importe original.
                 $kardex = Kardex::registrarEntrada([
                     'articulo_id' => $articulo->id,
                     'almacen_id' => $almacen->id,
                     'tipo_movimiento' => 'compra',
                     'cantidad' => $detalle->cantidad_aceptada,
-                    'costo_unitario' => $detalle->costo_unitario,
+                    'costo_unitario' => $costoUnitarioInventario,
                     'documento_tipo' => 'recepcion',
                     'documento_id' => $this->id,
                     'documento_codigo' => $this->codigo,
@@ -209,8 +225,8 @@ class Recepcion extends Model
                     'almacen_id' => $almacen->id,
                     'tipo' => 'entrada_compra',
                     'cantidad' => $detalle->cantidad_aceptada,
-                    'costo_unitario' => $detalle->costo_unitario,
-                    'costo_total' => $detalle->costo_total,
+                    'costo_unitario' => $costoUnitarioInventario,
+                    'costo_total' => round($costoUnitarioInventario * (float) $detalle->cantidad_aceptada, 6),
                     'documento_tipo' => 'recepcion',
                     'documento_id' => $this->id,
                     'fecha' => now(),
@@ -272,5 +288,20 @@ class Recepcion extends Model
         $this->save();
 
         return $this;
+    }
+    private function prorratearGastosCapitalizables($detalles): array
+    {
+        if ($detalles->isEmpty()) return [];
+        $asignados = $detalles->mapWithKeys(fn (RecepcionDetalle $detalle) => [$detalle->id => 0.0])->all();
+        foreach ($this->gastosAdicionales()->where('capitalizable', true)->get() as $gasto) {
+            $porCantidad = $gasto->criterio_prorrateo === 'cantidad';
+            $factor = fn (RecepcionDetalle $detalle): float => $porCantidad
+                ? (float) $detalle->cantidad_aceptada
+                : (float) $detalle->cantidad_aceptada * (float) ($detalle->costo_unitario_base ?: ((float) $detalle->costo_unitario * (float) $this->tasa_cambio));
+            $denominador = (float) $detalles->sum($factor);
+            if ($denominador <= 0) continue;
+            foreach ($detalles as $detalle) $asignados[$detalle->id] += round((float) $gasto->monto_base * ($factor($detalle) / $denominador), 6);
+        }
+        return $asignados;
     }
 }

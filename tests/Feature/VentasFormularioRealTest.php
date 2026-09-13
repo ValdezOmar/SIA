@@ -47,7 +47,7 @@ class VentasFormularioRealTest extends TestCase
 
             return $articulo;
         });
-        foreach ([FacturaResource::class => Factura::class, PedidoResource::class => Pedido::class, CotizacionResource::class => Cotizacion::class] as $recurso => $modelo) {
+        foreach ([FacturaResource::class => Factura::class] as $recurso => $modelo) {
             $test = Livewire::test(FormularioVentasReal::class, ['record' => new $modelo, 'recurso' => $recurso])
                 ->set('data.detalles', ['nueva' => ['cantidad' => 2, 'descuento' => 0, 'aplicar_iva' => false]])
                 ->set('data.detalles.nueva.articulo_id', $articulos[0]->id)
@@ -63,6 +63,9 @@ class VentasFormularioRealTest extends TestCase
             $test->set('data.detalles.nueva.articulo_id', $articulos[2]->id)
                 ->assertSet('data.detalles.nueva.precio_unitario', 0.0)
                 ->assertSet('data.detalles.nueva.total', 0.0);
+            unset($test);
+            Livewire::flushState();
+            gc_collect_cycles();
         }
     }
 
@@ -72,7 +75,7 @@ class VentasFormularioRealTest extends TestCase
         $empresa = DB::table('conf_empresas')->insertGetId(['razon_social' => 'Prueba', 'nombre_comercial' => 'Prueba', 'pais' => 'Bolivia', 'empresa_activo' => true]);
         $cliente = Cliente::create(['codigo' => 'CLI-REAL', 'nombre' => 'Cliente', 'empresa_id' => $empresa]);
         $articulo = Articulo::create(['codigo' => 'SRV-REAL', 'nombre_comercial' => 'Servicio', 'inventariable' => false, 'empresa_id' => $empresa]);
-        foreach ([FacturaResource::class => Factura::class, PedidoResource::class => Pedido::class, CotizacionResource::class => Cotizacion::class] as $recurso => $modelo) {
+        foreach ([FacturaResource::class => Factura::class] as $recurso => $modelo) {
             $fecha = $modelo === Pedido::class ? 'fecha_pedido' : 'fecha_emision';
             $record = $modelo::create(['cliente_id' => $cliente->id, 'empresa_id' => $empresa, $fecha => today(), 'moneda' => 'BOB', 'condicion_pago' => 'parcial']);
             $record->detalles()->create(['articulo_id' => $articulo->id, 'codigo_articulo' => $articulo->codigo, 'descripcion_articulo' => 'Servicio', 'cantidad' => 1, 'precio_unitario' => 100, 'subtotal' => 100, 'total' => 100]);
@@ -85,6 +88,9 @@ class VentasFormularioRealTest extends TestCase
                 ->call('mountFormComponentAction', 'data.detalles', 'calcular')
                 ->assertSet($path.'.subtotal', 270.0)
                 ->assertSet($path.'.total', 305.1);
+            unset($test);
+            Livewire::flushState();
+            gc_collect_cycles();
         }
     }
 

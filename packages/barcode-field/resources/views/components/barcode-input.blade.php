@@ -3,7 +3,7 @@
         <div class="flex items-center gap-2">
             <x-filament::input.wrapper class="flex-1" :disabled="$isDisabled()" :valid="! $errors->has($getStatePath())">
                 <x-filament::input :id="$getId()" :placeholder="$getPlaceholder()" :disabled="$isDisabled()"
-                    :attributes="$applyStateBindingModifiers(\Illuminate\View\ComponentAttributeBag::make(['wire:model' => $getStatePath()]))" type="text" />
+                    :attributes="$attributes->merge([$applyStateBindingModifiers('wire:model') => $getStatePath()])" type="text" />
             </x-filament::input.wrapper>
             <x-filament::button type="button" icon="heroicon-o-qr-code" x-on:click="open()" :disabled="$isDisabled()">Escanear</x-filament::button>
         </div>

@@ -66,7 +66,10 @@ class ConteosRelationManager extends RelationManager
                         $linea = app(Servicio::class)->buscarCodigo($this->getOwnerRecord(), $data['codigo']);
                         $this->resetTableFiltersForm();
                         $this->resetTableSearch();
-                        $this->replaceMountedTableAction('contar', (string) $linea->id, ['codigo_leido' => trim($data['codigo'])]);
+                        $this->replaceMountedAction('contar', ['codigo_leido' => trim($data['codigo'])], [
+                            'table' => true,
+                            'recordKey' => (string) $linea->id,
+                        ]);
                     }),
             ])->recordActions([
                 Action::make('contar')->label(fn ($record) => $record->cantidad_contada === null ? 'Contar' : 'Recontar')

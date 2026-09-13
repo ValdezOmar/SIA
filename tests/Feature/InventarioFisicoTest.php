@@ -153,10 +153,12 @@ class InventarioFisicoTest extends TestCase
         Livewire::test(ListInventarios::class)->assertSuccessful()->assertCanSeeTableRecords([$inv]);
         Livewire::test(CreateInventario::class)->assertSuccessful();
         Livewire::test(ViewInventario::class, ['record' => $inv->id])->assertSuccessful()->assertSee($inv->codigo);
+        $conteoId = (string) $inv->conteos()->where('articulo_id', $this->articulo->id)->value('id');
         Livewire::test(ConteosRelationManager::class, ['ownerRecord' => $inv->fresh(), 'pageClass' => ViewInventario::class])
             ->callTableAction('escanear', data: ['codigo' => 'ART-01'])
             ->assertHasNoTableActionErrors()
-            ->assertSet('mountedTableActions', ['contar'])
+            ->assertSet('mountedActions.0.name', 'contar')
+            ->assertSet('mountedActions.0.context.recordKey', $conteoId)
             ->setTableActionData(['cantidad_contada' => 5.5])
             ->callMountedTableAction()
             ->assertHasNoTableActionErrors();

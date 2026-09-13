@@ -49,7 +49,7 @@ class RecepcionResource extends Resource
 
     protected static ?string $navigationLabel = 'Recepciones';
 
-    protected static ?string $modelLabel = 'Recepción';
+    protected static ?string $modelLabel = 'RecepciÃƒÆ’Ã‚Â³n';
 
     protected static ?string $pluralModelLabel = 'Recepciones';
 
@@ -69,37 +69,37 @@ class RecepcionResource extends Resource
     {
         return $schema
             ->components([
-                Tabs::make('Gestión de Recepción')
+                Tabs::make('GestiÃƒÆ’Ã‚Â³n de RecepciÃƒÆ’Ã‚Â³n')
                     ->tabs([
                         Tab::make('General')
                             ->icon('heroicon-o-document-text')
                             ->schema([
-                                Section::make('Datos de la Recepción')
+                                Section::make('Datos de la RecepciÃƒÆ’Ã‚Â³n')
                                     ->icon('heroicon-o-inbox')
-                                    ->description('Información principal de la recepción')
+                                    ->description('InformaciÃƒÆ’Ã‚Â³n principal de la recepciÃƒÆ’Ã‚Â³n')
                                     ->schema([
                                         Grid::make(4)
                                             ->schema([
                                                 TextInput::make('codigo')
-                                                    ->label('Código')
+                                                    ->label('CÃƒÆ’Ã‚Â³digo')
                                                     ->required()
                                                     ->readOnly()
                                                     ->dehydrated()
                                                     ->maxLength(50)
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('REC-000001')
-                                                    ->helperText('Código único de la recepción')
+                                                    ->helperText('CÃƒÆ’Ã‚Â³digo ÃƒÆ’Ã‚Âºnico de la recepciÃƒÆ’Ã‚Â³n')
                                                     ->default(fn () => Recepcion::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
                                                 DatePicker::make('fecha_recepcion')
-                                                    ->label('Fecha Recepción')
+                                                    ->label('Fecha RecepciÃƒÆ’Ã‚Â³n')
                                                     ->displayFormat('d/m/Y')
                                                     ->required()
                                                     ->default(now())
                                                     ->native()
-                                                    ->helperText('Fecha de recepción')
+                                                    ->helperText('Fecha de recepciÃƒÆ’Ã‚Â³n')
                                                     ->prefixIcon('heroicon-o-calendar')
                                                     ->columnSpan(1),
 
@@ -121,10 +121,10 @@ class RecepcionResource extends Resource
                                                     ->columnSpan(1),
 
                                                 TextInput::make('guia_remision')
-                                                    ->label('Guía de Remisión')
+                                                    ->label('GuÃƒÆ’Ã‚Â­a de RemisiÃƒÆ’Ã‚Â³n')
                                                     ->maxLength(50)
-                                                    ->placeholder('Número de guía')
-                                                    ->helperText('Número de guía de remisión')
+                                                    ->placeholder('NÃƒÆ’Ã‚Âºmero de guÃƒÆ’Ã‚Â­a')
+                                                    ->helperText('NÃƒÆ’Ã‚Âºmero de guÃƒÆ’Ã‚Â­a de remisiÃƒÆ’Ã‚Â³n')
                                                     ->prefixIcon('heroicon-o-document-text')
                                                     ->columnSpan(1),
                                             ]),
@@ -154,6 +154,8 @@ class RecepcionResource extends Resource
                                                             $orden = OrdenCompra::with('detalles.articulo')->find($state);
                                                             if ($orden) {
                                                                 $set('proveedor_id', $orden->proveedor_id);
+                                                                $set('moneda', $orden->moneda ?? 'BOB');
+                                                                $set('tasa_cambio', $orden->tasa_cambio ?? 1);
 
                                                                 $detalles = [];
                                                                 foreach ($orden->detalles as $detalle) {
@@ -197,19 +199,19 @@ class RecepcionResource extends Resource
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder('Seleccione un proveedor')
-                                                    ->helperText('Proveedor de la recepción')
+                                                    ->helperText('Proveedor de la recepciÃƒÆ’Ã‚Â³n')
                                                     ->prefixIcon('heroicon-o-building-office-2')
                                                     ->disabled()
                                                     ->dehydrated()
                                                     ->columnSpan(1),
 
                                                 Select::make('almacen_id')
-                                                    ->label('Almacén de ingreso')
+                                                    ->label('AlmacÃƒÆ’Ã‚Â©n de ingreso')
                                                     ->options(fn (): array => Almacen::query()->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all())
                                                     ->required()
                                                     ->searchable()
                                                     ->preload()
-                                                    ->helperText('El stock aceptado se ingresará únicamente en este almacén.')
+                                                    ->helperText('El stock aceptado se ingresarÃƒÆ’Ã‚Â¡ ÃƒÆ’Ã‚Âºnicamente en este almacÃƒÆ’Ã‚Â©n.')
                                                     ->prefixIcon('heroicon-o-building-storefront')
                                                     ->columnSpan(1),
 
@@ -217,16 +219,20 @@ class RecepcionResource extends Resource
                                                     ->label('Transportista')
                                                     ->maxLength(100)
                                                     ->placeholder('Nombre del transportista')
-                                                    ->helperText('Transportista de la mercadería')
+                                                    ->helperText('Transportista de la mercaderÃƒÆ’Ã‚Â­a')
                                                     ->prefixIcon('heroicon-o-truck')
                                                     ->columnSpan(1),
                                             ]),
 
+                                        Grid::make(2)->schema([
+                                            Select::make('moneda')->label('Moneda de compra')->options(['BOB' => 'Bolivianos (BOB)', 'USD' => 'DÃƒÆ’Ã‚Â³lares (USD)', 'EUR' => 'Euros (EUR)'])->default('BOB')->required()->live()->afterStateUpdated(fn ($state, callable $set) => $set('tasa_cambio', $state === 'BOB' ? 1 : null))->helperText('Kardex se valoriza en BOB y conserva esta moneda.'),
+                                            TextInput::make('tasa_cambio')->label('Tipo de cambio a BOB')->numeric()->minValue(0.000001)->step(0.000001)->default(1)->required()->disabled(fn ($get): bool => ($get('moneda') ?? 'BOB') === 'BOB')->dehydrated()->helperText('Bolivianos por unidad de compra.'),
+                                        ]),
                                         Textarea::make('observaciones')
                                             ->label('Observaciones')
                                             ->rows(3)
-                                            ->placeholder('Observaciones de la recepción...')
-                                            ->helperText('Información adicional sobre la recepción')
+                                            ->placeholder('Observaciones de la recepciÃƒÆ’Ã‚Â³n...')
+                                            ->helperText('InformaciÃƒÆ’Ã‚Â³n adicional sobre la recepciÃƒÆ’Ã‚Â³n')
                                             ->columnSpanFull(),
                                     ]),
                             ]),
@@ -241,9 +247,9 @@ class RecepcionResource extends Resource
                                 return $record->detalles()->count();
                             })
                             ->schema([
-                                Section::make('Detalle de Recepción')
+                                Section::make('Detalle de RecepciÃƒÆ’Ã‚Â³n')
                                     ->icon('heroicon-o-shopping-bag')
-                                    ->description('Artículos recibidos')
+                                    ->description('ArtÃƒÆ’Ã‚Â­culos recibidos')
                                     ->schema([
                                         CalculoRepeater::make('detalles')->calculo('recepcion')
                                             ->relationship('detalles')
@@ -302,7 +308,7 @@ class RecepcionResource extends Resource
                                                             }),
 
                                                         TextInput::make('articulo_id')
-                                                            ->label('Artículo ID')
+                                                            ->label('ArtÃƒÆ’Ã‚Â­culo ID')
                                                             ->hidden()
                                                             ->dehydrated(),
 
@@ -373,10 +379,10 @@ class RecepcionResource extends Resource
                                                             ->columnSpan(2),
 
                                                         Textarea::make('series')
-                                                            ->label('Números de serie')
+                                                            ->label('NÃƒÆ’Ã‚Âºmeros de serie')
                                                             ->rows(2)
                                                             ->placeholder('SERIE-001, SERIE-002')
-                                                            ->helperText('Una serie por unidad aceptada. Solo para artículos que manejan series.')
+                                                            ->helperText('Una serie por unidad aceptada. Solo para artÃƒÆ’Ã‚Â­culos que manejan series.')
                                                             ->visible(fn ($get) => (bool) (($get('articulo_id') ? Articulo::find($get('articulo_id')) : null)?->maneja_series))
                                                             ->columnSpan(6),
 
@@ -433,7 +439,7 @@ class RecepcionResource extends Resource
                                                 $data['cantidad_aceptada'] = $cantidadAceptada;
                                                 $data['cantidad_rechazada'] = floatval($data['cantidad_rechazada'] ?? 0);
                                                 $data['codigo_articulo'] = $articulo ? $articulo->codigo : ($data['codigo_articulo'] ?? 'SIN_CODIGO');
-                                                $data['descripcion_articulo'] = $articulo ? ($articulo->descripcion ?? $articulo->nombre_comercial ?? 'Sin descripción') : ($data['descripcion_articulo'] ?? '');
+                                                $data['descripcion_articulo'] = $articulo ? ($articulo->descripcion ?? $articulo->nombre_comercial ?? 'Sin descripciÃƒÆ’Ã‚Â³n') : ($data['descripcion_articulo'] ?? '');
                                                 $data['unidad_medida'] = $articulo ? ($articulo->unidadMedida?->abreviatura ?? 'UND') : ($data['unidad_medida'] ?? 'UND');
                                                 $data['costo_total'] = $cantidadAceptada * $costoUnitario;
                                                 $data['series'] = filled($data['series'] ?? null)
@@ -451,6 +457,21 @@ class RecepcionResource extends Resource
                                             }),
                                     ]),
                             ]),
+                        Tab::make('Costos adicionales')->icon('heroicon-o-receipt-percent')->badge(fn ($record) => $record?->gastosAdicionales()->count() ?? 0)->schema([
+                            Section::make('Costos de importaciÃƒÆ’Ã‚Â³n y recepciÃƒÆ’Ã‚Â³n')->icon('heroicon-o-truck')->description('Registre flete, seguros, aranceles, impuestos no recuperables u otros costos antes de procesar inventario. Los gastos capitalizables se prorratean en el costo de los artÃƒÆ’Ã‚Â­culos.')->schema([
+                                Repeater::make('gastosAdicionales')->relationship()->label('')->schema([
+                                    Select::make('tipo')->label('Tipo')->options(['flete' => 'Flete / transporte', 'seguro' => 'Seguro', 'arancel' => 'Arancel', 'impuesto_no_recuperable' => 'Impuesto no recuperable', 'despacho' => 'Despacho aduanero', 'otro' => 'Otro'])->default('otro')->required(),
+                                    TextInput::make('descripcion')->label('DescripciÃƒÆ’Ã‚Â³n')->required()->maxLength(255)->columnSpan(2),
+                                    Select::make('moneda')->label('Moneda')->options(['BOB' => 'BOB', 'USD' => 'USD', 'EUR' => 'EUR'])->default('BOB')->required()->live()->afterStateUpdated(fn ($state, callable $set) => $set('tasa_cambio', $state === 'BOB' ? 1 : null)),
+                                    TextInput::make('tasa_cambio')->label('Cambio a BOB')->numeric()->minValue(0.000001)->default(1)->required()->disabled(fn ($get): bool => ($get('moneda') ?? 'BOB') === 'BOB')->dehydrated(),
+                                    TextInput::make('monto')->label('Importe')->numeric()->minValue(0)->default(0)->required(),
+                                    Select::make('criterio_prorrateo')->label('Prorratear por')->options(['valor' => 'Valor', 'cantidad' => 'Cantidad'])->default('valor')->required(),
+                                    Toggle::make('capitalizable')->label('Incorporar al costo de inventario')->default(true),
+                                    TextInput::make('documento_referencia')->label('Documento de respaldo')->maxLength(100),
+                                    Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
+                                ])->columns(4)->defaultItems(0)->addActionLabel('Agregar gasto')->columnSpanFull(),
+                            ]),
+                        ]),
                     ])
                     ->activeTab(1)
                     ->columnSpanFull(),
@@ -462,11 +483,11 @@ class RecepcionResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('codigo')
-                    ->label('Código')
+                    ->label('CÃƒÆ’Ã‚Â³digo')
                     ->searchable()
                     ->sortable()
                     ->copyable()
-                    ->copyMessage('Código copiado')
+                    ->copyMessage('CÃƒÆ’Ã‚Â³digo copiado')
                     ->toggleable()
                     ->width('120px')
                     ->weight('bold')
@@ -556,12 +577,12 @@ class RecepcionResource extends Resource
                         ->color('success')
                         ->requiresConfirmation()
                         ->modalHeading('Confirmar ingreso a inventario')
-                        ->modalDescription('Revise cantidades aceptadas y almacén. Esta acción crea el kardex una sola vez.')
+                        ->modalDescription('Revise cantidades aceptadas y almacÃƒÆ’Ã‚Â©n. Esta acciÃƒÆ’Ã‚Â³n crea el kardex una sola vez.')
                         ->action(function ($record) {
                             $record->procesarEntradaInventario();
                             Notification::make()
                                 ->title('Ingreso procesado')
-                                ->body('La recepción '.$record->codigo.' ya actualizó el inventario.')
+                                ->body('La recepciÃƒÆ’Ã‚Â³n '.$record->codigo.' ya actualizÃƒÆ’Ã‚Â³ el inventario.')
                                 ->success()
                                 ->send();
                         })
@@ -574,9 +595,9 @@ class RecepcionResource extends Resource
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->defaultSort('created_at', 'desc')
-            ->searchPlaceholder('Buscar recepción...')
+            ->searchPlaceholder('Buscar recepciÃƒÆ’Ã‚Â³n...')
             ->emptyStateHeading('No hay recepciones registradas')
-            ->emptyStateDescription('Crea una recepción para registrar ingreso de mercadería.')
+            ->emptyStateDescription('Crea una recepciÃƒÆ’Ã‚Â³n para registrar ingreso de mercaderÃƒÆ’Ã‚Â­a.')
             ->emptyStateIcon('heroicon-o-inbox')
             ->poll('60s');
     }

@@ -668,7 +668,6 @@ class FacturaResource extends Resource
                                         Repeater::make('detalles')
                                             ->relationship('detalles')
                                             ->label('')
-                                            ->live()
                                             ->schema([
                                                 Grid::make(['default' => 1, 'lg' => 16])
                                                     ->schema([
@@ -708,7 +707,6 @@ class FacturaResource extends Resource
 
                                                         Select::make('lista_precio')
                                                             ->label('Lista de precios')
-                                                            ->key(fn (Get $get): string => 'lista-precio-'.($get('articulo_id') ?: 'sin-articulo'))
                                                             ->options(function ($get) {
                                                                 $articuloId = $get('articulo_id');
                                                                 if (! $articuloId) {
