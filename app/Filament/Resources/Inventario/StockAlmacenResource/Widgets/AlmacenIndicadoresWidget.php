@@ -15,6 +15,11 @@ class AlmacenIndicadoresWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    protected int|array|null $columns = [
+        'md' => 3,
+        'xl' => 5,
+    ];
+
     protected function getHeading(): ?string
     {
         return null;

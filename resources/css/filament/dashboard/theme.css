@@ -291,16 +291,25 @@
 }
 
 .fi-wi-stats-overview .fi-section-content {
-    gap: 1rem;
+    gap: .75rem;
 }
 
 .fi-wi-stats-overview-stat {
-    min-height: 10.75rem;
+    min-height: 7.5rem;
     border: 1px solid color-mix(in srgb, var(--sia-border) 90%, transparent);
     border-radius: .9rem;
     background: var(--sia-surface);
     box-shadow: 0 .2rem .7rem rgb(15 23 42 / .045);
     transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.fi-wi-stats-overview-stat .fi-section-content {
+    padding: .85rem 1rem;
+}
+
+.fi-wi-stats-overview-stat-value {
+    font-size: 1.65rem;
+    line-height: 1.15;
 }
 
 .fi-wi-stats-overview-stat:hover {

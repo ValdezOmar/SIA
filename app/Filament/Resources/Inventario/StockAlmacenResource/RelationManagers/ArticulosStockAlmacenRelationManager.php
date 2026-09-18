@@ -67,7 +67,7 @@ class ArticulosStockAlmacenRelationManager extends RelationManager
                 TextColumn::make('articulo.unidadMedida.abreviatura')
                     ->label('Unidad')
                     ->placeholder('Sin unidad')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('precios_venta')
                     ->label('Precios de venta')
                     ->getStateUsing(fn ($record): array => $record->articulo?->precios
