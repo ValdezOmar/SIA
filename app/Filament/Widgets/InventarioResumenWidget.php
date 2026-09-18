@@ -8,7 +8,6 @@ use App\Filament\Resources\Inventario\TransferenciaAlmacenResource;
 use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Filament\Widgets\Concerns\RendersDashboardSummaryCards;
 use App\Models\Inventario\Existencia;
-use App\Models\Inventario\Lote;
 use App\Models\Inventario\TransferenciaAlmacen;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -48,10 +47,6 @@ class InventarioResumenWidget extends BaseWidget
             ->where('cantidad_minima', '>', 0)
             ->whereColumn('cantidad_disponible', '<=', 'cantidad_minima')
             ->count();
-        $porVencer = $this->scopeLotes(Lote::query())
-            ->whereBetween('fecha_vencimiento', [today(), today()->addDays(30)])
-            ->whereHas('stocks', fn (Builder $query): Builder => $query->where('cantidad', '>', 0))
-            ->count();
         $enTransito = $this->scopeTransfers(TransferenciaAlmacen::query())
             ->where('estado', 'en_transito')
             ->count();
@@ -75,12 +70,6 @@ class InventarioResumenWidget extends BaseWidget
                 ->icon('heroicon-o-arrow-trending-down')
                 ->color($bajoMinimo > 0 ? 'danger' : 'success')
                 ->url(ArticuloResource::getUrl('index')),
-            Stat::make('Lotes por vencer', number_format($porVencer))
-                ->description('Con stock y vencimiento en los próximos 30 días')
-                ->descriptionIcon('heroicon-m-calendar-days')
-                ->icon('heroicon-o-clock')
-                ->color($porVencer > 0 ? 'warning' : 'success')
-                ->url(ArticuloResource::getUrl('index')),
             Stat::make('Transferencias en tránsito', number_format($enTransito))
                 ->description('Pendientes de recepción en almacén destino')
                 ->descriptionIcon('heroicon-m-truck')
@@ -97,14 +86,6 @@ class InventarioResumenWidget extends BaseWidget
     }
 
     private function scopeExistencias(Builder $query): Builder
-    {
-        $empresaId = Auth::user()?->empresa_id;
-
-        return $query->when($empresaId, fn (Builder $query): Builder => $query
-            ->whereHas('articulo', fn (Builder $query): Builder => $query->where('empresa_id', $empresaId)));
-    }
-
-    private function scopeLotes(Builder $query): Builder
     {
         $empresaId = Auth::user()?->empresa_id;
 

@@ -47,7 +47,6 @@ class ContabilidadResumenWidget extends BaseWidget
         $movimientoMes = (float) (clone $asientosMes)
             ->where('estado', 'confirmado')
             ->sum('total_debe');
-        $borradores = (clone $asientosMes)->where('estado', 'borrador')->count();
         $descuadrados = (clone $asientosMes)
             ->where('estado', '!=', 'anulado')
             ->whereRaw('ABS(total_debe - total_haber) > 0.01')
@@ -61,12 +60,6 @@ class ContabilidadResumenWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-check-badge')
                 ->icon('heroicon-o-scale')
                 ->color('success')
-                ->url(AsientoContableResource::getUrl('index')),
-            Stat::make('Asientos por confirmar', number_format($borradores))
-                ->description($borradores > 0 ? 'Pendientes de revisión y autorización' : 'Contabilidad al día')
-                ->descriptionIcon($borradores > 0 ? 'heroicon-m-clock' : 'heroicon-m-check-circle')
-                ->icon('heroicon-o-document-text')
-                ->color($borradores > 0 ? 'warning' : 'success')
                 ->url(AsientoContableResource::getUrl('index')),
             Stat::make('Asientos descuadrados', number_format($descuadrados))
                 ->description($descuadrados > 0 ? 'Requieren corrección inmediata' : 'Todos los asientos están balanceados')

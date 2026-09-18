@@ -95,6 +95,7 @@ class DashboardPanelProvider extends PanelProvider
             ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_AFTER, fn () => view('filament.components.empresa-mail-link'))
             ->renderHook(PanelsRenderHook::HEAD_END, fn () => view('filament.components.ventas-importes-script'))
             ->renderHook(PanelsRenderHook::HEAD_END, fn () => view('filament.components.barcode-assets'))
+            ->renderHook(PanelsRenderHook::HEAD_END, fn () => view('filament.components.chart-value-labels'))
             ->renderHook(PanelsRenderHook::HEAD_END, fn () => view('filament.components.sia-panel-theme', ['appearance' => $appearance]))
             ->plugins($this->plugins()) // Activa permisos y el tema del panel.
             ->userMenuItems($this->userMenuItems()); // Configura las opciones del menú del avatar.

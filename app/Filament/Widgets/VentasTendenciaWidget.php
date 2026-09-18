@@ -4,7 +4,6 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Models\Ventas\Factura;
-use App\Models\Ventas\Pago;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -14,9 +13,9 @@ class VentasTendenciaWidget extends ChartWidget
 {
     use HasWidgetPermission;
 
-    protected ?string $heading = 'Ventas y cobranza · Últimos 6 meses';
+    protected ?string $heading = 'Ventas cobradas · Últimos 6 meses';
 
-    protected ?string $description = 'Compara lo facturado con el efectivo realmente cobrado.';
+    protected ?string $description = 'Ventas cuyo cobro total fue verificado.';
 
     protected static ?int $sort = 60;
 
@@ -33,26 +32,15 @@ class VentasTendenciaWidget extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Facturado (Bs)',
+                    'label' => 'Ventas con cobro verificado (Bs)',
                     'data' => $meses->map(fn (Carbon $mes): float => (float) $this->scopeCompany(Factura::query())
-                        ->where('estado', '!=', 'anulada')
+                        ->where('estado', 'pagada')
                         ->whereBetween('fecha_emision', [$mes, $mes->copy()->endOfMonth()])
                         ->sum('total'))->all(),
-                    'borderColor' => '#16a34a',
-                    'backgroundColor' => 'rgba(22, 163, 74, 0.15)',
-                    'fill' => true,
-                    'tension' => 0.3,
-                ],
-                [
-                    'label' => 'Cobrado (Bs)',
-                    'data' => $meses->map(fn (Carbon $mes): float => (float) $this->scopeCompany(Pago::query())
-                        ->where('estado', 'confirmado')
-                        ->whereBetween('fecha_pago', [$mes, $mes->copy()->endOfMonth()])
-                        ->sum('monto'))->all(),
                     'borderColor' => '#2563eb',
-                    'backgroundColor' => 'rgba(37, 99, 235, 0.12)',
-                    'fill' => true,
-                    'tension' => 0.3,
+                    'backgroundColor' => 'rgba(37, 99, 235, 0.78)',
+                    'borderWidth' => 1,
+                    'borderRadius' => 6,
                 ],
             ],
             'labels' => $meses->map(fn (Carbon $mes): string => ucfirst($mes->translatedFormat('M Y')))->all(),
@@ -61,7 +49,22 @@ class VentasTendenciaWidget extends ChartWidget
 
     protected function getType(): string
     {
-        return 'line';
+        return 'bar';
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'layout' => [
+                'padding' => ['top' => 28],
+            ],
+            'plugins' => [
+                'siaValueLabels' => [
+                    'enabled' => true,
+                    'currency' => 'Bs',
+                ],
+            ],
+        ];
     }
 
     private function scopeCompany(Builder $query): Builder

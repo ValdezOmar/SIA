@@ -9,7 +9,6 @@ use App\Filament\Widgets\Concerns\HasWidgetPermission;
 use App\Filament\Widgets\Concerns\RendersDashboardSummaryCards;
 use App\Models\Ventas\Cotizacion;
 use App\Models\Ventas\Factura;
-use App\Models\Ventas\Pago;
 use App\Models\Ventas\Pedido;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -44,14 +43,10 @@ class VentasResumenWidget extends BaseWidget
         $inicioMes = now()->startOfMonth();
         $finMes = now()->endOfMonth();
         $facturas = $this->scopeCompany(Factura::query());
-        $facturadoMes = (float) (clone $facturas)
-            ->whereBetween('fecha_emision', [$inicioMes, $finMes])
+        $ventasHoy = (clone $facturas)
+            ->whereDate('fecha_emision', today())
             ->where('estado', '!=', 'anulada')
-            ->sum('total');
-        $cobradoMes = (float) $this->scopeCompany(Pago::query())
-            ->where('estado', 'confirmado')
-            ->whereBetween('fecha_pago', [$inicioMes, $finMes])
-            ->sum('monto');
+            ->count();
         $cartera = (float) (clone $facturas)
             ->whereNotIn('estado', ['pagada', 'anulada'])
             ->where('saldo', '>', 0)
@@ -70,17 +65,11 @@ class VentasResumenWidget extends BaseWidget
         $conversion = $totalCotizaciones > 0 ? ($convertidas / $totalCotizaciones) * 100 : 0;
 
         return [
-            Stat::make('Facturación del mes', $this->money($facturadoMes))
-                ->description('Documentos no anulados emitidos este mes')
-                ->descriptionIcon('heroicon-m-arrow-trending-up')
-                ->icon('heroicon-o-banknotes')
-                ->color('success')
-                ->url(FacturaResource::getUrl('index')),
-            Stat::make('Cobrado este mes', $this->money($cobradoMes))
-                ->description('Pagos confirmados recibidos')
-                ->descriptionIcon('heroicon-m-check-badge')
-                ->icon('heroicon-o-wallet')
-                ->color('primary')
+            Stat::make('Ventas realizadas hoy', number_format($ventasHoy))
+                ->description($ventasHoy === 1 ? 'Documento emitido y no anulado hoy' : 'Documentos emitidos y no anulados hoy')
+                ->descriptionIcon('heroicon-m-calendar-days')
+                ->icon('heroicon-o-shopping-bag')
+                ->color($ventasHoy > 0 ? 'success' : 'gray')
                 ->url(FacturaResource::getUrl('index')),
             Stat::make('Cartera por cobrar', $this->money($cartera))
                 ->description($vencido > 0 ? $this->money($vencido).' ya vencidos' : 'Sin saldos vencidos')
