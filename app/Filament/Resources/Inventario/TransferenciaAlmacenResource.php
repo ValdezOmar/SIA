@@ -17,6 +17,7 @@ use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource;
 use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\TransferenciaAlmacen;
+use App\Support\ArticuloSelectOptions;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Components\Repeater;
@@ -72,6 +73,38 @@ class TransferenciaAlmacenResource extends Resource
             ->orderBy('nombre')->pluck('nombre', 'id')->all();
     }
 
+    private static function almacenOrigenUsuario(): ?int
+    {
+        $usuario = Auth::user();
+
+        if (! $usuario?->sucursal_id) {
+            return null;
+        }
+
+        return AlmacenResource::getEloquentQuery()
+            ->activo()
+            ->where('sucursal_id', $usuario->sucursal_id)
+            ->orderBy('nombre')
+            ->value('id');
+    }
+
+    private static function encargadoAlmacen(?int $almacenId): ?int
+    {
+        $sucursalId = Almacen::query()->whereKey($almacenId)->value('sucursal_id');
+
+        if (! $sucursalId) {
+            return null;
+        }
+
+        $deSucursal = fn (Builder $query): Builder => $query->whereHas(
+            'empleado.historialActivo',
+            fn (Builder $historial): Builder => $historial->where('sucursal_id', $sucursalId)
+        );
+
+        return User::query()->role('Almacenes')->where($deSucursal)->orderBy('name')->value('id')
+            ?? User::query()->where($deSucursal)->orderBy('name')->value('id');
+    }
+
     public static function canDelete(Model $record): bool
     {
         return $record->estado === 'borrador';
@@ -79,14 +112,18 @@ class TransferenciaAlmacenResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema
+            ->columns(1)
+            ->components([
             Section::make('Cómo funciona')
                 ->description('1. Prepare el traspaso. 2. Envíelo para descontar el origen. 3. El receptor asignado lo aprueba y el stock ingresa al destino.')
                 ->icon('heroicon-o-information-circle')
                 ->collapsible()
+                ->columnSpanFull()
                 ->schema([]),
             Section::make('Ruta y responsable')
                 ->description('El receptor será la única persona que podrá confirmar o rechazar la recepción.')
+                ->columnSpanFull()
                 ->schema([
                     TextInput::make('codigo')
                         ->label('Código')
@@ -96,6 +133,7 @@ class TransferenciaAlmacenResource extends Resource
                     Select::make('almacen_origen_id')
                         ->label('Almacén de origen')
                         ->options(fn () => self::almacenesOrigen())
+                        ->default(fn (): ?int => self::almacenOrigenUsuario())
                         ->searchable()
                         ->preload()
                         ->required()
@@ -106,7 +144,13 @@ class TransferenciaAlmacenResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required()
+                        ->live()
                         ->different('almacen_origen_id')
+                        ->afterStateUpdated(function ($state, callable $set): void {
+                            if ($encargadoId = self::encargadoAlmacen((int) $state)) {
+                                $set('receptor_id', $encargadoId);
+                            }
+                        })
                         ->helperText('El stock se incrementará sólo después de la aprobación.'),
                     Select::make('receptor_id')
                         ->label('Receptor responsable')
@@ -121,6 +165,7 @@ class TransferenciaAlmacenResource extends Resource
                 ])->columns(4),
             Section::make('Artículos a trasladar')
                 ->description('Indique cantidades disponibles. Para productos con serie o lote, detalle los identificadores para conservar la trazabilidad.')
+                ->columnSpanFull()
                 ->schema([
                     CalculoRepeater::make('detalles')
                         ->relationship()
@@ -136,7 +181,12 @@ class TransferenciaAlmacenResource extends Resource
                                     ->orderBy('codigo')->get()
                                     ->mapWithKeys(fn (Articulo $articulo) => [$articulo->id => $articulo->codigo.' — '.($articulo->nombre_comercial ?: $articulo->descripcion)])
                                     ->all())
+                                ->allowHtml()
+                                ->options(fn (): array => ArticuloSelectOptions::inventariablesSinStock())
+                                ->getSearchResultsUsing(fn (string $search): array => ArticuloSelectOptions::inventariablesSinStock($search))
+                                ->getOptionLabelUsing(fn ($value): ?string => ArticuloSelectOptions::labelSinStock($value))
                                 ->searchable()
+                                ->preload()
                                 ->required()
                                 ->live()
                                 ->helperText('Seleccione el producto que saldrá del almacén origen.'),
@@ -163,6 +213,7 @@ class TransferenciaAlmacenResource extends Resource
                         ])->columns(2),
                 ]),
             Section::make('Observaciones')
+                ->columnSpanFull()
                 ->schema([
                     Textarea::make('observaciones')
                         ->label('Nota para el receptor')

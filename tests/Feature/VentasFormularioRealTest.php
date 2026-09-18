@@ -6,9 +6,11 @@ use DOMDocument;
 use DOMXPath;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Schemas\Schema;
+use Filament\Facades\Filament;
 use App\Filament\Resources\Ventas\CotizacionResource;
 use App\Filament\Resources\Ventas\FacturaResource;
 use App\Filament\Resources\Ventas\PedidoResource;
+use App\Filament\Resources\Ventas\PedidoResource\Pages\EditPedido;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Existencia;
@@ -120,6 +122,44 @@ class VentasFormularioRealTest extends TestCase
             ->set('data.condicion_pago', 'parcial')
             ->set('data.cliente_id', $clientes[1]->id)
             ->assertSet('data.condicion_pago', 'parcial');
+    }
+
+    public function test_pagina_de_edicion_de_pedido_hidrata_sin_agotar_memoria(): void
+    {
+        $empresa = DB::table('conf_empresas')->insertGetId([
+            'razon_social' => 'Empresa pedidos',
+            'nombre_comercial' => 'Pedidos',
+            'pais' => 'Bolivia',
+            'empresa_activo' => true,
+        ]);
+        $usuario = User::factory()->create();
+        $cliente = Cliente::create(['codigo' => 'CLI-EDIT', 'nombre' => 'Cliente edición', 'empresa_id' => $empresa]);
+        $articulo = Articulo::create(['codigo' => 'ART-EDIT', 'nombre_comercial' => 'Artículo edición', 'empresa_id' => $empresa, 'inventariable' => false]);
+        $pedido = Pedido::create([
+            'cliente_id' => $cliente->id,
+            'empresa_id' => $empresa,
+            'fecha_pedido' => today(),
+            'moneda' => 'BOB',
+            'condicion_pago' => 'parcial',
+            'estado' => 'pendiente',
+        ]);
+        $pedido->detalles()->create([
+            'articulo_id' => $articulo->id,
+            'codigo_articulo' => $articulo->codigo,
+            'descripcion_articulo' => $articulo->nombre_comercial,
+            'cantidad' => 1,
+            'precio_unitario' => 100,
+            'subtotal' => 100,
+            'impuesto' => 0,
+            'total' => 100,
+        ]);
+
+        Filament::setCurrentPanel(Filament::getPanel('dashboard'));
+        $this->actingAs($usuario);
+
+        Livewire::test(EditPedido::class, ['record' => $pedido->getKey()])
+            ->assertStatus(200)
+            ->assertHasNoFormErrors();
     }
 
     public function test_selector_de_articulos_muestra_stock_y_su_estado_visual(): void

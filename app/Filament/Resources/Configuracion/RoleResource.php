@@ -126,7 +126,9 @@ class RoleResource extends Resource
             ->components([
                 Grid::make()
                     ->schema([
-                        Section::make()
+                        Section::make('Datos del rol')
+                            ->description('Defina el nombre y el guardia de autenticación antes de asignar permisos.')
+                            ->columnSpanFull()
                             ->schema([
                                 TextInput::make('name')
                                     ->label(__('filament-shield::filament-shield.field.name'))
@@ -151,10 +153,7 @@ class RoleResource extends Resource
                                 static::getSelectAllFormComponent(),
 
                             ])
-                            ->columns([
-                                'sm' => 2,
-                                'lg' => 3,
-                            ]),
+                            ->columns(2),
                     ]),
                 static::getShieldFormComponents(),
             ]);

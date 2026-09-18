@@ -82,6 +82,8 @@ class StockAlmacenResource extends Resource
 
     public static function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
+        return $schema->components([]);
+
         return $schema->components([
             Section::make('Resumen del almacén')
                 ->description('Este módulo consulta disponibilidad por artículo. Las cantidades se registran desde Compras, Ventas o Kardex para conservar su historial.')

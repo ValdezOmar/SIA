@@ -63,11 +63,25 @@ class ArticuloSelectOptions
      */
     public static function sinStock(?string $search = null): array
     {
+        return self::opcionesSinStock($search);
+    }
+
+    /**
+     * Selector sin disponibilidad para movimientos físicos de inventario.
+     */
+    public static function inventariablesSinStock(?string $search = null): array
+    {
+        return self::opcionesSinStock($search, soloInventariables: true);
+    }
+
+    private static function opcionesSinStock(?string $search = null, bool $soloInventariables = false): array
+    {
         $user = Auth::user();
 
         return Articulo::query()
             ->with('fabricante:id,nombre,codigo')
             ->where('activo', true)
+            ->when($soloInventariables, fn ($query) => $query->where('inventariable', true))
             ->when($user?->empresa_id, fn ($query) => $query->where('empresa_id', $user->empresa_id))
             ->when(filled($search), function ($query) use ($search): void {
                 $query->where(function ($query) use ($search): void {

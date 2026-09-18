@@ -195,6 +195,8 @@ class PedidoResource extends Resource
                 Section::make('Empresa y sucursal')
                     ->description('El empleado no tiene una asignación laboral activa. Indique dónde se registrará este pedido.')
                     ->visible(fn (): bool => blank(Auth::user()?->empresa_id) || blank(Auth::user()?->sucursal_id))
+                    ->columnSpanFull()
+                    ->columns(2)
                     ->schema([
                         Select::make('empresa_id')
                             ->label('Empresa')
@@ -206,9 +208,10 @@ class PedidoResource extends Resource
                                 ->all())
                             ->default(fn (): ?int => Auth::user()?->empresa_id ?? Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))
                             ->required()->searchable()->preload()->live()
-                            ->afterStateUpdated(fn (callable $set) => $set('sucursal_id', null)),
+                            ->afterStateUpdated(fn (callable $set) => $set('sucursal_id', null))
+                            ->columnSpan(1),
                         Select::make('sucursal_id')->label('Sucursal')->options(fn (callable $get): array => filled($get('empresa_id')) ? Sucursal::query()->where('empresa_id', $get('empresa_id'))->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all() : [])->required()->searchable()->preload()->disabled(fn (callable $get): bool => blank($get('empresa_id'))),
-                    ])->columns(2),
+                    ]),
                 Tabs::make('Gestión de Pedido')
                     ->tabs([
 
@@ -482,7 +485,7 @@ class PedidoResource extends Resource
                                                         return self::formatearMonto($totales['impuesto'], $moneda);
                                                     }),
 
-                                                Placeholder::make('costo_envio')
+                                                Placeholder::make('costo_envio_resumen')
                                                     ->label('Costo Envío')
                                                     ->content(function ($get, $record) {
                                                         $moneda = $get('moneda') ?? 'BOB';
@@ -1077,10 +1080,7 @@ class PedidoResource extends Resource
                 Group::make('sucursal.nombre')->label('Sucursal')->collapsible(),
             ])
             ->recordActions([
-                ActionGroup::make([
-                    EditAction::make()
-                        ->slideOver()
-                        ->modalWidth('7xl'),
+                ActionGroup::make([                  
 
                     ViewAction::make()
                         ->slideOver()

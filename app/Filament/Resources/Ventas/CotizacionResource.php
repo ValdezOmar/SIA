@@ -69,8 +69,8 @@ class CotizacionResource extends Resource
         $usuario = Auth::user();
 
         return $query
-            ->when($usuario?->empresa_id, fn ($builder, $empresaId) => $builder->where('empresa_id', $empresaId))
-            ->when($usuario?->sucursal_id, fn ($builder, $sucursalId) => $builder->where('sucursal_id', $sucursalId));
+            ->when($usuario?->empresa_id, fn($builder, $empresaId) => $builder->where('empresa_id', $empresaId))
+            ->when($usuario?->sucursal_id, fn($builder, $sucursalId) => $builder->where('sucursal_id', $sucursalId));
     }
 
     // ========== MÉTODOS DE CÁLCULO ==========
@@ -159,7 +159,7 @@ class CotizacionResource extends Resource
     {
         $simbolo = self::getSimboloMoneda($moneda);
 
-        return $simbolo.' '.number_format($monto ?? 0, 2);
+        return $simbolo . ' ' . number_format($monto ?? 0, 2);
     }
 
     private static function formatearMontoHtml($monto, $moneda, $clase = ''): HtmlString
@@ -167,8 +167,8 @@ class CotizacionResource extends Resource
         $simbolo = self::getSimboloMoneda($moneda);
 
         return new HtmlString(
-            '<span class="'.$clase.'">'.
-                $simbolo.' '.number_format($monto ?? 0, 2).
+            '<span class="' . $clase . '">' .
+                $simbolo . ' ' . number_format($monto ?? 0, 2) .
                 '</span>'
         );
     }
@@ -179,21 +179,35 @@ class CotizacionResource extends Resource
             ->components([
                 Section::make('Empresa y sucursal')
                     ->description('El empleado no tiene una asignación laboral activa. Indique dónde se registrará esta cotización.')
-                    ->visible(fn (): bool => blank(Auth::user()?->empresa_id) || blank(Auth::user()?->sucursal_id))
+                    ->visible(fn(): bool => blank(Auth::user()?->empresa_id) || blank(Auth::user()?->sucursal_id))
+                    ->columns(2)
                     ->schema([
                         Select::make('empresa_id')
                             ->label('Empresa')
-                            ->options(fn (): array => Empresa::query()
+                            ->options(fn(): array => Empresa::query()
                                 ->where('empresa_activo', true)
-                                ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->whereKey($empresaId))
+                                ->when(Auth::user()?->empresa_id, fn($query, $empresaId) => $query->whereKey($empresaId))
                                 ->orderByRaw('COALESCE(nombre_comercial, razon_social)')
                                 ->pluck('nombre_comercial', 'id')
                                 ->all())
-                            ->default(fn (): ?int => Auth::user()?->empresa_id ?? Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))
-                            ->required()->searchable()->preload()->live()
-                            ->afterStateUpdated(fn (callable $set) => $set('sucursal_id', null)),
-                        Select::make('sucursal_id')->label('Sucursal')->options(fn (callable $get): array => filled($get('empresa_id')) ? Sucursal::query()->where('empresa_id', $get('empresa_id'))->where('activo', true)->orderBy('nombre')->pluck('nombre', 'id')->all() : [])->required()->searchable()->preload()->disabled(fn (callable $get): bool => blank($get('empresa_id'))),
-                    ])->columns(2),
+                            ->default(fn(): ?int => Auth::user()?->empresa_id ?? Empresa::query()->where('empresa_activo', true)->orderBy('id')->value('id'))
+                            ->required()
+                            ->searchable()
+                            ->preload()
+                            ->live()
+                            ->afterStateUpdated(fn(callable $set) => $set('sucursal_id', null))
+                            ->columnSpan(1),
+                        Select::make('sucursal_id')
+                            ->label('Sucursal')->options(fn(callable $get): array => filled($get('empresa_id')) ? Sucursal::query()
+                                ->where('empresa_id', $get('empresa_id'))
+                                ->where('activo', true)->orderBy('nombre')
+                                ->pluck('nombre', 'id')->all() : [])
+                            ->required()
+                            ->searchable()
+                            ->preload()
+                            ->columnSpan(1)
+                            ->disabled(fn(callable $get): bool => blank($get('empresa_id'))),
+                    ])->columnSpanFull(),
                 Tabs::make('Gestión de Cotización')
                     ->tabs([
 
@@ -216,7 +230,7 @@ class CotizacionResource extends Resource
                                                     ->unique(ignoreRecord: true)
                                                     ->placeholder('COT-000001')
                                                     ->helperText('Código único de la cotización')
-                                                    ->default(fn () => Cotizacion::generarCodigo())
+                                                    ->default(fn() => Cotizacion::generarCodigo())
                                                     ->prefixIcon('heroicon-o-hashtag')
                                                     ->columnSpan(1),
 
@@ -281,9 +295,9 @@ class CotizacionResource extends Resource
                                             ->schema([
                                                 Select::make('cliente_id')
                                                     ->label('Cliente')
-                                                    ->options(fn (Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id))
-                                                    ->getSearchResultsUsing(fn (string $search, Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id, $search))
-                                                    ->getOptionLabelUsing(fn ($value, Get $get) => ClienteSelectOptions::seleccionado($value, $get('empresa_id') ?? Auth::user()?->empresa_id))
+                                                    ->options(fn(Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id))
+                                                    ->getSearchResultsUsing(fn(string $search, Get $get) => ClienteSelectOptions::ventas($get('empresa_id') ?? Auth::user()?->empresa_id, $search))
+                                                    ->getOptionLabelUsing(fn($value, Get $get) => ClienteSelectOptions::seleccionado($value, $get('empresa_id') ?? Auth::user()?->empresa_id))
                                                     ->required()
                                                     ->searchable()
                                                     ->preload()
@@ -302,7 +316,7 @@ class CotizacionResource extends Resource
                                                         }
                                                     })
                                                     ->createOptionForm(ClienteRegistroForm::schema())
-                                                    ->createOptionAction(fn (Action $action): Action => $action
+                                                    ->createOptionAction(fn(Action $action): Action => $action
                                                         ->modalHeading('Registrar o reutilizar cliente')
                                                         ->modalDescription('Si el celular ya pertenece a un cliente, se usará ese registro y no se creará un duplicado.')
                                                         ->modalSubmitActionLabel('Continuar con este cliente'))
@@ -372,8 +386,8 @@ class CotizacionResource extends Resource
                                                     ->step(1.00)
                                                     ->helperText('Tasa de cambio aplicada')
                                                     ->prefixIcon('heroicon-o-arrow-path')
-                                                    ->formatStateUsing(fn ($state) => self::formatearNumero($state, 6))
-                                                    ->visible(fn ($get) => $get('moneda') !== 'BOB')
+                                                    ->formatStateUsing(fn($state) => self::formatearNumero($state, 6))
+                                                    ->visible(fn($get) => $get('moneda') !== 'BOB')
                                                     ->columnSpan(1),
 
                                                 TextInput::make('condicion_pago')
@@ -461,9 +475,9 @@ class CotizacionResource extends Resource
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
                                                             ->allowHtml()
-                                                            ->options(fn () => ArticuloSelectOptions::ventas())
-                                                            ->getSearchResultsUsing(fn (string $search): array => ArticuloSelectOptions::ventas($search))
-                                                            ->getOptionLabelUsing(fn ($value): ?string => ArticuloSelectOptions::label($value))
+                                                            ->options(fn() => ArticuloSelectOptions::ventas())
+                                                            ->getSearchResultsUsing(fn(string $search): array => ArticuloSelectOptions::ventas($search))
+                                                            ->getOptionLabelUsing(fn($value): ?string => ArticuloSelectOptions::label($value))
                                                             ->required()
                                                             ->searchable()
                                                             ->allowHtml()
@@ -507,8 +521,8 @@ class CotizacionResource extends Resource
                                                                     return [];
                                                                 }
 
-                                                                return $precios->mapWithKeys(fn ($item, $key) => [
-                                                                    $key => $item['nombre'].' - '.number_format($item['precio'], 2).' '.$item['moneda'],
+                                                                return $precios->mapWithKeys(fn($item, $key) => [
+                                                                    $key => $item['nombre'] . ' - ' . number_format($item['precio'], 2) . ' ' . $item['moneda'],
                                                                 ])->toArray();
                                                             })
                                                             // ->visible(fn($get) => $get('articulo_id') !== null)
@@ -540,7 +554,7 @@ class CotizacionResource extends Resource
                                                             ->step(1.00)
                                                             ->default(1)
                                                             // ->prefixIcon('heroicon-o-numbered-list')
-                                                            ->formatStateUsing(fn ($state) => (int) $state) // Siempre entero
+                                                            ->formatStateUsing(fn($state) => (int) $state) // Siempre entero
                                                             ->live()
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $state = intval($state);
@@ -562,7 +576,7 @@ class CotizacionResource extends Resource
                                                                 'class' => '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
                                                             ])
                                                             ->default(0)
-                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
                                                             ->live(onBlur: true)
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
@@ -593,7 +607,7 @@ class CotizacionResource extends Resource
                                                             ->suffix('%')
                                                             ->prefixIcon('heroicon-o-percent-badge')
                                                             ->live()
-                                                            ->formatStateUsing(fn ($state) => $state !== null ? (int) $state : 0) // Convertir a entero
+                                                            ->formatStateUsing(fn($state) => $state !== null ? (int) $state : 0) // Convertir a entero
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -613,10 +627,10 @@ class CotizacionResource extends Resource
                                                             ->minValue(0)
                                                             ->step(1.00)
                                                             ->default(0)
-                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefix(fn($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->prefixIcon('heroicon-o-gift')
                                                             ->live()
-                                                            ->formatStateUsing(fn ($state) => number_format($state ?? 0, 2, '.', '')) // Formatear a 2 decimales
+                                                            ->formatStateUsing(fn($state) => number_format($state ?? 0, 2, '.', '')) // Formatear a 2 decimales
                                                             ->afterStateUpdated(function ($state, callable $set, $get) {
                                                                 $cantidad = floatval($get('cantidad') ?? 1);
                                                                 $precio = floatval($get('precio_unitario') ?? 0);
@@ -656,8 +670,8 @@ class CotizacionResource extends Resource
                                                                 $total = floatval($get('total') ?? 0);
 
                                                                 return new HtmlString(
-                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">'.
-                                                                        self::formatearMonto($total, $moneda).
+                                                                    '<span class="text-lg font-bold text-success-600 dark:text-success-400">' .
+                                                                        self::formatearMonto($total, $moneda) .
                                                                         '</span>'
                                                                 );
                                                             })
@@ -761,12 +775,12 @@ class CotizacionResource extends Resource
                                             ->schema([
                                                 Placeholder::make('creado_por')
                                                     ->label('Creado por')
-                                                    ->content(fn ($record) => $record?->creador?->name ?? 'N/A')
+                                                    ->content(fn($record) => $record?->creador?->name ?? 'N/A')
                                                     ->columnSpan(1),
 
                                                 Placeholder::make('created_at')
                                                     ->label('Fecha creación')
-                                                    ->content(fn ($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
+                                                    ->content(fn($record) => $record?->created_at?->format('d/m/Y H:i') ?? 'N/A')
                                                     ->columnSpan(1),
                                             ]),
                                     ]),
@@ -823,17 +837,17 @@ class CotizacionResource extends Resource
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->color(fn ($state) => $state && $state < now() ? 'danger' : 'success'),
+                    ->color(fn($state) => $state && $state < now() ? 'danger' : 'success'),
 
                 BadgeColumn::make('estado')
                     ->label('Estado')
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        'borrador' => '📝 Borrador',
-                        'enviada' => '📤 Enviada',
-                        'aprobada' => '✅ Aprobada',
-                        'rechazada' => '❌ Rechazada',
-                        'convertida' => '🔄 Convertida',
-                        'expirada' => '⏰ Expirada',
+                    ->formatStateUsing(fn($state) => match ($state) {
+                        'borrador' => 'Borrador',
+                        'enviada' => 'Enviada',
+                        'aprobada' => 'Aprobada',
+                        'rechazada' => 'Rechazada',
+                        'convertida' => 'Convertida',
+                        'expirada' => 'Expirada',
                         default => $state,
                     })
                     ->colors([
@@ -849,7 +863,7 @@ class CotizacionResource extends Resource
                 // Cantidad de Items (mejorado)
                 TextColumn::make('total_items')
                     ->label('Items')
-                    ->getStateUsing(fn ($record) => $record->detalles()->count())
+                    ->getStateUsing(fn($record) => $record->detalles()->count())
                     ->badge()
                     ->color('info')
                     ->sortable()
@@ -867,7 +881,7 @@ class CotizacionResource extends Resource
                             default => $moneda,
                         };
 
-                        return $simbolo.' '.number_format($state ?? 0, 2);
+                        return $simbolo . ' ' . number_format($state ?? 0, 2);
                     })
                     ->sortable()
                     ->toggleable(),
@@ -888,17 +902,17 @@ class CotizacionResource extends Resource
             ->filters([
                 SelectFilter::make('empresa_id')
                     ->label('Empresa')
-                    ->options(fn (): array => Empresa::query()
-                        ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->whereKey($empresaId))
+                    ->options(fn(): array => Empresa::query()
+                        ->when(Auth::user()?->empresa_id, fn($query, $empresaId) => $query->whereKey($empresaId))
                         ->orderBy('nombre_comercial')->pluck('nombre_comercial', 'id')->all())
                     ->searchable()
                     ->preload(),
 
                 SelectFilter::make('sucursal_id')
                     ->label('Sucursal')
-                    ->options(fn (): array => Sucursal::query()
-                        ->when(Auth::user()?->empresa_id, fn ($query, $empresaId) => $query->where('empresa_id', $empresaId))
-                        ->when(Auth::user()?->sucursal_id, fn ($query, $sucursalId) => $query->whereKey($sucursalId))
+                    ->options(fn(): array => Sucursal::query()
+                        ->when(Auth::user()?->empresa_id, fn($query, $empresaId) => $query->where('empresa_id', $empresaId))
+                        ->when(Auth::user()?->sucursal_id, fn($query, $sucursalId) => $query->whereKey($sucursalId))
                         ->orderBy('nombre')->pluck('nombre', 'id')->all())
                     ->searchable()
                     ->preload(),
@@ -934,9 +948,9 @@ class CotizacionResource extends Resource
                     ->trueLabel('Cotizaciones vigentes')
                     ->falseLabel('Cotizaciones expiradas')
                     ->queries(
-                        true: fn ($query) => $query->where('fecha_validez', '>=', now()->toDateString())
+                        true: fn($query) => $query->where('fecha_validez', '>=', now()->toDateString())
                             ->whereIn('estado', ['enviada', 'aprobada']),
-                        false: fn ($query) => $query->where(function ($q) {
+                        false: fn($query) => $query->where(function ($q) {
                             $q->where('fecha_validez', '<', now()->toDateString())
                                 ->orWhereIn('estado', ['rechazada', 'expirada']);
                         }),
@@ -954,7 +968,7 @@ class CotizacionResource extends Resource
 
                     ViewAction::make()
                         ->slideOver()
-                        ->modalWidth('7xl'),                    
+                        ->modalWidth('7xl'),
 
                     Action::make('convertir_pedido')
                         ->label('Convertir a Pedido')
@@ -968,7 +982,7 @@ class CotizacionResource extends Resource
                                 $pedido = $record->convertirPedido();
                                 Notification::make()
                                     ->title('Cotización convertida a pedido')
-                                    ->body('El pedido '.$pedido->codigo.' ha sido creado exitosamente.')
+                                    ->body('El pedido ' . $pedido->codigo . ' ha sido creado exitosamente.')
                                     ->success()
                                     ->send();
 
@@ -981,7 +995,7 @@ class CotizacionResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn ($record) => $record->estado === 'aprobada'), 
+                        ->visible(fn($record) => $record->estado === 'aprobada'),
 
                     Action::make('rechazar')
                         ->label('Rechazar')
@@ -995,7 +1009,7 @@ class CotizacionResource extends Resource
                                 ->warning()
                                 ->send();
                         })
-                        ->visible(fn ($record) => $record->estado === 'enviada'),
+                        ->visible(fn($record) => $record->estado === 'enviada'),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

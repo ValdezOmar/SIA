@@ -72,8 +72,11 @@ class UserResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema
+            ->columns(1)
+            ->components([
             Section::make('Datos de acceso')
+                ->columnSpanFull()
                 ->description('Estos datos permiten identificar e iniciar sesión en el sistema.')
                 ->schema([
                     TextInput::make('name')
@@ -104,6 +107,7 @@ class UserResource extends Resource
                 ])->columns(2),
 
             Section::make('Nivel de acceso')
+                ->columnSpanFull()
                 ->description('El rol define a qué módulos y acciones puede acceder esta persona.')
                 ->schema([
                     Select::make('roles')
