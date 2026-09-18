@@ -100,9 +100,16 @@ class AnalisisComercialWidget extends Widget
         $stocks = DB::table('alm_existencias')
             ->selectRaw('articulo_id, SUM(cantidad_disponible) stock')
             ->groupBy('articulo_id');
+        $costosPorDetalle = DB::table('alm_kardex')
+            ->selectRaw('documento_id, documento_detalle_id, SUM(costo_total) as total_costo')
+            ->where('documento_tipo', 'venta')
+            ->where('tipo_movimiento', 'venta')
+            ->where('direccion', 'salida')
+            ->where('estado', 'confirmado')
+            ->groupBy('documento_id', 'documento_detalle_id');
 
         $this->filas = match ($this->pestana) {
-            'rentables' => $this->filasDeArticulo($detalles(), $stocks, 'SUM(d.subtotal * COALESCE(f.tasa_cambio, 1)) venta', 'venta', 'Bs '),
+            'rentables' => $this->filasRentables($detalles(), $stocks, $costosPorDetalle),
             'clientes' => (clone $facturas)
                 ->join('ven_clientes as c', 'c.id', '=', 'f.cliente_id')
                 ->selectRaw('c.nombre, SUM(f.subtotal * COALESCE(f.tasa_cambio, 1)) compra')
@@ -138,6 +145,40 @@ class AnalisisComercialWidget extends Widget
                 'valor' => $campo === 'unidades'
                     ? number_format($fila->{$campo}, 2, ',', '.').' unidades'
                     : $prefijo.number_format($fila->{$campo}, 2, ',', '.'),
+            ])
+            ->all();
+    }
+
+    private function filasRentables($detalles, $stocks, $costosPorDetalle): array
+    {
+        $ventaPorDetalle = 'COALESCE(d.subtotal, 0) * COALESCE(f.tasa_cambio, 1)';
+        $costoPorDetalle = 'COALESCE(costos.total_costo, 0)';
+        $gananciaPorDetalle = DB::connection()->getDriverName() === 'sqlite'
+            ? "MAX(0, {$ventaPorDetalle} - {$costoPorDetalle})"
+            : "GREATEST(0, {$ventaPorDetalle} - {$costoPorDetalle})";
+
+        return $detalles
+            ->leftJoin('alm_articulos as art', 'art.id', '=', 'd.articulo_id')
+            ->leftJoin('alm_fabricantes as fab', 'fab.id', '=', 'art.fabricante_id')
+            ->leftJoinSub($stocks, 'stock', fn ($join) => $join->on('stock.articulo_id', '=', 'art.id'))
+            ->leftJoinSub($costosPorDetalle, 'costos', fn ($join) => $join
+                ->on('f.id', '=', 'costos.documento_id')
+                ->on('d.id', '=', 'costos.documento_detalle_id'))
+            ->selectRaw("MAX(d.codigo_articulo) codigo, MAX(art.nombre_comercial) nombre, MAX(art.codigo_alterno) modelo, MAX(art.foto_catalogo) foto, MAX(fab.nombre) marca, MAX(stock.stock) stock, SUM({$ventaPorDetalle}) venta, SUM({$costoPorDetalle}) costo, SUM({$gananciaPorDetalle}) ganancia")
+            ->groupBy('d.articulo_id')
+            ->orderByDesc('ganancia')
+            ->limit(5)
+            ->get()
+            ->map(fn ($fila): array => [
+                'codigo' => $fila->codigo,
+                'principal' => $fila->nombre,
+                'modelo' => $fila->modelo,
+                'marca' => $fila->marca,
+                'stock' => $fila->stock,
+                'foto' => $fila->foto ? Storage::disk('public')->url($fila->foto) : null,
+                'costo' => 'Costo: Bs '.number_format((float) $fila->costo, 2, ',', '.'),
+                'ganancia' => 'Ganancia: Bs '.number_format((float) $fila->ganancia, 2, ',', '.'),
+                'valor' => 'Venta: Bs '.number_format((float) $fila->venta, 2, ',', '.'),
             ])
             ->all();
     }
