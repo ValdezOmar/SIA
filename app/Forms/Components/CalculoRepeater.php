@@ -17,10 +17,10 @@ class CalculoRepeater extends Repeater
         parent::setUp();
         $this->hintAction(Action::make('calcular')
             ->label('Calcular totales')->icon('heroicon-o-calculator')
-            ->action(fn (CalculoRepeater $component) => $component->calcular())
+            ->action(fn () => $this->calcular())
             ->successRedirectUrl('')
-            ->visible(fn (CalculoRepeater $component) => $component->tipoCalculo !== null));
-        $this->beforeStateDehydrated(fn (CalculoRepeater $component) => $component->calcular(), shouldUpdateValidatedStateAfter: true);
+            ->visible(fn () => $this->tipoCalculo !== null));
+        $this->beforeStateDehydrated(fn () => $this->calcular(), shouldUpdateValidatedStateAfter: true);
     }
 
     public function calculo(?string $tipo): static
@@ -106,6 +106,10 @@ class CalculoRepeater extends Repeater
     {
         $data = CalculoDetalle::calcular($data, $this->tipoCalculo, $this->getStatePath());
         unset($data['_descuento_tipo']);
+        if ($this->tipoCalculo === 'compra') {
+            // El porcentaje solo existe en el formulario; cmp_facturas_compra_detalle guarda el importe.
+            unset($data['descuento_porcentaje'], $data['aplicar_iva']);
+        }
 
         return $data;
     }

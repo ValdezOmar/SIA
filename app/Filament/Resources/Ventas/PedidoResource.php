@@ -1085,38 +1085,7 @@ class PedidoResource extends Resource
                     ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
-
-                    Action::make('reservar_stock')
-                        ->label('Reservar stock')
-                        ->icon('heroicon-o-lock-closed')
-                        ->color('warning')
-                        ->requiresConfirmation()
-                        ->modalDescription('Compromete los productos para este cliente sin descontarlos del almacén.')
-                        ->action(function ($record): void {
-                            try {
-                                $record->reservarInventario();
-                                $record->update(['estado' => 'reservado']);
-                                Notification::make()->title('Stock reservado')->success()->send();
-                            } catch (RuntimeException $exception) {
-                                Notification::make()
-                                    ->title('No se pudo reservar el stock')
-                                    ->body($exception->getMessage())
-                                    ->danger()
-                                    ->persistent()
-                                    ->send();
-                            }
-                        })
-                        ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente'], true)),
-
-                    Action::make('preparar')
-                        ->label('Preparar entrega')
-                        ->icon('heroicon-o-archive-box')
-                        ->color('info')
-                        ->requiresConfirmation()
-                        ->modalDescription('Indica que el stock reservado debe ser preparado para la entrega. La salida se realizará al facturar y confirmar la entrega.')
-                        ->action(fn ($record) => $record->update(['estado' => 'pendiente']))
-                        ->visible(fn ($record): bool => $record->estado === 'reservado'),
-
+                    
                     Action::make('confirmar_entrega')
                         ->label('Confirmar entrega')
                         ->icon('heroicon-o-truck')
@@ -1143,27 +1112,7 @@ class PedidoResource extends Resource
                             $record->liberarReservaInventario();
                             $record->update(['estado' => 'cancelado', 'observaciones' => trim(($record->observaciones ? $record->observaciones."\n" : '').'Cancelado: '.$data['motivo'])]);
                         })
-                        ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente', 'parcial'], true)),
-
-                    Action::make('duplicate')
-                        ->label('Duplicar')
-                        ->icon('heroicon-o-document-duplicate')
-                        ->color('info')
-                        ->action(function ($record) {
-                            $newRecord = $record->replicate();
-                            $newRecord->codigo = Pedido::generarCodigo();
-                            $newRecord->created_at = now();
-                            $newRecord->updated_at = now();
-                            $newRecord->save();
-
-                            Notification::make()
-                                ->title('Pedido duplicado exitosamente')
-                                ->success()
-                                ->send();
-                        }),
-
-                    DeleteAction::make()
-                        ->visible(fn ($record): bool => $record->estado === 'cancelado'),
+                        ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente', 'parcial'], true)),                   
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

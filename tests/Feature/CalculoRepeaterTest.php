@@ -53,7 +53,19 @@ class CalculoRepeaterTest extends TestCase
 
     public function test_calculos_de_compras_recepcion_y_solicitud(): void
     {
-        $this->assertSame(203.4, CalculoDetalle::calcular(['cantidad' => 2, 'precio_unitario' => 100, 'descuento' => 20], 'compra')['total']);
+        $this->assertSame(180.0, CalculoDetalle::calcular(['cantidad' => 2, 'precio_unitario' => 100, 'descuento' => 20], 'compra')['total']);
+        $this->assertSame(180.0, CalculoDetalle::calcular(['cantidad' => 2, 'precio_unitario' => 100, 'descuento' => 20, 'aplicar_iva' => false], 'compra')['total']);
+        $compraConPorcentaje = CalculoDetalle::calcular([
+            'cantidad' => 2,
+            'precio_unitario' => 100,
+            'descuento_porcentaje' => 10,
+            '_descuento_tipo' => 'porcentaje',
+            'aplicar_iva' => true,
+        ], 'compra');
+        $this->assertSame(20.0, $compraConPorcentaje['descuento']);
+        $this->assertSame(180.0, $compraConPorcentaje['subtotal']);
+        $this->assertSame(23.4, $compraConPorcentaje['impuesto']);
+        $this->assertSame(203.4, $compraConPorcentaje['total']);
         $this->assertSame(12.5, CalculoDetalle::calcular(['cantidad_aceptada' => 5, 'costo_unitario' => 2.5], 'recepcion')['costo_total']);
         $this->assertSame(7.5, CalculoDetalle::calcular(['cantidad' => 3, 'precio_estimado' => 2.5], 'solicitud')['subtotal']);
     }
@@ -74,6 +86,7 @@ class CalculoRepeaterTest extends TestCase
             ->assertSet($path.'.descuento_porcentaje', 5.0)->assertSet($path.'.total', 285.0)
             ->assertSet('data.total', 285.0);
     }
+
 }
 
 class FormularioCalculoPrueba extends Component implements HasForms

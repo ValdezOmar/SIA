@@ -954,24 +954,7 @@ class CotizacionResource extends Resource
 
                     ViewAction::make()
                         ->slideOver()
-                        ->modalWidth('7xl'),
-
-                    Action::make('duplicate')
-                        ->label('Duplicar')
-                        ->icon('heroicon-o-document-duplicate')
-                        ->color('info')
-                        ->action(function ($record) {
-                            $newRecord = $record->replicate();
-                            $newRecord->codigo = Cliente::generarCodigo();
-                            $newRecord->created_at = now();
-                            $newRecord->updated_at = now();
-                            $newRecord->save();
-
-                            Notification::make()
-                                ->title('Cliente duplicado exitosamente')
-                                ->success()
-                                ->send();
-                        }),
+                        ->modalWidth('7xl'),                    
 
                     Action::make('convertir_pedido')
                         ->label('Convertir a Pedido')
@@ -998,35 +981,7 @@ class CotizacionResource extends Resource
                                     ->send();
                             }
                         })
-                        ->visible(fn ($record) => $record->estado === 'aprobada'),
-
-                    Action::make('enviar')
-                        ->label('Enviar')
-                        ->icon('heroicon-o-paper-airplane')
-                        ->color('info')
-                        ->action(function ($record) {
-                            $record->update(['estado' => 'enviada']);
-                            Notification::make()
-                                ->title('Cotización enviada')
-                                ->body('La cotización ha sido enviada al cliente.')
-                                ->success()
-                                ->send();
-                        })
-                        ->visible(fn ($record) => $record->estado === 'borrador'),
-
-                    Action::make('aprobar')
-                        ->label('Aprobar')
-                        ->icon('heroicon-o-check')
-                        ->color('success')
-                        ->action(function ($record) {
-                            $record->update(['estado' => 'aprobada']);
-                            Notification::make()
-                                ->title('Cotización aprobada')
-                                ->body('La cotización ha sido aprobada.')
-                                ->success()
-                                ->send();
-                        })
-                        ->visible(fn ($record) => $record->estado === 'enviada'),
+                        ->visible(fn ($record) => $record->estado === 'aprobada'), 
 
                     Action::make('rechazar')
                         ->label('Rechazar')

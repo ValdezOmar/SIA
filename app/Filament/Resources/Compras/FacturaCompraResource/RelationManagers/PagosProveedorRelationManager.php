@@ -55,7 +55,9 @@ class PagosProveedorRelationManager extends RelationManager
                 TextColumn::make('tipo_pago')->label('Método')->badge(),
                 TextColumn::make('monto')->label('Monto')->money(fn () => $this->getOwnerRecord()->moneda ?? 'BOB'),
                 TextColumn::make('referencia')->label('Referencia')->placeholder('Sin referencia'),
-                TextColumn::make('respaldos')->label('Respaldos')->formatStateUsing(fn ($state) => count($state ?? []).' archivo(s)'),
+                TextColumn::make('respaldos')
+                    ->label('Respaldos')
+                    ->formatStateUsing(fn ($state) => self::contarRespaldos($state).' archivo(s)'),
                 TextColumn::make('estado')->label('Estado')->badge(),
             ])
             ->headerActions([
@@ -81,5 +83,20 @@ class PagosProveedorRelationManager extends RelationManager
             ->toolbarActions([])
             ->emptyStateHeading('Aún no hay pagos')
             ->emptyStateDescription('Registre el pago y adjunte su respaldo para actualizar el saldo.');
+    }
+    /** Acepta registros antiguos con texto y los nuevos con JSON o array. */
+    public static function contarRespaldos(mixed $respaldos): int
+    {
+        if (is_array($respaldos)) {
+            return count($respaldos);
+        }
+
+        if (! is_string($respaldos) || blank($respaldos)) {
+            return 0;
+        }
+
+        $json = json_decode($respaldos, true);
+
+        return is_array($json) ? count($json) : 1;
     }
 }

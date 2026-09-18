@@ -57,6 +57,43 @@ class ArticuloSelectOptions
         return $articulo ? self::format($articulo) : null;
     }
 
+    /**
+     * Selector comercial reutilizable para compras: conserva foto, código,
+     * modelo, nombre y marca, pero nunca expone disponibilidad.
+     */
+    public static function sinStock(?string $search = null): array
+    {
+        $user = Auth::user();
+
+        return Articulo::query()
+            ->with('fabricante:id,nombre,codigo')
+            ->where('activo', true)
+            ->when($user?->empresa_id, fn ($query) => $query->where('empresa_id', $user->empresa_id))
+            ->when(filled($search), function ($query) use ($search): void {
+                $query->where(function ($query) use ($search): void {
+                    $query->where('codigo', 'like', "%{$search}%")
+                        ->orWhere('codigo_alterno', 'like', "%{$search}%")
+                        ->orWhere('nombre_comercial', 'like', "%{$search}%")
+                        ->orWhere('descripcion', 'like', "%{$search}%")
+                        ->orWhereHas('fabricante', fn ($fabricante) => $fabricante
+                            ->where('nombre', 'like', "%{$search}%")
+                            ->orWhere('codigo', 'like', "%{$search}%"));
+                });
+            })
+            ->orderBy('codigo')
+            ->limit(50)
+            ->get()
+            ->mapWithKeys(fn (Articulo $articulo) => [$articulo->getKey() => self::formatSinStock($articulo)])
+            ->all();
+    }
+
+    public static function labelSinStock(mixed $value): ?string
+    {
+        $articulo = Articulo::query()->with('fabricante:id,nombre,codigo')->find($value);
+
+        return $articulo ? self::formatSinStock($articulo) : null;
+    }
+
     public static function format(Articulo $articulo): string
     {
         return self::formatArticulo($articulo, mostrarStock: true);

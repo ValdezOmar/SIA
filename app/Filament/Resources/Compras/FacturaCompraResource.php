@@ -8,7 +8,9 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 use App\Forms\Components\CalculoRepeater;
+use App\Forms\Components\ImporteVenta;
 use App\Support\CalculoDetalle;
+use App\Support\ArticuloSelectOptions;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\Action;
@@ -31,6 +33,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -39,6 +42,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
+use Illuminate\Database\Eloquent\Model;
 
 class FacturaCompraResource extends Resource
 {
@@ -54,7 +58,18 @@ class FacturaCompraResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Facturas de Compra';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 3;
+
+    public static function canEdit(Model $record): bool
+    {
+        return ! in_array($record->estado, ['parcial', 'pagada', 'anulada'], true)
+            && ! $record->pagos()->where('estado', 'confirmado')->exists();
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return $record->estado === 'borrador' && ! $record->pagos()->exists();
+    }
 
     private static function getSimboloMoneda($moneda = 'BOB'): string
     {
@@ -99,8 +114,20 @@ class FacturaCompraResource extends Resource
                                                     ->label('Código')
                                                     ->required()
                                                     ->disabled()
+                                                    ->dehydrated()
                                                     ->maxLength(50)
-                                                    ->unique(ignoreRecord: true)
+                                                    ->rule(function () {
+                                                        return function (string $attribute, mixed $value, \Closure $fail): void {
+                                                            $duplicada = FacturaCompra::query()
+                                                                ->where('codigo', $value)
+                                                                ->whereHas('detalles')
+                                                                ->exists();
+
+                                                            if ($duplicada) {
+                                                                $fail('Ya existe una factura completa con este código.');
+                                                            }
+                                                        };
+                                                    })
                                                     ->placeholder('FAC-000001')
                                                     ->helperText('Código único de la factura')
                                                     ->default(fn () => FacturaCompra::generarCodigo())
@@ -127,6 +154,7 @@ class FacturaCompraResource extends Resource
 
                                                 Select::make('estado')
                                                     ->label('Estado')
+                                                    ->disabled()
                                                     ->dehydrated()
                                                     ->options([
                                                         'borrador' => 'Borrador',
@@ -136,8 +164,6 @@ class FacturaCompraResource extends Resource
                                                     ->default('borrador')
                                                     ->required()
                                                     ->searchable()
-                                                    ->live()
-                                                    ->disabledOn('edit')
                                                     ->helperText('Estado actual')
                                                     ->prefixIcon('heroicon-o-tag')
                                                     ->columnSpan(1),
@@ -204,7 +230,7 @@ class FacturaCompraResource extends Resource
                                             // ->required(fn ($get): bool => in_array($get('estado'), ['registrada', 'parcial', 'pagada'], true))
                                             ->columnSpanFull(),
 
-                                        Grid::make(3)
+                                        Grid::make(4)
                                             ->schema([
                                                 Select::make('moneda')
                                                     ->label('Moneda')
@@ -216,8 +242,23 @@ class FacturaCompraResource extends Resource
                                                     ->default('BOB')
                                                     ->required()
                                                     ->searchable()
+                                                    ->live()
+                                                    ->afterStateUpdated(fn ($state, callable $set) => $set('tasa_cambio', $state === 'BOB' ? 1 : null))
                                                     ->helperText('Moneda de la factura')
                                                     ->prefixIcon('heroicon-o-currency-dollar')
+                                                    ->columnSpan(1),
+
+                                                TextInput::make('tasa_cambio')
+                                                    ->label('Tipo de cambio a BOB')
+                                                    ->numeric()
+                                                    ->minValue(0.000001)
+                                                    ->step(0.000001)
+                                                    ->default(1)
+                                                    ->required(fn ($get): bool => ($get('moneda') ?? 'BOB') !== 'BOB')
+                                                    ->disabled(fn ($get): bool => ($get('moneda') ?? 'BOB') === 'BOB')
+                                                    ->dehydrated()
+                                                    ->helperText('Cantidad de bolivianos equivalente a una unidad de la moneda seleccionada.')
+                                                    ->prefixIcon('heroicon-o-arrows-right-left')
                                                     ->columnSpan(1),
 
                                                 DatePicker::make('fecha_vencimiento')
@@ -229,11 +270,11 @@ class FacturaCompraResource extends Resource
                                                     ->prefixIcon('heroicon-o-calendar-days')
                                                     ->columnSpan(1),
 
-                                                TextInput::make('condicion_pago')
-                                                    ->label('Condición de Pago')
-                                                    ->maxLength(100)
-                                                    ->placeholder('Crédito 30 días')
-                                                    ->helperText('Condiciones de pago')
+                                                Select::make('condicion_pago')
+                                                    ->label('Condicion de pago')
+                                                    ->options(['contado' => 'Contado', 'parcial' => 'Pago parcial', 'credito' => 'Credito'])
+                                                    ->default('contado')->required()->live()
+                                                    ->helperText('Contado registra el total. Pago parcial registra el abono y mantiene el saldo pendiente.')
                                                     ->prefixIcon('heroicon-o-credit-card')
                                                     ->columnSpan(1),
                                             ]),
@@ -312,21 +353,21 @@ class FacturaCompraResource extends Resource
                                     ]),
 
                                 Section::make('Pago y respaldo')
-                                    ->description(fn ($get) => $get('estado') === 'pagada'
+                                    ->description(fn ($get) => $get('condicion_pago') === 'contado'
                                         ? 'Al guardar se registrará un pago único por el total de la factura.'
                                         : 'Indique el importe abonado hoy y adjunte su respaldo. El saldo podrá completarse después desde Pagos y respaldos.')
                                     ->icon('heroicon-o-paper-clip')
-                                    ->visible(fn ($get) => in_array($get('estado'), ['pagada', 'parcial'], true))
+                                    ->visible(fn ($get) => in_array($get('condicion_pago'), ['contado', 'parcial'], true))
                                     ->schema([
                                         TextInput::make('pago_monto')->label('Monto abonado ahora')->numeric()->minValue(0.01)
-                                            ->visible(fn ($get) => $get('estado') === 'parcial')
-                                            ->required(fn ($get) => $get('estado') === 'parcial')
+                                            ->visible(fn ($get) => $get('condicion_pago') === 'parcial')
+                                            ->required(fn ($get) => $get('condicion_pago') === 'parcial')
                                             ->helperText('Debe ser menor que el total de la factura; el saldo quedará pendiente.'),
-                                        DatePicker::make('pago_fecha')->label('Fecha de pago')->default(today())->required(fn ($get) => in_array($get('estado'), ['pagada', 'parcial'], true)),
+                                        DatePicker::make('pago_fecha')->label('Fecha de pago')->default(today())->required(fn ($get) => in_array($get('condicion_pago'), ['contado', 'parcial'], true)),
                                         Select::make('pago_tipo')->label('Método de pago')->options([
                                             'efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'cheque' => 'Cheque',
                                             'deposito' => 'Depósito', 'nota_credito' => 'Nota de crédito', 'otros' => 'Otro',
-                                        ])->required(fn ($get) => in_array($get('estado'), ['pagada', 'parcial'], true)),
+                                        ])->default('efectivo')->required(fn ($get) => in_array($get('condicion_pago'), ['contado', 'parcial'], true)),
                                         TextInput::make('pago_referencia')->label('Referencia del comprobante')->maxLength(100),
                                         FileUpload::make('pago_respaldos')->label('Respaldos del pago')->multiple()
                                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
@@ -362,98 +403,134 @@ class FacturaCompraResource extends Resource
                                             ->label('')
                                             ->live()
                                             ->schema([
-                                                Grid::make(['default' => 1, 'lg' => 12])
+                                                Grid::make(['default' => 1, 'lg' => 16])
                                                     ->schema([
                                                         Select::make('articulo_id')
                                                             ->label('Artículo')
-                                                            ->options(
-                                                                fn () => Articulo::where('activo', true)
-                                                                    ->orderBy('codigo')
-                                                                    ->get()
-                                                                    ->mapWithKeys(fn ($item) => [
-                                                                        $item->id => $item->codigo.' - '.($item->nombre_comercial ?? $item->descripcion ?? 'Sin descripción'),
-                                                                    ])
-                                                                    ->toArray()
-                                                            )
+                                                            ->allowHtml()
+                                                            ->options(fn (): array => ArticuloSelectOptions::sinStock())
+                                                            ->getSearchResultsUsing(fn (string $search): array => ArticuloSelectOptions::sinStock($search))
+                                                            ->getOptionLabelUsing(fn ($value): ?string => ArticuloSelectOptions::labelSinStock($value))
                                                             ->required()
-                                                            ->searchable(['codigo', 'descripcion', 'nombre_comercial'])
+                                                            ->searchable()
                                                             ->preload()
-                                                            ->placeholder('Buscar artículo...')
+                                                            ->placeholder('Busque por código, modelo, nombre o marca')
                                                             ->prefixIcon('heroicon-o-cube')
-                                                            ->columnSpan(4)
-                                                            ->reactive()
-                                                            ->afterStateUpdated(function ($state, callable $set) {
-                                                                if ($state) {
-                                                                    $articulo = Articulo::find($state);
-                                                                    if ($articulo) {
-                                                                        $set('codigo_articulo', $articulo->codigo);
-                                                                        $set('descripcion_articulo', $articulo->descripcion ?? $articulo->nombre_comercial ?? '');
-                                                                        $set('unidad_medida', $articulo->unidadMedida?->abreviatura ?? 'UND');
-                                                                    }
+                                                            ->helperText('La lista muestra foto, código, modelo, nombre comercial y marca.')
+                                                            ->columnSpan(6)
+                                                            ->live()
+                                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                                if ($state && ($articulo = Articulo::find($state))) {
+                                                                    $set('codigo_articulo', $articulo->codigo);
+                                                                    $set('descripcion_articulo', $articulo->descripcion ?? $articulo->nombre_comercial ?? '');
+                                                                    $set('unidad_medida', $articulo->unidadMedida?->abreviatura ?? 'UND');
                                                                 }
+                                                                self::recalcularLineaCompra($set, $get);
                                                             }),
 
                                                         TextInput::make('cantidad')
-                                                            ->label('Cantidad')
+                                                            ->label('Cant.')
                                                             ->numeric()
                                                             ->required()
                                                             ->minValue(0.01)
+                                                            ->maxValue(999999)
                                                             ->step(0.01)
                                                             ->default(1)
-                                                            ->placeholder('0.00')
                                                             ->prefixIcon('heroicon-o-numbered-list')
-                                                            ->live()
-                                                            ->afterStateUpdated(function ($state, callable $set, $get) {
-                                                                self::recalcularTotales($set, $get);
+                                                            ->live(onBlur: true)
+                                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                                self::recalcularLineaCompra($set, $get);
                                                             })
-                                                            ->columnSpan(2),
+                                                            ->columnSpan(4),
 
                                                         TextInput::make('precio_unitario')
-                                                            ->label('Precio Unit.')
+                                                            ->label('Precio unit.')
                                                             ->numeric()
+                                                            ->type('text')
                                                             ->required()
                                                             ->minValue(0)
+                                                            ->maxValue(999999.99)
                                                             ->step(0.01)
+                                                            ->inputMode('decimal')
                                                             ->default(0)
-                                                            ->placeholder('0.00')
                                                             ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
                                                             ->helperText('Precio por unidad')
-                                                            ->live()
-                                                            ->afterStateUpdated(function ($state, callable $set, $get) {
-                                                                self::recalcularTotales($set, $get);
+                                                            ->live(onBlur: true)
+                                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                                self::recalcularLineaCompra($set, $get);
                                                             })
-                                                            ->columnSpan(2),
+                                                            ->columnSpan(4),
 
-                                                        TextInput::make('descuento')
-                                                            ->label('Descuento')
-                                                            ->numeric()
-                                                            ->minValue(0)
-                                                            ->step(0.01)
-                                                            ->default(0)
-                                                            ->placeholder('0.00')
-                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
-                                                            ->prefixIcon('heroicon-o-gift')
-                                                            ->live()
-                                                            ->afterStateUpdated(function ($state, callable $set, $get) {
-                                                                self::recalcularTotales($set, $get);
-                                                            })
-                                                            ->columnSpan(2),
-
-                                                        Placeholder::make('subtotal_linea')
+                                                        ImporteVenta::make('subtotal_linea')
                                                             ->label('Subtotal neto')
-                                                            ->content(function ($get) {
-                                                                $moneda = $get('../../moneda') ?? 'BOB';
-                                                                $cantidad = floatval($get('cantidad') ?? 0);
-                                                                $precio = floatval($get('precio_unitario') ?? 0);
-                                                                $descuento = floatval($get('descuento') ?? 0);
-                                                                $subtotal = ($cantidad * $precio) - $descuento;
-
-                                                                return self::formatearMonto($subtotal, $moneda);
-                                                            })
+                                                            ->content(fn ($get) => self::formatearMonto($get('subtotal') ?? 0, $get('../../moneda') ?? 'BOB'))
                                                             ->extraAttributes(['class' => 'font-bold'])
                                                             ->columnSpan(2),
                                                     ]),
 
+                                                Grid::make(['default' => 1, 'lg' => 16])
+                                                    ->schema([
+                                                        TextInput::make('descuento_porcentaje')
+                                                            ->label('Descuento %')
+                                                            ->numeric()
+                                                            ->type('text')
+                                                            ->minValue(0)
+                                                            ->maxValue(100)
+                                                            ->step(0.01)
+                                                            ->inputMode('decimal')
+                                                            ->default(0)
+                                                            ->suffix('%')
+                                                            ->prefixIcon('heroicon-o-percent-badge')
+                                                            ->live(onBlur: true)
+                                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                                $set('_descuento_tipo', 'porcentaje');
+                                                                self::recalcularLineaCompra($set, $get);
+                                                            })
+                                                            ->columnSpan(3),
+
+                                                        TextInput::make('descuento')
+                                                            ->label('Descuento')
+                                                            ->numeric()
+                                                            ->type('text')
+                                                            ->minValue(0)
+                                                            ->maxValue(fn ($get) => round(floatval($get('cantidad') ?? 0) * floatval($get('precio_unitario') ?? 0), 2))
+                                                            ->step(0.01)
+                                                            ->inputMode('decimal')
+                                                            ->default(0)
+                                                            ->prefix(fn ($get) => self::getSimboloMoneda($get('../../moneda') ?? 'BOB'))
+                                                            ->prefixIcon('heroicon-o-gift')
+                                                            ->live(onBlur: true)
+                                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                                $set('_descuento_tipo', 'importe');
+                                                                self::recalcularLineaCompra($set, $get);
+                                                            })
+                                                            ->columnSpan(3),
+
+                                                        Toggle::make('aplicar_iva')
+                                                            ->label('IVA 13%')
+                                                            ->default(false)
+                                                            ->helperText('Incluye crédito fiscal en esta línea.')
+                                                            ->live()
+                                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                                self::recalcularLineaCompra($set, $get);
+                                                            })
+                                                            ->columnSpan(4),
+
+                                                        ImporteVenta::make('impuesto_linea')
+                                                            ->label('IVA')
+                                                            ->content(fn ($get) => self::formatearMonto($get('impuesto') ?? 0, $get('../../moneda') ?? 'BOB'))
+                                                            ->columnSpan(4),
+
+                                                        ImporteVenta::make('total_con_iva')
+                                                            ->label('Total')
+                                                            ->content(function ($get) {
+                                                                $moneda = $get('../../moneda') ?? 'BOB';
+
+                                                                return new HtmlString('<span class="text-lg font-bold text-success-600 dark:text-success-400">'.self::formatearMonto($get('total') ?? 0, $moneda).'</span>');
+                                                            })
+                                                            ->extraAttributes(['class' => 'flex items-center'])
+                                                            ->columnSpan(2),
+                                                    ]),
                                                 TextInput::make('observaciones')
                                                     ->label('Observaciones')
                                                     ->maxLength(255)
@@ -473,19 +550,13 @@ class FacturaCompraResource extends Resource
                                                     $articulo = Articulo::find($data['articulo_id']);
                                                 }
 
-                                                $cantidad = floatval($data['cantidad'] ?? 1);
-                                                $precio = floatval($data['precio_unitario'] ?? 0);
-                                                $descuento = floatval($data['descuento'] ?? 0);
-                                                $subtotal = ($cantidad * $precio) - $descuento;
-                                                $impuesto = $subtotal * 0.13;
-                                                $total = $subtotal + $impuesto;
+                                                $data = CalculoDetalle::calcular($data, 'compra');
 
                                                 $data['codigo_articulo'] = $articulo ? $articulo->codigo : 'SIN_CODIGO';
                                                 $data['descripcion_articulo'] = $articulo ? ($articulo->descripcion ?? $articulo->nombre_comercial ?? 'Sin descripción') : '';
                                                 $data['unidad_medida'] = $articulo ? ($articulo->unidadMedida?->abreviatura ?? 'UND') : 'UND';
-                                                $data['subtotal'] = $subtotal;
-                                                $data['impuesto'] = $impuesto;
-                                                $data['total'] = $total;
+                                                // Es un campo visual del repetidor; esta tabla persiste el importe de descuento.
+                                                unset($data['descuento_porcentaje'], $data['_descuento_tipo']);
 
                                                 return $data;
                                             }),
@@ -559,6 +630,25 @@ class FacturaCompraResource extends Resource
         $set('total', $totales['total']);
     }
 
+    /** Mantiene la misma regla de cálculo que Facturas de Venta para cada línea. */
+    private static function recalcularLineaCompra(callable $set, callable $get): void
+    {
+        $linea = CalculoDetalle::calcular([
+            'cantidad' => $get('cantidad') ?? 0,
+            'precio_unitario' => $get('precio_unitario') ?? 0,
+            'descuento' => $get('descuento') ?? 0,
+            'descuento_porcentaje' => $get('descuento_porcentaje') ?? 0,
+            '_descuento_tipo' => $get('_descuento_tipo') ?? 'importe',
+            'aplicar_iva' => $get('aplicar_iva') ?? false,
+        ], 'compra');
+
+        foreach (['descuento', 'subtotal', 'impuesto', 'total'] as $campo) {
+            $set($campo, $linea[$campo]);
+        }
+
+        $base = round((float) ($linea['cantidad'] ?? 0) * (float) ($linea['precio_unitario'] ?? 0), 6);
+        $set('descuento_porcentaje', $base > 0 ? round(((float) $linea['descuento'] / $base) * 100, 6) : 0);
+    }
     public static function table(Table $table): Table
     {
         return $table

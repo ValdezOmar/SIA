@@ -106,6 +106,45 @@ class SolicitudCompraResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        return $schema->components([
+            Section::make('Datos de la solicitud')
+                ->schema([
+                    TextInput::make('codigo')->default(fn (): string => SolicitudCompra::generarCodigo())->required()->readOnly()->dehydrated(),
+                    DatePicker::make('fecha_solicitud')->default(now())->required(),
+                    DatePicker::make('fecha_requerida')->default(now()->addDays(7)),
+                    Select::make('solicitado_por')->relationship('solicitante', 'name')->default(Auth::id())->required()->searchable(),
+                    Select::make('area_id')->options(fn (): array => Area::query()->orderBy('nombre')->pluck('nombre', 'id')->all())->searchable(),
+                    Select::make('prioridad')->options(['baja' => 'Baja', 'normal' => 'Normal', 'alta' => 'Alta', 'urgente' => 'Urgente'])->default('normal')->required(),
+                    Textarea::make('justificacion')->columnSpanFull(),
+                    Textarea::make('observaciones')->columnSpanFull(),
+                ])->columns(3),
+            Section::make('Articulos solicitados')
+                ->description('Indique el articulo, la cantidad y el precio referencial para iniciar la compra.')
+                ->schema([
+                    Repeater::make('detalles')
+                        ->relationship('detalles')
+                        ->defaultItems(1)
+                        ->schema([
+                            Select::make('articulo_id')
+                                ->options(fn (): array => Articulo::query()->where('activo', true)->orderBy('codigo')->pluck('codigo', 'id')->all())
+                                ->searchable()
+                                ->required(),
+                            TextInput::make('cantidad')->numeric()->minValue(0.01)->default(1)->required(),
+                            TextInput::make('precio_estimado')->numeric()->minValue(0)->default(0),
+                            TextInput::make('observaciones')->maxLength(255),
+                        ])->columns(4)
+                        ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                            $articulo = isset($data['articulo_id']) ? Articulo::find($data['articulo_id']) : null;
+                            $data['codigo_articulo'] = $articulo?->codigo ?? 'SIN_CODIGO';
+                            $data['descripcion_articulo'] = $articulo?->descripcion ?: ($articulo?->nombre_comercial ?? '');
+                            $data['unidad_medida'] = $articulo?->unidadMedida?->abreviatura ?? 'UND';
+                            $data['subtotal'] = round((float) ($data['cantidad'] ?? 0) * (float) ($data['precio_estimado'] ?? 0), 6);
+
+                            return $data;
+                        })
+                        ->columnSpanFull(),
+                ]),
+        ]);
         return $schema
             ->components([
                 Tabs::make('Gestión de Solicitud')
@@ -409,7 +448,7 @@ class SolicitudCompraResource extends Resource
                                     ]),
                             ]),
                     ])
-                    ->activeTab(1)
+                    ->activeTab(0)
                     ->columnSpanFull(),
             ]);
     }

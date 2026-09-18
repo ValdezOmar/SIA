@@ -54,6 +54,10 @@ class DashboardPanelProvider extends PanelProvider
             ->spaUrlExceptions([
                 url('/dashboard/login'),
                 url('/dashboard/logout'),
+                // La creación de compras ejecuta pagos y recepción; usar carga completa
+                // asegura que Livewire entregue la redirección y la notificación final.
+                url('/dashboard/compras/factura-compras'),
+                url('/dashboard/compras/factura-compras/create'),
             ])
             ->login(GoogleAuthProvider::class) // Pantalla de acceso personalizada con Google y credenciales.
             ->authGuard('web') // Guardia de Laravel utilizada para autenticar a los usuarios.

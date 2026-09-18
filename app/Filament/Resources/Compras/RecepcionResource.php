@@ -30,6 +30,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -49,11 +50,36 @@ class RecepcionResource extends Resource
 
     protected static ?string $navigationLabel = 'Recepciones';
 
-    protected static ?string $modelLabel = 'RecepciÃƒÆ’Ã‚Â³n';
+    protected static ?string $modelLabel = 'Recepcion';
 
     protected static ?string $pluralModelLabel = 'Recepciones';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
+
+    /**
+     * Muestra únicamente recepciones que todavía requieren el ingreso físico
+     * al inventario. Las completadas, rechazadas o ya procesadas no requieren
+     * atención operativa y, por tanto, no se incluyen en el contador.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        $pendientes = static::getEloquentQuery()
+            ->whereNull('inventario_procesado_at')
+            ->whereNotIn('estado', ['completada', 'rechazada'])
+            ->count();
+
+        return $pendientes > 0 ? (string) $pendientes : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Recepciones pendientes de ingreso físico a inventario';
+    }
 
     public static function canEdit(Model $record): bool
     {
@@ -109,6 +135,7 @@ class RecepcionResource extends Resource
                                                     ->dehydrated()
                                                     ->options([
                                                         'pendiente' => 'Pendiente',
+                                                        'listo' => 'Listo para ingreso',
                                                         'parcial' => 'Parcial',
                                                         'completada' => 'Completada',
                                                         'rechazada' => 'Rechazada',
@@ -483,11 +510,11 @@ class RecepcionResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('codigo')
-                    ->label('CÃƒÆ’Ã‚Â³digo')
+                    ->label('Código')
                     ->searchable()
                     ->sortable()
                     ->copyable()
-                    ->copyMessage('CÃƒÆ’Ã‚Â³digo copiado')
+                    ->copyMessage('Código copiado')
                     ->toggleable()
                     ->width('120px')
                     ->weight('bold')
@@ -509,13 +536,14 @@ class RecepcionResource extends Resource
                     ->label('Estado')
                     ->formatStateUsing(fn ($state) => match ($state) {
                         'pendiente' => 'Pendiente',
+                        'listo' => 'Listo para ingreso',
                         'parcial' => 'Parcial',
                         'completada' => 'Completada',
                         'rechazada' => 'Rechazada',
                         default => $state,
                     })
                     ->colors([
-                        'warning' => 'pendiente',
+                        'warning' => ['pendiente', 'listo'],
                         'info' => 'parcial',
                         'success' => 'completada',
                         'danger' => 'rechazada',
@@ -541,6 +569,7 @@ class RecepcionResource extends Resource
                     ->label('Estado')
                     ->options([
                         'pendiente' => 'Pendiente',
+                        'listo' => 'Listo para ingreso',
                         'parcial' => 'Parcial',
                         'completada' => 'Completada',
                         'rechazada' => 'Rechazada',
@@ -577,16 +606,16 @@ class RecepcionResource extends Resource
                         ->color('success')
                         ->requiresConfirmation()
                         ->modalHeading('Confirmar ingreso a inventario')
-                        ->modalDescription('Revise cantidades aceptadas y almacÃƒÆ’Ã‚Â©n. Esta acciÃƒÆ’Ã‚Â³n crea el kardex una sola vez.')
+                        ->modalDescription('Revise cantidades aceptadas y almacén. Esta acción crea el kardex una sola vez.')
                         ->action(function ($record) {
                             $record->procesarEntradaInventario();
                             Notification::make()
                                 ->title('Ingreso procesado')
-                                ->body('La recepciÃƒÆ’Ã‚Â³n '.$record->codigo.' ya actualizÃƒÆ’Ã‚Â³ el inventario.')
+                                ->body('La recepción '.$record->codigo.' ya actualizó el inventario.')
                                 ->success()
                                 ->send();
                         })
-                        ->visible(fn ($record) => ! $record->inventario_procesado_at && in_array($record->estado, ['pendiente', 'parcial'])),
+                        ->visible(fn ($record) => ! $record->inventario_procesado_at && in_array($record->estado, ['pendiente', 'listo', 'parcial'])),
 
                     DeleteAction::make()
                         ->visible(fn ($record) => $record->estado === 'pendiente'),
@@ -595,9 +624,9 @@ class RecepcionResource extends Resource
                     ->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->defaultSort('created_at', 'desc')
-            ->searchPlaceholder('Buscar recepciÃƒÆ’Ã‚Â³n...')
+            ->searchPlaceholder('Buscar recepción...')
             ->emptyStateHeading('No hay recepciones registradas')
-            ->emptyStateDescription('Crea una recepciÃƒÆ’Ã‚Â³n para registrar ingreso de mercaderÃƒÆ’Ã‚Â­a.')
+            ->emptyStateDescription('Crea una recepcion para registrar ingreso de mercadería.')
             ->emptyStateIcon('heroicon-o-inbox')
             ->poll('60s');
     }

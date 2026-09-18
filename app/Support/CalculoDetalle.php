@@ -74,7 +74,11 @@ class CalculoDetalle
             $fila['descuento_porcentaje'] = $base > 0 ? round($descuento / $base * 100, 6) : 0;
         }
         $fila['subtotal'] = round($base - $descuento, 6);
-        $tasa = $tipo === 'compra' || ($fila['aplicar_iva'] ?? false) ? 13 : 0;
+        // El IVA solo se aplica cuando el usuario activa explícitamente la línea.
+        $aplicarIva = array_key_exists('aplicar_iva', $fila)
+            ? (bool) $fila['aplicar_iva']
+            : false;
+        $tasa = $aplicarIva ? 13 : 0;
         $fila['impuesto'] = round($fila['subtotal'] * $tasa / 100, 6);
         $fila['total'] = round($fila['subtotal'] + $fila['impuesto'], 6);
 
