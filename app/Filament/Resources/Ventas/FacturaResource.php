@@ -746,6 +746,7 @@ class FacturaResource extends Resource
                                                         Textarea::make('series')
                                                             ->label('Números de serie')
                                                             ->rows(2)
+                                                            ->required()
                                                             ->placeholder('SERIE-001, SERIE-002')
                                                             ->helperText('Una serie por unidad, separadas por coma. Obligatorio si el artículo lo requiere.')
                                                             ->visible(function ($get): bool {
@@ -1301,7 +1302,6 @@ class FacturaResource extends Resource
                     ->label('Serie')
                     ->placeholder('Sin serie')
                     ->sortable()
-                    ->required()
                     ->toggleable(),
 
                 TextColumn::make('fecha_vencimiento')
