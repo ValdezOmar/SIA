@@ -244,6 +244,7 @@ class FacturaResource extends Resource
                                                 TextInput::make('serie')
                                                     ->label('Serie')
                                                     ->maxLength(20)
+                                                    ->required()
                                                     ->placeholder('F001')
                                                     ->helperText('Serie del recibo fisico')
                                                     ->prefixIcon('heroicon-o-tag')
