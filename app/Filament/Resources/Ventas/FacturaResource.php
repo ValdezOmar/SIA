@@ -1301,6 +1301,7 @@ class FacturaResource extends Resource
                     ->label('Serie')
                     ->placeholder('Sin serie')
                     ->sortable()
+                    ->required()
                     ->toggleable(),
 
                 TextColumn::make('fecha_vencimiento')
