@@ -6,7 +6,6 @@ use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Grid;
 use Filament\Actions\CreateAction;
 use Filament\Actions\ViewAction;
 use Filament\Actions\EditAction;
@@ -39,10 +38,11 @@ class HistorialLaboralRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Section::make('Asignación laboral')
                 ->description('Defina la empresa, sucursal y cargo correspondientes a este vínculo.')
                 ->icon('heroicon-o-building-office-2')
+                ->columnSpanFull()
                 ->schema([
                     Select::make('empresa_id')
                         ->label('Empresa')
@@ -89,6 +89,7 @@ class HistorialLaboralRelationManager extends RelationManager
             Section::make('Condiciones del contrato')
                 ->description('Registre la vigencia y las condiciones económicas del vínculo.')
                 ->icon('heroicon-o-document-text')
+                ->columnSpanFull()
                 ->schema([
                     Select::make('tipo_contrato')
                         ->label('Tipo de contrato')
@@ -123,6 +124,7 @@ class HistorialLaboralRelationManager extends RelationManager
             Section::make('Contacto corporativo')
                 ->description('Estos datos se mostrarán en el directorio interno.')
                 ->icon('heroicon-o-at-symbol')
+                ->columnSpanFull()
                 ->schema([
                     TextInput::make('correo_corporativo')->label('Correo corporativo')
                         ->prefixIcon('heroicon-o-envelope')->email()->required()->maxLength(255),
@@ -130,28 +132,29 @@ class HistorialLaboralRelationManager extends RelationManager
                         ->prefixIcon('heroicon-o-phone')->tel()->maxLength(50),
                 ])->columns(2),
 
-            Grid::make(['default' => 1, 'lg' => 2])->schema([
-                Section::make('Documento de respaldo')
-                    ->description('Contrato firmado en PDF, máximo 15 MB.')
-                    ->icon('heroicon-o-paper-clip')
-                    ->schema([
-                        FileUpload::make('documento')->label('Contrato en PDF')
-                            ->disk('public')->directory('contratos')
-                            ->acceptedFileTypes(['application/pdf'])->maxSize(15360)
-                            ->openable()->downloadable()
-                            ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                                $ci = Str::slug($this->getOwnerRecord()->ci ?: 'empleado');
+            Section::make('Documento de respaldo')
+                ->description('Contrato firmado en PDF, máximo 15 MB.')
+                ->icon('heroicon-o-paper-clip')
+                ->columnSpanFull()
+                ->schema([
+                    FileUpload::make('documento')->label('Contrato en PDF')
+                        ->disk('public')->directory('contratos')
+                        ->acceptedFileTypes(['application/pdf'])->maxSize(15360)
+                        ->openable()->downloadable()
+                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                            $ci = Str::slug($this->getOwnerRecord()->ci ?: 'empleado');
 
-                                return $ci.'-contrato-'.Str::uuid().'.'.Str::lower($file->getClientOriginalExtension());
-                            }),
-                    ]),
-                Section::make('Observaciones')->icon('heroicon-o-chat-bubble-left-ellipsis')
-                    ->schema([
-                        Textarea::make('observaciones')->label('Notas internas')
-                            ->placeholder('Condiciones especiales, antecedentes o aclaraciones del vínculo.')
-                            ->rows(5)->maxLength(2000),
-                    ]),
-            ]),
+                            return $ci.'-contrato-'.Str::uuid().'.'.Str::lower($file->getClientOriginalExtension());
+                        }),
+                ]),
+            Section::make('Observaciones')
+                ->icon('heroicon-o-chat-bubble-left-ellipsis')
+                ->columnSpanFull()
+                ->schema([
+                    Textarea::make('observaciones')->label('Notas internas')
+                        ->placeholder('Condiciones especiales, antecedentes o aclaraciones del vínculo.')
+                        ->rows(5)->maxLength(2000),
+                ]),
         ]);
     }
 

@@ -97,6 +97,7 @@ class PerfilEmpleadoResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema
+            ->columns(1)
             ->components([
                 Section::make(fn (Get $get): HtmlString => static::sectionHeading('Mi perfil', $get, [
                     'foto', 'nombres', 'apellidos',
@@ -104,6 +105,7 @@ class PerfilEmpleadoResource extends Resource
                     ->id('resumen-perfil')
                     ->description('Información principal asociada a su cuenta empresarial.')
                     ->icon('heroicon-o-identification')
+                    ->columnSpanFull()
                     ->schema([
                         FileUpload::make('foto')
                             ->label('Foto de perfil')
@@ -161,6 +163,7 @@ class PerfilEmpleadoResource extends Resource
                     ->id('informacion-personal')
                     ->description('Datos personales y de identificación.')
                     ->icon('heroicon-o-user')
+                    ->columnSpanFull()
                     ->schema([
                         TextInput::make('nombres')
                             ->label('Nombres')
@@ -231,6 +234,7 @@ class PerfilEmpleadoResource extends Resource
                     ->id('contacto-domicilio')
                     ->description('Información necesaria para comunicarse con usted.')
                     ->icon('heroicon-o-map-pin')
+                    ->columnSpanFull()
                     ->schema([
                         TextInput::make('telefono_personal')
                             ->label('Teléfono personal')
@@ -266,6 +270,7 @@ class PerfilEmpleadoResource extends Resource
                     ->id('contacto-emergencia')
                     ->description('Persona a quien contactar en caso de emergencia.')
                     ->icon('heroicon-o-exclamation-triangle')
+                    ->columnSpanFull()
                     ->schema([
                         TextInput::make('persona_contacto')
                             ->label('Nombre del contacto')
@@ -290,6 +295,7 @@ class PerfilEmpleadoResource extends Resource
                     ->id('informacion-laboral')
                     ->description('Esta información proviene del historial laboral activo y solo puede modificarla Recursos Humanos.')
                     ->icon('heroicon-o-briefcase')
+                    ->columnSpanFull()
                     ->schema([
                         Placeholder::make('empresa_actual')
                             ->label('Empresa')
@@ -338,6 +344,7 @@ class PerfilEmpleadoResource extends Resource
                 ]))
                     ->id('seguridad-social')
                     ->icon('heroicon-o-shield-check')
+                    ->columnSpanFull()
                     ->schema([
                         TextInput::make('afp')
                             ->label('Gestora / AFP')
