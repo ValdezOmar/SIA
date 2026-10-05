@@ -40,3 +40,34 @@
 - Validación ejecutada: 9 pruebas/61 aserciones de PedidoEntregaTest, más prueba nueva aislada de rollback (1 prueba/6 aserciones), todas correctas. Sintaxis PHP, Pint de los tres archivos PHP y `git diff --check` correctos. Sin cambios en base operativa ni validación manual de navegador.
 
 Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y resultados reales, limitaciones y siguiente acción concreta. Conservar pendientes hasta resolverlos; no trasladar conclusiones antiguas como pruebas actuales.
+
+## 2026-10-05 — Proforma PDF desde cotizaciones
+
+- Añadida acción `imprimir_pdf` (Imprimir PDF) en CotizacionResource. Servicio CotizacionPdfService genera/descarga con Dompdf y respeta autenticación, autorización de consulta y alcance empresarial del resource.
+- Plantilla A4 `exports/cotizacion-pdf` basada en referencia del usuario: logo de parámetros, código, título PROFORMA, datos comerciales, fecha, tabla, total con impuestos y nota de validez. Total desde líneas guardadas; exportación no modifica datos. PNG/JPG/SVG locales admitidos, rutas limitadas a public/images y logo general como respaldo.
+- Validación: CotizacionPdfTest, 5 pruebas/13 aserciones correctas (descarga Livewire, logo configurado, acceso, exportación sin cambios, impuestos/descuentos y documento largo). Revisadas visualmente la muestra de 1 página y las 4 páginas de una cotización larga, renderizadas con Windows.Data.Pdf; sin cortes ni superposiciones. PyMuPDF no estaba disponible y su instalación falló por DNS; se usó el renderizador nativo sin depender de él en la aplicación.
+- Actualizadas guía de ventas y mapa. No se alteró la base operativa ni se ejecutó la suite completa.
+
+## 2026-10-05 — Desglose y vencimiento de la proforma
+
+- Resumen PDF con subtotal antes de descuentos, impuesto, descuento y total. Se recupera el bruto sumando descuentos al subtotal neto guardado; evita descontar dos veces. Total desde líneas guardadas.
+- Vencimiento visible (`fecha_validez`, o emisión + 7 días si falta) y observaciones condicionales con saltos de línea.
+- Ajuste posterior: retirado pie de página; añadida sucursal de la cotización en datos de empresa (sin asignación: texto explícito). Servicio carga la relación `sucursal`. CotizacionPdfTest actualizado: 5 pruebas/20 aserciones correctas; muestra actual revisada visualmente y ejemplo PDF reemplazado. Pint y diff sin errores.
+- Ajuste posterior: columna Concepto sustituida por Foto de catálogo (`Articulo::foto_catalogo`), incrustada desde disco public con límite de tamaño y validación de ruta/tipo. Sin archivo válido: Sin foto. Miniaturas de hasta 48 px mantienen proporciones. CotizacionPdfTest: 6 pruebas/24 aserciones correctas; prueba de foto repetida después de compactar el diseño (1 prueba/4 aserciones). Muestra con imágenes de prueba renderizada y revisada en una página. Ejemplo actualizado con imágenes ilustrativas; Pint y diff correctos.
+- CotizacionPdfTest: 5 pruebas/18 aserciones correctas. Revisión visual del documento de una página y página final del documento largo (4 páginas), sin cortes ni superposición en totales/observaciones. Ejemplo PDF actualizado. No se modificaron datos operativos.
+
+## 2026-10-05 — Compartir proforma por WhatsApp
+
+- Acción `compartir_whatsapp` en Cotizaciones: prepara el PDF al abrir el modal y permite compartir el archivo con Web Share al pulsar el botón. El usuario selecciona WhatsApp/destinatario y confirma allí; no se afirma envío ni cambia el estado comercial.
+- Alternativa: descargar PDF y abrir chat con mensaje y celular del cliente (o selector si no hay número válido); adjuntar manualmente. Números locales de ocho dígitos reciben 591.
+- Ruta autenticada `cotizaciones.pdf` (`/ventas/cotizaciones/{cotizacion}/pdf`) en CotizacionPdfController, con controles del servicio existente y cache private/no-store. No se publica un enlace de acceso anónimo.
+- Web Share exige HTTPS/navegador compatible. Sin envío real ni prueba del menú nativo en teléfono; pendientes de comprobación en el dispositivo del usuario.
+- Validación ejecutada: php vendor/phpunit/phpunit/phpunit --filter=CotizacionPdfTest: 8 pruebas/35 aserciones correctas (PDF autenticado, alcance empresarial del servicio, modal y conservación de datos). Pint --test en controlador, rutas y prueba correcto; php -l CotizacionResource y git diff --check sin errores. Sin suite completa ni comprobación de envío real.
+
+## 2026-10-05 — Corrección de descarga desde Compartir
+
+- Descargar PDF en el modal usa el File ya preparado, URL de objeto y atributo download con nombre .pdf; no navega a la ruta ni reemplaza el panel por contenido binario. Se deshabilita mientras se prepara el archivo.
+- CotizacionPdfController devuelve bytes con Content-Type application/pdf, Content-Disposition attachment, Content-Length, nosniff y cache private/no-store. Conserva controles de acceso del servicio.
+- Se conserva el ajuste del usuario: acción llamada Compartir y retirada de imprimir_pdf independiente. La prueba anterior de esa acción se adapta a la descarga autenticada vigente.
+- Verificación: CotizacionPdfTest y Pint ejecutados; resultado consignado a continuación. Pendiente comprobar descarga desde el navegador del usuario; no se envió ningún mensaje.
+- Resultado: 8 pruebas/40 aserciones correctas; Pint --test en controlador y prueba correcto. diff --check detectó un espacio en blanco preexistente de la edición del usuario del Resource, retirado sin alterar la acción.

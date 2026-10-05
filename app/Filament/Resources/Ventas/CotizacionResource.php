@@ -962,6 +962,18 @@ class CotizacionResource extends Resource
             ])
             ->recordActions([
                 ActionGroup::make([
+
+                    Action::make('compartir_whatsapp')
+                        ->label('Compartir')
+                        ->icon('heroicon-o-share')
+                        ->color('success')
+                        ->authorize(fn (Cotizacion $record): bool => self::canView($record))
+                        ->modalHeading('Compartir proforma por WhatsApp')
+                        ->modalContent(fn (Cotizacion $record) => view('filament.ventas.compartir-cotizacion', ['cotizacion' => $record]))
+                        ->modalSubmitAction(false)
+                        ->modalCancelActionLabel('Cerrar')
+                        ->action(fn () => null),
+
                     EditAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),

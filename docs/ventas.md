@@ -31,6 +31,12 @@ Registrar cliente, artículos, cantidades, precios, descuentos e impuestos aplic
 
 Una cotización convertida debe continuarse mediante su pedido/factura asociados. Al usar una cotización de origen desde Facturas se comprueba que siga abierta y corresponda al cliente seleccionado.
 
+**Acciones → Imprimir PDF** descarga una proforma A4 con el logo de **Sistema → Parámetros Generales**, código de la cotización, datos de empresa/cliente, fecha, conceptos, cantidades, precios y total con impuestos en la moneda del documento. Los descuentos e impuestos se toman de las líneas guardadas, sin descontarlos dos veces ni modificar la cotización. La sucursal asociada aparece en los datos de empresa; el PDF no tiene pie de página. El logo utiliza `logo_path` de parámetros y, si falta o no es válido, el archivo general `public/images/logo.png`. La tabla repite encabezados cuando ocupa varias páginas.
+
+El resumen muestra **Subtotal → Impuesto → Descuento → Total**: el subtotal es el importe antes de descuentos e impuestos, y el total conserva el resultado de las líneas guardadas. El vencimiento aparece junto a la fecha de emisión, usando `fecha_validez`; si falta, se calcula a siete días de la emisión como plazo predeterminado. Las observaciones se imprimen debajo del resumen únicamente cuando contienen texto, conservando sus saltos de línea.
+
+La primera columna es **Foto**, tomada de `foto_catalogo` del artículo en el disco público. Las imágenes mantienen sus proporciones; si no existe una foto válida, se muestra **Sin foto**. No se descargan imágenes externas para generar la proforma.
+
 ## Pedidos y reservas
 
 El listado general de Pedidos muestra **Pendiente y Reservado** por defecto. Este filtro es distinto del filtro de la pestaña del cliente, que muestra solamente **Pendiente**. Ambos se pueden cambiar.
@@ -128,3 +134,7 @@ La acción **Anular** de la factura solicita un motivo y ejecuta el flujo de rev
 ```sh
 php -d extension=pdo_sqlite -d extension=sqlite3 vendor/phpunit/phpunit/phpunit --filter="VentaFechasTest|FacturaContadoTest|ExportarContactosServiceTest"
 ```
+
+**Acciones → Compartir por WhatsApp** prepara la proforma y ofrece **Compartir PDF** mediante el menú del dispositivo (elegir WhatsApp y destinatario). Requiere HTTPS y soporte para compartir archivos. Como alternativa, descargar el PDF y abrir el chat del cliente para adjuntarlo manualmente. Abrir el chat solo prepara un mensaje; no adjunta el archivo automáticamente. Compartir no cambia el estado de la cotización ni confirma que fue enviada. El PDF exige sesión y los permisos habituales.
+
+En el modal **Compartir**, **Descargar PDF** guarda el archivo preparado con nombre Proforma-[código].pdf sin navegar fuera del panel. El botón se habilita cuando termina de prepararse el documento.

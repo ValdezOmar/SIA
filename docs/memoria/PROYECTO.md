@@ -30,6 +30,7 @@ El README raíz describe el stack vigente; las notas originales están archivada
 | Usuarios y roles | `app/Filament/Resources/Configuracion`, `app/Models/User.php`, `app/Policies`, `config/filament-shield.php`, `app/Support/LegacyShieldPermissions.php` |
 | RRHH y asistencia | `docs/rrhh.md`, `app/Models/RRHH`, `app/Filament/Resources/RRHH`, `app/Services/RRHH/AsistenciaHorarioService.php`; horarios en cluster Sistema |
 | Ventas | `docs/ventas.md`, `app/Models/Ventas`, `app/Filament/Resources/Ventas`, `app/Services/Ventas` |
+| Proforma PDF de cotizaciones | `app/Services/Ventas/CotizacionPdfService.php`, `resources/views/exports/cotizacion-pdf.blade.php`; acción `imprimir_pdf`, logo desde `Parametro::logo_path` |
 | Formularios e importes | `app/Forms/Components/CalculoRepeater.php`, `ImporteVenta.php`, `app/Support/CalculoDetalle.php`, `resources/js`, `tests/js/ventas-importes.test.cjs` |
 | Compras y moneda | `docs/compras-multimoneda-y-costos.md`, `app/Models/Compras`, `app/Filament/Resources/Compras` |
 | Catálogo, stock y Kardex | `docs/inventario.md`, `app/Models/Inventario`, `app/Filament/Resources/Inventario`, cluster `ParametrosInventario`, `app/Services/Inventario/TrazabilidadInventarioService.php` |
@@ -74,3 +75,5 @@ Elegir Feature por dominio: `VentaFechasTest`, `FacturaContadoTest`, `PagoMixtoT
 ## Cómo mantener la memoria
 
 Guardar aquí arquitectura y decisiones vigentes, en la guía del módulo sus flujos y en `CONTINUIDAD.md` el estado de trabajo. Indicar evidencia y fecha; distinguir hecho verificado, decisión y pendiente. No guardar conversaciones enteras, secretos ni listas de archivos generados. Si el código cambia, corregir la memoria en el mismo trabajo.
+
+Compartir proformas: acción compartir_whatsapp en CotizacionResource, modal resources/views/filament/ventas/compartir-cotizacion.blade.php; ruta autenticada cotizaciones.pdf en routes/web.php y CotizacionPdfController. Web Share comparte el archivo desde el dispositivo; alternativa descarga y chat. Sin publicación anónima ni cambio de estado.
