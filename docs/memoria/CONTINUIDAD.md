@@ -24,4 +24,12 @@
 
 ## Formato para próximos relevos
 
+## 2026-10-05 — Pago previo a confirmar entrega de pedidos
+
+- `Pedido::confirmarEntrega()` bloquea pedido/factura en transacción, recalcula deuda desde pagos confirmados y exige pago completo cuando existe saldo. Usa el flujo existente `Factura::registrarPago()` para cobro, contabilidad y entrega; un fallo revierte el cobro nuevo.
+- Acción `confirmar_entrega` de PedidoResource muestra factura/saldo, opción para registrar un pago nuevo con fecha, medio y referencias, explicación previa y notificación persistente de efectos. Solo confirma pedidos pendientes/reservados con autorización de edición del resource.
+- La deuda revisada es la factura del pedido; no es un bloqueo por todas las deudas del cliente. Varias facturas activas requieren revisar asociaciones; no se selecciona silenciosamente la última. Abonos parciales y confirmación de pagos existentes continúan en la factura.
+- Actualizados `docs/ventas.md` y descripción de pestaña de pagos. Nuevas pruebas en `tests/Feature/PedidoEntregaTest.php`.
+- Validación: PedidoEntregaTest, 6 pruebas/29 aserciones, incluido modal Livewire y notificación; PagoMixtoTest, 4 pruebas/19 aserciones. Sintaxis PHP, Pint de archivos afectados y `git diff --check` correctos. No se ejecutó suite completa ni comprobación manual de navegador.
+
 Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y resultados reales, limitaciones y siguiente acción concreta. Conservar pendientes hasta resolverlos; no trasladar conclusiones antiguas como pruebas actuales.

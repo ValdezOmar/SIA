@@ -2,7 +2,6 @@
 
 namespace App\Models\Ventas;
 
-use RuntimeException;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Existencia;
 use App\Models\Inventario\MovimientoInventario;
@@ -14,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class Pedido extends Model
 {
@@ -123,6 +123,54 @@ class Pedido extends Model
     public function pagos()
     {
         return $this->hasManyThrough(Pago::class, Factura::class, 'pedido_id', 'factura_id');
+    }
+
+    public function facturaParaEntrega(): ?Factura
+    {
+        $facturas = $this->facturas()->where('estado', '!=', 'anulada')->get();
+        if ($facturas->count() > 1) {
+            throw new RuntimeException('El pedido tiene varias facturas activas. Revise sus saldos y asociaciones antes de confirmar la entrega.');
+        }
+
+        return $facturas->first();
+    }
+
+    public function saldoParaEntrega(): float
+    {
+        $factura = $this->facturaParaEntrega();
+
+        return $factura ? max(0, round((float) $factura->total - (float) $factura->pagos()->where('estado', 'confirmado')->sum('monto'), 2)) : 0;
+    }
+
+    public function confirmarEntrega(?array $datosPago = null): array
+    {
+        return DB::transaction(function () use ($datosPago): array {
+            $pedido = self::query()->lockForUpdate()->findOrFail($this->id);
+            if (! in_array($pedido->estado, ['reservado', 'pendiente'], true)) {
+                throw new RuntimeException('El pedido ya fue entregado o no está disponible para confirmar entrega. No se registró ningún pago.');
+            }
+            $factura = $pedido->facturaParaEntrega();
+            if (! $factura) {
+                throw new RuntimeException('Debe asociar una factura al pedido antes de confirmar la entrega.');
+            }
+            $factura = Factura::query()->lockForUpdate()->findOrFail($factura->id);
+            $factura->actualizarSaldo();
+            $saldo = round((float) $factura->saldo, 2);
+            $pago = null;
+            if ($saldo > 0) {
+                if (! $datosPago) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['registrar_pago' => 'Entrega bloqueada: quedan '.number_format($saldo, 2).' '.$factura->moneda.' pendientes. Registre el pago completo antes de entregar.']);
+                }
+                if (abs((float) ($datosPago['monto'] ?? 0) - $saldo) > 0.005) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['monto' => 'El pago debe cubrir exactamente el saldo actual de '.number_format($saldo, 2).' '.$factura->moneda.'. No se registró el pago ni la entrega.']);
+                }
+                $pago = $factura->registrarPago($datosPago);
+            } else {
+                $factura->procesarVentaAutomatica();
+            }
+
+            return ['factura' => $factura->fresh(), 'pago' => $pago, 'monto' => $pago ? $saldo : 0];
+        });
     }
 
     public function creador()

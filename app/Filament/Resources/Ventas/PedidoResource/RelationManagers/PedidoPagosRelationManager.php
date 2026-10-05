@@ -15,7 +15,7 @@ class PedidoPagosRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->description('Consulta los pagos registrados para la factura vinculada a este pedido. Los pagos se registran desde la factura, no desde aquí.')
+            ->description('Consulta los pagos de la factura vinculada al pedido. Puede registrarlos desde la factura o completar el saldo en la acción Confirmar entrega del listado de pedidos.')
             ->columns([
                 TextColumn::make('numero')->label('Número')->weight('bold'),
                 TextColumn::make('fecha_pago')->label('Fecha')->date('d/m/Y'),

@@ -2,35 +2,24 @@
 
 namespace App\Filament\Resources\Ventas;
 
-use Illuminate\Database\Eloquent\Builder;
-use App\Support\CalculoDetalle;
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Tabs;
-use Filament\Schemas\Components\Tabs\Tab;
-use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Actions\Action;
-use App\Forms\Components\ImporteVenta;
-use App\Forms\Components\CalculoRepeater;
-use Filament\Actions\ActionGroup;
-use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
-use RuntimeException;
-use Filament\Actions\DeleteAction;
-use App\Filament\Resources\Ventas\PedidoResource\Pages\ListPedidos;
 use App\Filament\Resources\Ventas\PedidoResource\Pages\CreatePedido;
 use App\Filament\Resources\Ventas\PedidoResource\Pages\EditPedido;
-use App\Filament\Resources\Ventas\PedidoResource\Pages;
+use App\Filament\Resources\Ventas\PedidoResource\Pages\ListPedidos;
 use App\Filament\Resources\Ventas\PedidoResource\RelationManagers\PedidoPagosRelationManager;
+use App\Forms\Components\CalculoRepeater;
+use App\Forms\Components\ImporteVenta;
 use App\Models\Inventario\Articulo;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Pedido;
 use App\Support\ArticuloSelectOptions;
+use App\Support\CalculoDetalle;
 use App\Support\ClienteRegistroForm;
 use App\Support\ClienteSelectOptions;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
@@ -39,13 +28,19 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
@@ -53,9 +48,9 @@ class PedidoResource extends Resource
 {
     protected static ?string $model = Pedido::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-shopping-cart';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Ventas';
+    protected static string|\UnitEnum|null $navigationGroup = 'Ventas';
 
     protected static ?string $navigationLabel = 'Pedidos/Reservas';
 
@@ -1080,25 +1075,52 @@ class PedidoResource extends Resource
                 Group::make('sucursal.nombre')->label('Sucursal')->collapsible(),
             ])
             ->recordActions([
-                ActionGroup::make([                  
+                ActionGroup::make([
 
                     ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
-                    
+
                     Action::make('confirmar_entrega')
                         ->label('Confirmar entrega')
                         ->icon('heroicon-o-truck')
                         ->color('primary')
                         ->requiresConfirmation()
-                        ->modalDescription('Confirma la entrega, descuenta el inventario y completa la venta únicamente si la factura asociada está totalmente pagada.')
-                        ->action(function ($record): void {
-                            $factura = $record->facturas()->where('estado', '!=', 'anulada')->latest('id')->first();
-                            if (! $factura) {
-                                throw new RuntimeException('Debe asociar una factura al pedido antes de confirmar la entrega.');
-                            }
-                            $factura->procesarVentaAutomatica();
-                            Notification::make()->title('Entrega confirmada')->success()->send();
+                        ->authorize(fn ($record): bool => self::canEdit($record))
+                        ->modalDescription('Se verifican los pagos confirmados de la factura del pedido. Si hay deuda, debe cubrirse por completo. Confirmar registra la entrega, libera reservas, descuenta los productos del almacén y genera o reutiliza los asientos de venta. Los servicios no descuentan stock. Si falla el proceso, se revierte también el pago registrado aquí.')
+                        ->schema([
+                            Placeholder::make('resumen_entrega')->label('Factura y deuda pendiente')
+                                ->content(function (Pedido $record): string {
+                                    $factura = $record->facturaParaEntrega();
+
+                                    return $factura ? $factura->numero.' · Saldo: '.number_format($record->saldoParaEntrega(), 2).' '.$factura->moneda : 'Sin factura asociada: primero debe vincular una factura al pedido.';
+                                }),
+                            Toggle::make('registrar_pago')->label('Registrar y asociar el pago pendiente antes de entregar')
+                                ->live()->visible(fn (Pedido $record): bool => $record->saldoParaEntrega() > 0)
+                                ->helperText('Solo active esta opción si recibió el dinero. El pago quedará confirmado y contabilizado en la factura.'),
+                            Section::make('Pago para completar la entrega')
+                                ->visible(fn (Get $get, Pedido $record): bool => (bool) $get('registrar_pago') && $record->saldoParaEntrega() > 0)
+                                ->schema([
+                                    TextInput::make('monto')->label('Importe recibido')->numeric()->minValue(0.01)->required()
+                                        ->default(fn (Pedido $record): float => $record->saldoParaEntrega())
+                                        ->helperText('Debe coincidir con el saldo pendiente completo; un abono parcial no permite entregar.'),
+                                    DatePicker::make('fecha_pago')->label('Fecha del pago')->default(now())->required(),
+                                    Select::make('tipo_pago')->label('Medio de pago')->required()->live()
+                                        ->options(['efectivo' => 'Efectivo', 'qr' => 'QR', 'transferencia' => 'Transferencia', 'tarjeta' => 'Tarjeta', 'deposito' => 'Depósito']),
+                                    TextInput::make('referencia')->label('Referencia del pago')->maxLength(255),
+                                    TextInput::make('banco')->label('Banco')->maxLength(255)
+                                        ->visible(fn (Get $get): bool => $get('tipo_pago') !== 'efectivo'),
+                                    Textarea::make('observaciones')->label('Observaciones del pago')->maxLength(2000),
+                                ]),
+                        ])
+                        ->action(function (array $data, Pedido $record): void {
+                            $resultado = $record->confirmarEntrega(($data['registrar_pago'] ?? false) ? $data : null);
+                            $factura = $resultado['factura'];
+                            $pago = $resultado['pago'];
+                            $cobro = $pago ? 'Pago '.$pago->numero.' registrado y asociado por '.number_format($resultado['monto'], 2).' '.$factura->moneda.'. ' : 'No se registró un nuevo pago; la factura ya estaba cubierta. ';
+                            Notification::make()->title('Pedido '.$record->codigo.': entrega confirmada')
+                                ->body($cobro.'Factura '.$factura->numero.' sin saldo pendiente. Pedido entregado, reservas liberadas y salida de productos registrada en Kardex; los servicios no afectan stock. Se generaron o reutilizaron los asientos contables correspondientes. Las fechas comerciales y de entrega se conservan según la factura.')
+                                ->success()->persistent()->send();
                         })
                         ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente'], true)),
 
@@ -1112,7 +1134,7 @@ class PedidoResource extends Resource
                             $record->liberarReservaInventario();
                             $record->update(['estado' => 'cancelado', 'observaciones' => trim(($record->observaciones ? $record->observaciones."\n" : '').'Cancelado: '.$data['motivo'])]);
                         })
-                        ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente', 'parcial'], true)),                   
+                        ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente', 'parcial'], true)),
                 ])
                     ->tooltip('Acciones')
                     ->icon('heroicon-o-ellipsis-vertical'),

@@ -37,6 +37,12 @@ El listado general de Pedidos muestra **Pendiente y Reservado** por defecto. Est
 
 **Reservar stock** compromete unidades, sin descontarlas del stock físico. **Preparar entrega** cambia un pedido reservado a pendiente. **Confirmar entrega** usa la factura asociada y exige que esté totalmente pagada. Cancelar un pedido desde el flujo de cancelación libera su reserva y registra el motivo.
 
+En **Confirmar entrega**, el modal muestra la factura y su deuda calculada con pagos confirmados. Si queda saldo, activar **Registrar y asociar el pago pendiente antes de entregar**, introducir el importe completo, fecha, medio y referencia del dinero recibido. Se registra un pago nuevo en esa factura; los pagos pendientes no cuentan como cobros confirmados. Para abonos parciales o confirmar pagos ya existentes, utilizar el flujo de pagos de la factura antes de entregar.
+
+La comprobación cubre la factura de este pedido, no todas las deudas del cliente. Un pedido sin factura o con varias facturas activas exige revisar sus asociaciones antes de continuar. El importe se vuelve a comprobar al guardar para evitar cobrar un saldo desactualizado.
+
+Pago y entrega se ejecutan juntos: si falla la entrega por stock, trazabilidad o contabilidad, el pago nuevo también se revierte. Al completar, una notificación persistente identifica pedido, factura y pago, y explica la liberación de reservas, salida de productos en Kardex y efectos contables. Se conservan las fechas de la factura; servicios no descuentan stock. Una factura ya cubierta no genera un cobro adicional.
+
 En Facturas, el selector **Pedido asociado** ofrece únicamente pedidos pendientes o reservados del contexto permitido, con detalles válidos. Un pedido entregado o cancelado no aparece como nueva opción.
 
 Al elegir un cliente, la condición de pago comienza y se conserva en **Contado** hasta que el vendedor la cambie. El selector de artículos muestra el stock disponible del almacén de venta: verde con más de 5 unidades, naranja entre más de 1 y 5, y rojo con 1 o menos; sin existencias muestra **Stock: Sin stock**. Al elegir un artículo, su **Lista de precios** queda disponible de inmediato y se actualiza al cambiar de artículo.
