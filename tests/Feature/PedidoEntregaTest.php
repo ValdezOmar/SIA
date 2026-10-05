@@ -109,4 +109,75 @@ class PedidoEntregaTest extends TestCase
         $this->assertSame(1, $this->factura->pagos()->count());
         $this->assertSame('entregado', $this->pedido->fresh()->estado);
     }
+
+    public function test_cancelar_pedido_anula_factura_pago_y_asiento_del_cobro(): void
+    {
+        $pago = $this->factura->registrarPago(['monto' => 40, 'tipo_pago' => 'efectivo', 'fecha_pago' => '2026-10-05']);
+        $resultado = $this->pedido->cancelar('Cliente desistió de la compra');
+        $this->assertSame('cancelado', $this->pedido->fresh()->estado);
+        $this->assertSame('anulada', $this->factura->fresh()->estado);
+        $this->assertSame('anulado', $pago->fresh()->estado);
+        $this->assertSame(0.0, (float) $this->factura->fresh()->monto_pagado);
+        $this->assertSame(40.0, $resultado['importes_revertidos']['BOB']);
+        $this->assertSame(1, $resultado['pagos_anulados']);
+        $this->assertSame(['FAC-ENT'], $resultado['facturas']);
+        $this->assertSame('anulado', $pago->asientoContable()->first()->estado);
+        $this->assertStringContainsString('Cliente desistió', $this->pedido->fresh()->observaciones);
+    }
+
+    public function test_cancelar_sin_factura_y_rechazar_segunda_cancelacion(): void
+    {
+        $this->factura->update(['pedido_id' => null]);
+        $resultado = $this->pedido->cancelar('Sin compra');
+        $this->assertSame([], $resultado['facturas']);
+        $this->assertSame('cancelado', $this->pedido->fresh()->estado);
+        $this->assertNotSame('anulada', $this->factura->fresh()->estado);
+        $this->expectException(RuntimeException::class);
+        $this->pedido->cancelar('Reintento');
+    }
+
+    public function test_modal_exige_aceptar_consecuencias_y_notifica_cancelacion(): void
+    {
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('dashboard'));
+        $pago = $this->factura->registrarPago(['monto' => 40, 'tipo_pago' => 'qr', 'fecha_pago' => '2026-10-05']);
+        \Livewire\Livewire::test(\App\Filament\Resources\Ventas\PedidoResource\Pages\ListPedidos::class)
+            ->callTableAction('cancelar', $this->pedido, data: ['motivo' => 'Cancelación solicitada', 'acepto_consecuencias' => false])
+            ->assertHasTableActionErrors(['acepto_consecuencias']);
+        $this->assertNotSame('cancelado', $this->pedido->fresh()->estado);
+        $this->assertSame('confirmado', $pago->fresh()->estado);
+        \Livewire\Livewire::test(\App\Filament\Resources\Ventas\PedidoResource\Pages\ListPedidos::class)
+            ->callTableAction('cancelar', $this->pedido, data: ['motivo' => 'Cancelación solicitada', 'acepto_consecuencias' => true])
+            ->assertHasNoTableActionErrors()
+            ->assertNotified('Pedido PED-ENT cancelado');
+        $this->assertSame('anulada', $this->factura->fresh()->estado);
+        $this->assertSame('anulado', $pago->fresh()->estado);
+    }
+
+    public function test_fallo_al_anular_otra_factura_revierte_toda_la_cancelacion(): void
+    {
+        $pago = $this->factura->registrarPago(['monto' => 40, 'tipo_pago' => 'efectivo', 'fecha_pago' => '2026-10-05']);
+        $otra = $this->factura->replicate();
+        $otra->numero = 'FAC-ENT-2';
+        $otra->save();
+        $dispatcher = Factura::getEventDispatcher();
+        Factura::setEventDispatcher(clone $dispatcher);
+        Factura::updating(function (Factura $factura) use ($otra): void {
+            if ($factura->id === $otra->id && $factura->estado === 'anulada') {
+                throw new RuntimeException('No se pudo anular la segunda factura.');
+            }
+        });
+        try {
+            $this->pedido->cancelar('Prueba de reversión');
+            $this->fail('La cancelación debe revertirse por completo.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('segunda factura', $exception->getMessage());
+        } finally {
+            Factura::setEventDispatcher($dispatcher);
+        }
+        $this->assertNotSame('cancelado', $this->pedido->fresh()->estado);
+        $this->assertNotSame('anulada', $this->factura->fresh()->estado);
+        $this->assertNotSame('anulada', $otra->fresh()->estado);
+        $this->assertSame('confirmado', $pago->fresh()->estado);
+        $this->assertSame('confirmado', $pago->asientoContable()->first()->estado);
+    }
 }

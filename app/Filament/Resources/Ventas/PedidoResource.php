@@ -1129,10 +1129,35 @@ class PedidoResource extends Resource
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
                         ->requiresConfirmation()
-                        ->schema([Textarea::make('motivo')->label('Motivo de la cancelación')->required()->maxLength(2000)])
-                        ->action(function (array $data, $record): void {
-                            $record->liberarReservaInventario();
-                            $record->update(['estado' => 'cancelado', 'observaciones' => trim(($record->observaciones ? $record->observaciones."\n" : '').'Cancelado: '.$data['motivo'])]);
+                        ->authorize(fn ($record): bool => self::canEdit($record))
+                        ->modalHeading('Acción peligrosa: cancelar pedido y anular la venta')
+                        ->modalDescription('Esta acción afecta el pago del cliente y no se puede deshacer desde el sistema. Se cancelará el pedido, se anularán todas sus facturas de venta activas y sus pagos pendientes o confirmados, se revertirá la contabilidad asociada y se liberarán las reservas. Si existen salidas de stock, se revertirán por el flujo de anulación. La anulación del pago es un registro del sistema: no devuelve automáticamente efectivo ni dinero del banco al cliente. Si falla una reversión, no se aplicará la cancelación.')
+                        ->modalSubmitActionLabel('Cancelar pedido y anular pagos y facturas')
+                        ->schema([
+                            Placeholder::make('documentos_afectados')->label('Facturas y pagos que serán afectados')
+                                ->content(function (Pedido $record): string {
+                                    $facturas = $record->facturas()->where('estado', '!=', 'anulada')->get();
+                                    if ($facturas->isEmpty()) {
+                                        return 'No hay facturas activas asociadas. Se cancelará el pedido y se liberarán sus reservas.';
+                                    }
+
+                                    return $facturas->map(function ($factura): string {
+                                        $pagos = $factura->pagos()->whereIn('estado', ['pendiente', 'confirmado'])->get();
+
+                                        return $factura->numero.': '.$pagos->count().' pago(s) por anular; cobros confirmados por revertir: '.number_format((float) $pagos->where('estado', 'confirmado')->sum('monto'), 2).' '.$factura->moneda;
+                                    })->implode(' | ');
+                                }),
+                            Textarea::make('motivo')->label('Motivo de la cancelación')->required()->maxLength(2000),
+                            Toggle::make('acepto_consecuencias')->label('Entiendo que se anularán las facturas y pagos del cliente y que esta acción no se puede deshacer')
+                                ->accepted()->required(),
+                        ])
+                        ->action(function (array $data, Pedido $record): void {
+                            $resultado = $record->cancelar($data['motivo']);
+                            $facturas = $resultado['facturas'] ? implode(', ', $resultado['facturas']) : 'ninguna factura activa';
+                            $importes = collect($resultado['importes_revertidos'])->map(fn ($monto, $moneda): string => number_format($monto, 2).' '.$moneda)->implode(', ');
+                            Notification::make()->title('Pedido '.$record->codigo.' cancelado')
+                                ->body('Facturas anuladas: '.$facturas.'. Pagos anulados: '.$resultado['pagos_anulados'].'. '.($importes !== '' ? 'Cobros revertidos en el sistema: '.$importes.'. ' : '').'Se liberaron las reservas y se revirtieron los movimientos de inventario y asientos asociados que correspondían. La cancelación no puede deshacerse desde el sistema. Revise la devolución del dinero al cliente por separado: no se realizó una transferencia ni devolución automática.')
+                                ->warning()->persistent()->send();
                         })
                         ->visible(fn ($record): bool => in_array($record->estado, ['reservado', 'pendiente', 'parcial'], true)),
                 ])

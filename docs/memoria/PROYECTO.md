@@ -44,6 +44,7 @@ El README raíz describe el stack vigente; las notas originales están archivada
 - Los modelos contienen operaciones de negocio; no son simples contenedores. `Factura::registrarPago`, `procesarVentaAutomatica` y `anular`, `Kardex::registrarMovimiento`, `Recepcion::procesarEntradaInventario` y `AsientoContable::confirmar/anular` son puntos iniciales para investigar efectos y transacciones.
 - Usuario y contexto empresarial se relacionan con empleado e historial laboral activo mediante correo corporativo. Revisar `User`, `HistorialLaboral` y `ScopesEmpresa`; los alcances no son idénticos en todos los módulos.
 - Reserva compromete stock, entrega lo descuenta. El pago completo procesa entrega en el flujo actual. Servicios no inventariables no deben exigir almacén ni generar salidas físicas.
+- `Pedido::cancelar()` anula todas sus facturas activas mediante `Factura::anular()`, revierte pagos/contabilidad e inventario correspondiente y libera reservas en una sola transacción. El modal exige aceptar consecuencias irreversibles desde la interfaz. Anular un pago no ejecuta una devolución bancaria ni de efectivo.
 - Stock negativo es opcional por almacén, exige valoración y no elimina controles de series/lotes.
 - Compras conservan moneda negociada; inventario y asientos se valorizan en BOB. Gastos capitalizables se prorratean; los no capitalizables no tienen aún toda la imputación contable documentada.
 - Totales se recalculan al guardar. Descuento se resta una vez; impuesto se calcula sobre neto. Revisar coherencia de PHP y JavaScript.

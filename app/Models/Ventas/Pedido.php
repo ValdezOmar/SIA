@@ -173,6 +173,43 @@ class Pedido extends Model
         });
     }
 
+    public function cancelar(string $motivo): array
+    {
+        $motivo = trim($motivo);
+        if ($motivo === '' || mb_strlen($motivo) > 2000) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['motivo' => 'Indique un motivo de cancelación de hasta 2000 caracteres.']);
+        }
+
+        return DB::transaction(function () use ($motivo): array {
+            $pedido = self::query()->lockForUpdate()->findOrFail($this->id);
+            if (! in_array($pedido->estado, ['reservado', 'pendiente', 'parcial'], true)) {
+                throw new RuntimeException('El pedido ya fue cancelado o no admite cancelación. No se modificaron facturas ni pagos.');
+            }
+
+            $facturas = $pedido->facturas()->where('estado', '!=', 'anulada')->orderBy('id')->lockForUpdate()->get();
+            $pagosAnulados = 0;
+            $importes = [];
+            $motivoAnulacion = 'Cancelación del pedido '.$pedido->codigo.': '.$motivo;
+            foreach ($facturas as $factura) {
+                $pagos = $factura->pagos()->whereIn('estado', ['pendiente', 'confirmado'])->lockForUpdate()->get();
+                $pagosAnulados += $pagos->count();
+                foreach ($pagos->where('estado', 'confirmado') as $pago) {
+                    $moneda = $pago->moneda ?? $factura->moneda;
+                    $importes[$moneda] = ($importes[$moneda] ?? 0) + (float) $pago->monto;
+                }
+                $factura->anular($motivoAnulacion);
+            }
+
+            $pedido->liberarReservaInventario();
+            $pedido->update([
+                'estado' => 'cancelado',
+                'observaciones' => trim(($pedido->observaciones ? $pedido->observaciones."\n" : '').$motivoAnulacion),
+            ]);
+
+            return ['facturas' => $facturas->pluck('numero')->all(), 'pagos_anulados' => $pagosAnulados, 'importes_revertidos' => $importes];
+        });
+    }
+
     public function creador()
     {
         return $this->belongsTo(User::class, 'creado_por');

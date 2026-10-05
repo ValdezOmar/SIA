@@ -32,4 +32,11 @@
 - Actualizados `docs/ventas.md` y descripción de pestaña de pagos. Nuevas pruebas en `tests/Feature/PedidoEntregaTest.php`.
 - Validación: PedidoEntregaTest, 6 pruebas/29 aserciones, incluido modal Livewire y notificación; PagoMixtoTest, 4 pruebas/19 aserciones. Sintaxis PHP, Pint de archivos afectados y `git diff --check` correctos. No se ejecutó suite completa ni comprobación manual de navegador.
 
+## 2026-10-05 — Cancelación de pedido con anulación de ventas
+
+- `Pedido::cancelar(motivo)` valida estado y motivo, bloquea pedido/facturas, anula todas las facturas activas con el flujo existente `Factura::anular()` y libera reservas en una sola transacción. Conserva el motivo en observaciones y devuelve documentos, cantidad de pagos e importes confirmados revertidos por moneda.
+- Modal de PedidoResource advierte acción peligrosa sin opción de deshacer, presenta documentos afectados, exige aceptar consecuencias y muestra notificación persistente al terminar. Aclara que anular el registro del cobro no devuelve dinero automáticamente al cliente.
+- Nuevas pruebas de cancelación en PedidoEntregaTest: pago/asiento anulados, pedido sin factura, bloqueo de reintento, aceptación y notificación del modal, reversión completa cuando falla una segunda factura.
+- Validación ejecutada: 9 pruebas/61 aserciones de PedidoEntregaTest, más prueba nueva aislada de rollback (1 prueba/6 aserciones), todas correctas. Sintaxis PHP, Pint de los tres archivos PHP y `git diff --check` correctos. Sin cambios en base operativa ni validación manual de navegador.
+
 Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y resultados reales, limitaciones y siguiente acción concreta. Conservar pendientes hasta resolverlos; no trasladar conclusiones antiguas como pruebas actuales.

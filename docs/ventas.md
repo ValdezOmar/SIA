@@ -41,6 +41,12 @@ En **Confirmar entrega**, el modal muestra la factura y su deuda calculada con p
 
 La comprobación cubre la factura de este pedido, no todas las deudas del cliente. Un pedido sin factura o con varias facturas activas exige revisar sus asociaciones antes de continuar. El importe se vuelve a comprobar al guardar para evitar cobrar un saldo desactualizado.
 
+### Cancelación peligrosa del pedido
+
+**Cancelar pedido** exige motivo y aceptación explícita de sus consecuencias. El modal advierte que afecta los pagos del cliente y no puede deshacerse desde el sistema; muestra las facturas activas y sus pagos afectados. Se cancelan pedidos reservados, pendientes o parciales, se anulan todas las facturas activas asociadas y sus pagos pendientes/confirmados, se revierte la contabilidad mediante el flujo de anulación de ventas y se liberan reservas. Las salidas de inventario existentes se revierten cuando corresponde. No se borran los documentos históricos.
+
+La operación es transaccional: si falla alguna anulación, se revierten todos los cambios de ese intento. Al completar, una notificación persistente identifica las facturas, cantidad de pagos anulados e importes confirmados revertidos por moneda. **Anular el registro del pago no devuelve dinero automáticamente al cliente**; cualquier reintegro de efectivo o transferencia debe gestionarse y verificarse por separado. No hay una acción para reactivar el pedido, sus facturas o sus pagos anulados.
+
 Pago y entrega se ejecutan juntos: si falla la entrega por stock, trazabilidad o contabilidad, el pago nuevo también se revierte. Al completar, una notificación persistente identifica pedido, factura y pago, y explica la liberación de reservas, salida de productos en Kardex y efectos contables. Se conservan las fechas de la factura; servicios no descuentan stock. Una factura ya cubierta no genera un cobro adicional.
 
 En Facturas, el selector **Pedido asociado** ofrece únicamente pedidos pendientes o reservados del contexto permitido, con detalles válidos. Un pedido entregado o cancelado no aparece como nueva opción.
