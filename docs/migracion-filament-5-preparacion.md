@@ -17,25 +17,20 @@ La base tecnológica cumple los requisitos de Filament 5. El transformador ofici
 
 Filament 5 conserva en gran medida la API de Filament 4. El riesgo principal de este proyecto está en sus integraciones Livewire, sus vistas Blade con Alpine y el tema SIA que utiliza selectores internos de Filament.
 
-## Orden de actualizaciones
+## Estado vigente — 5 de octubre de 2026
 
-1. **Filament 5 y Livewire 4 juntos**, manteniendo Laravel 12. Filament 5 admite Laravel 11.28 o superior, por lo que Laravel 12 es una base compatible.
-2. **Laravel 13 después**, cuando el panel, las cargas, GPS, lector y flujos financieros hayan quedado estables sobre Filament 5.
+Las fases de septiembre son antecedentes. Laravel 13 ya está resuelto en el lock e instalado; no persiste el bloqueo de dependencias descrito durante la preparación.
 
-Laravel 13 no desbloquea Filament 5. En cambio, su instalación actual está bloqueada por dependencias que todavía limitan Illuminate a Laravel 12: Dompdf, Socialite, Tinker, Google Calendar, IDE Helper, Pail, Sail y Collision. Esto produciría dos grupos de regresiones independientes y haría difícil identificar el origen de un error.
+| Componente | Lock e instalación actuales | Estado |
+| --- | --- | --- |
+| PHP | CLI 8.3.20; Laravel 13 requiere ^8.3 | Verificar extensiones del entorno |
+| Laravel | 13.31.0 | Instalado |
+| Filament | 5.8.1 | Instalado |
+| Livewire | 4.4.4 | Instalado |
+| Tailwind / Vite | 4 / 6 | Configurados |
+| Barcode Field | 1.0.0 local, admite Filament ^4.0 o ^5.0 | Adaptado |
 
-## Estado actual
-
-| Elemento | Estado actual | Estado para Filament 5 | Evaluación |
-| --- | --- | --- | --- |
-| PHP | 8.3.20 | 8.2 o superior | Listo |
-| Laravel | 12.69.2 | 11.28 o superior | Listo |
-| Tailwind CSS | 4.1 | 4 o superior | Listo |
-| Filament | 4.13.1 | 5.x | Pendiente |
-| Livewire | 3.8.8 | 4.x | Bloqueante |
-| Filament Shield | 4.3.1 | Declara compatibilidad con 4 y 5 | Validar roles y permisos |
-| Filament Excel | 3.6.1 | Declara compatibilidad con 4 y 5 | Validar exportaciones |
-| `designthebox/barcode-field` | 1.0.0 local | Declara solamente Filament 4 | Bloqueante |
+Roles, exportaciones, dispositivos y tema deben verificarse al desplegar. Las validaciones registradas más abajo corresponden a septiembre y no acreditan una ejecución actual sobre Laravel 13.
 
 ## Cambios realizados
 
@@ -84,7 +79,7 @@ Completado:
 - Pruebas unitarias: 5 correctas, 44 aserciones.
 - Pruebas JavaScript: 8 correctas, incluidas las del lector de códigos y cálculo de ventas.
 
-Pendiente de ejecutar en un PHP con SQLite habilitado:
+Limitaciones registradas en septiembre (recomprobar en el entorno de despliegue):
 
 - La suite Feature usa `sqlite` en memoria. El PHP de Laragon tiene disponibles `php_pdo_sqlite.dll` y `php_sqlite3.dll`, pero ambas extensiones están deshabilitadas en su `php.ini`; por ello la ejecución ordinaria de las 58 pruebas Feature termina con `could not find driver`.
 - La migración no modifica datos ni la configuración de Laragon. Para ejecutar la suite completa se pueden habilitar temporalmente esos módulos para el proceso:

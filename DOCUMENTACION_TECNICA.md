@@ -2,6 +2,8 @@
 
 > Sistema Integral de Administración (SIA). Esta guía describe el estado actual del código fuente, su arquitectura, módulos, datos, seguridad y operación.
 
+> Estado de dependencias actualizado el 2026-10-05. Para mapa de mantenimiento, decisiones y pendientes consultar [memoria compartida](docs/memoria/PROYECTO.md).
+
 ## 1. Propósito y alcance
 
 SIA es una aplicación administrativa construida con Laravel y Filament. Centraliza la configuración organizacional, recursos humanos, control de asistencia, inventario/almacenes, compras, ventas y contabilidad.
@@ -12,8 +14,8 @@ El acceso operativo ocurre principalmente en el panel Filament **dashboard**, di
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | PHP 8.2+, Laravel 12 |
-| Panel administrativo | Filament 4 |
+| Backend | PHP 8.3+, Laravel 13.31.0 |
+| Panel administrativo | Filament 5.8.1 / Livewire 4.4.4 |
 | Autorización | Spatie Laravel Permission + Filament Shield |
 | Base de datos | MySQL/MariaDB mediante `pdo_mysql` |
 | Plantillas | Blade + componentes Livewire/Filament |
@@ -21,7 +23,7 @@ El acceso operativo ocurre principalmente en el panel Filament **dashboard**, di
 | PDF | `barryvdh/laravel-dompdf` |
 | Exportaciones | `pxlrbt/filament-excel` |
 | Autenticación externa | Laravel Socialite / Google |
-| Estilos del panel | Tema nativo de SIA para Filament 4 |
+| Estilos del panel | Tema nativo de SIA servido como CSS público mediante render hook |
 
 Dependencias y versiones declaradas: `composer.json`, `package.json`.
 
@@ -56,7 +58,7 @@ Resources/Pages ── Models Eloquent ── MySQL
 | `database/seeders` | Semillas de parámetros, administrador y permisos/roles. |
 | `resources/views` | Componentes Filament, mapas, widgets y plantillas PDF. |
 | `config` | Configuración Laravel, Shield, permisos, servicios y colas. |
-| `tests/Feature` | Pruebas de comportamiento para facturas de contado y valores por defecto del kardex. |
+| `tests/Feature` | Pruebas de ventas, compras, pagos, fechas, inventario, Kardex, contabilidad y permisos. |
 
 ## 4. Panel Filament
 
@@ -69,7 +71,7 @@ El proveedor `app/Providers/Filament/DashboardPanelProvider.php` configura:
 - Grupos de navegación: Recursos Humanos, Contabilidad, Compras, Inventario, Ventas, Comercial, Almacenes y Configuración.
 - Logo y favicon desde `public/images`.
 - Notificaciones de base de datos con sondeo cada 30 segundos.
-- Widget de Nextcloud y menú de acceso a “Mi Perfil”.
+- Ocho widgets propios de ventas, inventario, contabilidad y análisis comercial; menú de acceso a “Mi Perfil”.
 
 ### Clusters
 
@@ -167,10 +169,10 @@ Resources:
 - `ArticuloResource`: ficha completa del artículo y relation managers para atributos, códigos, existencias, imágenes, kardex, lotes, precios, proveedores, series y unidades.
 - `StockAlmacenResource`: consulta de stock por almacén.
 - `KardexResource`: historial de entradas y salidas.
-- `Almacen/InventarioResource`: toma y ajustes de inventario, widget de estadísticas y exportaciones.
+- `Almacen/InventarioResource`: sesiones de conteo, revisión, cierre, bitácora y exportaciones. El cierre no ajusta stock; los ajustes autorizados se registran por separado en Kardex.
 - Cluster `ParametrosInventario`: mantenimiento de la estructura maestra de inventario.
 
-`TrazabilidadInventarioService` es el servicio central que registra y revierte entradas/salidas, manteniendo kardex, existencias, lotes, series y capas de costo. Compras y ventas lo invocan desde sus modelos de negocio.
+`Kardex` coordina movimientos, existencias, valoración y efectos contables; `TrazabilidadInventarioService` gestiona series, lotes y capas asociadas a movimientos. Revisar ambos al cambiar entradas, salidas o reversiones; compras y ventas los utilizan desde sus modelos de negocio.
 
 Los reportes PDF de inventario están en:
 
@@ -276,6 +278,7 @@ Las restricciones, índices y claves foráneas son la fuente definitiva del esqu
 | `/auth/google/redirect` | Inicia OAuth con Google. |
 | `/auth/google/callback` | Recibe y procesa el callback OAuth. |
 | `/up` | Health check de Laravel. |
+| `/media/empleados/{empleado}/foto` | Foto del empleado, protegida con middleware de autenticación. |
 
 Para listar todas las rutas registradas:
 
@@ -376,12 +379,17 @@ Pruebas existentes:
 
 - `tests/Feature/FacturaContadoTest.php`
 - `tests/Feature/KardexDefaultsTest.php`
+- `tests/Feature/VentaFechasTest.php`, `PagoMixtoTest.php` y `VentaServiciosTest.php`.
+- `tests/Feature/InventarioFisicoTest.php`, `InventarioNegativoTest.php` y `KardexAccountingIntegrationTest.php`.
+- `tests/Feature/FacturaCompraFlujoTest.php` y `WidgetsPermissionTest.php`.
+- `tests/Unit` y `tests/js`: servicios, importes y lector de códigos.
 
 Ejecución:
 
 ```bash
 php artisan test
-vendor/bin/pint --test
+php vendor/laravel/pint/builds/pint --test
+npm.cmd test
 ```
 
 Las pruebas configuradas usan SQLite. El entorno de ejecución debe tener habilitado `pdo_sqlite` y `sqlite3`. En el PHP local las DLL están disponibles y pueden cargarse temporalmente para ejecutar la suite:
@@ -396,12 +404,12 @@ php -d extension=pdo_sqlite -d extension=sqlite3 artisan test
 - Declarar `navigationGroup`, etiquetas e iconos en cada resource para que el menú y Shield mantengan la misma jerarquía.
 - Ubicar datos laborales en `rh_historial_laboral`, no en `rh_empleados`.
 - Usar `historialActivo` al consultar la asignación laboral vigente de un empleado.
-- Encapsular cambios de stock en `TrazabilidadInventarioService`; no modificar existencias/kardex de manera aislada.
+- Encapsular movimientos en las operaciones de `Kardex` y su servicio de trazabilidad; no modificar existencias de manera aislada.
 - No eliminar migraciones aplicadas ni tablas con datos sin una migración de transición aprobada.
 - Ejecutar `php artisan optimize:clear` y pruebas relevantes después de cambios estructurales.
 
 ## 14. Documentos complementarios
 
-- `README.md`: notas históricas y diagramas iniciales del proyecto.
+- `README.md`: entrada vigente, stack e instalación; notas originales en `docs/historico/README-original.md`.
 - `Arquitectura.md`: resumen histórico del flujo FIFO/inventario.
 - Esta guía (`DOCUMENTACION_TECNICA.md`): referencia técnica actual y centralizada.

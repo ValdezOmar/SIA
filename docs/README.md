@@ -1,5 +1,12 @@
 # Guías de módulos del SIA
 
+## Memoria compartida entre modelos
+
+- [Instrucciones de trabajo](../AGENTS.md).
+- [Mapa del proyecto y reglas vigentes](memoria/PROYECTO.md).
+- [Continuidad y pendientes](memoria/CONTINUIDAD.md).
+- [Instalación y uso de Claude Mem](memoria/CLAUDE_MEM.md).
+
 Revisión del código: **7 de septiembre de 2026**.
 
 Estas guías describen el comportamiento implementado. Las opciones visibles dependen de los permisos del usuario y del contexto empresarial configurado. Las referencias técnicas permiten localizar dónde mantener cada flujo.

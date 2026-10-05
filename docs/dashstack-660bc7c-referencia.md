@@ -20,9 +20,10 @@ Esta nota conserva las decisiones visuales e integraciones del commit
 ## Implementación nativa
 
 El paquete `nuxtifyts/dash-stack-theme` fue retirado. Las reglas se mantienen en
-`resources/css/filament/dashboard/theme.css` y `login.css`, que importan el
-CSS oficial de Filament 4. El panel registra ese tema directamente con
-`viteTheme()`, sin plugins de terceros.
+`public/css/sia-filament-theme.css`, cargado por el render hook
+`filament.components.sia-panel-theme`. También existen fuentes en
+`resources/css/filament/dashboard/theme.css` y `login.css`; el proveedor actual
+no registra `viteTheme()`. El lector usa Vite por separado.
 
 `App\Support\PanelAppearance` obtiene los valores de `conf_parametros` de
 forma tolerante a migraciones pendientes. El recurso Sistema > Parámetros

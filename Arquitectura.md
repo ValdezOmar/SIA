@@ -1,3 +1,7 @@
+# Referencia histórica del flujo de costos
+
+Este diagrama ilustra FIFO y no todos los métodos vigentes. El código admite también promedio, estándar y LIFO; consultar [Inventario](docs/inventario.md) y [mapa del proyecto](docs/memoria/PROYECTO.md). Las fechas deben provenir de la operación correspondiente, no asumirse siempre como `now()`.
+
 COMPRA (Entrada)
     ↓
 Crear Capa de Costo
