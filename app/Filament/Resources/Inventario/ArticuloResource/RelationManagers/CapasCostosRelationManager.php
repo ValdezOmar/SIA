@@ -44,11 +44,12 @@ class CapasCostosRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Section::make('Identificación de la capa')
+                ->columnSpanFull()
                 ->description('Una capa representa una entrada valorizada que FIFO consumirá desde la más antigua.')
                 ->schema([
-                    Grid::make(4)->schema([
+                    Grid::make(1)->schema([
                         Placeholder::make('id')->label('Capa FIFO')->content(fn ($record) => '#'.($record?->id ?? '—')),
                         Placeholder::make('almacen.nombre')->label('Almacén')->content(fn ($record) => $record?->almacen?->nombre ?? '—'),
                         Placeholder::make('fecha')->label('Fecha de entrada')->content(fn ($record) => $record?->fecha?->format('d/m/Y H:i:s') ?? '—'),
@@ -56,14 +57,15 @@ class CapasCostosRelationManager extends RelationManager
                     ]),
                 ]),
             Section::make('Disponibilidad y valoración')
+                ->columnSpanFull()
                 ->schema([
-                    Grid::make(4)->schema([
+                    Grid::make(1)->schema([
                         Placeholder::make('cantidad_original')->label('Cantidad recibida')->content(fn ($record) => number_format((float) ($record?->cantidad_original ?? 0), 2)),
                         Placeholder::make('cantidad_consumida')->label('Cantidad consumida')->content(fn ($record) => number_format(max(0, (float) ($record?->cantidad_original ?? 0) - (float) ($record?->cantidad_disponible ?? 0)), 2)),
                         Placeholder::make('cantidad_disponible')->label('Saldo disponible')->content(fn ($record) => number_format((float) ($record?->cantidad_disponible ?? 0), 2).' ('.self::porcentajeDisponible($record).'%)'),
                         Placeholder::make('costo_unitario')->label('Costo unitario')->content(fn ($record) => self::monto($record?->costo_unitario)),
                     ]),
-                    Grid::make(2)->schema([
+                    Grid::make(1)->schema([
                         Placeholder::make('valor_original')->label('Valor inicial')->content(fn ($record) => self::monto((float) ($record?->cantidad_original ?? 0) * (float) ($record?->costo_unitario ?? 0))),
                         Placeholder::make('valor_disponible')->label('Valor pendiente en FIFO')->content(fn ($record) => self::monto((float) ($record?->cantidad_disponible ?? 0) * (float) ($record?->costo_unitario ?? 0))),
                     ]),

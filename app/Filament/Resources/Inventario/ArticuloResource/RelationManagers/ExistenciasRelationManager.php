@@ -38,11 +38,12 @@ class ExistenciasRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make('Gestión de Existencias')
+                    ->columnSpanFull()
                     ->schema([
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
                                 Select::make('almacen_id')
                                     ->label('Almacén')
@@ -87,7 +88,7 @@ class ExistenciasRelationManager extends RelationManager
                                     ->helperText('Se actualiza automáticamente desde los documentos operativos.'),
                             ]),
 
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('cantidad_minima')
                                     ->label('Stock Mínimo')
@@ -118,7 +119,7 @@ class ExistenciasRelationManager extends RelationManager
                                     ->disabled(),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('costo_acumulado')
                                     ->label('Costo Acumulado')
@@ -142,8 +143,9 @@ class ExistenciasRelationManager extends RelationManager
                             ]),
 
                         Section::make('Información Adicional')
+                            ->columnSpanFull()
                             ->schema([
-                                Grid::make(2)
+                                Grid::make(1)
                                     ->schema([
                                         Placeholder::make('ultima_entrada')
                                             ->label('Última Entrada')

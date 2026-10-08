@@ -51,13 +51,14 @@ class SeriesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make('Información de la Serie')
+                    ->columnSpanFull()
                     ->icon('heroicon-o-identification')
                     ->description('Gestiona los números de serie de este artículo')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('numero_serie')
                                     ->label('Número de Serie')
@@ -67,34 +68,34 @@ class SeriesRelationManager extends RelationManager
                                     ->placeholder('Ej: SN-2024-001')
                                     ->helperText('Número de serie único del artículo')
                                     ->disabledOn('edit')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 TextInput::make('codigo_qr')
                                     ->label('Código QR')
                                     ->maxLength(255)
                                     ->placeholder('Ej: QR-001')
                                     ->helperText('Código QR asociado (opcional)')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('imei')
                                     ->label('IMEI')
                                     ->maxLength(255)
                                     ->placeholder('Ej: 123456789012345')
                                     ->helperText('IMEI del dispositivo (opcional)')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 TextInput::make('mac_address')
                                     ->label('MAC Address')
                                     ->maxLength(255)
                                     ->placeholder('Ej: 00:11:22:33:44:55')
                                     ->helperText('Dirección MAC (opcional)')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 Select::make('almacen_id')
                                     ->label('Almacén')
@@ -108,7 +109,7 @@ class SeriesRelationManager extends RelationManager
                                     ->placeholder('Seleccione un almacén')
                                     ->helperText('Almacén donde se encuentra la serie')
                                     ->disabled()
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 Select::make('estado')
                                     ->label('Estado')
@@ -125,34 +126,34 @@ class SeriesRelationManager extends RelationManager
                                     ->searchable()
                                     ->helperText('Estado actual de la serie')
                                     ->disabled()
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 DatePicker::make('fecha_garantia')
                                     ->label('Fecha de Garantía')
                                     ->native()
                                     ->disabled()
                                     ->helperText('Fecha de vencimiento de la garantía')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 DatePicker::make('fecha_venta')
                                     ->label('Fecha de Venta')
                                     ->native()
                                     ->disabled()
                                     ->helperText('Fecha en que fue vendida la serie')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 DatePicker::make('fecha_instalacion')
                                     ->label('Fecha de Instalación')
                                     ->native()
                                     ->disabled()
                                     ->helperText('Fecha de instalación (si aplica)')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 TextInput::make('estado_actual')
                                     ->label('Estado Actual')
@@ -160,7 +161,7 @@ class SeriesRelationManager extends RelationManager
                                     ->disabled()
                                     ->placeholder('Ej: Instalado, En uso, Almacenado')
                                     ->helperText('Descripción detallada del estado actual')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
                         // Información del artículo

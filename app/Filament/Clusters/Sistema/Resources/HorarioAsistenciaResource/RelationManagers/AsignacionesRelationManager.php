@@ -27,7 +27,7 @@ class AsignacionesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Select::make('empleado_id')
                 ->label('Empleado')
                 ->options(fn (): array => Empleado::query()
@@ -43,7 +43,7 @@ class AsignacionesRelationManager extends RelationManager
             DatePicker::make('fecha_inicio')->label('Vigente desde')->default(today())->helperText('Fecha de inicio del turno.')->required(),
             DatePicker::make('fecha_fin')->label('Vigente hasta')->afterOrEqual('fecha_inicio')->helperText('Déjelo vacío si no tiene fecha de finalización.'),
             Toggle::make('activo')->label('Activa')->helperText('Solo las asignaciones activas se aplican al control de asistencia.')->default(true),
-        ])->columns(['default' => 1, 'lg' => 2]);
+        ])->columns(1);
     }
 
     public function table(Table $table): Table

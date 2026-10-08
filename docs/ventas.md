@@ -138,3 +138,9 @@ php -d extension=pdo_sqlite -d extension=sqlite3 vendor/phpunit/phpunit/phpunit 
 **Acciones → Compartir por WhatsApp** prepara la proforma y ofrece **Compartir PDF** mediante el menú del dispositivo (elegir WhatsApp y destinatario). Requiere HTTPS y soporte para compartir archivos. Como alternativa, descargar el PDF y abrir el chat del cliente para adjuntarlo manualmente. Abrir el chat solo prepara un mensaje; no adjunta el archivo automáticamente. Compartir no cambia el estado de la cotización ni confirma que fue enviada. El PDF exige sesión y los permisos habituales.
 
 En el modal **Compartir**, **Descargar PDF** guarda el archivo preparado con nombre Proforma-[código].pdf sin navegar fuera del panel. El botón se habilita cuando termina de prepararse el documento.
+
+Compartir PDF entrega únicamente el archivo al menú nativo, sin texto ni enlace. Comprueba que WhatsApp muestre la tarjeta del documento antes de enviarlo. Abrir chat de WhatsApp (sin adjunto) prepara solo el mensaje y requiere adjuntar el documento descargado.
+
+Los formularios de pagos de facturas muestran campos apilados. En las relaciones del cliente, las secciones de facturas, pedidos y cotizaciones ocupan todo el ancho; las líneas de productos conservan su distribución específica.
+
+Las pestañas **Facturas**, **Pedidos** y **Cotizaciones** de Clientes no ofrecen creación de documentos. Para registrar uno nuevo, usar el Resource de ventas correspondiente.

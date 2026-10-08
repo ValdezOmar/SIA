@@ -28,8 +28,9 @@ class AreasRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Section::make('Datos del área')
+                ->columnSpanFull()
                 ->icon('heroicon-o-user-group')
                 ->description('El área puede compartirse entre empresas y contiene sus cargos organizacionales.')
                 ->schema([
@@ -42,6 +43,7 @@ class AreasRelationManager extends RelationManager
                 ]),
 
             Section::make('Cargos del área')
+                ->columnSpanFull()
                 ->icon('heroicon-o-briefcase')
                 ->description('Agregue los puestos de trabajo que pertenecen a esta área.')
                 ->schema([

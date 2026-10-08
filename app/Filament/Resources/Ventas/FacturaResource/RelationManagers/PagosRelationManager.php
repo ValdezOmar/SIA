@@ -63,13 +63,14 @@ class PagosRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make('Datos del Pago')
+                    ->columnSpanFull()
                     ->icon('heroicon-o-credit-card')
                     ->description('Registrar pago para la factura')
                     ->schema([
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('numero')
                                     ->label('Número')
@@ -81,7 +82,7 @@ class PagosRelationManager extends RelationManager
                                     ->helperText('Número único del pago')
                                     ->default(fn () => Pago::generarNumero())
                                     ->prefixIcon('heroicon-o-hashtag')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 DatePicker::make('fecha_pago')
                                     ->label('Fecha Pago')
@@ -91,7 +92,7 @@ class PagosRelationManager extends RelationManager
                                     ->native()
                                     ->helperText('Fecha del pago')
                                     ->prefixIcon('heroicon-o-calendar')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 Select::make('tipo_pago')
                                     ->label('Tipo de Pago')
@@ -109,10 +110,10 @@ class PagosRelationManager extends RelationManager
                                     ->searchable()
                                     ->helperText('Método de pago utilizado')
                                     ->prefixIcon('heroicon-o-credit-card')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('monto')
                                     ->label('Monto')
@@ -124,7 +125,7 @@ class PagosRelationManager extends RelationManager
                                     ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                     ->helperText('Monto del pago')
                                     ->live()
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 Select::make('moneda')
                                     ->label('Moneda')
@@ -139,7 +140,7 @@ class PagosRelationManager extends RelationManager
                                     ->helperText('Moneda del pago')
                                     ->prefixIcon('heroicon-o-currency-dollar')
                                     ->live()
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 TextInput::make('tasa_cambio')
                                     ->label('Tasa Cambio')
@@ -149,10 +150,10 @@ class PagosRelationManager extends RelationManager
                                     ->helperText('Tasa de cambio aplicada')
                                     ->prefixIcon('heroicon-o-arrow-path')
                                     ->visible(fn ($get) => $get('moneda') !== 'BOB')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('referencia')
                                     ->label('Referencia')
@@ -160,7 +161,7 @@ class PagosRelationManager extends RelationManager
                                     ->placeholder('Número de referencia')
                                     ->helperText('Referencia del pago')
                                     ->prefixIcon('heroicon-o-document-text')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 TextInput::make('banco')
                                     ->label('Banco')
@@ -169,7 +170,7 @@ class PagosRelationManager extends RelationManager
                                     ->helperText('Banco utilizado')
                                     ->prefixIcon('heroicon-o-building-office')
                                     ->visible(fn ($get) => in_array($get('tipo_pago'), ['qr', 'transferencia', 'cheque', 'tarjeta', 'deposito']))
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 TextInput::make('numero_cheque')
                                     ->label('Número de Cheque')
@@ -178,7 +179,7 @@ class PagosRelationManager extends RelationManager
                                     ->helperText('Número del cheque')
                                     ->prefixIcon('heroicon-o-document-text')
                                     ->visible(fn ($get) => $get('tipo_pago') === 'cheque')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
                         DatePicker::make('fecha_cheque')
@@ -188,7 +189,7 @@ class PagosRelationManager extends RelationManager
                             ->helperText('Fecha del cheque')
                             ->prefixIcon('heroicon-o-calendar')
                             ->visible(fn ($get) => $get('tipo_pago') === 'cheque')
-                            ->columnSpan(1),
+                            ->columnSpanFull(),
 
                         Select::make('estado')
                             ->label('Estado')
@@ -205,7 +206,7 @@ class PagosRelationManager extends RelationManager
                             ->searchable()
                             ->helperText('Estado del pago')
                             ->prefixIcon('heroicon-o-tag')
-                            ->columnSpan(1),
+                            ->columnSpanFull(),
 
                         Textarea::make('observaciones')
                             ->label('Observaciones')

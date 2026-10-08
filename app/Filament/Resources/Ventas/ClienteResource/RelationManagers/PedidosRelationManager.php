@@ -10,7 +10,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 use App\Forms\Components\ImporteVenta;
 use App\Forms\Components\CalculoRepeater;
-use Filament\Actions\CreateAction;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Actions\Action;
@@ -144,7 +143,7 @@ class PedidosRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Tabs::make('Gestión de Pedido')
                     ->tabs([
@@ -153,6 +152,7 @@ class PedidosRelationManager extends RelationManager
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos del Pedido')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-document-text')
                                     ->description('Información principal del pedido')
                                     ->schema([
@@ -287,6 +287,7 @@ class PedidosRelationManager extends RelationManager
                                     ]),
 
                                 Section::make('Envío')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-truck')
                                     ->schema([
                                         Grid::make(3)
@@ -346,6 +347,7 @@ class PedidosRelationManager extends RelationManager
                                     ]),
 
                                 Section::make('Totales')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-calculator')
                                     ->schema([
                                         Grid::make(['default' => 1, 'sm' => 2, 'xl' => 5])
@@ -417,6 +419,7 @@ class PedidosRelationManager extends RelationManager
                             })
                             ->schema([
                                 Section::make('Detalle de Productos')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos incluidos en el pedido')
                                     ->schema([
@@ -693,6 +696,7 @@ class PedidosRelationManager extends RelationManager
                             ->icon('heroicon-o-clipboard-document')
                             ->schema([
                                 Section::make('Observaciones e Instrucciones')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-clipboard-document')
                                     ->schema([
                                         Textarea::make('observaciones')
@@ -715,6 +719,7 @@ class PedidosRelationManager extends RelationManager
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-clock')
                                     ->schema([
                                         Grid::make(3)
@@ -867,29 +872,6 @@ class PedidosRelationManager extends RelationManager
                     ])
                     ->searchable()
                     ->preload(),
-            ])
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Nuevo Pedido')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Nuevo Pedido')
-                    ->modalWidth('7xl')
-                    ->using(function (array $data, $livewire) {
-                        $data['cliente_id'] = $livewire->getOwnerRecord()->id;
-                        $data['codigo'] = Pedido::generarCodigo();
-                        $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = $livewire->getOwnerRecord()->empresa_id;
-
-                        $pedido = Pedido::create($data);
-
-                        Notification::make()
-                            ->title('Pedido creado exitosamente')
-                            ->body('El pedido '.$pedido->codigo.' ha sido creado.')
-                            ->success()
-                            ->send();
-
-                        return $pedido;
-                    }),
             ])
             ->recordActions([
                 ActionGroup::make([

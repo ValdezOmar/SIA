@@ -52,13 +52,14 @@ class LotesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make('Información del Lote')
+                    ->columnSpanFull()
                     ->icon('heroicon-o-beaker')
                     ->description('Gestiona los lotes de este artículo')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('numero_lote')
                                     ->label('Número de Lote')
@@ -68,33 +69,34 @@ class LotesRelationManager extends RelationManager
                                     ->placeholder('Ej: LOTE-2024-001')
                                     ->helperText('Número de lote único')
                                     ->disabledOn('edit')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 DatePicker::make('fecha_fabricacion')
                                     ->label('Fecha de Fabricación')
                                     ->native()
                                     ->helperText('Fecha de fabricación del lote')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 DatePicker::make('fecha_vencimiento')
                                     ->label('Fecha de Vencimiento')
                                     ->native()
                                     ->helperText('Fecha de vencimiento del lote')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 TextInput::make('observaciones')
                                     ->label('Observaciones')
                                     ->maxLength(255)
                                     ->placeholder('Notas sobre este lote...')
                                     ->helperText('Observaciones adicionales del lote')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
                         // Stock por almacén
                         Section::make('Stock por Almacén')
+                            ->columnSpanFull()
                             ->icon('heroicon-o-cube')
                             ->description('Distribución del lote en diferentes almacenes')
                             ->schema([
@@ -102,7 +104,7 @@ class LotesRelationManager extends RelationManager
                                     ->label('')
                                     ->relationship('stocks')
                                     ->schema([
-                                        Grid::make(2)
+                                        Grid::make(1)
                                             ->schema([
                                                 Select::make('almacen_id')
                                                     ->label('Almacén')
@@ -116,7 +118,7 @@ class LotesRelationManager extends RelationManager
                                                     ->preload()
                                                     ->placeholder('Seleccione un almacén')
                                                     ->helperText('Almacén donde se encuentra el lote')
-                                                    ->columnSpan(1),
+                                                    ->columnSpanFull(),
 
                                                 TextInput::make('cantidad')
                                                     ->label('Cantidad')
@@ -127,7 +129,7 @@ class LotesRelationManager extends RelationManager
                                                     ->default(0)
                                                     ->placeholder('0.00')
                                                     ->helperText('Cantidad en este almacén')
-                                                    ->columnSpan(1),
+                                                    ->columnSpanFull(),
                                             ]),
                                     ])
                                     ->defaultItems(0)

@@ -34,13 +34,14 @@ class AtributosRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make('Asignación de Atributo')
+                    ->columnSpanFull()
                     ->icon('heroicon-o-tag')
                     ->description('Asigna un valor a un atributo para este artículo')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 Select::make('atributo_id')
                                     ->label('Atributo')

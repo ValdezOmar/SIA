@@ -30,8 +30,9 @@ class SucursalesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Section::make('Datos de la sucursal')
+                ->columnSpanFull()
                 ->icon('heroicon-o-building-storefront')
                 ->description('La sucursal quedará asociada automáticamente a esta empresa.')
                 ->schema([
@@ -69,7 +70,7 @@ class SucursalesRelationManager extends RelationManager
                         ->helperText('Desactívela cuando deje de operar; su historial se conservará.')
                         ->default(true),
                 ])
-                ->columns(['default' => 1, 'lg' => 2]),
+                ->columns(1),
         ]);
     }
 

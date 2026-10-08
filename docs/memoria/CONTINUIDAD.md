@@ -71,3 +71,33 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - Se conserva el ajuste del usuario: acción llamada Compartir y retirada de imprimir_pdf independiente. La prueba anterior de esa acción se adapta a la descarga autenticada vigente.
 - Verificación: CotizacionPdfTest y Pint ejecutados; resultado consignado a continuación. Pendiente comprobar descarga desde el navegador del usuario; no se envió ningún mensaje.
 - Resultado: 8 pruebas/40 aserciones correctas; Pint --test en controlador y prueba correcto. diff --check detectó un espacio en blanco preexistente de la edición del usuario del Resource, retirado sin alterar la acción.
+
+## 2026-10-08 — Adjunto PDF al compartir
+
+- Web Share recibe únicamente files: [archivo], sin texto/título/URL. Ajuste de compatibilidad ante el reporte de WhatsApp que no mostraba el documento; no se da por confirmado el resultado en dispositivo real.
+- Preparación valida archivo no vacío y firma %PDF- además del tipo de respuesta. El botón de chat se identifica explícitamente sin adjunto; compartir pide comprobar la tarjeta PDF antes de enviar.
+- Pruebas nuevas tests/js/cotizacion-compartir.test.cjs ejecutan el método de la plantilla con navegador simulado: payload solo archivo, cancelación y ausencia de soporte. 3 pruebas correctas. No se envió ningún mensaje real ni se cambió el estado comercial.
+- Pendiente identificar dispositivo/botón usado y comprobar el adjunto en su WhatsApp. El soporte de Web Share no garantiza qué hará la aplicación receptora; el chat wa.me requiere adjunto manual.
+- Verificación adicional ejecutada: php vendor/phpunit/phpunit/phpunit --filter=CotizacionPdfTest: 8 pruebas/40 aserciones correctas (2 min 34 s); git diff --check correcto. Sin prueba de WhatsApp real.
+
+## 2026-10-08 — Distribución apilada de formularios de precios
+
+- Interpretación de «previo relation manager» como Precios tras solicitar aclaración sin respuesta; ajustados los formularios de precios del artículo y de listas de precios.
+- Artículo: esquema raíz de una columna, secciones a todo el ancho y grids internos de una columna. Lista de precios: artículo e importe apilados en una columna. Aplica a crear/editar; sin cambios en validaciones ni persistencia.
+- Verificación ejecutada: php -l en ambos PreciosRelationManager sin errores; git diff --check correcto. Sin prueba visual en navegador ni pruebas de negocio por tratarse únicamente de distribución.
+
+## 2026-10-08 — Revisión de distribución en Relation Managers
+
+- Revisados formularios de Relation Managers y corregidos 17 adicionales, conservando los dos ajustes previos de precios.
+- ArticuloResource: atributos, capas de costos, códigos de barras, existencias, Kardex por almacén, lotes, proveedores, series y unidades. Raíz de una columna, secciones completas, grids internos apilados y spans numéricos adaptados para no recrear columnas implícitas.
+- EmpresaResource: áreas y sucursales; HorarioAsistenciaResource: asignaciones. Secciones apiladas y formularios compactos de una columna.
+- FacturaResource: pagos; FacturaCompraResource: pagos/respaldos. Campos de una columna; se preservan callbacks, validaciones, permisos y operaciones financieras.
+- ClienteResource: facturas con campos apilados; pedidos y cotizaciones con secciones a todo el ancho. Se preservan las cuadrículas y spans de los detalles comerciales para evitar romper el cálculo/diseño específico de las líneas.
+- Se revisaron managers solo de consulta/sin formulario y el historial laboral que ya apila secciones; no requirieron el mismo ajuste.
+- Verificación ejecutada: php -l sobre los 19 archivos PHP modificados (17 nuevos + 2 previos), 0 errores; git diff --check correcto. Sin pruebas de negocio por cambios exclusivamente de distribución; pendiente comprobación visual en navegador de los 17 formularios. No se ejecutaron migraciones ni se alteraron datos.
+
+## 2026-10-08 — Sin creación de ventas desde el cliente
+
+- Retiradas las acciones CreateAction de FacturasRelationManager, PedidosRelationManager y CotizacionesRelationManager del ClienteResource, incluidos sus callbacks e imports exclusivos. Las acciones de registros existentes permanecen disponibles según sus permisos.
+- Las altas se realizan desde los Resources propios de Facturas, Pedidos y Cotizaciones. No se cambiaron políticas ni lógica de los modelos.
+- Verificación ejecutada: php -l en los tres archivos sin errores; búsqueda dirigida sin acciones Crear/headerActions en esas relaciones; git diff --check sin incidencias. Sin prueba visual ni operaciones sobre datos.

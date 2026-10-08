@@ -77,3 +77,7 @@ Elegir Feature por dominio: `VentaFechasTest`, `FacturaContadoTest`, `PagoMixtoT
 Guardar aquí arquitectura y decisiones vigentes, en la guía del módulo sus flujos y en `CONTINUIDAD.md` el estado de trabajo. Indicar evidencia y fecha; distinguir hecho verificado, decisión y pendiente. No guardar conversaciones enteras, secretos ni listas de archivos generados. Si el código cambia, corregir la memoria en el mismo trabajo.
 
 Compartir proformas: acción compartir_whatsapp en CotizacionResource, modal resources/views/filament/ventas/compartir-cotizacion.blade.php; ruta autenticada cotizaciones.pdf en routes/web.php y CotizacionPdfController. Web Share comparte el archivo desde el dispositivo; alternativa descarga y chat. Sin publicación anónima ni cambio de estado.
+
+Distribución de Relation Managers: los formularios compactos de Artículos, pagos de venta/compra, áreas/sucursales y asignaciones de horario usan una columna. Secciones a todo el ancho en formularios de Clientes; los detalles de pedidos/cotizaciones conservan sus cuadrículas específicas. Al reducir columnas, adaptar los columnSpan numéricos para evitar columnas implícitas.
+
+ClienteResource: las relaciones Facturas/Pedidos/Cotizaciones no registran altas desde su cabecera; crear documentos desde sus Resources propios.

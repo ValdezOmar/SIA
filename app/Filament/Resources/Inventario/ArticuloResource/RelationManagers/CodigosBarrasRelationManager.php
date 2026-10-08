@@ -39,13 +39,13 @@ class CodigosBarrasRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make('Identificación y uso del código')
                    // ->icon('heroicon-o-barcode')
                     ->description('Registre cada identificador que puede leerse en etiquetas, empaques o puntos de venta. El código principal se usará como referencia predeterminada.')
                     ->schema([
-                        Grid::make(6)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('codigo_barras')
                                     ->label('Código de Barras')
@@ -57,7 +57,7 @@ class CodigosBarrasRelationManager extends RelationManager
                                     ->autofocus()
                                     ->live(onBlur: true)
                                     ->suffixIcon('heroicon-o-qr-code')
-                                    ->columnSpan(4),
+                                    ->columnSpanFull(),
 
                                 Select::make('tipo')
                                     ->label('Tipo de Código')
@@ -79,10 +79,10 @@ class CodigosBarrasRelationManager extends RelationManager
                                     ->placeholder('Seleccione un tipo')
                                     ->helperText('Seleccione el estándar impreso en la etiqueta.')
                                     ->default('EAN-13')
-                                    ->columnSpan(2),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(6)
+                        Grid::make(1)
                             ->schema([
                                 Toggle::make('principal')
                                     ->label('Es el código principal')
@@ -108,7 +108,7 @@ class CodigosBarrasRelationManager extends RelationManager
                                             }
                                         }
                                     })
-                                    ->columnSpan(2),
+                                    ->columnSpanFull(),
 
                                 Placeholder::make('info')
                                     ->label('Verificación del identificador')

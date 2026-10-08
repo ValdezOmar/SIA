@@ -66,17 +66,18 @@ class KardexPorAlmacenRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Section::make('Resumen del movimiento')
+                ->columnSpanFull()
                 ->description('Valores registrados y saldo resultante en el almacén afectado.')
                 ->schema([
-                    Grid::make(4)->schema([
+                    Grid::make(1)->schema([
                         Placeholder::make('fecha_movimiento')->label('Fecha y hora')->content(fn ($record) => $record?->fecha_movimiento?->format('d/m/Y H:i:s') ?? '—'),
                         Placeholder::make('almacen.nombre')->label('Almacén')->content(fn ($record) => $record?->almacen?->nombre ?? '—'),
                         Placeholder::make('tipo_movimiento')->label('Movimiento')->content(fn ($record) => self::tipoLabel($record?->tipo_movimiento)),
                         Placeholder::make('estado')->label('Estado')->content(fn ($record) => $record?->estado ? str($record->estado)->headline()->toString() : '—'),
                     ]),
-                    Grid::make(4)->schema([
+                    Grid::make(1)->schema([
                         Placeholder::make('cantidad')->label('Cantidad')->content(fn ($record) => number_format((float) ($record?->cantidad ?? 0), 2)),
                         Placeholder::make('cantidad_anterior')->label('Saldo anterior')->content(fn ($record) => number_format((float) ($record?->cantidad_anterior ?? 0), 2)),
                         Placeholder::make('cantidad_posterior')->label('Saldo posterior')->content(fn ($record) => number_format((float) ($record?->cantidad_posterior ?? 0), 2)),
@@ -84,8 +85,9 @@ class KardexPorAlmacenRelationManager extends RelationManager
                     ]),
                 ]),
             Section::make('Origen y trazabilidad')
+                ->columnSpanFull()
                 ->schema([
-                    Grid::make(3)->schema([
+                    Grid::make(1)->schema([
                         Placeholder::make('documento_codigo')->label('Documento')->content(fn ($record) => $record?->documento_codigo ?: 'Movimiento manual'),
                         Placeholder::make('documento_origen')->label('Origen')->content(fn ($record) => ($record?->documento_tipo ?? 'manual').' #'.($record?->documento_id ?? 0)),
                         Placeholder::make('usuario.name')->label('Registrado por')->content(fn ($record) => $record?->usuario?->name ?? 'Sistema'),
@@ -101,6 +103,7 @@ class KardexPorAlmacenRelationManager extends RelationManager
                         }),
                 ]),
             Section::make('Motivo y observaciones')
+                ->columnSpanFull()
                 ->schema([
                     Placeholder::make('motivo')->label('Motivo')->content(fn ($record) => $record?->motivo ?: 'Sin motivo adicional'),
                     Placeholder::make('observaciones')->label('Observaciones')->content(fn ($record) => $record?->observaciones ?: 'Sin observaciones'),

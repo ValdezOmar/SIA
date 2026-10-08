@@ -39,12 +39,14 @@ class PreciosRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
         return $schema
+            ->columns(1)
             ->components([
                 Section::make('Configuración del Precio')
+                    ->columnSpanFull()
                     ->icon('heroicon-o-tag')
                     ->description('Asigna un precio a este artículo en una lista específica')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 Select::make('lista_precio_id')
                                     ->label('Lista de Precios')
@@ -112,9 +114,10 @@ class PreciosRelationManager extends RelationManager
                     ]),
 
                 Section::make('Información de la Lista')
+                    ->columnSpanFull()
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 Placeholder::make('lista_info')
                                     ->label('')

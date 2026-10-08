@@ -23,7 +23,7 @@ class PreciosRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             Select::make('articulo_id')
                 ->label('Artículo')
                 ->options(fn () => Articulo::query()->where('activo', true)->orderBy('codigo')->get()

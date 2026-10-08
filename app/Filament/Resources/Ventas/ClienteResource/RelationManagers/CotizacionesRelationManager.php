@@ -12,7 +12,6 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Actions\Action;
 use App\Forms\Components\ImporteVenta;
 use App\Forms\Components\CalculoRepeater;
-use Filament\Actions\CreateAction;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Actions\DeleteAction;
@@ -153,7 +152,7 @@ class CotizacionesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Tabs::make('Gestión de Cotización')
                     ->tabs([
@@ -163,6 +162,7 @@ class CotizacionesRelationManager extends RelationManager
                             ->icon('heroicon-o-document-text')
                             ->schema([
                                 Section::make('Datos de la Cotización')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-document-text')
                                     ->description('Información principal de la cotización')
                                     ->schema([
@@ -348,6 +348,7 @@ class CotizacionesRelationManager extends RelationManager
 
                                 // ========== SECCIÓN DE TOTALES ==========
                                 Section::make('Totales')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-calculator')
                                     ->schema([
                                         Grid::make(4)
@@ -408,6 +409,7 @@ class CotizacionesRelationManager extends RelationManager
                             })
                             ->schema([
                                 Section::make('Detalle de Productos')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-shopping-bag')
                                     ->description('Artículos incluidos en la cotización')
                                     ->schema([
@@ -692,6 +694,7 @@ class CotizacionesRelationManager extends RelationManager
                             ->icon('heroicon-o-clipboard-document')
                             ->schema([
                                 Section::make('Observaciones y Condiciones')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-clipboard-document')
                                     ->schema([
                                         Textarea::make('observaciones')
@@ -715,6 +718,7 @@ class CotizacionesRelationManager extends RelationManager
                             ->icon('heroicon-o-clock')
                             ->schema([
                                 Section::make('Información de Auditoría')
+                                    ->columnSpanFull()
                                     ->icon('heroicon-o-clock')
                                     ->schema([
                                         Grid::make(2)
@@ -837,30 +841,6 @@ class CotizacionesRelationManager extends RelationManager
                                 ->orWhereIn('estado', ['rechazada', 'expirada']);
                         }),
                     ),
-            ])
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Nueva Cotización')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Nueva Cotización')
-                    ->modalWidth('7xl')
-                    ->using(function (array $data, $livewire) {
-                        $data['cliente_id'] = $livewire->getOwnerRecord()->id;
-                        $data['codigo'] = Cotizacion::generarCodigo();
-                        $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = $livewire->getOwnerRecord()->empresa_id;
-
-                        // Crear la cotización
-                        $cotizacion = Cotizacion::create($data);
-
-                        Notification::make()
-                            ->title('Cotización creada exitosamente')
-                            ->body('La cotización '.$cotizacion->codigo.' ha sido creada.')
-                            ->success()
-                            ->send();
-
-                        return $cotizacion;
-                    }),
             ])
             ->recordActions([
                 ActionGroup::make([

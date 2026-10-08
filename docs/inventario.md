@@ -118,3 +118,7 @@ php -d extension=pdo_sqlite -d extension=sqlite3 vendor/phpunit/phpunit/phpunit 
 ```
 
 Las pruebas de componentes no verifican la cámara física: comprobar una etiqueta real desde el teléfono con permiso de cámara y conexión HTTPS.
+
+Los formularios de **Precios** del artículo y de listas de precios muestran los campos apilados en una sola columna. En el artículo, Configuración del Precio e Información de la Lista ocupan todo el ancho y se muestran uno debajo del otro.
+
+La distribución apilada también se aplica a atributos, capas de costos, códigos de barras, existencias, Kardex por almacén, lotes, proveedores, series y unidades del artículo. Las secciones ocupan todo el ancho.

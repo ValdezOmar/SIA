@@ -41,13 +41,14 @@ class ProveedoresRelationManager extends RelationManager
 
     public function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make('Información del Proveedor')
+                    ->columnSpanFull()
                     ->icon('heroicon-o-users')
                     ->description('Datos de la relación entre el artículo y el proveedor')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 Select::make('proveedor_id')
                                     ->label('Proveedor')
@@ -71,7 +72,7 @@ class ProveedoresRelationManager extends RelationManager
                                     ->helperText('Código que el proveedor usa para este artículo'),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('costo_compra')
                                     ->label('Costo de Compra')

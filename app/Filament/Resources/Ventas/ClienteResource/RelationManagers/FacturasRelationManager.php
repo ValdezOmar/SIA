@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Ventas\ClienteResource\RelationManagers;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
-use Filament\Actions\CreateAction;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Actions\Action;
@@ -64,12 +63,13 @@ class FacturasRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make('Datos de la Factura')
+                    ->columnSpanFull()
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
                                 TextInput::make('numero')
                                     ->label('Número')
@@ -81,7 +81,7 @@ class FacturasRelationManager extends RelationManager
                                     ->helperText('Número único de la factura')
                                     ->default(fn () => Factura::generarNumero())
                                     ->prefixIcon('heroicon-o-hashtag')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 DatePicker::make('fecha_emision')
                                     ->label('Fecha Emisión')
@@ -91,7 +91,7 @@ class FacturasRelationManager extends RelationManager
                                     ->native()
                                     ->helperText('Fecha de emisión')
                                     ->prefixIcon('heroicon-o-calendar')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 Select::make('estado')
                                     ->label('Estado')
@@ -110,10 +110,10 @@ class FacturasRelationManager extends RelationManager
                                     ->searchable()
                                     ->helperText('Estado actual')
                                     ->prefixIcon('heroicon-o-tag')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 Select::make('moneda')
                                     ->label('Moneda')
@@ -127,7 +127,7 @@ class FacturasRelationManager extends RelationManager
                                     ->searchable()
                                     ->helperText('Moneda de la factura')
                                     ->prefixIcon('heroicon-o-currency-dollar')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 DatePicker::make('fecha_vencimiento')
                                     ->label('Fecha Vencimiento')
@@ -136,10 +136,10 @@ class FacturasRelationManager extends RelationManager
                                     ->native()
                                     ->helperText('Fecha de vencimiento')
                                     ->prefixIcon('heroicon-o-calendar-days')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
                                 Placeholder::make('total')
                                     ->label('Total')
@@ -286,31 +286,6 @@ class FacturasRelationManager extends RelationManager
                         true: fn ($query) => $query->where('estado', 'pagada'),
                         false: fn ($query) => $query->whereIn('estado', ['emitida', 'parcial', 'vencida']),
                     ),
-            ])
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Nueva Factura')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Nueva Factura')
-                    ->modalWidth('5xl')
-                    ->using(function (array $data, $livewire) {
-                        $data['cliente_id'] = $livewire->getOwnerRecord()->id;
-                        $data['numero'] = Factura::generarNumero();
-                        $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = $livewire->getOwnerRecord()->empresa_id;
-                        $data['monto_pagado'] = 0;
-                        $data['saldo'] = $data['total'] ?? 0;
-
-                        $factura = Factura::create($data);
-
-                        Notification::make()
-                            ->title('Factura creada exitosamente')
-                            ->body('La factura '.$factura->numero.' ha sido creada.')
-                            ->success()
-                            ->send();
-
-                        return $factura;
-                    }),
             ])
             ->recordActions([
                 ActionGroup::make([

@@ -23,7 +23,7 @@ class PagosProveedorRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema->components([
+        return $schema->columns(1)->components([
             DatePicker::make('fecha_pago')->label('Fecha de pago')->default(today())->required(),
             Select::make('tipo_pago')->label('Método de pago')->options([
                 'efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'cheque' => 'Cheque',
@@ -43,7 +43,7 @@ class PagosProveedorRelationManager extends RelationManager
                 ->directory('compras/pagos-proveedor')
                 ->helperText('Adjunte imágenes o PDF del comprobante. Este requisito protege la trazabilidad.'),
             Textarea::make('observaciones')->label('Observaciones')->rows(2),
-        ])->columns(2);
+        ])->columns(1);
     }
 
     public function table(Table $table): Table

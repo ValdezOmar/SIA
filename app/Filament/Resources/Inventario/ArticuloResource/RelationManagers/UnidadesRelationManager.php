@@ -32,13 +32,14 @@ class UnidadesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return $schema->columns(1)
             ->components([
                 Section::make('Configuración de Unidad Alterna')
+                    ->columnSpanFull()
                     ->icon('heroicon-o-scale')
                     ->description('Define unidades de medida alternas para este artículo')
                     ->schema([
-                        Grid::make(2)
+                        Grid::make(1)
                             ->schema([
                                 Select::make('unidad_medida_id')
                                     ->label('Unidad de Medida')
@@ -50,7 +51,7 @@ class UnidadesRelationManager extends RelationManager
                                     ->preload()
                                     ->placeholder('Seleccione una unidad')
                                     ->helperText('Unidad de medida alternativa')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
 
                                 TextInput::make('factor_conversion')
                                     ->label('Factor de Conversión')
@@ -61,10 +62,10 @@ class UnidadesRelationManager extends RelationManager
                                     ->default(1)
                                     ->placeholder('1.00')
                                     ->helperText('Factor de conversión a la unidad base')
-                                    ->columnSpan(1),
+                                    ->columnSpanFull(),
                             ]),
 
-                        Grid::make(3)
+                        Grid::make(1)
                             ->schema([
                                 Toggle::make('es_compra')
                                     ->label('Para Compras')
