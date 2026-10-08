@@ -71,6 +71,7 @@ class ClienteResource extends Resource
         return $schema
             ->components([
                 Section::make('Empresa responsable')
+                    ->columnSpanFull()
                     ->description('Define a qué empresa pertenece la cartera de este cliente.')
                     ->icon('heroicon-o-building-office-2')
                     ->visible(fn (): bool => blank(Auth::user()?->empresa_id))

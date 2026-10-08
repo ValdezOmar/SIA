@@ -29,6 +29,7 @@ return [
     'resources' => [
         'subject' => 'class',
         'manage' => [
+            App\Filament\Clusters\Sistema\Resources\AuditoriaResource::class => ['viewAny', 'view'],
             App\Filament\Resources\Configuracion\RoleResource::class => ['viewAny', 'view', 'create', 'update', 'delete', 'deleteAny'],
             App\Filament\Resources\Almacen\InventarioResource::class => ['viewAny', 'update', 'programarInventario'],
             App\Filament\Resources\RRHH\EmpleadoResource::class => ['viewAny', 'create', 'update', 'verEmpleadosSucursal', 'verEmpleadosTodos'],
@@ -41,7 +42,7 @@ return [
     ],
     'pages' => ['subject' => 'class', 'prefix' => 'page', 'exclude' => [Filament\Pages\Dashboard::class]],
     'widgets' => ['subject' => 'class', 'prefix' => 'widget', 'exclude' => [Filament\Widgets\AccountWidget::class, Filament\Widgets\FilamentInfoWidget::class]],
-    'custom_permissions' => [],
+    'custom_permissions' => ['ver_todas_auditorias' => 'Consultar auditoría de todas las empresas y sucursales'],
 
     'super_admin' => [
         'enabled' => true,

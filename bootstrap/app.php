@@ -14,9 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->web(append: [\App\Http\Middleware\RegistrarAuditoria::class]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->report(function (\Throwable $exception) {
+            app(\App\Services\Sistema\AuditoriaService::class)->excepcion($exception);
+        });
         $exceptions->render(function (\RuntimeException $exception, Request $request) {
             if ($request->hasHeader('X-Livewire') || $request->expectsJson()) {
                 return null;

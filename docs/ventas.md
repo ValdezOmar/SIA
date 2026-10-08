@@ -144,3 +144,5 @@ Compartir PDF entrega únicamente el archivo al menú nativo, sin texto ni enlac
 Los formularios de pagos de facturas muestran campos apilados. En las relaciones del cliente, las secciones de facturas, pedidos y cotizaciones ocupan todo el ancho; las líneas de productos conservan su distribución específica.
 
 Las pestañas **Facturas**, **Pedidos** y **Cotizaciones** de Clientes no ofrecen creación de documentos. Para registrar uno nuevo, usar el Resource de ventas correspondiente.
+
+En el formulario de Cliente, la sección **Empresa responsable** ocupa todo el ancho disponible.

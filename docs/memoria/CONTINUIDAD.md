@@ -101,3 +101,16 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - Retiradas las acciones CreateAction de FacturasRelationManager, PedidosRelationManager y CotizacionesRelationManager del ClienteResource, incluidos sus callbacks e imports exclusivos. Las acciones de registros existentes permanecen disponibles según sus permisos.
 - Las altas se realizan desde los Resources propios de Facturas, Pedidos y Cotizaciones. No se cambiaron políticas ni lógica de los modelos.
 - Verificación ejecutada: php -l en los tres archivos sin errores; búsqueda dirigida sin acciones Crear/headerActions en esas relaciones; git diff --check sin incidencias. Sin prueba visual ni operaciones sobre datos.
+
+## 2026-10-08 — Ancho completo de Empresa responsable en Clientes
+
+- Se añadió columnSpanFull a la sección Empresa responsable de ClienteResource para que ocupe toda la fila del formulario.
+- No se ejecutaron pruebas ni se alteró la lógica de empresa, visibilidad o permisos.
+
+## 2026-10-08 — Revisión funcional del Resource Auditoría
+
+- Confirmado recurso de consulta en ruta dashboard/configuracion/auditorias. Policy con alcance de empresa/sucursal y modelo de solo lectura. Shield generaba view_any_auditoria, pero AuditoriaPolicy consultaba view_any_sistema::auditoria: corregido y verificado con LegacyShieldPermissions; el permiso ver_todas_auditorias también habilita el acceso y amplía el alcance.
+- AuditoriaServiceProvider captura eventos Eloquent, escrituras SQL, autenticación, logs, fallos de cola y excepciones; RegistrarAuditoria registra peticiones web. Sanitiza datos personales/secretos. Cancelaciones, anulaciones y eliminaciones Eloquent ahora se clasifican critical. Cachea disponibilidad de tabla por conexión para no consultar esquema por cada evento después de detectarla.
+- Pruebas añadidas tests/Feature/AuditoriaTest.php: captura Eloquent + SQL sin almacenar SQL crudo, saneamiento, compatibilidad entre permisos y clave Shield, y middleware HTTP. 4 pruebas/17 aserciones correctas. route:list confirmó GET dashboard/configuracion/auditorias; Pint --test en service, policy y test correcto.
+- Límites funcionales importantes documentados en docs/auditoria.md: entradas Eloquent/SQL duplicadas por operación; SQL directo no conserva before/after; eventos auditados dentro de la transacción pueden perderse si hay rollback; trabajos sin sesión no identifican actor; volumen crece por escritura/petición. Por tanto, no es captura absoluta ni almacenamiento externo inmutable.
+- Las pruebas migran SQLite en memoria; no se ejecutó `migrate` en la base del entorno. La migración debe aplicarse allí antes de usar el Resource. No se consultó ni alteró la base operativa.

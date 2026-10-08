@@ -38,6 +38,7 @@ El README raíz describe el stack vigente; las notas originales están archivada
 | Contabilidad | `docs/contabilidad.md`, `app/Models/Contabilidad/AsientoContable.php`, Resources de Contabilidad, `app/Services/Contabilidad/RegularizacionKardexService.php` |
 | OAuth y fotos | `routes/web.php`, `app/Http/Controllers/Auth/GoogleAuthController.php`, `app/Services/GoogleAuthService.php`, `EmpleadoFotoController.php` |
 | Errores operativos | `app/Services/Sistema/NotificacionExcepcionOperativaService.php`, registro Livewire en `AppServiceProvider.php` |
+| Auditoría | `docs/auditoria.md`, `AuditoriaResource`, `AuditoriaService`, middleware web y migración `sis_auditorias`; captura Eloquent, SQL, peticiones y eventos. Comparte transacción; requiere migración en cada entorno. |
 | Esquema y semillas | `database/migrations`, `database/seeders`; prefijos `conf_`, `rh_`, `alm_`, `cmp_`, `ven_`, `con_` |
 
 ## Reglas que deben conservarse
