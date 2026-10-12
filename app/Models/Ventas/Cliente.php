@@ -37,6 +37,9 @@ class Cliente extends Model
     public static function crearOReutilizarPorCelular(array $data): array
     {
         return DB::transaction(function () use ($data): array {
+            $tipoRegistro = $data['tipo_registro'] ?? 'cliente';
+            unset($data['tipo_registro']);
+
             $celularNormalizado = static::normalizarCelular($data['celular'] ?? null);
             $cliente = $celularNormalizado
                 ? static::buscarPorCelularNormalizado($celularNormalizado, $data['empresa_id'] ?? null)
@@ -59,6 +62,8 @@ class Cliente extends Model
             } elseif (array_key_exists('celular', $data)) {
                 $data['celular'] = null;
             }
+
+            $data['codigo'] = $data['codigo'] ?? static::generarCodigo($tipoRegistro);
 
             return ['cliente' => static::create($data), 'reutilizado' => false];
         });
@@ -308,10 +313,32 @@ class Cliente extends Model
 
     // ========== MÉTODOS ==========
 
-    public static function generarCodigo()
+    public function esProspecto(): bool
+    {
+        return str_starts_with((string) $this->codigo, 'PRO-');
+    }
+
+    public function promoverACliente(): bool
+    {
+        return DB::transaction(function (): bool {
+            $cliente = static::query()->lockForUpdate()->findOrFail($this->getKey());
+
+            if (! $cliente->esProspecto()) {
+                return false;
+            }
+
+            $cliente->codigo = static::generarCodigo();
+            $cliente->save();
+            $this->setRawAttributes($cliente->getAttributes(), true);
+
+            return true;
+        });
+    }
+
+    public static function generarCodigo(string $tipoRegistro = 'cliente'): string
     {
         $gestion = date('y');
-        $prefijo = 'CLI-'.$gestion;
+        $prefijo = ($tipoRegistro === 'prospecto' ? 'PRO-' : 'CLI-').$gestion;
 
         $ultimo = self::withTrashed()
             ->where('codigo', 'LIKE', $prefijo.'%')

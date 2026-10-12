@@ -71,3 +71,10 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - Se conserva el ajuste del usuario: acción llamada Compartir y retirada de imprimir_pdf independiente. La prueba anterior de esa acción se adapta a la descarga autenticada vigente.
 - Verificación: CotizacionPdfTest y Pint ejecutados; resultado consignado a continuación. Pendiente comprobar descarga desde el navegador del usuario; no se envió ningún mensaje.
 - Resultado: 8 pruebas/40 aserciones correctas; Pint --test en controlador y prueba correcto. diff --check detectó un espacio en blanco preexistente de la edición del usuario del Resource, retirado sin alterar la acción.
+
+## 2026-10-12 — Prospectos y clientes reimplementados sobre versión estable
+
+- Base de trabajo: commit estable `b5b07266f104eb3b8a1a171ed1096fa273c65911` (PDF de cotizaciones). Se añadieron códigos PRO sin separador adicional (`PRO-26001`); el formato CLI existente se conserva (`CLI-26001`). Sin columna/migración nueva.
+- Alta rápida desde Cotización y su Relation Manager crea un prospecto; la ficha Clientes muestra badge y filtro por prefijo. El celular existente reutiliza la misma persona y no cambia su estado a prospecto.
+- Al crear factura de venta se promueve el mismo registro PRO a CLI; sus documentos conservan `cliente_id`. Prueba añadida `tests/Feature/ProspectoClienteTest.php` para formato, conversión y reutilización.
+- Actualizados `docs/ventas.md` y este registro. `php -l` en los 7 PHP modificados pasa, Pint `--test` en la prueba nueva pasa y `git diff --check` pasa. Pint detecta reglas de formato preexistentes en seis archivos base; no se formatearon para evitar cambios ajenos. `php artisan test --filter=ProspectoClienteTest --stop-on-failure` permaneció sin salida por más de un minuto y se interrumpió; prueba funcional pendiente. No se ejecutaron migraciones ni se conectó a la base operativa.

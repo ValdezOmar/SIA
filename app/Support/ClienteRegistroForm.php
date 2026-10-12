@@ -11,7 +11,7 @@ use Filament\Forms\Components\Toggle;
 
 class ClienteRegistroForm
 {
-    public static function schema(): array
+    public static function schema(string $tipoRegistro = 'cliente'): array
     {
         return [
             Section::make('Datos principales')
@@ -21,7 +21,7 @@ class ClienteRegistroForm
                 ->schema([
                     TextInput::make('codigo')
                         ->label('Código')->disabled()
-                        ->default(fn () => Cliente::generarCodigo())
+                        ->default(fn () => Cliente::generarCodigo($tipoRegistro))
                         ->prefixIcon('heroicon-o-hashtag'),
                     TextInput::make('nombre')
                         ->label('Nombre / Razón social')->required()->maxLength(255)

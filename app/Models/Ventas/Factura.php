@@ -65,6 +65,10 @@ class Factura extends Model
             $model->monto_pagado = 0;
             $model->monto_restante = $model->total ?? 0;
         });
+
+        static::created(function (self $factura): void {
+            $factura->cliente?->promoverACliente();
+        });
     }
 
     // ========== RELACIONES ==========

@@ -315,13 +315,14 @@ class CotizacionResource extends Resource
                                                             }
                                                         }
                                                     })
-                                                    ->createOptionForm(ClienteRegistroForm::schema())
+                                                    ->createOptionForm(ClienteRegistroForm::schema('prospecto'))
                                                     ->createOptionAction(fn(Action $action): Action => $action
                                                         ->modalHeading('Registrar o reutilizar cliente')
                                                         ->modalDescription('Si el celular ya pertenece a un cliente, se usará ese registro y no se creará un duplicado.')
                                                         ->modalSubmitActionLabel('Continuar con este cliente'))
                                                     ->createOptionUsing(function (array $data, Get $get): int {
-                                                        $data['codigo'] = $data['codigo'] ?? Cliente::generarCodigo();
+                                                        $data['codigo'] = $data['codigo'] ?? Cliente::generarCodigo('prospecto');
+                                                        $data['tipo_registro'] = 'prospecto';
                                                         $data['activo'] = $data['activo'] ?? true;
                                                         $data['categoria'] = 'regular';
                                                         $data['creado_por'] = Auth::id();

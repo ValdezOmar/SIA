@@ -443,6 +443,9 @@ class ClienteResource extends Resource
                     ->label('Código')
                     ->searchable()
                     ->sortable()
+                    ->badge()
+                    ->color(fn ($record): string => $record->esProspecto() ? 'warning' : 'primary')
+                    ->tooltip(fn ($record): string => $record->esProspecto() ? 'Prospecto sin compra registrada' : 'Cliente')
                     ->copyable()
                     ->copyMessage('Código copiado')
                     ->toggleable()
@@ -548,6 +551,17 @@ class ClienteResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('relacion_comercial')
+                    ->label('Relación comercial')
+                    ->options(['prospecto' => 'Prospectos', 'cliente' => 'Clientes'])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            'prospecto' => $query->where('codigo', 'like', 'PRO-%'),
+                            'cliente' => $query->where('codigo', 'not like', 'PRO-%'),
+                            default => $query,
+                        };
+                    }),
+
                 SelectFilter::make('empresa_id')
                     ->label('Empresa')
                     ->options(fn (): array => Empresa::query()

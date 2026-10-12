@@ -14,6 +14,8 @@ En Facturas, Pedidos y Cotizaciones, el selector muestra **nombre · celular**; 
 
 El registro rápido comienza con **Código → Nombre → Celular → CI / NIT**. Los demás campos se agrupan en **Contacto adicional**, **Ubicación** y **Datos comerciales**. El código se genera automáticamente; nombre y celular son obligatorios.
 
+Al registrar una persona nueva desde Cotizaciones se genera un prospecto con código `PRO-YYNNN` (por ejemplo, `PRO-26001`). Los clientes mantienen el formato `CLI-YYNNN` existente (por ejemplo, `CLI-26001`). Cuando se crea una factura de venta para ese prospecto, el mismo registro se promueve a `CLI`, conservando el `cliente_id` y sus cotizaciones/documentos. Si el celular ya pertenece a un cliente, se reutiliza su ficha `CLI` sin duplicarla ni cambiar su clasificación.
+
 Las pestañas del cliente aparecen como **Facturas → Pedidos → Cotizaciones**. En la pestaña Pedidos está activo por defecto el filtro **Pendiente**; quitarlo permite revisar otros estados. La modificación de clientes conserva `updated_at`; no utiliza una columna `actualizado_por`.
 
 ### Contactos para el teléfono
