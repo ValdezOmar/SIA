@@ -78,3 +78,9 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - Alta rápida desde Cotización y su Relation Manager crea un prospecto; la ficha Clientes muestra badge y filtro por prefijo. El celular existente reutiliza la misma persona y no cambia su estado a prospecto.
 - Al crear factura de venta se promueve el mismo registro PRO a CLI; sus documentos conservan `cliente_id`. Prueba añadida `tests/Feature/ProspectoClienteTest.php` para formato, conversión y reutilización.
 - Actualizados `docs/ventas.md` y este registro. `php -l` en los 7 PHP modificados pasa, Pint `--test` en la prueba nueva pasa y `git diff --check` pasa. Pint detecta reglas de formato preexistentes en seis archivos base; no se formatearon para evitar cambios ajenos. `php artisan test --filter=ProspectoClienteTest --stop-on-failure` permaneció sin salida por más de un minuto y se interrumpió; prueba funcional pendiente. No se ejecutaron migraciones ni se conectó a la base operativa.
+
+## 2026-10-12 — Correlativos PRO/CLI por máximo numérico
+
+- Corregido `Cliente::generarCodigo()`: antes elegía el registro de mayor `id` y tomaba sus últimos tres dígitos, lo que podía retroceder el código si el orden de inserción no seguía el correlativo. Ahora obtiene el mayor sufijo numérico dentro del prefijo anual correspondiente y suma uno; `PRO-YYNNN` y `CLI-YYNNN` mantienen secuencias independientes e incluye soft deletes.
+- Prueba añadida con registros cuyo orden por `id` contradice el correlativo, comprobando que CLI 253 produce 254 y PRO 002 produce 003.
+- Verificación: `php -l` en `Cliente.php` y `ProspectoClienteTest.php`, Pint `--test` en la prueba y `git diff --check` pasan. PHPUnit inició, pero permaneció sin salida durante más de un minuto y se interrumpió; no se acredita resultado funcional. Sin migraciones ni consultas a datos operativos.

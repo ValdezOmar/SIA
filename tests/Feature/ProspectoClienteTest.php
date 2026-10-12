@@ -84,4 +84,30 @@ class ProspectoClienteTest extends TestCase
         $this->assertSame($cliente->id, $resultado['cliente']->id);
         $this->assertFalse($resultado['cliente']->esProspecto());
     }
+
+    public function test_siguiente_codigo_usa_el_mayor_correlativo_y_no_el_ultimo_id(): void
+    {
+        $gestion = date('y');
+        $codigos = [
+            1 => 'CLI-'.$gestion.'253',
+            2 => 'CLI-'.$gestion.'003',
+            3 => 'PRO-'.$gestion.'002',
+            4 => 'PRO-'.$gestion.'001',
+        ];
+
+        foreach ($codigos as $id => $codigo) {
+            DB::table('ven_clientes')->insert([
+                'id' => $id,
+                'codigo' => $codigo,
+                'nombre' => 'Registro '.$id,
+                'activo' => true,
+                'bloqueado' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $this->assertSame('CLI-'.$gestion.'254', Cliente::generarCodigo());
+        $this->assertSame('PRO-'.$gestion.'003', Cliente::generarCodigo('prospecto'));
+    }
 }

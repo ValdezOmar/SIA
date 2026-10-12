@@ -340,16 +340,13 @@ class Cliente extends Model
         $gestion = date('y');
         $prefijo = ($tipoRegistro === 'prospecto' ? 'PRO-' : 'CLI-').$gestion;
 
-        $ultimo = self::withTrashed()
+        $mayorCorrelativo = self::withTrashed()
             ->where('codigo', 'LIKE', $prefijo.'%')
-            ->orderBy('id', 'desc')
-            ->first();
+            ->pluck('codigo')
+            ->map(fn (string $codigo): int => (int) substr($codigo, -3))
+            ->max() ?? 0;
 
-        if ($ultimo) {
-            $correlativo = intval(substr($ultimo->codigo, -3)) + 1;
-        } else {
-            $correlativo = 1;
-        }
+        $correlativo = $mayorCorrelativo + 1;
 
         return $prefijo.str_pad($correlativo, 3, '0', STR_PAD_LEFT);
     }
