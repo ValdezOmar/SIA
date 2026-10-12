@@ -90,3 +90,9 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - `CotizacionPdfService` ahora prioriza `logo_path` de la empresa asociada a la cotización (disco público `empresas/logos`), luego usa el `logo_path` configurado en Sistema. Se quitó el fallback automático a `public/images/logo.png` cuando no corresponde a un parámetro vigente, para no insertar marca ajena. Rutas locales se validan por raíz real, MIME y tamaño máximo de 2 MB.
 - Añadida prueba donde el logo de la empresa y el del sistema son imágenes distintas, para verificar prioridad empresarial. Actualizada guía de ventas.
 - `php -l` en servicio y prueba, Pint `--test` en ambos archivos y `git diff --check` pasan. PHPUnit del caso quedó sin salida por más de un minuto y se interrumpió; comprobación funcional pendiente. Sin cambios de esquema o base operativa.
+
+## 2026-10-12 — Compactación de PDF de cotización
+
+- Reducidos márgenes de página, espacios del encabezado/empresa/fecha, relleno de filas, tipografías auxiliares y tamaño máximo de fotos, sin retirar campos ni alterar cálculos.
+- Render de muestra con 36 artículos mediante Dompdf: versión previa 4 páginas; plantilla compacta 2 páginas. Revisión visual de las dos páginas: títulos/encabezado repetido, filas, totales y observaciones legibles y sin cortes.
+- `git diff --check` pendiente de ejecución final. Se eliminarán archivos temporales creados en `tmp/pdfs`; no se cambian datos de aplicación.

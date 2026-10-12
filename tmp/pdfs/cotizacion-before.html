@@ -1,0 +1,447 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Proforma COT-DEMO-001</title>
+    <style>
+        @page { margin: 30px 42px 70px; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #171717; }
+        table { border-collapse: collapse; width: 100%; }
+        .header { margin-bottom: 24px; }
+        .header td { border: 0; vertical-align: middle; }
+        .logo { max-width: 205px; max-height: 102px; }
+        .title { text-align: right; color: #0b2e4c; }
+        .number { color: #d83d42; font-size: 14px; font-weight: bold; margin-bottom: 8px; word-wrap: break-word; }
+        h1 { margin: 0; font-size: 37px; line-height: 1.2; }
+        .parties { margin-bottom: 42px; table-layout: fixed; }
+        .parties td { vertical-align: top; padding-right: 18px; word-wrap: break-word; }
+        h2 { color: #0b2e4c; margin: 0 0 8px; font-size: 14px; }
+        .line { margin: 0 0 3px; }
+        .date { font-size: 14px; font-weight: bold; margin-bottom: 16px; }
+        .items { table-layout: fixed; }
+        .items th { background: #0b2d50; color: white; padding: 16px 6px; font-size: 10px; }
+        .items td { padding: 12px 8px; vertical-align: middle; word-wrap: break-word; }
+        .items th, .items td { border: 1px solid #333; }
+        .items thead { display: table-header-group; }
+        .items tr { page-break-inside: avoid; }
+        .product-photo { max-width: 48px; max-height: 48px; }
+        .items td.photo-cell { padding: 6px; }
+        .center { text-align: center; }
+        .money { text-align: right; }
+        .muted { font-size: 8px; color: #555; margin-top: 4px; }
+        .totals { margin-left: auto; width: 48%; page-break-inside: avoid; }
+        .totals td { border: 1px solid #333; padding: 12px 8px; font-weight: bold; }
+        .totals .grand-total td { background: #0b2d50; color: white; }
+        .conditions { margin-top: 18px; font-size: 9px; }
+    </style>
+</head>
+<body>
+        <table class="header">
+        <tr>
+            <td style="width: 42%">
+                            </td>
+            <td class="title">
+                <div class="number">N° COT-DEMO-001</div>
+                <h1>PROFORMA</h1>
+            </td>
+        </tr>
+    </table>
+    <table class="parties">
+        <tr>
+            <td style="width: 58%">
+                <h2>Datos de la empresa</h2>
+                <div class="line"><strong>Nombre:</strong> TecnoConfort Bolivia</div>
+                <div class="line"><strong>Sucursal:</strong> Sucursal Central</div>
+                <div class="line"><strong>NIT:</strong> 3380240013</div>
+                <div class="line"><strong>Teléfono:</strong> 78496884 - 78868486</div>
+                <div class="line"><strong>Correo:</strong> contacto@example.com</div>
+            </td>
+            <td>
+                <h2>Datos del cliente</h2>
+                <div class="line"><strong>Nombre:</strong> FH Bolivia</div>
+                <div class="line"><strong>Teléfono:</strong> 67600815</div>
+            </td>
+        </tr>
+    </table>
+    <div class="date">Fecha: 12/10/2026<br>
+        <span style="font-size: 11px">Vencimiento de la cotización: 19/10/2026</span>
+    </div>
+    <table class="items">
+        <thead><tr>
+            <th style="width: 14%">Foto</th>
+            <th style="width: 46%">Descripción</th>
+            <th style="width: 12%">Cantidad</th>
+            <th style="width: 14%">Precio</th>
+            <th style="width: 14%">Total</th>
+        </tr></thead>
+        <tbody>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 1 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">2</td>
+                    <td class="money">361,00</td>
+                    <td class="money">722,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 2 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">3</td>
+                    <td class="money">362,00</td>
+                    <td class="money">1.086,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 3 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">1</td>
+                    <td class="money">363,00</td>
+                    <td class="money">363,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 4 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                        <div class="muted">Descuento: 12,50 BOB</div>                                            </td>
+                    <td class="center">2</td>
+                    <td class="money">364,00</td>
+                    <td class="money">728,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 5 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">3</td>
+                    <td class="money">365,00</td>
+                    <td class="money">1.095,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 6 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">1</td>
+                    <td class="money">366,00</td>
+                    <td class="money">366,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 7 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">2</td>
+                    <td class="money">367,00</td>
+                    <td class="money">734,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 8 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                        <div class="muted">Descuento: 12,50 BOB</div>                                            </td>
+                    <td class="center">3</td>
+                    <td class="money">368,00</td>
+                    <td class="money">1.104,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 9 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">1</td>
+                    <td class="money">369,00</td>
+                    <td class="money">369,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 10 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">2</td>
+                    <td class="money">370,00</td>
+                    <td class="money">740,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 11 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">3</td>
+                    <td class="money">371,00</td>
+                    <td class="money">1.113,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 12 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                        <div class="muted">Descuento: 12,50 BOB</div>                                            </td>
+                    <td class="center">1</td>
+                    <td class="money">372,00</td>
+                    <td class="money">372,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 13 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">2</td>
+                    <td class="money">373,00</td>
+                    <td class="money">746,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 14 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">3</td>
+                    <td class="money">374,00</td>
+                    <td class="money">1.122,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 15 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">1</td>
+                    <td class="money">375,00</td>
+                    <td class="money">375,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 16 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                        <div class="muted">Descuento: 12,50 BOB</div>                                            </td>
+                    <td class="center">2</td>
+                    <td class="money">376,00</td>
+                    <td class="money">752,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 17 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">3</td>
+                    <td class="money">377,00</td>
+                    <td class="money">1.131,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 18 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">1</td>
+                    <td class="money">378,00</td>
+                    <td class="money">378,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 19 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">2</td>
+                    <td class="money">379,00</td>
+                    <td class="money">758,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 20 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                        <div class="muted">Descuento: 12,50 BOB</div>                                            </td>
+                    <td class="center">3</td>
+                    <td class="money">380,00</td>
+                    <td class="money">1.140,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 21 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">1</td>
+                    <td class="money">381,00</td>
+                    <td class="money">381,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 22 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">2</td>
+                    <td class="money">382,00</td>
+                    <td class="money">764,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 23 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">3</td>
+                    <td class="money">383,00</td>
+                    <td class="money">1.149,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 24 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                        <div class="muted">Descuento: 12,50 BOB</div>                                            </td>
+                    <td class="center">1</td>
+                    <td class="money">384,00</td>
+                    <td class="money">384,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 25 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">2</td>
+                    <td class="money">385,00</td>
+                    <td class="money">770,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 26 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">3</td>
+                    <td class="money">386,00</td>
+                    <td class="money">1.158,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 27 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">1</td>
+                    <td class="money">387,00</td>
+                    <td class="money">387,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 28 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                        <div class="muted">Descuento: 12,50 BOB</div>                                            </td>
+                    <td class="center">2</td>
+                    <td class="money">388,00</td>
+                    <td class="money">776,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 29 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">3</td>
+                    <td class="money">389,00</td>
+                    <td class="money">1.167,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 30 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">1</td>
+                    <td class="money">390,00</td>
+                    <td class="money">390,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 31 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">2</td>
+                    <td class="money">391,00</td>
+                    <td class="money">782,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 32 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                        <div class="muted">Descuento: 12,50 BOB</div>                                            </td>
+                    <td class="center">3</td>
+                    <td class="money">392,00</td>
+                    <td class="money">1.176,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 33 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">1</td>
+                    <td class="money">393,00</td>
+                    <td class="money">393,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 34 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">2</td>
+                    <td class="money">394,00</td>
+                    <td class="money">788,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 35 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                                                                    </td>
+                    <td class="center">3</td>
+                    <td class="money">395,00</td>
+                    <td class="money">1.185,00</td>
+                </tr>
+                            <tr>
+                    <td class="center photo-cell">
+                                                    <span class="muted">Sin foto</span>
+                                            </td>
+                    <td>Producto de demostración número 36 con descripción comercial amplia para probar el ajuste de líneas y paginación del documento.
+                        <div class="muted">Descuento: 12,50 BOB</div>                                            </td>
+                    <td class="center">1</td>
+                    <td class="money">396,00</td>
+                    <td class="money">396,00</td>
+                </tr>
+                    </tbody>
+    </table>
+    <table class="totals">
+        <tr><td style="width: 65%">Subtotal (BOB)</td><td class="money">27.352,50</td></tr>
+        <tr><td>Impuesto (BOB)</td><td class="money">0,00</td></tr>
+        <tr><td>Descuento (BOB)</td><td class="money">112,50</td></tr>
+        <tr class="grand-total"><td>TOTAL (BOB)</td><td class="money">27.240,00</td></tr>
+    </table>
+    <div class="conditions"><strong>Observaciones:</strong><br>Precios sujetos a disponibilidad. Entrega coordinada con el cliente.</div></body>
+</html>

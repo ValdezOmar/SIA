@@ -4,35 +4,35 @@
     <meta charset="utf-8">
     <title>Proforma {{ $cotizacion->codigo }}</title>
     <style>
-        @page { margin: 30px 42px 70px; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #171717; }
+        @page { margin: 22px 32px; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 9px; line-height: 1.25; color: #171717; }
         table { border-collapse: collapse; width: 100%; }
-        .header { margin-bottom: 24px; }
+        .header { margin-bottom: 12px; }
         .header td { border: 0; vertical-align: middle; }
-        .logo { max-width: 205px; max-height: 102px; }
+        .logo { max-width: 175px; max-height: 74px; }
         .title { text-align: right; color: #0b2e4c; }
-        .number { color: #d83d42; font-size: 14px; font-weight: bold; margin-bottom: 8px; word-wrap: break-word; }
-        h1 { margin: 0; font-size: 37px; line-height: 1.2; }
-        .parties { margin-bottom: 42px; table-layout: fixed; }
-        .parties td { vertical-align: top; padding-right: 18px; word-wrap: break-word; }
-        h2 { color: #0b2e4c; margin: 0 0 8px; font-size: 14px; }
-        .line { margin: 0 0 3px; }
-        .date { font-size: 14px; font-weight: bold; margin-bottom: 16px; }
+        .number { color: #d83d42; font-size: 12px; font-weight: bold; margin-bottom: 4px; word-wrap: break-word; }
+        h1 { margin: 0; font-size: 31px; line-height: 1.1; }
+        .parties { margin-bottom: 20px; table-layout: fixed; }
+        .parties td { vertical-align: top; padding-right: 12px; word-wrap: break-word; }
+        h2 { color: #0b2e4c; margin: 0 0 5px; font-size: 12px; }
+        .line { margin: 0 0 2px; }
+        .date { font-size: 12px; font-weight: bold; margin-bottom: 9px; }
         .items { table-layout: fixed; }
-        .items th { background: #0b2d50; color: white; padding: 16px 6px; font-size: 10px; }
-        .items td { padding: 12px 8px; vertical-align: middle; word-wrap: break-word; }
+        .items th { background: #0b2d50; color: white; padding: 8px 5px; font-size: 9px; }
+        .items td { padding: 6px 6px; vertical-align: middle; word-wrap: break-word; }
         .items th, .items td { border: 1px solid #333; }
         .items thead { display: table-header-group; }
         .items tr { page-break-inside: avoid; }
-        .product-photo { max-width: 48px; max-height: 48px; }
-        .items td.photo-cell { padding: 6px; }
+        .product-photo { max-width: 34px; max-height: 34px; }
+        .items td.photo-cell { padding: 3px; }
         .center { text-align: center; }
         .money { text-align: right; }
-        .muted { font-size: 8px; color: #555; margin-top: 4px; }
-        .totals { margin-left: auto; width: 48%; page-break-inside: avoid; }
-        .totals td { border: 1px solid #333; padding: 12px 8px; font-weight: bold; }
+        .muted { font-size: 7px; line-height: 1.15; color: #555; margin-top: 2px; }
+        .totals { margin-left: auto; width: 44%; page-break-inside: avoid; }
+        .totals td { border: 1px solid #333; padding: 6px 7px; font-weight: bold; }
         .totals .grand-total td { background: #0b2d50; color: white; }
-        .conditions { margin-top: 18px; font-size: 9px; }
+        .conditions { margin-top: 10px; font-size: 8px; line-height: 1.2; }
     </style>
 </head>
 <body>

@@ -35,6 +35,8 @@ Una cotización convertida debe continuarse mediante su pedido/factura asociados
 
 **Acciones → Imprimir PDF** descarga una proforma A4 con el logo configurado para la empresa de la cotización; si no tiene uno válido, usa el logo de **Sistema → Parámetros Generales**. No sustituye esos logotipos por una imagen genérica. El documento incluye código de cotización, datos de empresa/cliente, fecha, conceptos, cantidades, precios y total con impuestos en la moneda del documento. Los descuentos e impuestos se toman de las líneas guardadas, sin descontarlos dos veces ni modificar la cotización. La sucursal asociada aparece en los datos de empresa; el PDF no tiene pie de página. La tabla repite encabezados cuando ocupa varias páginas.
 
+El formato PDF usa márgenes y espacios compactos, filas más bajas e imágenes de producto reducidas para aprovechar mejor cada hoja. Conserva toda la información; los totales y observaciones permanecen juntos al final cuando el espacio lo permite.
+
 El resumen muestra **Subtotal → Impuesto → Descuento → Total**: el subtotal es el importe antes de descuentos e impuestos, y el total conserva el resultado de las líneas guardadas. El vencimiento aparece junto a la fecha de emisión, usando `fecha_validez`; si falta, se calcula a siete días de la emisión como plazo predeterminado. Las observaciones se imprimen debajo del resumen únicamente cuando contienen texto, conservando sus saltos de línea.
 
 La primera columna es **Foto**, tomada de `foto_catalogo` del artículo en el disco público. Las imágenes mantienen sus proporciones; si no existe una foto válida, se muestra **Sin foto**. No se descargan imágenes externas para generar la proforma.
