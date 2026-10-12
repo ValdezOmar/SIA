@@ -27,30 +27,62 @@ class CotizacionPdfService
 
         return Pdf::loadView('exports.cotizacion-pdf', [
             'cotizacion' => $cotizacion,
-            'logoDataUri' => $this->logoDataUri(),
+            'logoDataUri' => $this->logoDataUri($cotizacion->empresa?->logo_path),
             'fotos' => $cotizacion->detalles->mapWithKeys(fn ($detalle) => [$detalle->id => $this->fotoDataUri($detalle->articulo?->foto_catalogo)])->all(),
         ])->setPaper('a4')->setOptions(['isRemoteEnabled' => false, 'isPhpEnabled' => false])->output();
     }
 
-    public function logoDataUri(): ?string
+    public function logoDataUri(?string $logoEmpresa = null): ?string
     {
-        $root = realpath(public_path('images'));
-        $configurado = Parametro::query()->value('logo_path');
-        foreach (array_unique(array_filter([$configurado, '/images/logo.png'])) as $ruta) {
-            if (! is_string($ruta) || ! str_starts_with($ruta, '/images/')) {
-                continue;
-            }
-            $archivo = realpath(public_path(ltrim($ruta, '/')));
-            if (! $root || ! $archivo || ! str_starts_with(strtolower(str_replace('\\', '/', $archivo)), strtolower(str_replace('\\', '/', $root)).'/') || ! is_file($archivo) || ! is_readable($archivo) || filesize($archivo) > 2 * 1024 * 1024) {
-                continue;
-            }
-            $mime = mime_content_type($archivo);
-            if (in_array($mime, ['image/png', 'image/jpeg', 'image/svg+xml'], true)) {
-                return 'data:'.$mime.';base64,'.base64_encode(file_get_contents($archivo));
-            }
+        $logoDeEmpresa = $this->publicDiskImageDataUri($logoEmpresa, ['image/png', 'image/jpeg', 'image/svg+xml']);
+
+        if ($logoDeEmpresa) {
+            return $logoDeEmpresa;
         }
 
-        return null;
+        $configurado = Parametro::query()->value('logo_path');
+
+        if (! is_string($configurado) || ! str_starts_with($configurado, '/images/')) {
+            return $this->publicDiskImageDataUri($configurado, ['image/png', 'image/jpeg', 'image/svg+xml']);
+        }
+
+        $root = realpath(public_path('images'));
+        $archivo = realpath(public_path(ltrim($configurado, '/')));
+
+        if (! $root || ! $archivo || ! str_starts_with(strtolower(str_replace('\\', '/', $archivo)), strtolower(str_replace('\\', '/', $root)).'/')) {
+            return null;
+        }
+
+        return $this->imageDataUri($archivo, ['image/png', 'image/jpeg', 'image/svg+xml'], 2 * 1024 * 1024);
+    }
+
+    private function publicDiskImageDataUri(?string $ruta, array $tiposMime): ?string
+    {
+        if (! $ruta || str_starts_with(str_replace('\\', '/', $ruta), '/') || str_contains($ruta, ':') || in_array('..', explode('/', str_replace('\\', '/', $ruta)), true)) {
+            return null;
+        }
+
+        $root = realpath(Storage::disk('public')->path(''));
+        $archivo = realpath(Storage::disk('public')->path($ruta));
+
+        if (! $root || ! $archivo || ! str_starts_with(strtolower(str_replace('\\', '/', $archivo)), strtolower(str_replace('\\', '/', $root)).'/')) {
+            return null;
+        }
+
+        return $this->imageDataUri($archivo, $tiposMime, 2 * 1024 * 1024);
+    }
+
+    private function imageDataUri(string $archivo, array $tiposMime, int $maxBytes): ?string
+    {
+        if (! is_file($archivo) || ! is_readable($archivo) || filesize($archivo) > $maxBytes) {
+            return null;
+        }
+
+        $mime = mime_content_type($archivo);
+
+        return in_array($mime, $tiposMime, true)
+            ? 'data:'.$mime.';base64,'.base64_encode(file_get_contents($archivo))
+            : null;
     }
 
     public function fotoDataUri(?string $ruta): ?string

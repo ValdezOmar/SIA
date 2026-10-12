@@ -77,6 +77,38 @@ class CotizacionPdfTest extends TestCase
         }
     }
 
+    public function test_logo_de_empresa_de_la_cotizacion_prevalece_sobre_el_logo_del_sistema(): void
+    {
+        Storage::fake('public');
+        $crearPng = function (int $rojo, int $verde, int $azul): string {
+            $imagen = imagecreatetruecolor(2, 2);
+            imagefill($imagen, 0, 0, imagecolorallocate($imagen, $rojo, $verde, $azul));
+            ob_start();
+            imagepng($imagen);
+            $contenido = ob_get_clean();
+            imagedestroy($imagen);
+
+            return $contenido;
+        };
+        $logoEmpresa = $crearPng(20, 80, 140);
+        $logoSistema = $crearPng(180, 30, 80);
+        $archivoTemporal = public_path('images/logo-sistema-test.png');
+
+        file_put_contents($archivoTemporal, $logoSistema);
+        Storage::disk('public')->put('empresas/logos/empresa.png', $logoEmpresa);
+
+        try {
+            Parametro::query()->firstOrCreate([])->update(['logo_path' => '/images/logo-sistema-test.png']);
+
+            $this->assertSame(
+                'data:image/png;base64,'.base64_encode($logoEmpresa),
+                app(CotizacionPdfService::class)->logoDataUri('empresas/logos/empresa.png'),
+            );
+        } finally {
+            @unlink($archivoTemporal);
+        }
+    }
+
     public function test_pdf_para_compartir_requiere_sesion_y_respeta_empresa(): void
     {
         $url = route('cotizaciones.pdf', $this->cotizacion);

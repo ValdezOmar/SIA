@@ -84,3 +84,9 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - Corregido `Cliente::generarCodigo()`: antes elegía el registro de mayor `id` y tomaba sus últimos tres dígitos, lo que podía retroceder el código si el orden de inserción no seguía el correlativo. Ahora obtiene el mayor sufijo numérico dentro del prefijo anual correspondiente y suma uno; `PRO-YYNNN` y `CLI-YYNNN` mantienen secuencias independientes e incluye soft deletes.
 - Prueba añadida con registros cuyo orden por `id` contradice el correlativo, comprobando que CLI 253 produce 254 y PRO 002 produce 003.
 - Verificación: `php -l` en `Cliente.php` y `ProspectoClienteTest.php`, Pint `--test` en la prueba y `git diff --check` pasan. PHPUnit inició, pero permaneció sin salida durante más de un minuto y se interrumpió; no se acredita resultado funcional. Sin migraciones ni consultas a datos operativos.
+
+## 2026-10-12 — Logo correcto en PDF de cotización
+
+- `CotizacionPdfService` ahora prioriza `logo_path` de la empresa asociada a la cotización (disco público `empresas/logos`), luego usa el `logo_path` configurado en Sistema. Se quitó el fallback automático a `public/images/logo.png` cuando no corresponde a un parámetro vigente, para no insertar marca ajena. Rutas locales se validan por raíz real, MIME y tamaño máximo de 2 MB.
+- Añadida prueba donde el logo de la empresa y el del sistema son imágenes distintas, para verificar prioridad empresarial. Actualizada guía de ventas.
+- `php -l` en servicio y prueba, Pint `--test` en ambos archivos y `git diff --check` pasan. PHPUnit del caso quedó sin salida por más de un minuto y se interrumpió; comprobación funcional pendiente. Sin cambios de esquema o base operativa.
