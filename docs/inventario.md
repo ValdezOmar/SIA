@@ -62,6 +62,10 @@ Ejemplo: 10 unidades físicas y 3 reservadas dejan 7 libres. El estado y los fil
 
 Las entradas, salidas y ajustes deben registrarse en Kardex para conservar cantidad, costo, usuario y documento de origen. La pantalla de Stock es de consulta.
 
+En la pestaña Kardex de la ficha del artículo, la columna **Fecha y hora de registro** muestra cuándo se creó el movimiento (`created_at`), sin mezclarla con la fecha física del movimiento ni con la contable. Para movimientos de venta, **Documento** muestra la serie de la factura junto al número cuando la factura tiene una serie configurada.
+
+En el historial, una venta identifica su documento en líneas separadas con el número de factura, la serie y el ID de venta. **Operación realizada** combina el tipo real de movimiento con su dirección (entrada/salida). Al abrir el movimiento, el resumen incorpora cliente, factura, serie, fecha de emisión y total cuando existe una factura asociada; el mapa gráfico enlaza venta, movimiento Kardex, artículo y almacén, e incluye el movimiento relacionado cuando existe.
+
 Una reserva aumenta la cantidad comprometida sin disminuir la existencia física. La entrega libera las reservas asociadas y registra la salida física. En el flujo actual de ventas, la entrega se procesa cuando el importe está completamente pagado; consultar [Ventas](ventas.md).
 
 Cada salida exige existencia suficiente y una valoración posible, salvo que el almacén permita explícitamente stock negativo. La anulación usa un movimiento de reversión; no debe reemplazarse por el borrado manual del Kardex o una modificación directa de la cantidad disponible.

@@ -95,4 +95,17 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 
 - Reducidos márgenes de página, espacios del encabezado/empresa/fecha, relleno de filas, tipografías auxiliares y tamaño máximo de fotos, sin retirar campos ni alterar cálculos.
 - Render de muestra con 36 artículos mediante Dompdf: versión previa 4 páginas; plantilla compacta 2 páginas. Revisión visual de las dos páginas: títulos/encabezado repetido, filas, totales y observaciones legibles y sin cortes.
-- `git diff --check` pendiente de ejecución final. Se eliminarán archivos temporales creados en `tmp/pdfs`; no se cambian datos de aplicación.
+- `git diff --check` pasa. El render de muestra usa datos sintéticos; no se modifican datos de aplicación. Los artefactos de comparación quedaron en `tmp/pdfs/` porque la política automática bloqueó su limpieza con PowerShell.
+
+## 2026-10-13 — Fecha de registro y serie de factura en Kardex del artículo
+
+- En `KardexPorAlmacenRelationManager`, la columna de fecha ahora usa `created_at` y no agrega la fecha contable como descripción. Los filtros y el orden por `fecha_movimiento` se mantienen para conservar la consulta histórica por fecha del movimiento.
+- La columna Documento agrega el campo `serie` de `ven_facturas` al número guardado en `documento_codigo` para movimientos tipo venta; otros tipos no cambian. No se alteraron modelos, esquema ni datos.
+- Guía de inventario actualizada. `php -l`, Pint `--test` y `git diff --check` pasan. No se ejecutó PHPUnit ni prueba de UI.
+
+## 2026-10-13 — Detalle y mapa de relaciones en historial Kardex del artículo
+
+- El documento de venta del historial usa tres líneas: número de factura (ej. `FAC-260125`), serie y `VENTA: <id>`. Se añade la relación `Kardex::facturaVenta()` y se precarga factura, cliente, artículo, almacén y movimiento relacionado.
+- **Operación realizada** combina el tipo de movimiento con la dirección entrada/salida. El modal muestra cliente, factura, serie, fecha de emisión y total para ventas.
+- Añadido mapa gráfico con nodos conectados de venta → movimiento Kardex → artículo → almacén y movimiento relacionado si está asociado. Actualizada guía de inventario.
+- `php -l` en modelo y Relation Manager, Pint `--test` en Relation Manager y `git diff --check` pasan. Pint `--test` del modelo Kardex falla por reglas de formato preexistentes (orden de imports, espacios unarios y finales CRLF); el diff del modelo conserva solo la importación y la relación nuevas. No se ejecutó prueba de interfaz ni PHPUnit. Sin migraciones ni cambios de datos.

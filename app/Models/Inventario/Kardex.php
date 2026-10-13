@@ -9,6 +9,7 @@ use Illuminate\Validation\ValidationException;
 use App\Models\Contabilidad\AsientoContable;
 use App\Models\Sistema\Empresa;
 use App\Models\User;
+use App\Models\Ventas\Factura;
 use App\Services\Inventario\TrazabilidadInventarioService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -121,6 +122,11 @@ class Kardex extends Model
     {
         return $this->hasOne(AsientoContable::class, 'documento_id')
             ->where('documento_tipo', 'kardex');
+    }
+
+    public function facturaVenta()
+    {
+        return $this->belongsTo(Factura::class, 'documento_id');
     }
 
     // ========== SCOPES ==========
