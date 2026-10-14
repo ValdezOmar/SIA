@@ -63,9 +63,9 @@ class DashboardPanelProvider extends PanelProvider
             ->authGuard('web') // Guardia de Laravel utilizada para autenticar a los usuarios.
 
             // Apariencia general.
-            ->brandLogo(asset('/images/logo.png')) // Logo mostrado en la cabecera y barra lateral.
+            ->brandLogo(asset($appearance['logo'])) // Logo mostrado en la cabecera y barra lateral.
             ->brandLogoHeight('3rem') // Altura visual del logo dentro del panel.
-            ->favicon(asset('/images/favicon.ico')) // Ícono mostrado en la pestaña del navegador.
+            ->favicon(asset($appearance['favicon'])) // Ícono mostrado en la pestaña del navegador.
             ->colors(['primary' => Color::hex($appearance['primary']), 'secondary' => Color::hex($appearance['secondary'])])
             ->font('Nunito Sans')
             ->sidebarCollapsibleOnDesktop(true) // Permite contraer la barra lateral en escritorio.

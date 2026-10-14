@@ -77,6 +77,19 @@ class CotizacionPdfTest extends TestCase
         }
     }
 
+    public function test_logo_configurado_en_disco_publico_se_lee_desde_storage(): void
+    {
+        Storage::fake('public');
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=');
+        Storage::disk('public')->put('branding/logo.png', $png);
+        Parametro::query()->firstOrCreate([])->update(['logo_path' => 'branding/logo.png']);
+
+        $this->assertSame(
+            'data:image/png;base64,'.base64_encode($png),
+            app(CotizacionPdfService::class)->logoDataUri(),
+        );
+    }
+
     public function test_logo_de_empresa_de_la_cotizacion_prevalece_sobre_el_logo_del_sistema(): void
     {
         Storage::fake('public');

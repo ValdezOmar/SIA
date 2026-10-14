@@ -23,6 +23,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -65,13 +66,9 @@ class ParametroResource extends Resource
                             ->image()
                             ->acceptedFileTypes(['image/png', 'image/svg+xml'])
                             ->maxSize(2048)
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
-                                $destination = public_path('images/logo.png');
-                                File::ensureDirectoryExists(public_path('images'));
-                                File::copy($file->getRealPath(), $destination);
-
-                                return '/images/logo.png';
-                            })
+                            ->disk('public')
+                            ->directory('branding')
+                            ->visibility('public')
                             ->default(fn () => file_exists(public_path('images/logo.png')) ? '/images/logo.png' : null)
                             ->columnSpan(1),
 
@@ -264,11 +261,18 @@ class ParametroResource extends Resource
      */
     private static function getCurrentImagesPreview(): string
     {
+        $logoPath = Parametro::query()->value('logo_path');
+        $logoEnDiscoPublico = is_string($logoPath)
+            && ! str_starts_with($logoPath, '/')
+            && ! str_contains($logoPath, ':')
+            && ! in_array('..', explode('/', str_replace('\\', '/', $logoPath)), true)
+            && Storage::disk('public')->exists($logoPath);
+
         $imagenes = [
             [
                 'titulo' => 'Logo principal',
-                'archivo' => public_path('images/logo.png'),
-                'url' => asset('images/logo.png'),
+                'archivo' => $logoEnDiscoPublico ? Storage::disk('public')->path($logoPath) : public_path('images/logo.png'),
+                'url' => $logoEnDiscoPublico ? Storage::disk('public')->url($logoPath) : asset('images/logo.png'),
                 'clase' => 'max-height:4.5rem;max-width:100%;object-fit:contain',
             ],
             [
