@@ -110,8 +110,8 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - Añadido mapa gráfico con nodos conectados de venta → movimiento Kardex → artículo → almacén y movimiento relacionado si está asociado. Actualizada guía de inventario.
 - `php -l` en modelo y Relation Manager, Pint `--test` en Relation Manager y `git diff --check` pasan. Pint `--test` del modelo Kardex falla por reglas de formato preexistentes (orden de imports, espacios unarios y finales CRLF); el diff del modelo conserva solo la importación y la relación nuevas. No se ejecutó prueba de interfaz ni PHPUnit. Sin migraciones ni cambios de datos.
 
-## 2026-10-14 — Error de permisos al cargar logo de parámetros
+## 2026-10-14 — Error de permisos al cargar imágenes de parámetros
 
-- El campo Logo Principal de `ParametroResource` copiaba la carga a `public/images/logo.png`, que no debe ser destino de escritura en una instalación desplegada. Ahora usa el disco público de Laravel bajo `branding/` y la vista previa soporta tanto esta ubicación como la ruta pública antigua.
-- `PanelAppearance` resuelve rutas antiguas y relativas del disco público; el panel lee de esa configuración para logo y favicon. `CotizacionPdfService` ya soportaba rutas relativas del disco público. No se cambiaron favicon/fondo upload, esquema o datos.
+- Los campos Logo Principal, Favicon y Fondo de Login de `ParametroResource` copiaban cargas a archivos dentro de `public/images`, que no deben ser destino de escritura en una instalación desplegada. Ahora los tres usan el disco público de Laravel bajo `branding/`; la vista previa resuelve archivos nuevos y rutas públicas antiguas.
+- `PanelAppearance` resuelve rutas antiguas y relativas del disco público; el panel lee de esa configuración para logo, favicon y fondo. `CotizacionPdfService` ya soportaba rutas relativas del disco público. Actualizados mapa y continuidad; sin cambios de esquema ni datos.
 - `php -l` pasa en los cuatro PHP modificados; Pint `--test` pasa en PanelAppearance y la prueba. Pint del Resource y del PanelProvider señala reglas de formato ya presentes (CRLF/estilo general e imports); se mantuvieron los cambios acotados. PHPUnit focalizado quedó sin salida durante el arranque y se interrumpió; validación funcional pendiente. `git diff --check` pasa.

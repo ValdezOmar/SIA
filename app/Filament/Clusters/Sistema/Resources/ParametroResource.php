@@ -22,10 +22,8 @@ use Filament\Tables\Columns\ColorColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ParametroResource extends Resource
 {
@@ -78,13 +76,9 @@ class ParametroResource extends Resource
                             ->image()
                             ->acceptedFileTypes(['image/x-icon', 'image/vnd.microsoft.icon', 'image/png'])
                             ->maxSize(2048)
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
-                                $destination = public_path('images/favicon.ico');
-                                File::ensureDirectoryExists(public_path('images'));
-                                File::copy($file->getRealPath(), $destination);
-
-                                return '/images/favicon.ico';
-                            })
+                            ->disk('public')
+                            ->directory('branding')
+                            ->visibility('public')
                             ->default(fn () => file_exists(public_path('images/favicon.ico')) ? '/images/favicon.ico' : null)
                             ->columnSpan(1),
 
@@ -94,13 +88,9 @@ class ParametroResource extends Resource
                             ->image()
                             ->acceptedFileTypes(['image/jpeg', 'image/png'])
                             ->maxSize(2048)
-                            ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
-                                $destination = public_path('images/fondo.jpg');
-                                File::ensureDirectoryExists(public_path('images'));
-                                File::copy($file->getRealPath(), $destination);
-
-                                return '/images/fondo.jpg';
-                            })
+                            ->disk('public')
+                            ->directory('branding')
+                            ->visibility('public')
                             ->default(fn () => file_exists(public_path('images/fondo.jpg')) ? '/images/fondo.jpg' : null)
                             ->columnSpan(1),
                     ]),
@@ -261,30 +251,25 @@ class ParametroResource extends Resource
      */
     private static function getCurrentImagesPreview(): string
     {
-        $logoPath = Parametro::query()->value('logo_path');
-        $logoEnDiscoPublico = is_string($logoPath)
-            && ! str_starts_with($logoPath, '/')
-            && ! str_contains($logoPath, ':')
-            && ! in_array('..', explode('/', str_replace('\\', '/', $logoPath)), true)
-            && Storage::disk('public')->exists($logoPath);
+        $parametro = Parametro::query()->first();
+        $logo = self::imagePreviewLocation($parametro?->logo_path, 'images/logo.png');
+        $favicon = self::imagePreviewLocation($parametro?->favicon_path, 'images/favicon.ico');
+        $fondo = self::imagePreviewLocation($parametro?->fondo_path, 'images/fondo.jpg');
 
         $imagenes = [
             [
                 'titulo' => 'Logo principal',
-                'archivo' => $logoEnDiscoPublico ? Storage::disk('public')->path($logoPath) : public_path('images/logo.png'),
-                'url' => $logoEnDiscoPublico ? Storage::disk('public')->url($logoPath) : asset('images/logo.png'),
+                ...$logo,
                 'clase' => 'max-height:4.5rem;max-width:100%;object-fit:contain',
             ],
             [
                 'titulo' => 'Favicon',
-                'archivo' => public_path('images/favicon.ico'),
-                'url' => asset('images/favicon.ico'),
+                ...$favicon,
                 'clase' => 'width:3.75rem;height:3.75rem;object-fit:contain',
             ],
             [
                 'titulo' => 'Fondo de inicio de sesión',
-                'archivo' => public_path('images/fondo.jpg'),
-                'url' => asset('images/fondo.jpg'),
+                ...$fondo,
                 'clase' => 'width:100%;height:9rem;object-fit:cover',
             ],
         ];
@@ -317,6 +302,25 @@ class ParametroResource extends Resource
             ->implode('');
 
         return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:.9rem">'.$contenido.'</div>';
+    }
+
+    private static function imagePreviewLocation(?string $path, string $legacyPath): array
+    {
+        if (is_string($path)
+            && ! str_starts_with($path, '/')
+            && ! str_contains($path, ':')
+            && ! in_array('..', explode('/', str_replace('\\', '/', $path)), true)
+            && Storage::disk('public')->exists($path)) {
+            return [
+                'archivo' => Storage::disk('public')->path($path),
+                'url' => Storage::disk('public')->url($path),
+            ];
+        }
+
+        return [
+            'archivo' => public_path($legacyPath),
+            'url' => asset($legacyPath),
+        ];
     }
 
     public static function getPages(): array
