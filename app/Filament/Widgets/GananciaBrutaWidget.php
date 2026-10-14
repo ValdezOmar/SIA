@@ -90,7 +90,7 @@ class GananciaBrutaWidget extends TableWidget
                 ->label('Período')
                 ->formatStateUsing(fn ($state): string => $this->formatPeriodo((string) $state)),
             TextColumn::make('ingresos_netos')
-                ->label('Ventas netas')
+                ->label('Ventas brutas')
                 ->money('BOB', divideBy: 1, locale: 'es')
                 ->alignEnd(),
             TextColumn::make('descuentos')
@@ -99,12 +99,12 @@ class GananciaBrutaWidget extends TableWidget
                 ->alignEnd()
                 ->color('warning'),
             TextColumn::make('costo_ventas')
-                ->label('Costo de ventas')
+                ->label('Costo de productos')
                 ->money('BOB', divideBy: 1, locale: 'es')
                 ->alignEnd()
                 ->color('danger'),
             TextColumn::make('ganancia_despues_costo')
-                ->label('Ganancia después del costo')
+                ->label('Ganancia neta')
                 ->money('BOB', divideBy: 1, locale: 'es')
                 ->alignEnd()
                 ->color('success'),
