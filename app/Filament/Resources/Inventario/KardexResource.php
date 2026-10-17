@@ -76,6 +76,32 @@ class KardexResource extends Resource
         return self::getSimboloMoneda($moneda).' '.number_format($monto ?? 0, 2);
     }
 
+    private static function obtenerUltimoCostoRegistrado(?int $articuloId, ?int $almacenId = null): float
+    {
+        if (! $articuloId) {
+            return 0;
+        }
+
+        $costoExistencia = Existencia::query()
+            ->where('articulo_id', $articuloId)
+            ->when($almacenId, fn ($query) => $query->where('almacen_id', $almacenId))
+            ->when(! $almacenId, fn ($query) => $query->orderByDesc('ultima_entrada')->orderByDesc('id'))
+            ->value('ultimo_costo');
+
+        if ((float) $costoExistencia > 0) {
+            return (float) $costoExistencia;
+        }
+
+        return (float) (Kardex::query()
+            ->where('articulo_id', $articuloId)
+            ->where('direccion', 'entrada')
+            ->where('estado', 'confirmado')
+            ->when($almacenId, fn ($query) => $query->where('almacen_id', $almacenId))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->value('costo_unitario') ?? 0);
+    }
+
     private static function guiaTipoMovimiento(?string $tipo): HtmlString
     {
         $guias = [
@@ -209,7 +235,9 @@ class KardexResource extends Resource
                                                             $articulo = Articulo::find($state);
                                                             if ($articulo) {
                                                                 $set('unidad_medida', $articulo->unidadMedida?->abreviatura ?? 'UND');
-                                                                $set('costo_unitario', $articulo->ultimo_costo ?? 0);
+                                                                $costo = self::obtenerUltimoCostoRegistrado((int) $state, $get('almacen_id') ? (int) $get('almacen_id') : null);
+                                                                $set('costo_unitario', $costo);
+                                                                $set('costo_total', (float) ($get('cantidad') ?? 0) * $costo);
                                                             }
                                                         }
                                                     }),
@@ -228,7 +256,17 @@ class KardexResource extends Resource
                                                     ->placeholder('Seleccione un almacén')
                                                     ->prefixIcon('heroicon-o-building-storefront')
                                                     ->helperText('Ubicación física donde aumentará o disminuirá el stock.')
-                                                    ->columnSpan(3),
+                                                    ->columnSpan(3)
+                                                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                        $articuloId = $get('articulo_id');
+                                                        if (! $articuloId) {
+                                                            return;
+                                                        }
+
+                                                        $costo = self::obtenerUltimoCostoRegistrado((int) $articuloId, $state ? (int) $state : null);
+                                                        $set('costo_unitario', $costo);
+                                                        $set('costo_total', (float) ($get('cantidad') ?? 0) * $costo);
+                                                    }),
 
                                                 DatePicker::make('fecha_movimiento')
                                                     ->label('Fecha del movimiento')
@@ -312,7 +350,7 @@ class KardexResource extends Resource
                                                     ])
                                                     ->placeholder('0.00')
                                                     ->prefix(fn ($get) => self::getSimboloMoneda('BOB'))
-                                                    ->helperText('Costo por unidad. En entradas alimenta FIFO; en salidas se usa para valorar la operación.')
+                                                    ->helperText('Se propone el último costo de entrada registrado para el artículo y almacén. Puede editarlo si necesita corregirlo. En entradas alimenta FIFO; en salidas se usa para valorar la operación.')
                                                     ->live(onBlur: true)
                                                     ->afterStateUpdated(function ($state, callable $set, $get) {
                                                         $cantidad = floatval($get('cantidad') ?? 0);

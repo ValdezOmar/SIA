@@ -115,3 +115,8 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - Los campos Logo Principal, Favicon y Fondo de Login de `ParametroResource` copiaban cargas a archivos dentro de `public/images`, que no deben ser destino de escritura en una instalación desplegada. Ahora los tres usan el disco público de Laravel bajo `branding/`; la vista previa resuelve archivos nuevos y rutas públicas antiguas.
 - `PanelAppearance` resuelve rutas antiguas y relativas del disco público; el panel lee de esa configuración para logo, favicon y fondo. `CotizacionPdfService` ya soportaba rutas relativas del disco público. Actualizados mapa y continuidad; sin cambios de esquema ni datos.
 - `php -l` pasa en los cuatro PHP modificados; Pint `--test` pasa en PanelAppearance y la prueba. Pint del Resource y del PanelProvider señala reglas de formato ya presentes (CRLF/estilo general e imports); se mantuvieron los cambios acotados. PHPUnit focalizado quedó sin salida durante el arranque y se interrumpió; validación funcional pendiente. `git diff --check` pasa.
+
+## 2026-10-17 — Precarga de costo unitario en alta manual de Kardex
+
+- `KardexResource` ahora propone el `ultimo_costo` de Existencias según artículo y almacén; si es cero/no existe, busca la última entrada confirmada. Al cambiar artículo o almacén actualiza la propuesta y recalcula el costo total. `Costo unitario` sigue editable.
+- `KardexResourceCreateTest` comprueba la precarga de Bs 47,25 y que el usuario pueda sustituirla por Bs 35,50 al guardar. Resultado: 1 prueba/12 aserciones correctas. PHP lint, Pint de la prueba y `git diff --check` pasan. Pint del Resource existente falla por formato previo (atributos, sangría, CRLF); no se reformató el archivo completo.

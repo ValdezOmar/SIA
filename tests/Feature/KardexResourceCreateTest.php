@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Resources\Inventario\KardexResource\Pages\CreateKardex;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
+use App\Models\Inventario\Existencia;
 use App\Models\Inventario\Kardex;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -47,7 +48,18 @@ class KardexResourceCreateTest extends TestCase
             'activo' => true,
         ]);
 
-        Livewire::test(CreateKardex::class)
+        Existencia::create([
+            'articulo_id' => $articulo->id,
+            'almacen_id' => $almacen->id,
+            'ultimo_costo' => 47.25,
+        ]);
+
+        $formulario = Livewire::test(CreateKardex::class)
+            ->fillForm([
+                'articulo_id' => $articulo->id,
+                'almacen_id' => $almacen->id,
+            ])
+            ->assertFormSet(['costo_unitario' => 47.25])
             ->fillForm([
                 'articulo_id' => $articulo->id,
                 'almacen_id' => $almacen->id,
@@ -60,7 +72,9 @@ class KardexResourceCreateTest extends TestCase
                 'costo_total' => 71,
                 'estado' => 'confirmado',
                 'motivo' => 'Compra de prueba desde el recurso',
-            ])
+            ]);
+
+        $formulario
             ->call('create')
             ->assertHasNoFormErrors();
 
@@ -68,6 +82,7 @@ class KardexResourceCreateTest extends TestCase
 
         $this->assertSame('compra', $kardex->tipo_movimiento);
         $this->assertSame('confirmado', $kardex->estado);
+        $this->assertSame(35.5, (float) $kardex->costo_unitario);
         $this->assertSame(71.0, (float) $kardex->costo_total);
         $this->assertDatabaseHas('alm_movimientos_inventario', [
             'kardex_id' => $kardex->id,

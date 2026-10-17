@@ -70,6 +70,8 @@ Una reserva aumenta la cantidad comprometida sin disminuir la existencia física
 
 Cada salida exige existencia suficiente y una valoración posible, salvo que el almacén permita explícitamente stock negativo. La anulación usa un movimiento de reversión; no debe reemplazarse por el borrado manual del Kardex o una modificación directa de la cantidad disponible.
 
+En **Kardex → Crear**, al seleccionar artículo y almacén se propone el último costo de una entrada confirmada registrado para ese almacén; si no hay costo allí, se busca la última entrada confirmada del artículo. El campo **Costo unitario** sigue siendo editable y el total se recalcula al cambiar cantidad o costo.
+
 ## Series y lotes
 
 En una salida de artículos con series requeridas se debe indicar una serie disponible por unidad vendida. La validación comprueba artículo, almacén y estado. La serie vendida se vincula al cliente y conserva la fecha de venta recibida desde Facturas.
