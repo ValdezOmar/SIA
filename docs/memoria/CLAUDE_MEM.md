@@ -21,7 +21,7 @@ Invoke-RestMethod http://127.0.0.1:37777/api/health
 
 Abrir una nueva sesión en `D:\Sistemas\SIA`. En Codex CLI, el instalador indica revisar y confiar los cinco hooks cuando el cliente lo solicite y reiniciar las sesiones anteriores. Esa confianza se gestiona desde el cliente; no se eludió aquí. La instalación en CLI no demuestra captura automática en todos los clientes gráficos ni en esta sesión ya abierta.
 
-El wrapper `claude.ps1` de OpenClaw se reparó el 2026-10-05 ejecutando el `install.cjs` del paquete ya instalado. `claude --version` responde 2.1.285. Queda pendiente validar captura y compresión en una sesión nueva con autenticación funcional.
+Estado comprobado el 2026-10-19: claude-mem informa que el observador no puede guardar memorias porque Claude Code aparece desconectado (`Claude Code reported the observer as signed out`; rechazo desde 2026-10-08). No reiniciar el worker: reiniciarlo no renueva credenciales. Además, el comando local `claude` apunta a `C:\Users\Omar Valdez\AppData\Local\OpenClaw\deps\portable-node\node_modules\@anthropic-ai\claude-code\bin\claude.exe`, que no existe; `claude --version` y `claude auth status` fallan desde esa envoltura. Para restablecer el servicio, primero reparar/instalar el ejecutable de Claude Code y completar `claude auth login` en una sesión interactiva; después verificar autenticación y worker. No se modificó ni reinició el worker durante esta comprobación.
 
 ## Memoria disponible para otros modelos
 
