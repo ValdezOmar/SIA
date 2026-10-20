@@ -55,7 +55,7 @@ class CotizacionDetalle extends Model
 
             // Asegurar que impuesto esté calculado
             if ($model->impuesto == 0 && $model->subtotal > 0 && $model->aplicar_iva) {
-                $model->impuesto = $model->subtotal * (13 / 100);
+                $model->impuesto = $model->subtotal * (($model->tasa_impuesto ?? 13) / 100);
             }
 
             // Asegurar que total esté calculado

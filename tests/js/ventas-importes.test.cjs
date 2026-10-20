@@ -12,6 +12,12 @@ test('cantidad, descuento, IVA y total se calculan sin duplicar descuentos', () 
     assert.equal(formato(fila.total, 'BOB'), 'Bs 305.10');
 });
 
+test('el IVA usa la tasa guardada en cada detalle', () => {
+    const fila = calcular({ cantidad: 2, precio_unitario: 100, aplicar_iva: true, tasa_impuesto: 7 });
+    assert.equal(fila.impuesto, 14);
+    assert.equal(fila.total, 214);
+});
+
 test('cada pulsación actualiza localmente y no solicita envío al servidor', () => {
     let fila = { cantidad: 1, precio_unitario: 100, descuento: 0 };
     const wire = { $get: () => fila, $set: (ruta, valor, enviar) => {

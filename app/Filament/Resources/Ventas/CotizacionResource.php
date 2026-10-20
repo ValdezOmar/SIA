@@ -25,7 +25,9 @@ use App\Models\Inventario\Articulo;
 use App\Models\Sistema\Empresa;
 use App\Models\Sistema\Sucursal;
 use App\Models\Ventas\Cliente;
+use App\Filament\Resources\Ventas\FacturaResource;
 use App\Models\Ventas\Cotizacion;
+use App\Rules\CantidadEntera;
 use App\Support\ArticuloSelectOptions;
 use App\Support\ClienteRegistroForm;
 use App\Support\ClienteSelectOptions;
@@ -548,7 +550,8 @@ class CotizacionResource extends Resource
 
                                                         TextInput::make('cantidad')
                                                             ->label('Cant.')
-                                                            ->integer()
+                                                            ->numeric()
+                                                            ->rules([new CantidadEntera])
                                                             ->required()
                                                             ->minValue(1)
                                                             ->maxValue(999999)
@@ -982,6 +985,19 @@ class CotizacionResource extends Resource
                     ViewAction::make()
                         ->slideOver()
                         ->modalWidth('7xl'),
+
+                    Action::make('convertir_venta')
+                        ->label('Convertir a venta')
+                        ->icon('heroicon-o-banknotes')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Crear factura desde cotización')
+                        ->modalSubheading('Se abrirá una factura nueva con el cliente, artículos, precios, descuentos e impuestos de esta cotización. Revise los datos y registre el pago antes de guardar; al guardar se generará el pedido asociado y la cotización quedará convertida.')
+                        ->action(fn (Cotizacion $record) => redirect()->to(FacturaResource::getUrl('create', [
+                            'cotizacion_origen_id' => $record->getKey(),
+                        ])))
+                        ->visible(fn (Cotizacion $record): bool => $record->estado === 'aprobada'
+                            && ! $record->pedido()->exists()),
 
                     Action::make('convertir_pedido')
                         ->label('Convertir a Pedido')

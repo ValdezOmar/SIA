@@ -29,9 +29,9 @@ El nombre tiene el formato **26001 JUAN QUISPE**. Se exportan celulares válidos
 
 ## Cotizaciones
 
-Registrar cliente, artículos, cantidades, precios, descuentos e impuestos aplicables. El listado ofrece acciones para marcar la cotización como enviada, aprobarla, rechazarla, duplicarla y convertirla en pedido según su estado. **Enviar** cambia el estado del documento; no debe interpretarse como confirmación de entrega de un correo.
+Registrar cliente, artículos, cantidades, precios, descuentos e impuestos aplicables. El listado ofrece acciones para marcar la cotización como enviada, aprobarla, rechazarla, duplicarla y convertirla en pedido según su estado. En una cotización aprobada también está disponible **Convertir a venta**: abre una factura nueva precargada con cliente y líneas; el usuario revisa los datos y confirma el pago en el formulario. Al guardar se genera el pedido asociado y la cotización queda convertida. **Enviar** cambia el estado del documento; no debe interpretarse como confirmación de entrega de un correo.
 
-Una cotización convertida debe continuarse mediante su pedido/factura asociados. Al usar una cotización de origen desde Facturas se comprueba que siga abierta y corresponda al cliente seleccionado.
+Una cotización convertida debe continuarse mediante su pedido/factura asociados. Al usar una cotización de origen desde Facturas se comprueba que siga abierta y corresponda al cliente seleccionado. Las líneas trasladan también `aplicar_iva` y `tasa_impuesto`; el resumen, el toggle y el guardado usan esa tasa. Si se modifica manualmente el IVA, se recalculan impuesto y total sobre el subtotal neto.
 
 **Acciones → Imprimir PDF** descarga una proforma A4 con el logo configurado para la empresa de la cotización; si no tiene uno válido, usa el logo de **Sistema → Parámetros Generales**. No sustituye esos logotipos por una imagen genérica. El documento incluye código de cotización, datos de empresa/cliente, fecha, conceptos, cantidades, precios y total con impuestos en la moneda del documento. Los descuentos e impuestos se toman de las líneas guardadas, sin descontarlos dos veces ni modificar la cotización. La sucursal asociada aparece en los datos de empresa; el PDF no tiene pie de página. La tabla repite encabezados cuando ocupa varias páginas.
 
@@ -78,7 +78,7 @@ El flujo actual procesa la entrega al quedar la venta totalmente pagada. La fech
 
 ### Pago parcial
 
-Registrar el abono inicial y seleccionar **Pago parcial y reserva de stock**. Los pagos confirmados disminuyen el saldo y la existencia queda comprometida. Los abonos posteriores se registran con su propia fecha y medio de pago. Al completar el importe se procesa la salida y se liberan las reservas.
+Registrar el abono inicial y seleccionar **Pago parcial y reserva de stock**. El campo **Monto recibido ahora** se propone inicialmente con el total calculado y se actualiza junto con las líneas mientras siga siendo el valor sugerido; si el usuario lo modifica manualmente, el sistema conserva el abono ingresado. Los pagos confirmados disminuyen el saldo y la existencia queda comprometida. Los abonos posteriores se registran con su propia fecha y medio de pago. Al completar el importe se procesa la salida y se liberan las reservas.
 
 El pago debe ser mayor que cero y no superar el saldo. Una factura pagada o anulada no admite otro pago por el flujo de registro. Una factura sin artículos puede generar contabilidad sin generar un pedido o movimiento de almacén.
 
@@ -90,7 +90,7 @@ El sistema guarda dos pagos con la misma fecha, uno por cada medio. El banco y l
 
 ### Captura y cálculo de los detalles
 
-Las cantidades, precios y descuentos se escriben sin solicitar recálculos al servidor por cada pulsación. La fila y el resumen se actualizan localmente mientras se escribe; cambiar IVA actualiza también impuesto y total. **Calcular totales** permite solicitar un recálculo adicional. Guardar vuelve a calcular con los datos actuales, aunque no se haya pulsado el botón. Al elegir un artículo se carga su primera lista de precios y al cambiar de lista se actualiza de inmediato el precio de la fila.
+Las cantidades, precios y descuentos se escriben sin solicitar recálculos al servidor por cada pulsación. Cotizaciones y Facturas aceptan cantidades enteras almacenadas como decimales (por ejemplo, `1.00` equivale a una unidad) y rechazan cantidades fraccionarias. La fila y el resumen se actualizan localmente mientras se escribe; cambiar IVA actualiza también impuesto y total. **Calcular totales** permite solicitar un recálculo adicional. Guardar vuelve a calcular con los datos actuales, aunque no se haya pulsado el botón. Al elegir un artículo se carga su primera lista de precios y al cambiar de lista se actualiza de inmediato el precio de la fila.
 
 El resumen local y las filas comparten los importes del formulario. Si un descuento supera el importe de la línea, la vista muestra **—** en lugar de conservar un total anterior; al guardar se informa el error de validación. Al incorporar esta actualización a una sesión ya abierta, recargar la página para cargar el script de cálculo.
 

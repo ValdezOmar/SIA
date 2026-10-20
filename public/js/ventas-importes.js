@@ -14,7 +14,8 @@
         }
         const subtotal = redondear(base - descuento);
         const aplicaIva = [true, 1, '1'].includes(fila.aplicar_iva);
-        const impuesto = aplicaIva ? redondear(subtotal * 0.13) : 0;
+        const tasa = numero(fila.tasa_impuesto ?? 13);
+        const impuesto = aplicaIva ? redondear(subtotal * tasa / 100) : 0;
         return { ...fila, descuento, descuento_porcentaje: base > 0 ? redondear(descuento / base * 100) : 0,
             subtotal, impuesto, total: redondear(subtotal + impuesto) };
     };

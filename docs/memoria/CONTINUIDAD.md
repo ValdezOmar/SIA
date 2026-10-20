@@ -214,3 +214,20 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 
 - Añadido `AuditoriaResource` al Cluster Sistema con tabla, búsqueda, filtros de tipo/nivel/código HTTP/periodo y slide-over de detalle. Es de solo lectura y `canViewAny()` restringe el acceso a roles `admin` y `super_admin`; no se modificaron otros Resources ni Relation Managers.
 - Añadido modelo de consulta `AuditoriaSistema` y prueba de visibilidad/solo lectura. `AuditoriaSistemaMonitorTest`: 4 pruebas/20 aserciones correctas; PHP lint, Pint `--test` y `git diff --check` correctos. `php artisan route:list --path=dashboard/configuracion/auditoria` confirma `GET dashboard/configuracion/auditorias`. La migración del monitor sigue pendiente para despliegue.
+
+## 2026-10-20 — Conversión de cotización a Factura y conservación del IVA
+
+- En cotizaciones aprobadas se añadió **Convertir a venta**, que abre el alta de Factura con la cotización precargada. El alta valida que siga abierta/vigente y al guardar crea el Pedido asociado y marca la cotización convertida dentro de la transacción existente; se mantienen las validaciones y el flujo de pagos de la factura.
+- La carga de líneas copia `aplicar_iva` y `tasa_impuesto`. El cálculo del formulario, el cálculo local JavaScript, la normalización al guardar y los modelos usan la tasa de cada detalle. Al convertir cotización a Pedido también se conserva el indicador de IVA; el modelo de detalle del Pedido ya no agrega impuesto cuando el indicador está apagado.
+- Verificación: `CalculoRepeaterTest` + `VentasFormularioRealTest`, 10 pruebas/61 aserciones; `tests/js/ventas-importes.test.cjs`, 5/5; `php -l` en 8 archivos PHP y `git diff --check` correctos. Pint `--test` identifica reglas de estilo preexistentes en archivos grandes y finales CRLF; no se reformatearon archivos completos. No se ejecutaron migraciones ni se probó el flujo en navegador.
+
+## 2026-10-20 — Validación de unidades `1.00` en Cotizaciones y Facturas
+
+- Los campos Cant. usaban regla `integer`, que rechaza el valor decimal serializado por Eloquent (`1.00`) aunque representa una unidad entera. Se usa `numeric` con la regla Laravel `CantidadEntera`: acepta `1`, `1.0` y `1.00`, y rechaza cantidades fraccionarias como `1.50`.
+- Verificación: `VentasFormularioRealTest` dirigido, 1 prueba/4 aserciones para ambos formularios; sintaxis PHP y `git diff --check` correctos. Sin cambios de esquema ni migraciones.
+
+## 2026-10-20 — Precarga de monto recibido con el total de Factura
+
+- Al importar una cotización o elegir **Pago parcial y reserva de stock**, `Monto recibido ahora` se inicializa con el total de las líneas. Mientras conserve el último valor sugerido, el campo acompaña cambios de cantidad/precio/descuento/IVA. Si el usuario ingresa un abono distinto, se conserva y deja de sincronizarse automáticamente.
+- El total sugerido se lleva también al abrir el alta directa desde **Convertir a venta**. La referencia automática es estado temporal del formulario (`dehydrated(false)`), no se persiste como columna.
+- Verificación: `VentasFormularioRealTest` completo, 8 pruebas/33 aserciones, incluido el autofill y preservación del abono manual; `php -l` en Resource, página y prueba; `git diff --check` correctos. Sin migraciones.

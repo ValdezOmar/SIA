@@ -66,6 +66,14 @@ class CalculoRepeaterTest extends TestCase
         $this->assertSame(180.0, $compraConPorcentaje['subtotal']);
         $this->assertSame(23.4, $compraConPorcentaje['impuesto']);
         $this->assertSame(203.4, $compraConPorcentaje['total']);
+        $ventaConTasaConfigurada = CalculoDetalle::calcular([
+            'cantidad' => 1,
+            'precio_unitario' => 100,
+            'aplicar_iva' => true,
+            'tasa_impuesto' => 7,
+        ], 'venta');
+        $this->assertSame(7.0, $ventaConTasaConfigurada['impuesto']);
+        $this->assertSame(107.0, $ventaConTasaConfigurada['total']);
         $this->assertSame(12.5, CalculoDetalle::calcular(['cantidad_aceptada' => 5, 'costo_unitario' => 2.5], 'recepcion')['costo_total']);
         $this->assertSame(7.5, CalculoDetalle::calcular(['cantidad' => 3, 'precio_estimado' => 2.5], 'solicitud')['subtotal']);
     }

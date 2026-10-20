@@ -32,10 +32,12 @@ use App\Models\Ventas\Cliente;
 use App\Models\Ventas\Cotizacion;
 use App\Models\Ventas\Factura;
 use App\Models\Ventas\Pedido;
+use App\Rules\CantidadEntera;
 use App\Support\ArticuloSelectOptions;
 use App\Support\ClienteRegistroForm;
 use App\Support\ClienteSelectOptions;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -106,6 +108,7 @@ class FacturaResource extends Resource
 
         // Calcular impuesto y total basado en el toggle
         self::calcularImpuestoYTotal($set, $get);
+        self::actualizarMontoRecibido($set, $get);
     }
 
     private static function calcularTotales($get, $record = null): array
@@ -117,6 +120,34 @@ class FacturaResource extends Resource
         }
 
         return CalculoDetalle::totales($detalles);
+    }
+
+    private static function actualizarMontoRecibido(callable $set, callable $get, ?array $detalles = null): void
+    {
+        $prefijo = $get('../../condicion_pago') !== null ? '../../' : '';
+        $condicionPago = $get($prefijo.'condicion_pago');
+        $tipoPago = $get($prefijo.'pago_inicial_tipo');
+
+        if ($condicionPago !== 'parcial' || $tipoPago === 'mixto') {
+            return;
+        }
+
+        $detalles ??= $get($prefijo.'detalles') ?? [];
+        $total = $detalles === null
+            ? self::calcularTotales($get)['total']
+            : CalculoDetalle::totales($detalles)['total'];
+        $montoActual = $get($prefijo.'pago_inicial_monto');
+        $montoSugerido = $get($prefijo.'pago_inicial_monto_sugerido');
+
+        if ($total <= 0 || (filled($montoActual)
+            && (float) $montoActual > 0
+            && ($montoSugerido === null || abs((float) $montoActual - (float) $montoSugerido) > 0.000001))) {
+            return;
+        }
+
+        $total = round((float) $total, 2);
+        $set($prefijo.'pago_inicial_monto', $total);
+        $set($prefijo.'pago_inicial_monto_sugerido', $total);
     }
 
     private static function getSimboloMoneda($moneda): string
@@ -151,7 +182,7 @@ class FacturaResource extends Resource
     {
         $subtotal = floatval($get('subtotal') ?? 0);
         $aplicarIVA = $get('aplicar_iva') ?? false;
-        $tasaIVA = 13;
+        $tasaIVA = floatval($get('tasa_impuesto') ?? 13);
 
         if ($aplicarIVA) {
             $impuesto = round($subtotal * ($tasaIVA / 100), 2);
@@ -398,7 +429,7 @@ class FacturaResource extends Resource
                                                     ->searchable()
                                                     ->preload()
                                                     ->placeholder('Seleccione una cotización')
-                                                    ->helperText('Carga el cliente y los artículos. Al guardar se convierte en pedido asociado.')
+                                                    ->helperText('Carga el cliente y los artículos. Al guardar se genera el pedido asociado.')
                                                     ->hiddenOn('edit')
                                                     ->live()
                                                     ->afterStateUpdated(function ($state, callable $set, Get $get): void {
@@ -433,6 +464,7 @@ class FacturaResource extends Resource
                                                             'subtotal',
                                                             'tipo_impuesto',
                                                             'tasa_impuesto',
+                                                            'aplicar_iva',
                                                             'impuesto',
                                                             'total',
                                                             'observaciones',
@@ -441,6 +473,8 @@ class FacturaResource extends Resource
                                                         foreach (['subtotal', 'descuento', 'impuesto', 'total'] as $campo) {
                                                             $set($campo, $totales[$campo]);
                                                         }
+                                                        $set('pago_inicial_monto', $totales['total']);
+                                                        $set('pago_inicial_monto_sugerido', $totales['total']);
                                                     }),
                                             ]),
 
@@ -494,7 +528,10 @@ class FacturaResource extends Resource
                                                     ->helperText('Seleccione “Pago parcial y reserva de stock” si recibió un abono y entregará los productos más adelante. El inventario quedará comprometido, no descontado.')
                                                     ->prefixIcon('heroicon-o-credit-card')
                                                     ->columnSpan(1)
-                                                    ->live(),
+                                                    ->live()
+                                                    ->afterStateUpdated(function ($state, callable $set, Get $get): void {
+                                                        self::actualizarMontoRecibido($set, $get);
+                                                    }),
                                             ]),
 
                                         Grid::make(2)
@@ -520,12 +557,15 @@ class FacturaResource extends Resource
                                                 TextInput::make('pago_inicial_monto')
                                                     ->label('Monto recibido ahora')
                                                     ->numeric()
+                                                    ->default(fn (Get $get): float => (float) self::calcularTotales($get)['total'])
                                                     ->minValue(0.01)
                                                     ->required(fn ($get): bool => $get('condicion_pago') === 'parcial' && $get('pago_inicial_tipo') !== 'mixto')
                                                     ->visible(fn ($get): bool => $get('condicion_pago') === 'parcial' && $get('pago_inicial_tipo') !== 'mixto')
                                                     ->helperText('Registre el abono inicial. El saldo pendiente podrá cobrarse después desde Pagos.')
                                                     ->prefix(fn ($get) => self::getSimboloMoneda($get('moneda') ?? 'BOB'))
                                                     ->columnSpan(1),
+
+                                                Hidden::make('pago_inicial_monto_sugerido')->dehydrated(false),
 
                                                 Select::make('pago_inicial_tipo')
                                                     ->label('Método del pago recibido')
@@ -669,6 +709,9 @@ class FacturaResource extends Resource
                                         Repeater::make('detalles')
                                             ->relationship('detalles')
                                             ->label('')
+                                            ->afterStateUpdated(function ($state, callable $set, Get $get): void {
+                                                self::actualizarMontoRecibido($set, $get, is_array($state) ? $state : []);
+                                            })
                                             ->schema([
                                                 Grid::make(['default' => 1, 'lg' => 16])
                                                     ->schema([
@@ -771,7 +814,8 @@ class FacturaResource extends Resource
 
                                                         TextInput::make('cantidad')
                                                             ->label('Cant.')
-                                                            ->integer()
+                                                            ->numeric()
+                                                            ->rules([new CantidadEntera])
                                                             ->required()
                                                             ->minValue(1)
                                                             ->maxValue(999999)
@@ -845,6 +889,7 @@ class FacturaResource extends Resource
                                                                 $set('descuento', $descuento);
                                                                 $set('subtotal', $subtotal);
                                                                 self::calcularImpuestoYTotal($set, $get);
+                                                                self::actualizarMontoRecibido($set, $get);
                                                             })
                                                             ->columnSpan(3),
 
@@ -879,11 +924,12 @@ class FacturaResource extends Resource
                                                                 $set('subtotal', $subtotal);
                                                                 $set('descuento_porcentaje', $descuentoPorcentaje);
                                                                 self::calcularImpuestoYTotal($set, $get);
+                                                                self::actualizarMontoRecibido($set, $get);
                                                             })
                                                             ->columnSpan(3),
 
                                                         Toggle::make('aplicar_iva')
-                                                            ->label('IVA 13%')
+                                                            ->label(fn (Get $get) => 'IVA '.rtrim(rtrim(number_format((float) ($get('tasa_impuesto') ?? 13), 2, '.', ''), '0'), '.').'%')
                                                             ->default(false)
                                                             ->helperText('Aplicar impuesto')
                                                             ->live()
@@ -899,7 +945,7 @@ class FacturaResource extends Resource
 
                                                                 // Calcular impuesto y total según el estado del toggle
                                                                 $aplicarIVA = $state;
-                                                                $tasaIVA = 13;
+                                                                $tasaIVA = floatval($get('tasa_impuesto') ?? 13);
 
                                                                 if ($aplicarIVA) {
                                                                     $impuesto = round($subtotal * ($tasaIVA / 100), 2);
@@ -911,6 +957,7 @@ class FacturaResource extends Resource
 
                                                                 $set('impuesto', $impuesto);
                                                                 $set('total', $total);
+                                                                self::actualizarMontoRecibido($set, $get);
                                                             })
                                                             ->columnSpan(4),
 
@@ -973,8 +1020,9 @@ class FacturaResource extends Resource
                                                 $subtotal = round(($precioUnitario * $cantidad) - $descuento, 2);
 
                                                 $aplicarIVA = isset($data['aplicar_iva']) ? (bool) $data['aplicar_iva'] : false;
+                                                $tasaIVA = round(floatval($data['tasa_impuesto'] ?? 13), 2);
                                                 if ($aplicarIVA) {
-                                                    $impuesto = round($subtotal * (13 / 100), 2);
+                                                    $impuesto = round($subtotal * ($tasaIVA / 100), 2);
                                                     $total = round($subtotal + $impuesto, 2);
                                                 } else {
                                                     $impuesto = 0;
@@ -1007,7 +1055,7 @@ class FacturaResource extends Resource
 
                                                     // Impuestos
                                                     'tipo_impuesto' => $data['tipo_impuesto'] ?? 'IVA',
-                                                    'tasa_impuesto' => round(floatval($data['tasa_impuesto'] ?? 13), 2),
+                                                    'tasa_impuesto' => $tasaIVA,
                                                     'aplicar_iva' => $aplicarIVA,
 
                                                     // Observaciones

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Ventas\FacturaResource\Pages;
 
 use Illuminate\Validation\ValidationException;
 use App\Filament\Resources\Ventas\FacturaResource;
+use App\Models\Ventas\Cotizacion;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateFactura extends CreateRecord
@@ -13,6 +14,51 @@ class CreateFactura extends CreateRecord
     protected ?bool $hasDatabaseTransactions = true;
 
     protected ?array $pagoInicial = null;
+
+    public function mount(): void
+    {
+        parent::mount();
+
+        $cotizacionId = request()->query('cotizacion_origen_id');
+        if (! $cotizacionId) {
+            return;
+        }
+
+        $cotizacion = FacturaResource::cotizacionesAbiertas()
+            ->with('detalles')
+            ->find($cotizacionId);
+
+        if (! $cotizacion) {
+            throw ValidationException::withMessages([
+                'data.cotizacion_origen_id' => 'La cotización ya no está disponible para convertir. Verifique su estado, vigencia y sucursal.',
+            ]);
+        }
+
+        $detalles = $cotizacion->detalles->map(fn ($detalle) => $detalle->only([
+            'articulo_id', 'lista_precio', 'codigo_articulo', 'descripcion_articulo',
+            'unidad_medida', 'cantidad', 'precio_unitario', 'precio_original',
+            'descuento', 'descuento_porcentaje', 'subtotal', 'tipo_impuesto',
+            'tasa_impuesto', 'aplicar_iva', 'impuesto', 'total', 'observaciones',
+        ]))->all();
+
+        $this->form->fill([
+            'empresa_id' => $cotizacion->empresa_id,
+            'sucursal_id' => $cotizacion->sucursal_id,
+            'cotizacion_origen_id' => $cotizacion->getKey(),
+            'cliente_id' => $cotizacion->cliente_id,
+            'vendedor_id' => $cotizacion->vendedor_id,
+            'moneda' => $cotizacion->moneda,
+            'tasa_cambio' => $cotizacion->tasa_cambio,
+            'condicion_pago' => $cotizacion->condicion_pago === 'parcial' ? 'parcial' : 'contado',
+            'pago_inicial_monto' => (float) $cotizacion->detalles->sum('total'),
+            'pago_inicial_monto_sugerido' => (float) $cotizacion->detalles->sum('total'),
+            'fecha_emision' => today()->toDateString(),
+            'fecha_vencimiento' => $cotizacion->fecha_entrega_estimada?->toDateString() ?? today()->toDateString(),
+            'estado' => 'borrador',
+            'observaciones' => $cotizacion->observaciones,
+            'detalles' => $detalles,
+        ]);
+    }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {

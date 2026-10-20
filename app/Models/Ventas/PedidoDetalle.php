@@ -50,7 +50,7 @@ class PedidoDetalle extends Model
                 $model->subtotal = ($model->precio_unitario * $model->cantidad) - ($model->descuento ?? 0);
             }
 
-            if ($model->impuesto == 0 && $model->subtotal > 0) {
+            if ($model->impuesto == 0 && $model->subtotal > 0 && (bool) ($model->aplicar_iva ?? false)) {
                 $model->impuesto = $model->subtotal * (($model->tasa_impuesto ?? 13) / 100);
             }
 

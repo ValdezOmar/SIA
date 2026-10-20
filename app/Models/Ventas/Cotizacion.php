@@ -239,6 +239,7 @@ class Cotizacion extends Model
                 'subtotal' => $detalle->subtotal,
                 'tipo_impuesto' => $detalle->tipo_impuesto,
                 'tasa_impuesto' => $detalle->tasa_impuesto,
+                'aplicar_iva' => $detalle->aplicar_iva,
                 'impuesto' => $detalle->impuesto,
                 'total' => $detalle->total,
                 'observaciones' => $detalle->observaciones,

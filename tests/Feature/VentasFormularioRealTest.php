@@ -26,6 +26,7 @@ use Filament\Forms\Contracts\HasForms;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Component;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -86,10 +87,12 @@ class VentasFormularioRealTest extends TestCase
             $path = 'data.detalles.'.$key;
             $test->set($path.'.cantidad', 3)->set($path.'.precio_unitario', 100)
                 ->set($path.'.descuento', 30)->set($path.'._descuento_tipo', 'importe')
+                ->set($path.'.tasa_impuesto', 7)
                 ->set($path.'.aplicar_iva', true)
                 ->call('mountFormComponentAction', 'data.detalles', 'calcular')
                 ->assertSet($path.'.subtotal', 270.0)
-                ->assertSet($path.'.total', 305.1);
+                ->assertSet($path.'.impuesto', 18.9)
+                ->assertSet($path.'.total', 288.9);
             unset($test);
             Livewire::flushState();
             gc_collect_cycles();
@@ -106,6 +109,74 @@ class VentasFormularioRealTest extends TestCase
             ->set('data.detalles.nueva.descuento', 25)
             ->assertSet('data.detalles.nueva.subtotal', 225.0)
             ->assertSet('data.detalles.nueva.total', 225.0);
+    }
+
+    public function test_factura_copia_total_de_cotizacion_a_monto_recibido_ahora(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $empresa = DB::table('conf_empresas')->insertGetId([
+            'razon_social' => 'Empresa de prueba',
+            'nombre_comercial' => 'Prueba',
+            'pais' => 'Bolivia',
+            'empresa_activo' => true,
+        ]);
+        $cliente = Cliente::create(['codigo' => 'CLI-PAGO-TOTAL', 'nombre' => 'Cliente', 'empresa_id' => $empresa]);
+        $articulo = Articulo::create([
+            'codigo' => 'SRV-PAGO-TOTAL',
+            'nombre_comercial' => 'Servicio',
+            'inventariable' => false,
+            'empresa_id' => $empresa,
+        ]);
+        $cotizacion = Cotizacion::create([
+            'cliente_id' => $cliente->id,
+            'empresa_id' => $empresa,
+            'fecha_emision' => today(),
+            'estado' => 'aprobada',
+            'condicion_pago' => 'parcial',
+        ]);
+        $cotizacion->detalles()->create([
+            'articulo_id' => $articulo->id,
+            'codigo_articulo' => $articulo->codigo,
+            'descripcion_articulo' => $articulo->nombre_comercial,
+            'cantidad' => 2,
+            'precio_unitario' => 100,
+            'precio_original' => 100,
+            'subtotal' => 200,
+            'aplicar_iva' => true,
+            'tasa_impuesto' => 13,
+            'impuesto' => 26,
+            'total' => 226,
+        ]);
+
+        $form = Livewire::test(FormularioVentasReal::class, ['record' => new Factura, 'recurso' => FacturaResource::class])
+            ->set('data.empresa_id', $empresa)
+            ->set('data.cotizacion_origen_id', $cotizacion->id);
+        $form->assertSet('data.pago_inicial_monto', 226.0)
+            ->assertSet('data.detalles.0.total', '226.00')
+            ->set('data.detalles.0.precio_unitario', 150)
+            ->assertSet('data.pago_inicial_monto', 339.0)
+            ->set('data.pago_inicial_monto', 100)
+            ->set('data.detalles.0.precio_unitario', 200)
+            ->assertSet('data.pago_inicial_monto', 100.0);
+    }
+
+    public function test_cotizacion_y_factura_aceptan_cantidad_decimal_equivalente_a_entero(): void
+    {
+        foreach ([CotizacionResource::class => Cotizacion::class, FacturaResource::class => Factura::class] as $recurso => $modelo) {
+            $test = Livewire::test(FormularioVentasReal::class, ['record' => new $modelo, 'recurso' => $recurso]);
+            $test->set('data.detalles', ['prueba' => ['cantidad' => '1.00']]);
+            $repeater = $test->instance()->form->getComponent('detalles');
+            $campos = array_values($repeater->getChildComponentContainers())[0]->getFlatFields();
+            $campoCantidad = collect($campos)->first(fn ($campo) => $campo->getName() === 'cantidad');
+            $reglas = ['cantidad' => $campoCantidad->getValidationRules()];
+
+            $this->assertTrue(Validator::make(['cantidad' => '1.00'], $reglas)->passes(), $recurso);
+            $this->assertFalse(Validator::make(['cantidad' => '1.50'], $reglas)->passes(), $recurso);
+
+            unset($test);
+            Livewire::flushState();
+            gc_collect_cycles();
+        }
     }
 
     public function test_factura_conserva_contado_al_elegir_cliente_y_respeta_un_cambio_manual(): void

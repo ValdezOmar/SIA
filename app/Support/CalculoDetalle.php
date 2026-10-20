@@ -78,7 +78,7 @@ class CalculoDetalle
         $aplicarIva = array_key_exists('aplicar_iva', $fila)
             ? (bool) $fila['aplicar_iva']
             : false;
-        $tasa = $aplicarIva ? 13 : 0;
+        $tasa = $aplicarIva ? (float) ($fila['tasa_impuesto'] ?? 13) : 0;
         $fila['impuesto'] = round($fila['subtotal'] * $tasa / 100, 6);
         $fila['total'] = round($fila['subtotal'] + $fila['impuesto'], 6);
 

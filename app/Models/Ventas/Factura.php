@@ -331,7 +331,7 @@ class Factura extends Model
                     'observaciones' => 'Pedido generado desde la factura '.$factura->numero.' por pago recibido.',
                 ]);
                 foreach ($factura->detalles as $detalle) {
-                    $pedido->detalles()->create($detalle->only(['linea', 'articulo_id', 'lista_precio', 'codigo_articulo', 'descripcion_articulo', 'unidad_medida', 'cantidad', 'precio_unitario', 'precio_original', 'descuento', 'descuento_porcentaje', 'subtotal', 'tipo_impuesto', 'tasa_impuesto', 'impuesto', 'total', 'observaciones']));
+                    $pedido->detalles()->create($detalle->only(['linea', 'articulo_id', 'lista_precio', 'codigo_articulo', 'descripcion_articulo', 'unidad_medida', 'cantidad', 'precio_unitario', 'precio_original', 'descuento', 'descuento_porcentaje', 'subtotal', 'tipo_impuesto', 'tasa_impuesto', 'aplicar_iva', 'impuesto', 'total', 'observaciones']));
                 }
                 $pedido->unsetRelation('detalles');
                 $factura->updateQuietly(['pedido_id' => $pedido->id, 'numero_pedido' => $pedido->codigo]);
