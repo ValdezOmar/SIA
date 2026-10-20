@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Sistema\NotificacionExcepcionOperativaService;
+use App\Http\Middleware\MonitorSistemaMiddleware;
 use Filament\Notifications\Notification;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -14,9 +15,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->append(MonitorSistemaMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->report(function (\Throwable $exception): void {
+            app(\App\Services\Sistema\AuditoriaSistemaService::class)
+                ->registrarExcepcion($exception, request());
+        });
+
         $exceptions->render(function (\RuntimeException $exception, Request $request) {
             if ($request->hasHeader('X-Livewire') || $request->expectsJson()) {
                 return null;

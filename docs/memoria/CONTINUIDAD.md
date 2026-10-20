@@ -203,3 +203,14 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 
 - Se retiraron los `CreateAction` de Pedidos, Facturas y Cotizaciones dentro de `ClienteResource`; permanecen las consultas y acciones por registro y los botones de creación de sus Resources principales.
 - Verificación: `TotalesDocumentosTest`: 2 pruebas/33 aserciones correctas; `php -l` en los tres Relation Managers y `git diff --check` correctos. Pint `--test` señala reglas de estilo preexistentes (operadores unarios) en los tres archivos; no se aplicó reformateo ajeno al cambio.
+
+## 2026-10-20 — Monitor global de cambios y errores del sistema
+
+- Implementado registro sin interfaz ni cambios en Resources/Relation Managers: listener Eloquent para altas, actualizaciones y eliminaciones; middleware global para respuestas 4xx/5xx; reporte global de excepciones con clase, línea y código HTTP sin mensaje sensible. La tabla `sys_eventos_auditoria` conserva actor, modelo/registro, diferencias, ruta, método, severidad, código HTTP, IP y agente; secretos se redactan.
+- El registro se excluye a sí mismo y fallos de escritura de auditoría se envían al log Laravel sin interrumpir el flujo. Operaciones masivas/SQL directo que omiten eventos Eloquent no generan detalle de cambios de modelo. Migración aditiva pendiente de aplicar por el proceso normal; no se ejecutó contra base operativa. Guía `docs/auditoria-sistema.md`.
+- `AuditoriaSistemaMonitorTest`: 3 pruebas/12 aserciones correctas sin warnings; PHP lint y Pint de archivos nuevos pasaron; `git diff --check` pasó. No se ejecutó la migración operativa.
+
+## 2026-10-20 — Resource de consulta de auditoría en Sistema
+
+- Añadido `AuditoriaResource` al Cluster Sistema con tabla, búsqueda, filtros de tipo/nivel/código HTTP/periodo y slide-over de detalle. Es de solo lectura y `canViewAny()` restringe el acceso a roles `admin` y `super_admin`; no se modificaron otros Resources ni Relation Managers.
+- Añadido modelo de consulta `AuditoriaSistema` y prueba de visibilidad/solo lectura. `AuditoriaSistemaMonitorTest`: 4 pruebas/20 aserciones correctas; PHP lint, Pint `--test` y `git diff --check` correctos. `php artisan route:list --path=dashboard/configuracion/auditoria` confirma `GET dashboard/configuracion/auditorias`. La migración del monitor sigue pendiente para despliegue.

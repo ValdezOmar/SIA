@@ -6,6 +6,8 @@ use Exception;
 use App\Models\Sistema\Parametro;
 use App\Services\Sistema\NotificacionExcepcionOperativaService;
 use Filament\Notifications\Notification;
+use App\Services\Sistema\AuditoriaSistemaService;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -33,6 +35,13 @@ class AppServiceProvider extends ServiceProvider
             fn (string $entity, ?string $affix, string $subject): string => \App\Support\LegacyShieldPermissions::key($entity, $affix, $subject),
         );
         $this->registrarNotificacionesDeExcepcionesOperativas();
+        Event::listen('eloquent.*', function (string $evento, array $payload): void {
+            $modelo = $payload[0] ?? null;
+
+            if ($modelo instanceof \Illuminate\Database\Eloquent\Model) {
+                app(AuditoriaSistemaService::class)->registrarCambioModelo($evento, $modelo);
+            }
+        });
 
         // Configuración para subidas temporales de Livewire
         FileUploadConfiguration::disk('local');

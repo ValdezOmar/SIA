@@ -18,6 +18,7 @@ Estas guías describen el comportamiento implementado. Las opciones visibles dep
 | [Inventario](inventario.md) | Artículos, stock, reservas, Kardex, costos, series y lotes. |
 | [Inventarios físicos](inventarios-fisicos.md) | Programación, conteo, escáner, avance, auditoría, cierre e informes. |
 | [RRHH](rrhh.md) | Empleados, historial laboral, perfil, horarios, asignaciones y asistencias. |
+| [Monitor de auditoría del sistema](auditoria-sistema.md) | Registro transversal de cambios Eloquent, respuestas HTTP de error y consulta administrativa de solo lectura en Sistema. |
 
 ## Orden recomendado de configuración
 
