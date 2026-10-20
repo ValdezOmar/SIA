@@ -198,3 +198,8 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 
 - El filtro permanente de consulta base por estado se reemplazó con filtro **Estado** predeterminado a Pendiente; se puede cambiar para consultar recibidos, rechazados y anulados, además de filtrar por origen, destino, creador, receptor y fechas de envío. Pendiente excluye traspasos históricos con movimientos Kardex.
 - Las acciones Aceptar/Rechazar se restringen a solicitudes pendientes sin Kardex y siguen siendo visibles solo al receptor. Se añadió prueba del filtro predeterminado y consulta de recibidos. `TransferenciaAlmacenSolicitudTest`: 10 pruebas/60 aserciones correctas; PHP lint, Pint `--test` y `git diff --check` correctos (aviso CRLF usual). Sin migración.
+
+## 2026-10-20 — Sin creación de documentos desde relaciones del cliente
+
+- Se retiraron los `CreateAction` de Pedidos, Facturas y Cotizaciones dentro de `ClienteResource`; permanecen las consultas y acciones por registro y los botones de creación de sus Resources principales.
+- Verificación: `TotalesDocumentosTest`: 2 pruebas/33 aserciones correctas; `php -l` en los tres Relation Managers y `git diff --check` correctos. Pint `--test` señala reglas de estilo preexistentes (operadores unarios) en los tres archivos; no se aplicó reformateo ajeno al cambio.

@@ -10,7 +10,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 use App\Forms\Components\ImporteVenta;
 use App\Forms\Components\CalculoRepeater;
-use Filament\Actions\CreateAction;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Actions\Action;
@@ -867,29 +866,6 @@ class PedidosRelationManager extends RelationManager
                     ])
                     ->searchable()
                     ->preload(),
-            ])
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Nuevo Pedido')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Nuevo Pedido')
-                    ->modalWidth('7xl')
-                    ->using(function (array $data, $livewire) {
-                        $data['cliente_id'] = $livewire->getOwnerRecord()->id;
-                        $data['codigo'] = Pedido::generarCodigo();
-                        $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = $livewire->getOwnerRecord()->empresa_id;
-
-                        $pedido = Pedido::create($data);
-
-                        Notification::make()
-                            ->title('Pedido creado exitosamente')
-                            ->body('El pedido '.$pedido->codigo.' ha sido creado.')
-                            ->success()
-                            ->send();
-
-                        return $pedido;
-                    }),
             ])
             ->recordActions([
                 ActionGroup::make([

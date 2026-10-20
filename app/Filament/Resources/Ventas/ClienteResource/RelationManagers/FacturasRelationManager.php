@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Ventas\ClienteResource\RelationManagers;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
-use Filament\Actions\CreateAction;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Actions\Action;
@@ -286,31 +285,6 @@ class FacturasRelationManager extends RelationManager
                         true: fn ($query) => $query->where('estado', 'pagada'),
                         false: fn ($query) => $query->whereIn('estado', ['emitida', 'parcial', 'vencida']),
                     ),
-            ])
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Nueva Factura')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Nueva Factura')
-                    ->modalWidth('5xl')
-                    ->using(function (array $data, $livewire) {
-                        $data['cliente_id'] = $livewire->getOwnerRecord()->id;
-                        $data['numero'] = Factura::generarNumero();
-                        $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = $livewire->getOwnerRecord()->empresa_id;
-                        $data['monto_pagado'] = 0;
-                        $data['saldo'] = $data['total'] ?? 0;
-
-                        $factura = Factura::create($data);
-
-                        Notification::make()
-                            ->title('Factura creada exitosamente')
-                            ->body('La factura '.$factura->numero.' ha sido creada.')
-                            ->success()
-                            ->send();
-
-                        return $factura;
-                    }),
             ])
             ->recordActions([
                 ActionGroup::make([

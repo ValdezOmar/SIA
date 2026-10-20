@@ -12,7 +12,6 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Actions\Action;
 use App\Forms\Components\ImporteVenta;
 use App\Forms\Components\CalculoRepeater;
-use Filament\Actions\CreateAction;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Actions\DeleteAction;
@@ -838,30 +837,6 @@ class CotizacionesRelationManager extends RelationManager
                                 ->orWhereIn('estado', ['rechazada', 'expirada']);
                         }),
                     ),
-            ])
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Nueva Cotización')
-                    ->icon('heroicon-o-plus')
-                    ->modalHeading('Nueva Cotización')
-                    ->modalWidth('7xl')
-                    ->using(function (array $data, $livewire) {
-                        $data['cliente_id'] = $livewire->getOwnerRecord()->id;
-                        $data['codigo'] = Cotizacion::generarCodigo();
-                        $data['creado_por'] = Auth::id();
-                        $data['empresa_id'] = $livewire->getOwnerRecord()->empresa_id;
-
-                        // Crear la cotización
-                        $cotizacion = Cotizacion::create($data);
-
-                        Notification::make()
-                            ->title('Cotización creada exitosamente')
-                            ->body('La cotización '.$cotizacion->codigo.' ha sido creada.')
-                            ->success()
-                            ->send();
-
-                        return $cotizacion;
-                    }),
             ])
             ->recordActions([
                 ActionGroup::make([
