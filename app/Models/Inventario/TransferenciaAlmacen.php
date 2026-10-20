@@ -7,9 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-use RuntimeException;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class TransferenciaAlmacen extends Model
 {
@@ -25,8 +24,11 @@ class TransferenciaAlmacen extends Model
     protected static function booted(): void
     {
         static::creating(function (self $transferencia): void {
-            $transferencia->codigo ??= 'TRA-'.now()->format('Ymd-His').'-'.strtoupper(Str::random(4));
+            $transferencia->codigo ??= self::generarCodigo();
             $transferencia->creado_por ??= auth()->id();
+            $transferencia->enviado_por ??= auth()->id();
+            $transferencia->fecha_envio ??= now();
+            $transferencia->estado ??= 'en_transito';
         });
 
         static::saving(function (self $transferencia): void {
@@ -90,16 +92,41 @@ class TransferenciaAlmacen extends Model
         return $this->hasMany(TransferenciaAlmacenDetalle::class, 'transferencia_id');
     }
 
-    public function enviar(): void
+    public static function generarCodigo(): string
     {
-        DB::transaction(function (): void {
+        return DB::transaction(function (): string {
+            $prefijo = 'TRA-'.now()->format('y');
+            $siguiente = 1;
+
+            $codigos = self::query()
+                ->where('codigo', 'like', $prefijo.'%')
+                ->lockForUpdate()
+                ->pluck('codigo');
+
+            foreach ($codigos as $codigo) {
+                if (preg_match('/^'.preg_quote($prefijo, '/').'([0-9]{4})$/', $codigo, $coincidencia)) {
+                    $siguiente = max($siguiente, (int) $coincidencia[1] + 1);
+                }
+            }
+
+            return $prefijo.str_pad((string) $siguiente, 4, '0', STR_PAD_LEFT);
+        });
+    }
+
+    public function recibir(?string $observaciones = null): void
+    {
+        DB::transaction(function () use ($observaciones): void {
             /** @var self $transferencia */
             $transferencia = self::query()->lockForUpdate()->findOrFail($this->id);
-            $transferencia->validarParaEnvio();
+            $transferencia->validarReceptor();
+
+            if ($transferencia->estado !== 'en_transito') {
+                throw new RuntimeException('Sólo se pueden aceptar solicitudes de traspaso pendientes.');
+            }
 
             foreach ($transferencia->detalles()->lockForUpdate()->get() as $detalle) {
-                if ($detalle->kardex_salida_id) {
-                    continue;
+                if ($detalle->kardex_salida_id || $detalle->kardex_entrada_id) {
+                    throw new RuntimeException('Esta solicitud ya tiene movimientos de inventario registrados.');
                 }
 
                 $salida = Kardex::registrarMovimiento([
@@ -112,7 +139,7 @@ class TransferenciaAlmacen extends Model
                     'documento_id' => $transferencia->id,
                     'documento_detalle_id' => $detalle->id,
                     'documento_codigo' => $transferencia->codigo,
-                    'observaciones' => 'Salida en tránsito hacia '.$transferencia->almacenDestino->nombre,
+                    'observaciones' => 'Traspaso aceptado hacia '.$transferencia->almacenDestino->nombre,
                     'series' => $detalle->series,
                     'lotes' => $detalle->lotes,
                 ]);
@@ -121,34 +148,6 @@ class TransferenciaAlmacen extends Model
                     'kardex_salida_id' => $salida->id,
                     'costo_unitario_salida' => $salida->costo_unitario,
                 ]);
-            }
-
-            $transferencia->update([
-                'estado' => 'en_transito',
-                'enviado_por' => auth()->id(),
-                'fecha_envio' => now(),
-            ]);
-        });
-    }
-
-    public function recibir(): void
-    {
-        DB::transaction(function (): void {
-            /** @var self $transferencia */
-            $transferencia = self::query()->lockForUpdate()->findOrFail($this->id);
-            $transferencia->validarReceptor();
-
-            if ($transferencia->estado !== 'en_transito') {
-                throw new RuntimeException('Sólo se pueden recibir transferencias que estén en tránsito.');
-            }
-
-            foreach ($transferencia->detalles()->lockForUpdate()->get() as $detalle) {
-                if (! $detalle->kardex_salida_id) {
-                    throw new RuntimeException('El detalle #'.$detalle->id.' no tiene una salida de origen confirmada.');
-                }
-                if ($detalle->kardex_entrada_id) {
-                    continue;
-                }
 
                 $entrada = Kardex::registrarMovimiento([
                     'articulo_id' => $detalle->articulo_id,
@@ -160,6 +159,7 @@ class TransferenciaAlmacen extends Model
                     'documento_id' => $transferencia->id,
                     'documento_detalle_id' => $detalle->id,
                     'documento_codigo' => $transferencia->codigo,
+                    'movimiento_relacionado_id' => $salida->id,
                     'observaciones' => 'Recepción aprobada desde '.$transferencia->almacenOrigen->nombre,
                     'series' => $detalle->series,
                     'lotes' => $detalle->lotes,
@@ -172,26 +172,33 @@ class TransferenciaAlmacen extends Model
                 'estado' => 'recibida',
                 'recibido_por' => auth()->id(),
                 'fecha_recepcion' => now(),
+                'observaciones_resolucion' => $this->limpiarObservaciones($observaciones),
             ]);
         });
     }
 
-    public function rechazar(string $motivo): void
+    public function rechazar(string $motivo, ?string $observaciones = null): void
     {
-        DB::transaction(function () use ($motivo): void {
+        $this->validarReceptor();
+
+        $motivo = trim($motivo);
+        if ($motivo === '') {
+            throw ValidationException::withMessages(['motivo' => 'Debe indicar el motivo del rechazo.']);
+        }
+
+        DB::transaction(function () use ($motivo, $observaciones): void {
             /** @var self $transferencia */
             $transferencia = self::query()->lockForUpdate()->findOrFail($this->id);
             $transferencia->validarReceptor();
 
             if ($transferencia->estado !== 'en_transito') {
-                throw new RuntimeException('Sólo se pueden rechazar transferencias que estén en tránsito.');
+                throw new RuntimeException('Sólo se pueden rechazar solicitudes de traspaso pendientes.');
             }
 
             foreach ($transferencia->detalles()->lockForUpdate()->get() as $detalle) {
-                if ($detalle->kardex_entrada_id) {
-                    throw new RuntimeException('No se puede rechazar una transferencia ya recibida. Registre un nuevo traspaso de devolución.');
+                if ($detalle->kardex_salida_id || $detalle->kardex_entrada_id) {
+                    throw new RuntimeException('Esta solicitud ya tiene movimientos de inventario registrados.');
                 }
-                $detalle->kardexSalida?->revertirMovimiento('Transferencia rechazada: '.$motivo);
             }
 
             $transferencia->update([
@@ -199,27 +206,56 @@ class TransferenciaAlmacen extends Model
                 'recibido_por' => auth()->id(),
                 'fecha_recepcion' => now(),
                 'motivo_rechazo' => $motivo,
+                'observaciones_resolucion' => $this->limpiarObservaciones($observaciones),
             ]);
         });
     }
 
-    private function validarParaEnvio(): void
+    public function anular(): void
     {
-        if ($this->estado !== 'borrador') {
-            throw new RuntimeException('Sólo se pueden enviar transferencias en borrador.');
-        }
-        if ($this->almacen_origen_id === $this->almacen_destino_id) {
-            throw new RuntimeException('El almacén origen y destino deben ser diferentes.');
-        }
-        if (! $this->detalles()->exists()) {
-            throw new RuntimeException('Agregue al menos un artículo antes de enviar la transferencia.');
-        }
+        $this->validarCreador();
+
+        DB::transaction(function (): void {
+            /** @var self $transferencia */
+            $transferencia = self::query()->lockForUpdate()->findOrFail($this->id);
+            $transferencia->validarCreador();
+
+            if ($transferencia->estado !== 'en_transito') {
+                throw new RuntimeException('Sólo se pueden anular solicitudes pendientes.');
+            }
+
+            if ($transferencia->detalles()->where(fn ($query) => $query
+                ->whereNotNull('kardex_salida_id')->orWhereNotNull('kardex_entrada_id'))->exists()) {
+                throw new RuntimeException('No se puede anular una solicitud con movimientos de inventario registrados.');
+            }
+
+            $transferencia->update([
+                'estado' => 'borrador',
+                'motivo_rechazo' => 'Solicitud anulada por quien la creó.',
+                'recibido_por' => auth()->id(),
+                'fecha_recepcion' => now(),
+            ]);
+        });
     }
 
     private function validarReceptor(): void
     {
-        if ((int) $this->receptor_id !== (int) auth()->id()) {
-            throw new RuntimeException('Sólo el receptor asignado puede aprobar o rechazar esta transferencia.');
+        if (! auth()->check() || (int) $this->receptor_id !== (int) auth()->id()) {
+            throw new RuntimeException('Sólo la persona responsable del almacén de destino puede aceptar o rechazar esta solicitud.');
         }
+    }
+
+    private function validarCreador(): void
+    {
+        if (! auth()->check() || (int) $this->creado_por !== (int) auth()->id()) {
+            throw new RuntimeException('Sólo el usuario que creó esta solicitud puede anularla.');
+        }
+    }
+
+    private function limpiarObservaciones(?string $observaciones): ?string
+    {
+        $observaciones = trim((string) $observaciones);
+
+        return $observaciones === '' ? null : $observaciones;
     }
 }

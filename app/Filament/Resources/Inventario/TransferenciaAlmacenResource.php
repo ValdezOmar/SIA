@@ -7,25 +7,27 @@ use Filament\Schemas\Components\Section;
 use App\Forms\Components\CalculoRepeater;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\DatePicker;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\ViewAction;
 use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\ListTransferenciaAlmacens;
 use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\CreateTransferenciaAlmacen;
-use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\EditTransferenciaAlmacen;
-use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages;
 use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource;
 use App\Models\Inventario\Articulo;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\TransferenciaAlmacen;
 use App\Support\ArticuloSelectOptions;
 use App\Models\User;
-use Filament\Forms;
-use Filament\Forms\Components\Repeater;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\RepeatableEntry\TableColumn;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
-use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,10 +54,11 @@ class TransferenciaAlmacenResource extends Resource
     {
         $almacenes = AlmacenResource::getEloquentQuery()->select('id');
 
-        return parent::getEloquentQuery()->where(function (Builder $query) use ($almacenes): void {
-            $query->whereIn('almacen_origen_id', clone $almacenes)
-                ->orWhereIn('almacen_destino_id', clone $almacenes);
-        });
+        return parent::getEloquentQuery()
+            ->where(function (Builder $query) use ($almacenes): void {
+                $query->whereIn('almacen_origen_id', clone $almacenes)
+                    ->orWhereIn('almacen_destino_id', clone $almacenes);
+            });
     }
 
     private static function almacenesOrigen(): array
@@ -107,7 +110,18 @@ class TransferenciaAlmacenResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return $record->estado === 'borrador';
+        return $record->estado === 'en_transito'
+            && ! $record->detalles()->whereNotNull('kardex_salida_id')->exists()
+            && (int) $record->creado_por === (int) Auth::id();
+    }
+
+    private static function puedeResolver(TransferenciaAlmacen $record): bool
+    {
+        return $record->estado === 'en_transito'
+            && (int) $record->receptor_id === (int) Auth::id()
+            && ! $record->detalles()->where(fn (Builder $query): Builder => $query
+                ->whereNotNull('kardex_salida_id')
+                ->orWhereNotNull('kardex_entrada_id'))->exists();
     }
 
     public static function form(Schema $schema): Schema
@@ -116,7 +130,7 @@ class TransferenciaAlmacenResource extends Resource
             ->columns(1)
             ->components([
             Section::make('Cómo funciona')
-                ->description('1. Prepare el traspaso. 2. Envíelo para descontar el origen. 3. El receptor asignado lo aprueba y el stock ingresa al destino.')
+                ->description('Al guardar se enviará automáticamente una solicitud al almacén de destino. El stock solo se moverá cuando el receptor acepte el traspaso.')
                 ->icon('heroicon-o-information-circle')
                 ->collapsible()
                 ->columnSpanFull()
@@ -137,7 +151,7 @@ class TransferenciaAlmacenResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->helperText('Aquí se descontará el stock al enviar.'),
+                        ->helperText('El stock se descontará solo cuando se acepte el traspaso.'),
                     Select::make('almacen_destino_id')
                         ->label('Almacén de destino')
                         ->options(fn () => self::almacenesDestino())
@@ -161,7 +175,7 @@ class TransferenciaAlmacenResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->helperText('Persona que verificará y aprobará la recepción.'),
+                        ->helperText('Persona que decidirá aceptar o rechazar la solicitud.'),
                 ])->columns(4),
             Section::make('Artículos a trasladar')
                 ->description('Indique cantidades disponibles. Para productos con serie o lote, detalle los identificadores para conservar la trazabilidad.')
@@ -221,7 +235,7 @@ class TransferenciaAlmacenResource extends Resource
                         ->maxLength(2000)
                         ->helperText('Incluya una referencia útil, por ejemplo guía de transporte o motivo del traslado.'),
                 ]),
-        ])->disabled(fn (?TransferenciaAlmacen $record) => $record && $record->estado !== 'borrador');
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -233,23 +247,189 @@ class TransferenciaAlmacenResource extends Resource
                 TextColumn::make('almacenDestino.nombre')->label('Destino')->searchable()->sortable(),
                 TextColumn::make('receptor.name')->label('Receptor asignado')->searchable(),
                 TextColumn::make('detalles_count')->label('Artículos')->counts('detalles')->badge()->color('info'),
-                TextColumn::make('estado')->label('Estado')->badge()->formatStateUsing(fn (string $state) => match ($state) {
-                    'borrador' => 'Borrador', 'en_transito' => 'En tránsito', 'recibida' => 'Recibida', 'rechazada' => 'Rechazada', default => $state,
-                })->color(fn (string $state) => match ($state) {
-                    'borrador' => 'gray', 'en_transito' => 'warning', 'recibida' => 'success', 'rechazada' => 'danger', default => 'gray',
+                TextColumn::make('estado')->label('Estado')->badge()->formatStateUsing(fn (string $state): string => match ($state) {
+                    'en_transito' => 'Pendiente',
+                    'recibida' => 'Recibida',
+                    'rechazada' => 'Rechazada',
+                    'borrador' => 'Anulada',
+                    default => ucfirst($state),
+                })->color(fn (string $state): string => match ($state) {
+                    'en_transito' => 'warning',
+                    'recibida' => 'success',
+                    'rechazada' => 'danger',
+                    'borrador' => 'gray',
+                    default => 'gray',
                 }),
-                TextColumn::make('fecha_envio')->label('Enviado')->dateTime('d/m/Y H:i')->sortable()->placeholder('Pendiente'),
+                TextColumn::make('fecha_envio')->label('Solicitado')->dateTime('d/m/Y H:i')->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                SelectFilter::make('estado')->options([
-                    'borrador' => 'Borrador', 'en_transito' => 'En tránsito', 'recibida' => 'Recibida', 'rechazada' => 'Rechazada',
-                ]),
+                SelectFilter::make('estado')
+                    ->label('Estado')
+                    ->options([
+                        'en_transito' => 'Pendiente',
+                        'recibida' => 'Recibida',
+                        'rechazada' => 'Rechazada',
+                        'borrador' => 'Anulada',
+                    ])
+                    ->default('en_transito')
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->when($data['value'] ?? null, function (Builder $q, string $estado): Builder {
+                            $q->where('estado', $estado);
+
+                            if ($estado === 'en_transito') {
+                                $q->whereDoesntHave('detalles', fn (Builder $detalle): Builder => $detalle
+                                    ->whereNotNull('kardex_salida_id')
+                                    ->orWhereNotNull('kardex_entrada_id'));
+                            }
+
+                            return $q;
+                        })),
+                SelectFilter::make('almacen_origen_id')->label('Origen')->options(fn () => self::almacenesOrigen()),
                 SelectFilter::make('almacen_destino_id')->label('Destino')->options(fn () => self::almacenesDestino()),
+                SelectFilter::make('creado_por')->label('Solicitado por')->relationship('creador', 'name')->searchable()->preload(),
+                SelectFilter::make('receptor_id')->label('Receptor')->relationship('receptor', 'name')->searchable()->preload(),
+                Filter::make('fecha_envio')->label('Fecha de solicitud')->schema([
+                    DatePicker::make('desde')->label('Desde'),
+                    DatePicker::make('hasta')->label('Hasta'),
+                ])->query(fn (Builder $query, array $data): Builder => $query
+                    ->when($data['desde'] ?? null, fn (Builder $q, string $fecha): Builder => $q->whereDate('fecha_envio', '>=', $fecha))
+                    ->when($data['hasta'] ?? null, fn (Builder $q, string $fecha): Builder => $q->whereDate('fecha_envio', '<=', $fecha))),
             ])
             ->recordActions([
-                EditAction::make()->label('Abrir'),
-                DeleteAction::make()->visible(fn (TransferenciaAlmacen $record) => $record->estado === 'borrador'),
+                ActionGroup::make([
+                    ViewAction::make()
+                        ->label('Ver traspaso')
+                        ->icon('heroicon-o-eye')
+                        ->modalHeading('Detalle de la solicitud de traspaso')
+                        ->slideOver()
+                        ->modalWidth('7xl')
+                        ->schema([
+                            Section::make('Datos de la solicitud')
+                                ->schema([
+                                    TextEntry::make('codigo')->label('Código')->weight('bold')->copyable(),
+                                    TextEntry::make('almacenOrigen.nombre')->label('Almacén de origen'),
+                                    TextEntry::make('almacenDestino.nombre')->label('Almacén de destino'),
+                                    TextEntry::make('creador.name')->label('Solicitado por')->placeholder('Usuario no disponible'),
+                                    TextEntry::make('receptor.name')->label('Responsable de destino'),
+                                    TextEntry::make('fecha_envio')->label('Fecha de solicitud')->dateTime('d/m/Y H:i'),
+                                    TextEntry::make('observaciones')->label('Observaciones')->placeholder('Sin observaciones')->columnSpanFull(),
+                                    TextEntry::make('observaciones_resolucion')->label('Observaciones de resolución')->placeholder('Sin observaciones de resolución')->columnSpanFull(),
+                                ])
+                                ->columns(3),
+                            Section::make('Artículos solicitados')
+                                ->description(fn (TransferenciaAlmacen $record): string => $record->detalles()->count().' artículo(s) en esta solicitud.')
+                                ->schema([
+                                    RepeatableEntry::make('detalles')
+                                        ->label('')
+                                        ->state(fn (TransferenciaAlmacen $record) => $record->detalles()->with('articulo')->get())
+                                        ->table([
+                                            TableColumn::make('Código'),
+                                            TableColumn::make('Artículo'),
+                                            TableColumn::make('Cantidad'),
+                                            TableColumn::make('Series'),
+                                            TableColumn::make('Lotes'),
+                                        ])
+                                        ->schema([
+                                            TextEntry::make('articulo.codigo')->label('Código')->placeholder('Sin código'),
+                                            TextEntry::make('articulo.nombre_comercial')->label('Artículo')->placeholder('Sin nombre'),
+                                            TextEntry::make('cantidad')->label('Cantidad')->numeric(decimalPlaces: 4),
+                                            TextEntry::make('series')->label('Series')->getStateUsing(fn ($record): string => collect($record->series ?? [])->flatten()->implode(', '))->placeholder('Sin series'),
+                                            TextEntry::make('lotes')->label('Lotes')->getStateUsing(fn ($record): string => collect($record->lotes ?? [])->flatten()->implode(', '))->placeholder('Sin lotes'),
+                                        ]),
+                                ]),
+                        ])
+                        ->extraModalFooterActions([
+                            Action::make('aceptar_desde_vista')
+                                ->label('Aceptar traspaso')
+                                ->icon('heroicon-o-check-circle')
+                                ->color('success')
+                                ->visible(fn (TransferenciaAlmacen $record): bool => self::puedeResolver($record))
+                                ->schema([
+                                    Textarea::make('observaciones')
+                                        ->label('Observaciones de la aceptación')
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->helperText('Opcional. Se guardará junto al resultado de la revisión.'),
+                                ])
+                                ->action(function (TransferenciaAlmacen $record, array $data, Action $action): void {
+                                    try {
+                                        $record->recibir($data['observaciones'] ?? null);
+                                    } catch (\Exception $exception) {
+                                        if ($exception->getMessage() !== 'Stock insuficiente para la salida') {
+                                            throw $exception;
+                                        }
+
+                                        $articulosSinStock = $record->detalles()
+                                            ->with('articulo:id,codigo,nombre_comercial')
+                                            ->get()
+                                            ->filter(function ($detalle) use ($record): bool {
+                                                $disponible = (float) \App\Models\Inventario\Existencia::query()
+                                                    ->where('articulo_id', $detalle->articulo_id)
+                                                    ->where('almacen_id', $record->almacen_origen_id)
+                                                    ->value('cantidad_disponible');
+
+                                                return $disponible < (float) $detalle->cantidad;
+                                            })
+                                            ->map(fn ($detalle): string => ($detalle->articulo?->codigo ?: $detalle->articulo?->nombre_comercial ?: 'Artículo').' (solicitado: '.rtrim(rtrim(number_format((float) $detalle->cantidad, 4, ',', '.'), '0'), ',').'; disponible: '.rtrim(rtrim(number_format((float) \App\Models\Inventario\Existencia::query()->where('articulo_id', $detalle->articulo_id)->where('almacen_id', $record->almacen_origen_id)->value('cantidad_disponible'), 4, ',', '.'), '0'), ',').')')
+                                            ->implode('; ');
+
+                                        Notification::make()
+                                            ->title('No se pudo aceptar el traspaso')
+                                            ->body("Solicitud {$record->codigo} sigue Pendiente. No se descontó stock ni se registraron movimientos en Kardex. Motivo: existencias insuficientes en el almacén de origen. ".($articulosSinStock ? 'Artículos: '.$articulosSinStock.'. ' : '').'Registre stock, libere reservas o reduzca la cantidad solicitada y vuelva a intentar.')
+                                            ->danger()
+                                            ->persistent()
+                                            ->send();
+
+                                        $action->cancelParentActions();
+
+                                        return;
+                                    }
+
+                                    Notification::make()
+                                        ->title('Traspaso aceptado')
+                                        ->body("Solicitud {$record->codigo} aceptada. El stock se descontó del almacén de origen y se ingresó al destino; se registraron los movimientos relacionados en Kardex. Estado nuevo: Recibida.")
+                                        ->success()->persistent()->send();
+                                    $action->cancelParentActions();
+                                }),
+                            Action::make('rechazar_desde_vista')
+                                ->label('Rechazar traspaso')
+                                ->icon('heroicon-o-x-circle')
+                                ->color('danger')
+                                ->visible(fn (TransferenciaAlmacen $record): bool => self::puedeResolver($record))
+                                ->schema([
+                                    Textarea::make('motivo')->label('Motivo del rechazo')->required()->minLength(5)->maxLength(2000),
+                                    Textarea::make('observaciones')
+                                        ->label('Observaciones de la resolución')
+                                        ->rows(3)
+                                        ->maxLength(2000)
+                                        ->helperText('Opcional. Añada detalles para quien solicitó el traspaso.'),
+                                ])
+                                ->action(function (TransferenciaAlmacen $record, array $data, Action $action): void {
+                                    $record->rechazar($data['motivo'], $data['observaciones'] ?? null);
+                                    Notification::make()
+                                        ->title('Traspaso rechazado')
+                                        ->body("Solicitud {$record->codigo} rechazada. El motivo y las observaciones quedaron registrados; no se movió stock ni se generaron movimientos Kardex. Estado nuevo: Rechazada.")
+                                        ->success()->persistent()->send();
+                                    $action->cancelParentActions();
+                                }),
+                        ]),
+                    Action::make('anular')
+                        ->label('Anular solicitud')
+                        ->icon('heroicon-o-no-symbol')
+                        ->color('gray')
+                        ->visible(fn (TransferenciaAlmacen $record): bool => self::canDelete($record))
+                        ->requiresConfirmation()
+                        ->modalHeading('Anular solicitud de traspaso')
+                        ->modalDescription('La solicitud dejará de estar pendiente. No se moverá stock.')
+                        ->action(function (TransferenciaAlmacen $record): void {
+                            $record->anular();
+                            Notification::make()
+                                ->title('Solicitud anulada')
+                                ->body("Solicitud {$record->codigo} anulada por quien la creó. No se movió stock ni se generaron movimientos Kardex. Estado nuevo: Anulada.")
+                                ->success()->persistent()->send();
+                        }),
+                ])->tooltip('Acciones')->icon('heroicon-o-ellipsis-vertical'),
             ])
             ->emptyStateHeading('No hay traspasos registrados')
             ->emptyStateDescription('Cree un traspaso para mover stock entre almacenes con aprobación del destino.')
@@ -261,7 +441,6 @@ class TransferenciaAlmacenResource extends Resource
         return [
             'index' => ListTransferenciaAlmacens::route('/'),
             'create' => CreateTransferenciaAlmacen::route('/create'),
-            'edit' => EditTransferenciaAlmacen::route('/{record}/edit'),
         ];
     }
 }

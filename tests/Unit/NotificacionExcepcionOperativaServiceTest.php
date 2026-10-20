@@ -2,8 +2,9 @@
 
 namespace Tests\Unit;
 
-use Error;
 use App\Services\Sistema\NotificacionExcepcionOperativaService;
+use Error;
+use Exception;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -24,5 +25,14 @@ class NotificacionExcepcionOperativaServiceTest extends TestCase
         $servicio = new NotificacionExcepcionOperativaService;
 
         $this->assertFalse($servicio->esOperativa(new Error('Fallo de programación')));
+    }
+
+    public function test_clasifica_error_de_stock_lanzado_como_exception(): void
+    {
+        $servicio = new NotificacionExcepcionOperativaService;
+        $exception = new Exception('Stock insuficiente para la salida');
+
+        $this->assertTrue($servicio->esOperativa($exception));
+        $this->assertSame('Inventario insuficiente', $servicio->contenido($exception)['titulo']);
     }
 }

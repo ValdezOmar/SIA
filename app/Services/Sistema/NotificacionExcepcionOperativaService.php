@@ -3,6 +3,7 @@
 namespace App\Services\Sistema;
 
 use DomainException;
+use Exception;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -13,7 +14,12 @@ class NotificacionExcepcionOperativaService
     {
         return $exception instanceof RuntimeException
             || $exception instanceof DomainException
-            || $exception instanceof InvalidArgumentException;
+            || $exception instanceof InvalidArgumentException
+            || ($exception instanceof Exception && (
+                str_contains(mb_strtolower($exception->getMessage()), 'stock insuficiente')
+                || str_contains(mb_strtolower($exception->getMessage()), 'no hay stock disponible')
+                || str_contains(mb_strtolower($exception->getMessage()), 'no existe stock')
+            ));
     }
 
     public function contenido(Throwable $exception): array

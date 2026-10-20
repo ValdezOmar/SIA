@@ -146,3 +146,55 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - La acción `Ver auditoría` quedó dentro del menú `Acciones` de cada precio, al final de la lista, después de `Editar` y `Eliminar`. Se conserva el panel lateral con tabla de historial e indicadores del precio.
 - Verificación ejecutada: `php -l app/Filament/Resources/Inventario/ArticuloResource/RelationManagers/PreciosRelationManager.php` correcto; `php vendor/bin/phpunit tests/Feature/PrecioArticuloHistorialTest.php --stop-on-failure`: 2 pruebas/26 aserciones correctas; `git diff --check` correcto (solo aviso de normalización CRLF preexistente en `ArticuloResource.php`).
 - Pendiente: comprobación visual manual en navegador.
+## 2026-10-20 — Solicitudes de traspaso con aceptación en destino
+
+- Las nuevas transferencias se guardan y envían como solicitud pendiente al crear. Se quitó la ruta/página de edición; la tabla filtra solicitudes pendientes sin salida Kardex y tiene acciones de aceptar, rechazar con motivo obligatorio y anular.
+- Por compatibilidad con el `enum` histórico de estados, la solicitud pendiente usa `en_transito` sin movimientos Kardex; las transferencias históricas `en_transito` con salida permanecen fuera de la bandeja. Aceptar cambia a `recibida` y registra salida en origen + entrada en destino con costo/trazabilidad y vínculo de movimientos dentro de transacción. Rechazar usa `rechazada`; anular conserva el registro, lo cierra como `borrador` y no mueve stock.
+- Cambios en Resource, modelo y página Create, eliminado EditTransferenciaAlmacen, prueba `TransferenciaAlmacenSolicitudTest` y guía `docs/inventario.md`. No se ejecutó migración ni se accedió a la BD operativa.
+- Verificación: `php vendor/bin/phpunit tests/Feature/TransferenciaAlmacenSolicitudTest.php --stop-on-failure`: 3 pruebas/15 aserciones correctas; `php -l` en PHP afectados correcto; Pint `--test` pasa en prueba y página Create. Pint señala estilo/CRLF preexistente en Resource y modelo, que no se reformatearon para limitar el diff. `git diff --check` correcto con advertencias de normalización CRLF de Git.
+- Pendiente: validación visual de acciones por receptor/creador y revisar la regla de si anular debe permitirse a algún rol adicional.
+## 2026-10-20 — Acciones de traspaso visibles solo al receptor
+
+- Se restringieron las acciones Aceptar, Rechazar y Anular a la persona identificada en `receptor_id` (responsable del almacén destino). El control está en la visibilidad del Resource y también en el modelo; se eliminó la excepción administrativa y del creador.
+- Actualizadas `docs/inventario.md` y la prueba `TransferenciaAlmacenSolicitudTest`, que comprueba que usuarios distintos al receptor no pueden ejecutar ninguna acción.
+- Verificación: pendiente de ejecutar en esta actualización.
+## 2026-10-20 — Acciones de traspaso en menú de tres puntos
+
+- Se agruparon Aceptar traspaso, Rechazar traspaso y Anular solicitud en un `ActionGroup` con icono de tres puntos y tooltip Acciones. Se conserva la condición de que solo el receptor asignado puede verlas.
+- La guía de inventario describe el nuevo menú. `php -l` del Resource correcto; `TransferenciaAlmacenSolicitudTest`: 4 pruebas/20 aserciones correctas; `git diff --check` correcto (aviso habitual CRLF de Git).
+## 2026-10-20 — Correlativo anual de códigos de traspaso
+
+- `TransferenciaAlmacen::generarCodigo()` genera `TRA-YYNNNN`, toma el máximo sufijo numérico de cuatro dígitos del año actual y suma uno; ignora códigos de formato histórico como `TRA-YYYYMMDD-His-XXXX` y de otros años. Los códigos ya guardados no se modifican.
+- Prueba ampliada en `TransferenciaAlmacenSolicitudTest`: primer código, continuación después de `0009` y exclusión del año anterior. PHPUnit: 5 pruebas/22 aserciones correctas; `php -l`, Pint `--test` de la prueba y `git diff --check` correctos (aviso CRLF de Git).
+## 2026-10-20 — Vista de detalle y resolución del traspaso
+
+- Se añadió `Ver traspaso` al grupo de tres puntos. Abre un slide-over de solo lectura con código, origen/destino, solicitante, responsable, fecha, observaciones y tabla de artículos (código, descripción, cantidad, series y lotes). La persona receptora tiene los botones Aceptar y Rechazar dentro del pie de la vista; Rechazar solicita motivo. Anular sigue disponible en el menú exterior.
+- La prueba Livewire abre la acción de vista y comprueba información de artículo y botones. `TransferenciaAlmacenSolicitudTest`: 6 pruebas/30 aserciones correctas; `php -l` Resource y prueba; Pint `--test` prueba correcto tras ordenar imports; `git diff --check` correcto con aviso CRLF habitual.
+
+## 2026-10-20 — Observaciones de resolución y anulación por creador
+
+- Aceptar y rechazar permiten guardar observaciones opcionales en `observaciones_resolucion`, conservando `observaciones` como nota original y `motivo_rechazo` como motivo obligatorio. Migración aditiva `2026_10_20_120000_add_observaciones_resolucion_to_alm_transferencias_almacenes.php`.
+- La opción Anular solo se muestra al usuario de `creado_por` si la solicitud continúa pendiente y no tiene movimientos Kardex. `TransferenciaAlmacen::anular()` verifica esa misma regla bajo bloqueo de fila; la autorización previa solo para receptor ya no aplica a esta opción.
+- Actualizados `docs/inventario.md` y `TransferenciaAlmacenSolicitudTest` para verificar persistencia y autorizaciones. `php vendor/bin/phpunit tests/Feature/TransferenciaAlmacenSolicitudTest.php --stop-on-failure`: 7 pruebas/40 aserciones correctas; `php -l` en modelo, Resource, migración y prueba correcto; Pint `--test` en prueba y migración correcto; `git diff --check` correcto (aviso habitual de normalización CRLF en el Resource). No se ejecutó la migración sobre una base operativa ni se comprobó visualmente en navegador.
+
+## 2026-10-20 — Errores amigables y notificaciones de resultado del traspaso
+
+- El error real `Stock insuficiente para la salida` al aceptar una solicitud ahora se traduce en validación del formulario de aceptación con artículo, solicitado y disponible; la transacción garantiza estado pendiente y sin movimientos parciales. Se amplió el clasificador operativo Livewire para reconocer la excepción de stock insuficiente sin cambiar el control global para excepciones inesperadas.
+- Aceptación, rechazo y anulación muestran notificación persistente con código, consecuencia sobre existencias/Kardex y estado nuevo. La vista incluye las observaciones de resolución guardadas.
+- `TransferenciaAlmacenSolicitudTest`: 8 pruebas/45 aserciones correctas, incluido stock insuficiente sin movimientos parciales; `php -l` en servicio, modelo, Resource y prueba correcto; Pint `--test` de prueba y `git diff --check` correctos (aviso usual de CRLF). No se requiere migración para este ajuste ni se realizó verificación visual en navegador.
+
+## 2026-10-20 — Notificación visible cuando el traspaso no tiene stock
+
+- El campo de observaciones del modal secundario no mostraba de forma clara el error de falta de stock. Al detectar esa condición, la acción Aceptar ahora envía una notificación persistente, informa código, artículos/cantidades disponibles, que sigue Pendiente y que no hubo cambios en stock/Kardex; cierra el modal secundario y permite reintentar tras corregir existencias.
+- El clasificador global reconoce `Exception` con variantes de mensaje de stock insuficiente; se conserva sin tratar `Error` técnico genérico como operativo. Cobertura añadida en `NotificacionExcepcionOperativaServiceTest`.
+- Verificación: suites combinadas TransferenciaAlmacenSolicitudTest + NotificacionExcepcionOperativaServiceTest, 11 pruebas/51 aserciones; PHP lint, Pint `--test` y `git diff --check` correctos (aviso CRLF conocido). Sin migración.
+
+## 2026-10-20 — Consulta de traspasos por usuarios con acceso a la bandeja
+
+- La acción `Ver traspaso` quedó disponible para todos los usuarios que ya pueden consultar la bandeja/listado, incluidos creador y usuarios ajenos al destino. Aceptar y Rechazar siguen ocultos salvo para `receptor_id`, y el modelo conserva las verificaciones de autorización. Anular se mantiene solo para quien creó la solicitud.
+- La prueba Livewire comprueba que un usuario distinto puede abrir el documento y ver sus artículos, pero no tiene botones de resolución. `TransferenciaAlmacenSolicitudTest`: 9 pruebas/54 aserciones correctas; PHP lint, Pint `--test` y `git diff --check` correctos (aviso CRLF usual). No requiere migración.
+
+## 2026-10-20 — Filtro de pendientes e historial de traspasos
+
+- El filtro permanente de consulta base por estado se reemplazó con filtro **Estado** predeterminado a Pendiente; se puede cambiar para consultar recibidos, rechazados y anulados, además de filtrar por origen, destino, creador, receptor y fechas de envío. Pendiente excluye traspasos históricos con movimientos Kardex.
+- Las acciones Aceptar/Rechazar se restringen a solicitudes pendientes sin Kardex y siguen siendo visibles solo al receptor. Se añadió prueba del filtro predeterminado y consulta de recibidos. `TransferenciaAlmacenSolicitudTest`: 10 pruebas/60 aserciones correctas; PHP lint, Pint `--test` y `git diff --check` correctos (aviso CRLF usual). Sin migración.
