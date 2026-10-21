@@ -2,33 +2,34 @@
 
 namespace App\Filament\Resources\Inventario;
 
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
+use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource;
+use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\CreateTransferenciaAlmacen;
+use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\ListTransferenciaAlmacens;
 use App\Forms\Components\CalculoRepeater;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\Filter;
-use Filament\Forms\Components\DatePicker;
+use App\Models\Inventario\Almacen;
+use App\Models\Inventario\Articulo;
+use App\Models\Inventario\TransferenciaAlmacen;
+use App\Models\User;
+use App\Support\ArticuloSelectOptions;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
-use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\ListTransferenciaAlmacens;
-use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\CreateTransferenciaAlmacen;
-use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource;
-use App\Models\Inventario\Articulo;
-use App\Models\Inventario\Almacen;
-use App\Models\Inventario\TransferenciaAlmacen;
-use App\Support\ArticuloSelectOptions;
-use App\Models\User;
-use Filament\Notifications\Notification;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -38,9 +39,9 @@ class TransferenciaAlmacenResource extends Resource
 {
     protected static ?string $model = TransferenciaAlmacen::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-arrows-right-left';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrows-right-left';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Inventario';
+    protected static string|\UnitEnum|null $navigationGroup = 'Inventario';
 
     protected static ?string $navigationLabel = 'Traspasos entre almacenes';
 
@@ -49,6 +50,35 @@ class TransferenciaAlmacenResource extends Resource
     protected static ?string $pluralModelLabel = 'Traspasos entre almacenes';
 
     protected static ?int $navigationSort = 3;
+
+    public static function getNavigationBadge(): ?string
+    {
+        $usuarioId = Filament::auth()->id();
+
+        if (! $usuarioId) {
+            return null;
+        }
+
+        $pendientes = TransferenciaAlmacen::query()
+            ->where('receptor_id', $usuarioId)
+            ->where('estado', 'en_transito')
+            ->whereDoesntHave('detalles', fn (Builder $detalle): Builder => $detalle
+                ->whereNotNull('kardex_salida_id')
+                ->orWhereNotNull('kardex_entrada_id'))
+            ->count();
+
+        return $pendientes > 0 ? (string) $pendientes : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Solicitudes pendientes de revisar asignadas a usted';
+    }
 
     public static function getEloquentQuery(): Builder
     {
@@ -129,113 +159,117 @@ class TransferenciaAlmacenResource extends Resource
         return $schema
             ->columns(1)
             ->components([
-            Section::make('Cómo funciona')
-                ->description('Al guardar se enviará automáticamente una solicitud al almacén de destino. El stock solo se moverá cuando el receptor acepte el traspaso.')
-                ->icon('heroicon-o-information-circle')
-                ->collapsible()
-                ->columnSpanFull()
-                ->schema([]),
-            Section::make('Ruta y responsable')
-                ->description('El receptor será la única persona que podrá confirmar o rechazar la recepción.')
-                ->columnSpanFull()
-                ->schema([
-                    TextInput::make('codigo')
-                        ->label('Código')
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->placeholder('Se genera al guardar'),
-                    Select::make('almacen_origen_id')
-                        ->label('Almacén de origen')
-                        ->options(fn () => self::almacenesOrigen())
-                        ->default(fn (): ?int => self::almacenOrigenUsuario())
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->helperText('El stock se descontará solo cuando se acepte el traspaso.'),
-                    Select::make('almacen_destino_id')
-                        ->label('Almacén de destino')
-                        ->options(fn () => self::almacenesDestino())
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->live()
-                        ->different('almacen_origen_id')
-                        ->afterStateUpdated(function ($state, callable $set): void {
-                            if ($encargadoId = self::encargadoAlmacen((int) $state)) {
-                                $set('receptor_id', $encargadoId);
-                            }
-                        })
-                        ->helperText('El stock se incrementará sólo después de la aprobación.'),
-                    Select::make('receptor_id')
-                        ->label('Receptor responsable')
-                        ->options(fn () => User::query()
-                            ->when(Auth::user() && ! Auth::user()->hasAnyRole(['super_admin', 'admin']),
-                                fn (Builder $query) => $query->where('empresa_id', Auth::user()->empresa_id ?? 0))
-                            ->orderBy('name')->pluck('name', 'id')->all())
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->helperText('Persona que decidirá aceptar o rechazar la solicitud.'),
-                ])->columns(4),
-            Section::make('Artículos a trasladar')
-                ->description('Indique cantidades disponibles. Para productos con serie o lote, detalle los identificadores para conservar la trazabilidad.')
-                ->columnSpanFull()
-                ->schema([
-                    CalculoRepeater::make('detalles')
-                        ->relationship()
-                        ->defaultItems(1)
-                        ->minItems(1)
-                        ->addActionLabel('Agregar artículo')
-                        ->schema([
-                            Select::make('articulo_id')
-                                ->label('Artículo')
-                                ->options(fn () => Articulo::query()->where('activo', true)
-                                    ->when(Auth::user() && ! Auth::user()->hasAnyRole(['super_admin', 'admin']),
-                                        fn (Builder $query) => $query->where('empresa_id', Auth::user()->empresa_id ?? 0))
-                                    ->orderBy('codigo')->get()
-                                    ->mapWithKeys(fn (Articulo $articulo) => [$articulo->id => $articulo->codigo.' — '.($articulo->nombre_comercial ?: $articulo->descripcion)])
-                                    ->all())
-                                ->allowHtml()
-                                ->options(fn (): array => ArticuloSelectOptions::inventariablesSinStock())
-                                ->getSearchResultsUsing(fn (string $search): array => ArticuloSelectOptions::inventariablesSinStock($search))
-                                ->getOptionLabelUsing(fn ($value): ?string => ArticuloSelectOptions::labelSinStock($value))
-                                ->searchable()
-                                ->preload()
-                                ->required()
-                                ->live()
-                                ->helperText('Seleccione el producto que saldrá del almacén origen.'),
-                            TextInput::make('cantidad')
-                                ->label('Cantidad')
-                                ->numeric()
-                                ->minValue(0.000001)
-                                ->step(0.000001)
-                                ->required(),
-                            Textarea::make('series')
-                                ->label('Series')
-                                ->rows(2)
-                                ->visible(fn (Get $get) => (bool) Articulo::find($get('articulo_id'))?->maneja_series)
-                                ->helperText('Una serie por línea o separada por coma. Deben coincidir con la cantidad.')
-                                ->formatStateUsing(fn ($state) => is_array($state) ? implode(PHP_EOL, $state) : $state)
-                                ->dehydrateStateUsing(fn ($state) => is_string($state) ? array_values(array_filter(array_map('trim', preg_split('/[,\\n]+/', $state)))) : $state),
-                            Textarea::make('lotes')
-                                ->label('Lotes')
-                                ->rows(2)
-                                ->visible(fn (Get $get) => (bool) Articulo::find($get('articulo_id'))?->maneja_lotes)
-                                ->helperText('Un lote por línea con formato LOTE:CANTIDAD. La suma debe coincidir con la cantidad.')
-                                ->formatStateUsing(fn ($state) => is_array($state) ? implode(PHP_EOL, $state) : $state)
-                                ->dehydrateStateUsing(fn ($state) => is_string($state) ? array_values(array_filter(array_map('trim', preg_split('/[,\\n]+/', $state)))) : $state),
-                        ])->columns(2),
-                ]),
-            Section::make('Observaciones')
-                ->columnSpanFull()
-                ->schema([
-                    Textarea::make('observaciones')
-                        ->label('Nota para el receptor')
-                        ->rows(3)
-                        ->maxLength(2000)
-                        ->helperText('Incluya una referencia útil, por ejemplo guía de transporte o motivo del traslado.'),
-                ]),
-        ]);
+                Section::make('Cómo funciona')
+                    ->description('Al guardar se enviará automáticamente una solicitud al almacén de destino. El stock solo se moverá cuando el receptor acepte el traspaso.')
+                    ->icon('heroicon-o-information-circle')
+                    ->collapsible()
+                    ->columnSpanFull()
+                    ->schema([]),
+                Section::make('Ruta y responsable')
+                    ->description('El receptor será la única persona que podrá confirmar o rechazar la recepción.')
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('codigo')
+                            ->label('Código')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->placeholder('Se genera al guardar'),
+                        Select::make('almacen_origen_id')
+                            ->label('Almacén de origen')
+                            ->options(fn () => self::almacenesOrigen())
+                            ->default(fn (): ?int => self::almacenOrigenUsuario())
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->helperText('El stock se descontará solo cuando se acepte el traspaso.'),
+                        Select::make('almacen_destino_id')
+                            ->label('Almacén de destino')
+                            ->options(fn () => self::almacenesDestino())
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->live()
+                            ->different('almacen_origen_id')
+                            ->afterStateUpdated(function ($state, callable $set): void {
+                                if ($encargadoId = self::encargadoAlmacen((int) $state)) {
+                                    $set('receptor_id', $encargadoId);
+                                }
+                            })
+                            ->helperText('El stock se incrementará sólo después de la aprobación.'),
+                        Select::make('receptor_id')
+                            ->label('Receptor responsable')
+                            ->options(fn () => User::query()
+                                ->when(Auth::user() && ! Auth::user()->hasAnyRole(['super_admin', 'admin']), function (Builder $query): Builder {
+                                    $empresaId = Auth::user()->empresa_id;
+
+                                    return $query->whereHas('empleado.historialActivo', fn (Builder $historial): Builder => $historial
+                                        ->where('empresa_id', $empresaId));
+                                })
+                                ->orderBy('name')->pluck('name', 'id')->all())
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->helperText('Persona que decidirá aceptar o rechazar la solicitud.'),
+                    ])->columns(4),
+                Section::make('Artículos a trasladar')
+                    ->description('Indique cantidades disponibles. Para productos con serie o lote, detalle los identificadores para conservar la trazabilidad.')
+                    ->columnSpanFull()
+                    ->schema([
+                        CalculoRepeater::make('detalles')
+                            ->relationship()
+                            ->defaultItems(1)
+                            ->minItems(1)
+                            ->addActionLabel('Agregar artículo')
+                            ->schema([
+                                Select::make('articulo_id')
+                                    ->label('Artículo')
+                                    ->options(fn () => Articulo::query()->where('activo', true)
+                                        ->when(Auth::user() && ! Auth::user()->hasAnyRole(['super_admin', 'admin']),
+                                            fn (Builder $query) => $query->where('empresa_id', Auth::user()->empresa_id ?? 0))
+                                        ->orderBy('codigo')->get()
+                                        ->mapWithKeys(fn (Articulo $articulo) => [$articulo->id => $articulo->codigo.' — '.($articulo->nombre_comercial ?: $articulo->descripcion)])
+                                        ->all())
+                                    ->allowHtml()
+                                    ->options(fn (): array => ArticuloSelectOptions::inventariablesSinStock())
+                                    ->getSearchResultsUsing(fn (string $search): array => ArticuloSelectOptions::inventariablesSinStock($search))
+                                    ->getOptionLabelUsing(fn ($value): ?string => ArticuloSelectOptions::labelSinStock($value))
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->live()
+                                    ->helperText('Seleccione el producto que saldrá del almacén origen.'),
+                                TextInput::make('cantidad')
+                                    ->label('Cantidad')
+                                    ->numeric()
+                                    ->minValue(0.000001)
+                                    ->step(0.000001)
+                                    ->required(),
+                                Textarea::make('series')
+                                    ->label('Series')
+                                    ->rows(2)
+                                    ->visible(fn (Get $get) => (bool) Articulo::find($get('articulo_id'))?->maneja_series)
+                                    ->helperText('Una serie por línea o separada por coma. Deben coincidir con la cantidad.')
+                                    ->formatStateUsing(fn ($state) => is_array($state) ? implode(PHP_EOL, $state) : $state)
+                                    ->dehydrateStateUsing(fn ($state) => is_string($state) ? array_values(array_filter(array_map('trim', preg_split('/[,\\n]+/', $state)))) : $state),
+                                Textarea::make('lotes')
+                                    ->label('Lotes')
+                                    ->rows(2)
+                                    ->visible(fn (Get $get) => (bool) Articulo::find($get('articulo_id'))?->maneja_lotes)
+                                    ->helperText('Un lote por línea con formato LOTE:CANTIDAD. La suma debe coincidir con la cantidad.')
+                                    ->formatStateUsing(fn ($state) => is_array($state) ? implode(PHP_EOL, $state) : $state)
+                                    ->dehydrateStateUsing(fn ($state) => is_string($state) ? array_values(array_filter(array_map('trim', preg_split('/[,\\n]+/', $state)))) : $state),
+                            ])->columns(2),
+                    ]),
+                Section::make('Observaciones')
+                    ->columnSpanFull()
+                    ->schema([
+                        Textarea::make('observaciones')
+                            ->label('Nota para el receptor')
+                            ->rows(3)
+                            ->maxLength(2000)
+                            ->helperText('Incluya una referencia útil, por ejemplo guía de transporte o motivo del traslado.'),
+                    ]),
+            ]);
     }
 
     public static function table(Table $table): Table

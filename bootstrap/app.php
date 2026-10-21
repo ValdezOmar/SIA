@@ -1,7 +1,7 @@
 <?php
 
-use App\Services\Sistema\NotificacionExcepcionOperativaService;
 use App\Http\Middleware\MonitorSistemaMiddleware;
+use App\Services\Sistema\NotificacionExcepcionOperativaService;
 use Filament\Notifications\Notification;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (\RuntimeException $exception, Request $request) {
+            if (! app(NotificacionExcepcionOperativaService::class)->esOperativa($exception)) {
+                return null;
+            }
+
             if ($request->hasHeader('X-Livewire') || $request->expectsJson()) {
                 return null;
             }
@@ -32,6 +36,24 @@ return Application::configure(basePath: dirname(__DIR__))
             Notification::make()
                 ->title($contenido['titulo'])
                 ->body("Motivo: {$contenido['mensaje']}\n\nSolución: {$contenido['solucion']}")
+                ->danger()
+                ->persistent()
+                ->send();
+
+            return back();
+        });
+        $exceptions->render(function (\Throwable $exception, Request $request) {
+            if ($request->hasHeader('X-Livewire') || $request->expectsJson()) {
+                return null;
+            }
+
+            if ($exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && $exception->getStatusCode() < 500) {
+                return null;
+            }
+
+            Notification::make()
+                ->title('No se pudo completar la operación')
+                ->body('Ocurrió un error inesperado. El incidente fue registrado; actualice la página e inténtelo nuevamente. Si continúa, comuníquelo al administrador.')
                 ->danger()
                 ->persistent()
                 ->send();

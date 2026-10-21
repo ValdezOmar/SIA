@@ -78,6 +78,7 @@ class AuditoriaSistemaService
     public function registrarExcepcion(Throwable $exception, Request $request): void
     {
         $status = $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : 500;
+        $errorMarkdown = $this->crearMarkdownExcepcion($exception, $request, $status);
 
         $this->guardar([
             'tipo_evento' => 'error_sistema',
@@ -89,10 +90,51 @@ class AuditoriaSistemaService
             'codigo_http' => $status,
             'clase_excepcion' => $exception::class,
             'linea_excepcion' => $exception->getLine(),
+            'datos' => ['error_markdown' => $errorMarkdown],
             'ip' => $request->ip(),
             'agente_usuario' => mb_substr((string) $request->userAgent(), 0, 1000),
             'resumen' => 'Excepción del sistema HTTP '.$status,
         ]);
+    }
+
+    private function crearMarkdownExcepcion(Throwable $exception, Request $request, int $status): string
+    {
+        $markdown = "# Error del sistema\n\n";
+        $markdown .= "- **HTTP:** {$status}\n";
+        $markdown .= '- **Método:** '.$request->method()."\n";
+        $markdown .= '- **Ruta:** '.($request->route()?->uri() ?? $request->path())."\n";
+        $markdown .= '- **URL:** '.$request->url()."\n";
+        $markdown .= '- **Fecha:** '.now()->toDateTimeString()."\n\n";
+
+        $nivel = 0;
+        for ($actual = $exception; $actual; $actual = $actual->getPrevious()) {
+            $markdown .= '## Excepción'.($nivel ? " previa {$nivel}" : '')."\n\n";
+            $markdown .= '- **Clase:** '.$actual::class."\n";
+            $markdown .= '- **Archivo:** '.$actual->getFile().':'.$actual->getLine()."\n\n";
+            $markdown .= "### Mensaje\n\n```text\n".$actual->getMessage()."\n```\n\n";
+            $markdown .= "### Traza completa\n\n```text\n".$actual->getTraceAsString()."\n```\n\n";
+            $nivel++;
+        }
+
+        return $this->redactarTextoTecnico($markdown);
+    }
+
+    private function redactarTextoTecnico(string $texto): string
+    {
+        $patrones = [
+            '/(?im)^(cookie|set-cookie|authorization|x-xsrf-token|x-csrf-token):.*$/',
+            '/(?i)(laravel_session|xsrf-token|remember_web_[^=\\s]*)=[^;\\s`]+/',
+            '/(?im)^.*(?:password|passwd|token|secret|api[_-]?key).*/',
+            '/(?i)(password|passwd|token|secret|api[_-]?key)(\\s*[=:]\\s*)([^\\s,;`]+)/',
+        ];
+        $reemplazos = [
+            '$1: [REDACTADO]',
+            '$1=[REDACTADO]',
+            '[REDACTADO: posible secreto]',
+            '$1$2[REDACTADO]',
+        ];
+
+        return preg_replace($patrones, $reemplazos, $texto) ?? '[No se pudo sanitizar el detalle técnico]';
     }
 
     private function accionModelo(string $evento): ?string

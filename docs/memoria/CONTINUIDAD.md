@@ -231,3 +231,24 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - Al importar una cotización o elegir **Pago parcial y reserva de stock**, `Monto recibido ahora` se inicializa con el total de las líneas. Mientras conserve el último valor sugerido, el campo acompaña cambios de cantidad/precio/descuento/IVA. Si el usuario ingresa un abono distinto, se conserva y deja de sincronizarse automáticamente.
 - El total sugerido se lleva también al abrir el alta directa desde **Convertir a venta**. La referencia automática es estado temporal del formulario (`dehydrated(false)`), no se persiste como columna.
 - Verificación: `VentasFormularioRealTest` completo, 8 pruebas/33 aserciones, incluido el autofill y preservación del abono manual; `php -l` en Resource, página y prueba; `git diff --check` correctos. Sin migraciones.
+
+## 2026-10-21 � Contador y aviso de solicitudes de traspaso
+
+- El badge de navegaci�n de TransferenciaAlmacenResource cuenta solo solicitudes en_transito asignadas al usuario autenticado y sin movimientos Kardex; se oculta cuando el total es cero. Conserva la misma exclusi�n de hist�ricos del filtro pendiente.
+- CreateTransferenciaAlmacen env�a al destinatario una notificaci�n Filament persistente en el centro de notificaciones despu�s de una creaci�n exitosa. Incluye c�digo, origen, destino, que el stock no se mueve hasta aceptar, y enlace a la bandeja; se despacha el evento para actualizaci�n del centro.
+- Documentado en docs/inventario.md. Pruebas agregadas para contador y persistencia del aviso.
+- Verificaci�n ejecutada: php artisan test --filter=TransferenciaAlmacenSolicitudTest, 12 pruebas/68 aserciones correctas; Pint en los tres archivos PHP, correcto. No se ejecut� suite completa ni prueba de navegador; sin cambios de esquema ni migraciones.
+
+## 2026-10-21 � Filtro de receptor y errores 500 en traspasos
+
+- Corregido el selector Receptor responsable de TransferenciaAlmacenResource: usuarios no administradores se restringen por empresa mediante empleado.historialActivo.empresa_id, sin consultar la columna inexistente users.empresa_id como SQL.
+- Errores de base de datos dejan de tratarse como excepciones operativas y el render web de errores 500 muestra una notificaci�n persistente gen�rica y regresa a la p�gina anterior. Los errores HTTP 4xx conservan su manejo.
+- AuditoriaSistemaService persiste en datos.error_markdown el m�todo/ruta/URL sin query, clase, mensaje, todas las causas y traza completa. Cookies/encabezados de autenticaci�n y l�neas con posibles credenciales/token/secretos quedan redactadas. Sin guardar encabezados/cuerpos completos.
+- Actualizados docs/auditoria-sistema.md y docs/inventario.md. Pruebas a�adidas para query exception, notificaci�n gen�rica y Markdown auditado con sanitizaci�n.
+- Verificaci�n: AuditoriaSistemaMonitorTest + TransferenciaAlmacenSolicitudTest, 18 pruebas/102 aserciones correctas. PHP lint correcto. Pint --test primero encontr� estilo en archivos cambiados; Pint aplicado a bootstrap, servicio operativo y prueba. Pendiente reejecutar Pint --test y git diff --check. No se ejecut� suite completa ni migraciones.
+
+## 2026-10-21 - Badge de traspasos solo para el usuario receptor
+
+- El distintivo usa Filament::auth() del panel activo y cuenta solo solicitudes pendientes cuyo receptor_id coincide con el usuario del panel, sin movimientos Kardex. Otros usuarios no ven el numero.
+- Prueba ampliada con solicitudes para dos receptores y un usuario sin solicitudes; confirma contador aislado y ausencia del badge para este ultimo.
+- Verificacion: TransferenciaAlmacenSolicitudTest, 12 pruebas/69 aserciones; Pint --test en Resource y prueba, y git diff --check correctos.

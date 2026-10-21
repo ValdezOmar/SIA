@@ -7,10 +7,12 @@ use App\Filament\Clusters\Sistema\Resources\AuditoriaResource\Pages\ListAuditori
 use App\Http\Middleware\MonitorSistemaMiddleware;
 use App\Models\User;
 use App\Services\Sistema\AuditoriaSistemaService;
+use Filament\Notifications\Notification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -73,6 +75,54 @@ class AuditoriaSistemaMonitorTest extends TestCase
         $this->assertSame('critico', $evento->nivel);
         $this->assertSame(\RuntimeException::class, $evento->clase_excepcion);
         $this->assertStringNotContainsString('Token privado', json_encode($evento));
+    }
+
+    public function test_guarda_detalle_markdown_de_query_exception_redactando_credenciales(): void
+    {
+        $request = Request::create('/fallo?consulta=privada', 'GET');
+        $request->headers->set('Cookie', 'laravel_session=sesion-super-secreta; XSRF-TOKEN=csrf-super-secreto');
+        $exception = new \Illuminate\Database\QueryException(
+            'mysql',
+            'select * from users where api_token = secret-token-value',
+            [],
+            new \PDOException('SQLSTATE[42S22]: Unknown column'),
+        );
+
+        app(AuditoriaSistemaService::class)->registrarExcepcion($exception, $request);
+
+        $evento = DB::table('sys_eventos_auditoria')->where('tipo_evento', 'error_sistema')->first();
+        $markdown = json_decode($evento->datos, true)['error_markdown'];
+
+        $this->assertSame('critico', $evento->nivel);
+        $this->assertSame(500, $evento->codigo_http);
+        $this->assertStringContainsString('# Error del sistema', $markdown);
+        $this->assertStringContainsString('### Traza completa', $markdown);
+        $this->assertStringContainsString('Unknown column', $markdown);
+        $this->assertStringNotContainsString('sesion-super-secreta', $markdown);
+        $this->assertStringNotContainsString('csrf-super-secreto', $markdown);
+        $this->assertStringNotContainsString('secret-token-value', $markdown);
+    }
+
+    public function test_query_exception_web_se_muestra_como_notificacion_simple_y_no_como_500(): void
+    {
+        Route::get('/_test/query-failure', function () {
+            throw new \Illuminate\Database\QueryException(
+                'mysql',
+                'select * from users where missing_column = 1',
+                [],
+                new \PDOException('Unknown column'),
+            );
+        });
+
+        $this->from('/dashboard')->get('/_test/query-failure')->assertRedirect('/dashboard');
+
+        Notification::assertNotified('No se pudo completar la operación');
+        $this->assertDatabaseHas('sys_eventos_auditoria', [
+            'tipo_evento' => 'error_sistema',
+            'nivel' => 'critico',
+            'codigo_http' => 500,
+            'clase_excepcion' => \Illuminate\Database\QueryException::class,
+        ]);
     }
 
     public function test_resource_de_auditoria_es_solo_lectura_y_restringido_a_administradores(): void

@@ -4,7 +4,9 @@ namespace App\Services\Sistema;
 
 use DomainException;
 use Exception;
+use Illuminate\Database\QueryException;
 use InvalidArgumentException;
+use PDOException;
 use RuntimeException;
 use Throwable;
 
@@ -12,6 +14,10 @@ class NotificacionExcepcionOperativaService
 {
     public function esOperativa(Throwable $exception): bool
     {
+        if ($exception instanceof QueryException || $exception instanceof PDOException) {
+            return false;
+        }
+
         return $exception instanceof RuntimeException
             || $exception instanceof DomainException
             || $exception instanceof InvalidArgumentException

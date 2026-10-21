@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\Inventario\TransferenciaAlmacenResource;
+use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\CreateTransferenciaAlmacen;
 use App\Filament\Resources\Inventario\TransferenciaAlmacenResource\Pages\ListTransferenciaAlmacens;
 use App\Models\Inventario\Almacen;
 use App\Models\Inventario\Articulo;
@@ -274,6 +275,71 @@ class TransferenciaAlmacenSolicitudTest extends TestCase
             ->filterTable('estado', 'recibida')
             ->assertCanSeeTableRecords([$recibido])
             ->assertCanNotSeeTableRecords([$pendiente]);
+    }
+
+    public function test_contador_del_menu_muestra_solo_pendientes_asignados_al_usuario(): void
+    {
+        $receptor = $this->crearAdministrador();
+        $otroReceptor = $this->crearAdministrador();
+        $usuarioSinSolicitudes = $this->crearAdministrador();
+        $this->crearSolicitud($receptor);
+        $this->crearSolicitud($otroReceptor);
+        $historicoConKardex = $this->crearSolicitud($receptor);
+        $kardex = Kardex::create([
+            'articulo_id' => $this->articulo->id,
+            'almacen_id' => $this->origen->id,
+            'tipo_movimiento' => 'transferencia_salida',
+            'direccion' => 'salida',
+            'cantidad' => 1,
+            'costo_unitario' => 10,
+            'documento_tipo' => 'transferencia_almacen',
+            'documento_id' => $historicoConKardex->id,
+            'fecha_movimiento' => now(),
+            'estado' => 'confirmado',
+        ]);
+        $historicoConKardex->detalles()->update(['kardex_salida_id' => $kardex->id]);
+
+        $this->actingAs($receptor);
+
+        $this->assertSame('1', TransferenciaAlmacenResource::getNavigationBadge());
+
+        $this->actingAs($usuarioSinSolicitudes);
+        $this->assertNull(TransferenciaAlmacenResource::getNavigationBadge());
+
+        $this->actingAs($receptor);
+
+        TransferenciaAlmacen::query()->where('receptor_id', $receptor->id)->where('estado', 'en_transito')->update(['estado' => 'recibida']);
+
+        $this->assertNull(TransferenciaAlmacenResource::getNavigationBadge());
+    }
+
+    public function test_al_crear_solicitud_se_guarda_notificacion_para_el_receptor(): void
+    {
+        $receptor = $this->crearAdministrador();
+        $creador = $this->crearAdministrador();
+        $this->actingAs($creador);
+
+        Livewire::test(CreateTransferenciaAlmacen::class)
+            ->fillForm([
+                'almacen_origen_id' => $this->origen->id,
+                'almacen_destino_id' => $this->destino->id,
+                'receptor_id' => $receptor->id,
+                'detalles' => [[
+                    'articulo_id' => $this->articulo->id,
+                    'cantidad' => 2,
+                ]],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $traspaso = TransferenciaAlmacen::query()->latest('id')->firstOrFail();
+
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_type' => $receptor->getMorphClass(),
+            'notifiable_id' => $receptor->id,
+        ]);
+        $this->assertSame('en_transito', $traspaso->estado);
+        $this->assertSame(0, Kardex::where('documento_tipo', 'transferencia_almacen')->count());
     }
 
     private function crearSolicitud(User $receptor, ?User $creador = null): TransferenciaAlmacen
