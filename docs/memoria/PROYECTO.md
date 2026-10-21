@@ -43,6 +43,7 @@ El README raíz describe el stack vigente; las notas originales están archivada
 
 ## Reglas que deben conservarse
 
+- `StockAlmacenResource` permite consulta de almacenes en todas las sucursales de la empresa del usuario, pero nunca de otra empresa; la administración de almacenes mantiene el alcance de sucursal.
 - Los modelos contienen operaciones de negocio; no son simples contenedores. `Factura::registrarPago`, `procesarVentaAutomatica` y `anular`, `Kardex::registrarMovimiento`, `Recepcion::procesarEntradaInventario` y `AsientoContable::confirmar/anular` son puntos iniciales para investigar efectos y transacciones.
 - Usuario y contexto empresarial se relacionan con empleado e historial laboral activo mediante correo corporativo. Revisar `User`, `HistorialLaboral` y `ScopesEmpresa`; los alcances no son idénticos en todos los módulos.
 - Reserva compromete stock, entrega lo descuenta. El pago completo procesa entrega en el flujo actual. Servicios no inventariables no deben exigir almacén ni generar salidas físicas.

@@ -15,6 +15,8 @@ SIA separa el catálogo de artículos, las existencias por almacén, el libro de
 | Series y lotes | Trazabilidad del producto y sus movimientos. |
 | Inventarios físicos | Programación, referencia de stock, conteos, revisión e historial. |
 
+En **Stock por almacén**, un usuario no administrador puede consultar todos los almacenes de su empresa, incluso los asignados a otras sucursales. La consulta no muestra almacenes de otras empresas. La administración de almacenes conserva el filtro de sucursal del usuario.
+
 ## Configurar artículos
 
 Registrar la empresa, el código y nombre del producto, su unidad, grupo, fabricante y modelo. Definir si está activo, es inventariable, comprable o vendible. Completar foto y características para facilitar la consulta comercial.

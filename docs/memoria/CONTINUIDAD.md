@@ -252,3 +252,9 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - El distintivo usa Filament::auth() del panel activo y cuenta solo solicitudes pendientes cuyo receptor_id coincide con el usuario del panel, sin movimientos Kardex. Otros usuarios no ven el numero.
 - Prueba ampliada con solicitudes para dos receptores y un usuario sin solicitudes; confirma contador aislado y ausencia del badge para este ultimo.
 - Verificacion: TransferenciaAlmacenSolicitudTest, 12 pruebas/69 aserciones; Pint --test en Resource y prueba, y git diff --check correctos.
+
+## 2026-10-21 - Alcance del resource Stock de almacenes
+
+- StockAlmacenResource deja de reutilizar el filtro de AlmacenResource (que limita por sucursal) y ahora incluye todos los almacenes de la empresa activa del usuario. Usuarios administradores conservan acceso global; si un usuario carece de empresa activa, no ve registros. No cambia el alcance de administracion de almacenes ni se permite consultar otras empresas.
+- Prueba de regresion con dos sucursales de la empresa y una empresa ajena: Stock lista tres almacenes propios; AlmacenResource mantiene solo la sucursal asignada y almacenes sin sucursal. StockAlmacenVisibilidadTest: 1 prueba/4 aserciones correcta.
+- PHP lint, git diff --check correctos. Pint --test del Resource acusa reglas de formato existentes (separacion de atributos y finales CRLF); el archivo de prueba nuevo pasa. Sin migraciones.

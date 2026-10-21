@@ -16,7 +16,7 @@ use Filament\Notifications\Notification;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\BulkAction;
-use App\Filament\Clusters\ParametrosInventario\Resources\AlmacenResource;
+use Filament\Facades\Filament;
 use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\EditStockAlmacens;
 use App\Filament\Resources\Inventario\StockAlmacenResource\Pages\ListStockAlmacens;
 use App\Filament\Resources\Inventario\StockAlmacenResource\RelationManagers\ArticulosStockAlmacenRelationManager;
@@ -53,7 +53,22 @@ class StockAlmacenResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return AlmacenResource::getEloquentQuery();
+        $query = parent::getEloquentQuery();
+        $user = Filament::auth()->user();
+
+        if (! $user || $user->hasAnyRole(['super_admin', 'admin'])) {
+            return $query;
+        }
+
+        $empresaId = $user->empresa_id;
+
+        if (! $empresaId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        // Esta consulta es de solo lectura: permite consultar los almacenes de
+        // todas las sucursales de la empresa sin ampliar el alcance a otras empresas.
+        return $query->where('empresa_id', $empresaId);
     }
 
     private static function ubicacionesTieneAlmacenId(): bool
