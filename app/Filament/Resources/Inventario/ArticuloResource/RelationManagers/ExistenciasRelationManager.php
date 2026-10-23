@@ -2,20 +2,15 @@
 
 namespace App\Filament\Resources\Inventario\ArticuloResource\RelationManagers;
 
-use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Grid;
+use App\Models\Inventario\Almacen;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
-use Filament\Actions\Action;
-use App\Models\Inventario\Almacen;
-use App\Models\Inventario\Kardex;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -40,120 +35,148 @@ class ExistenciasRelationManager extends RelationManager
     {
         return $schema
             ->components([
-                Section::make('Gestión de Existencias')
+                Section::make('Almacén y stock')
+                    ->description('Consulta las unidades actuales y comprometidas en este almacén.')
+                    ->icon('heroicon-o-building-storefront')
+                    ->columns(1)
+                    ->columnSpanFull()
                     ->schema([
-                        Grid::make(3)
-                            ->schema([
-                                Select::make('almacen_id')
-                                    ->label('Almacén')
-                                    ->options(
-                                        fn () => Almacen::where('activo', true)
-                                            ->pluck('nombre', 'id')
-                                            ->toArray()
-                                    )
-                                    ->required()
-                                    ->searchable()
-                                    ->preload()
-                                    ->placeholder('Seleccione un almacén')
-                                    ->prefixIcon('heroicon-o-building-storefront')
-                                    ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
-                                        return $rule->where('articulo_id', $get('articulo_id') ?? request()->route('record'));
-                                    })
-                                    ->disabledOn('edit'),
+                        Select::make('almacen_id')
+                            ->label('Almacén')
+                            ->options(
+                                fn () => Almacen::where('activo', true)
+                                    ->pluck('nombre', 'id')
+                                    ->toArray()
+                            )
+                            ->required()
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('Seleccione un almacén')
+                            ->prefixIcon('heroicon-o-building-storefront')
+                            ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule, $get) {
+                                return $rule->where('articulo_id', $get('articulo_id') ?? request()->route('record'));
+                            })
+                            ->disabledOn('edit')
+                            ->helperText('Al editar, el almacén se conserva para mantener la trazabilidad de la existencia.')
+                            ->columnSpanFull(),
 
-                                TextInput::make('cantidad_disponible')
-                                    ->label('Stock Actual')
-                                    ->numeric()
-                                    ->required()
-                                    ->minValue(0)
-                                    ->step(1.00)
-                                    ->default(0)
-                                    ->placeholder('0.00')
-                                    ->prefixIcon('heroicon-o-cube')
-                                    ->disabled()
-                                    ->dehydrated()
-                                    ->helperText('Se actualiza únicamente desde movimientos de Kardex.'),
+                        TextInput::make('cantidad_disponible')
+                            ->label('Stock Actual')
+                            ->numeric()
+                            ->required()
+                            ->minValue(0)
+                            ->step(1.00)
+                            ->default(0)
+                            ->placeholder('0.00')
+                            ->prefixIcon('heroicon-o-cube')
+                            ->disabled()
+                            ->dehydrated()
+                            ->helperText('Solo lectura. Aumenta o disminuye al registrar entradas y salidas en Kardex.')
+                            ->columnSpanFull(),
 
-                                TextInput::make('cantidad_comprometida')
-                                    ->label('Stock Comprometido')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->step(1.00)
-                                    ->default(0)
-                                    ->placeholder('0.00')
-                                    ->prefixIcon('heroicon-o-clock')
-                                    ->disabled()
-                                    ->dehydrated()
-                                    ->helperText('Se actualiza automáticamente desde los documentos operativos.'),
-                            ]),
+                        TextInput::make('cantidad_comprometida')
+                            ->label('Stock Comprometido')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(1.00)
+                            ->default(0)
+                            ->placeholder('0.00')
+                            ->prefixIcon('heroicon-o-clock')
+                            ->disabled()
+                            ->dehydrated()
+                            ->helperText('Solo lectura. Refleja unidades reservadas en documentos operativos; se libera al completar o cancelar la operación.')
+                            ->columnSpanFull(),
+                    ]),
 
-                        Grid::make(3)
-                            ->schema([
-                                TextInput::make('cantidad_minima')
-                                    ->label('Stock Mínimo')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->step(1.00)
-                                    ->default(0)
-                                    ->placeholder('0.00')
-                                    ->prefixIcon('heroicon-o-arrow-down'),
+                Section::make('Límites de reposición')
+                    ->description('Configura referencias para detectar faltantes o exceso de inventario.')
+                    ->icon('heroicon-o-adjustments-horizontal')
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('cantidad_minima')
+                            ->label('Stock Mínimo')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(1.00)
+                            ->default(0)
+                            ->placeholder('0.00')
+                            ->prefixIcon('heroicon-o-arrow-down')
+                            ->hint('Editable')
+                            ->helperText('Señala cuándo reponer. Se considera bajo mínimo cuando el stock disponible es igual o menor.')
+                            ->columnSpanFull(),
 
-                                TextInput::make('cantidad_maxima')
-                                    ->label('Stock Máximo')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->step(1.00)
-                                    ->default(0)
-                                    ->placeholder('0.00')
-                                    ->prefixIcon('heroicon-o-arrow-up'),
+                        TextInput::make('cantidad_maxima')
+                            ->label('Stock Máximo')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(1.00)
+                            ->default(0)
+                            ->placeholder('0.00')
+                            ->prefixIcon('heroicon-o-arrow-up')
+                            ->hint('Editable')
+                            ->helperText('Referencia para identificar exceso. Usa 0 si no deseas controlar un máximo.')
+                            ->columnSpanFull(),
+                    ]),
 
-                                TextInput::make('costo_promedio')
-                                    ->label('Costo Promedio')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->step(0.000001)
-                                    ->default(0)
-                                    ->placeholder('0.00')
-                                    ->prefix('$')
-                                    ->disabled(),
-                            ]),
+                Section::make('Valorización del inventario')
+                    ->description('Valores informativos calculados por los movimientos de Kardex.')
+                    ->icon('heroicon-o-banknotes')
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextInput::make('costo_promedio')
+                            ->label('Costo Promedio')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.000001)
+                            ->default(0)
+                            ->placeholder('0.00')
+                            ->prefix('Bs')
+                            ->disabled()
+                            ->helperText('Solo lectura. Costo unitario promedio del stock registrado en este almacén.')
+                            ->columnSpanFull(),
 
-                        Grid::make(2)
-                            ->schema([
-                                TextInput::make('costo_acumulado')
-                                    ->label('Costo Acumulado')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->step(0.000001)
-                                    ->default(0)
-                                    ->placeholder('0.00')
-                                    ->prefix('$')
-                                    ->disabled(),
+                        TextInput::make('costo_acumulado')
+                            ->label('Costo Acumulado')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.000001)
+                            ->default(0)
+                            ->placeholder('0.00')
+                            ->prefix('Bs')
+                            ->disabled()
+                            ->helperText('Solo lectura. Valor acumulado del inventario disponible.')
+                            ->columnSpanFull(),
 
-                                TextInput::make('ultimo_costo')
-                                    ->label('Último Costo')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->step(0.000001)
-                                    ->default(0)
-                                    ->placeholder('0.00')
-                                    ->prefix('$')
-                                    ->disabled(),
-                            ]),
+                        TextInput::make('ultimo_costo')
+                            ->label('Último Costo')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.000001)
+                            ->default(0)
+                            ->placeholder('0.00')
+                            ->prefix('Bs')
+                            ->disabled()
+                            ->helperText('Solo lectura. Costo unitario de la entrada más reciente.')
+                            ->columnSpanFull(),
+                    ]),
 
-                        Section::make('Información Adicional')
-                            ->schema([
-                                Grid::make(2)
-                                    ->schema([
-                                        Placeholder::make('ultima_entrada')
-                                            ->label('Última Entrada')
-                                            ->content(fn ($record) => $record?->ultima_entrada?->format('d/m/Y H:i') ?? 'N/A'),
+                Section::make('Últimos movimientos')
+                    ->description('Fechas informativas de los últimos movimientos registrados.')
+                    ->icon('heroicon-o-clock')
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        Placeholder::make('ultima_entrada')
+                            ->label('Última entrada')
+                            ->content(fn ($record) => $record?->ultima_entrada?->format('d/m/Y H:i') ?? 'Sin entradas registradas')
+                            ->columnSpanFull(),
 
-                                        Placeholder::make('ultima_salida')
-                                            ->label('Última Salida')
-                                            ->content(fn ($record) => $record?->ultima_salida?->format('d/m/Y H:i') ?? 'N/A'),
-                                    ]),
-                            ]),
+                        Placeholder::make('ultima_salida')
+                            ->label('Última salida')
+                            ->content(fn ($record) => $record?->ultima_salida?->format('d/m/Y H:i') ?? 'Sin salidas registradas')
+                            ->columnSpanFull(),
                     ]),
             ]);
     }
@@ -276,58 +299,13 @@ class ExistenciasRelationManager extends RelationManager
             ->recordActions([
                 ActionGroup::make([
                     EditAction::make()
+                        ->label('Configurar')
                         ->slideOver()
-                        ->modalWidth('4xl')
+                        ->modalWidth('7xl')
                         ->mutateDataUsing(function (array $data): array {
                             $data['articulo_id'] = $this->getOwnerRecord()->id;
 
                             return $data;
-                        }),
-
-                    Action::make('ajustar_stock')
-                        ->label('Ajustar Stock')
-                        ->icon('heroicon-o-arrow-path')
-                        ->color('warning')
-                        ->schema([
-                            TextInput::make('nuevo_stock')
-                                ->label('Nuevo Stock Actual')
-                                ->numeric()
-                                ->required()
-                                ->minValue(0)
-                                ->step(1.00),
-                            TextInput::make('motivo')
-                                ->label('Motivo del Ajuste')
-                                ->required()
-                                ->maxLength(255)
-                                ->placeholder('Ej: Ajuste por inventario físico'),
-                        ])
-                        ->action(function (array $data, $record) {
-                            $stockActual = (float) $record->cantidad_disponible;
-                            $nuevoStock = (float) $data['nuevo_stock'];
-                            $diferencia = abs($nuevoStock - $stockActual);
-
-                            if ($diferencia <= 0.000001) {
-                                return;
-                            }
-
-                            Kardex::registrarMovimiento([
-                                'articulo_id' => $record->articulo_id,
-                                'almacen_id' => $record->almacen_id,
-                                'tipo_movimiento' => $nuevoStock > $stockActual ? 'ajuste_incremento' : 'ajuste_decremento',
-                                'cantidad' => $diferencia,
-                                'costo_unitario' => $record->costo_promedio,
-                                'documento_tipo' => 'manual',
-                                'documento_id' => 0,
-                                'documento_codigo' => 'AJU-MANUAL',
-                                'motivo' => $data['motivo'],
-                                'observaciones' => 'Ajuste de stock desde '.$stockActual.' a '.$nuevoStock.'. '.$data['motivo'],
-                            ]);
-
-                            Notification::make()
-                                ->title('Ajuste registrado en Kardex')
-                                ->body('Nuevo stock: '.number_format($nuevoStock, 2))
-                                ->success()
-                                ->send();
                         }),
                 ])
                     ->tooltip('Acciones')

@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
-use Exception;
+use App\Models\Inventario\Existencia;
 use App\Models\Sistema\Parametro;
-use App\Services\Sistema\NotificacionExcepcionOperativaService;
-use Filament\Notifications\Notification;
+use App\Observers\Inventario\ExistenciaObserver;
 use App\Services\Sistema\AuditoriaSistemaService;
+use App\Services\Sistema\NotificacionExcepcionOperativaService;
+use Exception;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -31,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Existencia::observe(ExistenciaObserver::class);
+
         \BezhanSalleh\FilamentShield\Facades\FilamentShield::buildPermissionKeyUsing(
             fn (string $entity, ?string $affix, string $subject): string => \App\Support\LegacyShieldPermissions::key($entity, $affix, $subject),
         );

@@ -17,6 +17,10 @@ SIA separa el catálogo de artículos, las existencias por almacén, el libro de
 
 En **Stock por almacén**, un usuario no administrador puede consultar todos los almacenes de su empresa, incluso los asignados a otras sucursales. La consulta no muestra almacenes de otras empresas. La administración de almacenes conserva el filtro de sucursal del usuario.
 
+En la pestaña **Existencias por Almacén** de un artículo, la acción **Configurar** abre el formulario organizado en secciones de almacén/stock, límites de reposición, valorización y últimos movimientos, en un panel amplio con campos apilados. Las ayudas aclaran qué valores son editables y cuáles son calculados; los costos se expresan en BOB. En su tabla, **Disponible** se calcula como stock físico menos comprometido. La acción directa **Ajustar Stock** no está disponible allí; las variaciones de cantidad deben registrarse como movimientos de Kardex para conservar la trazabilidad.
+
+Cuando **Disponible** llega o cae por debajo de un **Stock Mínimo** mayor que cero, el sistema envía una notificación persistente al centro de notificaciones de los usuarios con empleado activo y asignación laboral activa en la sucursal del almacén. El aviso identifica producto, código, sucursal, almacén, unidades disponibles y mínimo. Se genera al cruzar el umbral, no en cada movimiento mientras permanezca bajo; vuelve a avisar tras recuperar stock y cruzarlo nuevamente. También alerta si se configura un mínimo que el saldo ya alcanza.
+
 El widget **Inventario · Disponibilidad y riesgo** permite exportar un Excel para análisis de stock. Incluye una fila por artículo y almacén de la empresa del usuario (o alcance global para administradores), solo productos inventariables con al menos una unidad disponible. El archivo identifica empresa, sucursal y almacén, y presenta cantidades física, comprometida y libre, costos promedio/último, valor acumulado y precios de listas activas con su moneda. Las listas se agrupan en una celda para no duplicar cantidades de inventario.
 
 ## Configurar artículos

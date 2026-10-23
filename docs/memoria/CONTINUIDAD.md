@@ -265,3 +265,33 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - La consulta exporta productos inventariables con al menos una unidad física; usuarios regulares quedan limitados a la empresa de su historial laboral activo y administradores conservan el alcance global.
 - Documentación de inventario y mapa del proyecto actualizados. Sin migraciones.
 - Verificación: `php artisan test --filter=StockPorSucursalExportTest`, 1 prueba/12 aserciones correcta; `php -l` en exportador, widget y prueba; Pint `--test` en los tres archivos y `git diff --check` correctos. La prueba tardó 319 s en el entorno.
+
+## 2026-10-23 - Ajustes visuales de Existencias por Almacén
+
+- Se retiró la acción **Ajustar Stock** del Relation Manager de existencias del artículo y sus imports/lógica asociada. El stock físico continúa modificándose mediante movimientos Kardex.
+- El formulario de edición ahora usa panel slide-over de 7xl con sección de una columna y todos los campos apilados a ancho completo, incluida la información de última entrada/salida.
+- Actualizada la guía `docs/inventario.md`. No se cambiaron modelos ni esquema.
+- Verificación ejecutada: PHP lint y Pint `--test` para `ExistenciasRelationManager.php`; `git diff --check`. No se ejecutó prueba de navegador.
+
+## 2026-10-23 - Ayudas del formulario de Existencias por Almacén
+
+- Mejorado el formulario de edición con secciones claras para almacén/stock, límites de reposición, valorización y últimos movimientos. Se añadieron hints de editabilidad y textos que explican las reglas para mínimos/máximos, reservas y costos de solo lectura; los importes ahora identifican BOB con prefijo Bs.
+- Se conserva el panel slide-over 7xl, distribución vertical full width y edición de umbrales únicamente. No se altera stock físico, que sigue por Kardex.
+- Verificación: PHP lint, Pint y `git diff --check` correctos. Sin prueba visual en navegador ni cambios de esquema.
+
+## 2026-10-23 - Columna Disponible en Existencias por Almacén
+
+- La columna estaba leyendo `stock_disponible`, pero `Existencia` solo exponía el accesor `stock_total`; por eso la tabla quedaba vacía. Se agregó `getStockDisponibleAttribute()` como alias explícito calculado de stock físico menos comprometido, coincidiendo con la columna y la definición de disponibilidad.
+- Prueba unitaria `ExistenciaStockDisponibleTest`: 1 prueba/1 aserción correcta. PHP lint, Pint `--test` y `git diff --check` correctos. Documentado en `docs/inventario.md`. Sin cambios de esquema.
+
+## 2026-10-23 - Avisos de stock mínimo por sucursal
+
+- Observer de `Existencia` evalúa la disponibilidad física menos comprometida en creación y actualización. Cuando llega/cruza un mínimo configurado (> 0), persiste una notificación Filament en el centro de notificaciones de cada usuario con empleado activo e historial laboral activo en la sucursal del almacén. Incluye artículo/código, sucursal, almacén, disponible y mínimo, más enlace a existencias.
+- No repite alertas en cada movimiento mientras el saldo siga bajo; permite un nuevo aviso tras recuperar stock y volver a cruzar. Configurar un mínimo que el saldo ya alcanzó también alerta. Almacenes sin sucursal o sucursales sin usuarios vinculados no generan destinatarios.
+- Implementación en `ExistenciaObserver`, `StockMinimoNotificationService` y registro del observer en `AppServiceProvider`. Guía de inventario y mapa actualizados. Sin migraciones.
+- Verificación: `StockMinimoNotificationTest`, 2 pruebas/11 aserciones correctas; PHP lint, Pint `--test` y `git diff --check` correctos.
+
+## 2026-10-23 - Etiqueta Configurar en Existencias por Almacén
+
+- La acción de la fila que abre el panel de ajustes se etiqueta **Configurar** en vez de **Editar**, para reflejar que permite mantener umbrales y consultar costos/fechas informativas.
+- Guía de inventario actualizada. Verificación: PHP lint, Pint `--test` y `git diff --check` correctos.

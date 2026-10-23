@@ -54,6 +54,11 @@ class Existencia extends Model
         return $this->cantidad_disponible - $this->cantidad_comprometida;
     }
 
+    public function getStockDisponibleAttribute(): float
+    {
+        return (float) $this->cantidad_disponible - (float) $this->cantidad_comprometida;
+    }
+
     public function getEstaBajoMinimoAttribute()
     {
         return $this->cantidad_disponible <= $this->cantidad_minima;
