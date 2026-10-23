@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Exports\StockPorSucursalExport;
 use App\Filament\Resources\Inventario\ArticuloResource;
 use App\Filament\Resources\Inventario\StockAlmacenResource;
 use App\Filament\Resources\Inventario\TransferenciaAlmacenResource;
@@ -13,6 +14,7 @@ use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InventarioResumenWidget extends BaseWidget
 {
@@ -35,6 +37,20 @@ class InventarioResumenWidget extends BaseWidget
     protected function getDescription(): string
     {
         return 'Valor almacenado, disponibilidad, compromisos y alertas de reposición.';
+    }
+
+    public function exportarStockPorSucursal()
+    {
+        abort_unless(static::canView(), 403);
+
+        $usuario = Auth::user();
+        $empresaId = $usuario?->empresa_id;
+        $accesoGlobal = $usuario?->hasAnyRole(['super_admin', 'admin']) ?? false;
+
+        return Excel::download(
+            new StockPorSucursalExport($empresaId ? (int) $empresaId : null, $accesoGlobal),
+            'analisis-stock-por-sucursal-'.now()->format('Y-m-d_His').'.xlsx',
+        );
     }
 
     protected function getStats(): array

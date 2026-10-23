@@ -24,7 +24,7 @@ El README raíz describe el stack vigente; las notas originales están archivada
 
 | Necesidad | Archivos y guía inicial |
 | --- | --- |
-| Panel, navegación, login y widgets | `app/Providers/Filament/DashboardPanelProvider.php`, `app/Filament/Widgets`, `resources/views/filament` |
+| Panel, navegación, login y widgets | `app/Providers/Filament/DashboardPanelProvider.php`, `app/Filament/Widgets`, `resources/views/filament`; exportación de existencias del widget de inventario en `app/Exports/StockPorSucursalExport.php` |
 | Parámetros y apariencia | `app/Filament/Clusters/Sistema/Resources/ParametroResource.php`, sus Pages, `app/Models/Sistema/Parametro.php`, `app/Support/PanelAppearance.php`, `app/Providers/AppServiceProvider.php`; las cargas visuales nuevas van al disco público (`branding/`), conservando rutas heredadas `/images/...` |
 | Empresas, sucursales, áreas y cargos | `app/Filament/Clusters/Sistema/Resources`, `app/Models/Sistema` |
 | Usuarios y roles | `app/Filament/Resources/Configuracion`, `app/Models/User.php`, `app/Policies`, `config/filament-shield.php`, `app/Support/LegacyShieldPermissions.php` |

@@ -17,6 +17,8 @@ SIA separa el catálogo de artículos, las existencias por almacén, el libro de
 
 En **Stock por almacén**, un usuario no administrador puede consultar todos los almacenes de su empresa, incluso los asignados a otras sucursales. La consulta no muestra almacenes de otras empresas. La administración de almacenes conserva el filtro de sucursal del usuario.
 
+El widget **Inventario · Disponibilidad y riesgo** permite exportar un Excel para análisis de stock. Incluye una fila por artículo y almacén de la empresa del usuario (o alcance global para administradores), solo productos inventariables con al menos una unidad disponible. El archivo identifica empresa, sucursal y almacén, y presenta cantidades física, comprometida y libre, costos promedio/último, valor acumulado y precios de listas activas con su moneda. Las listas se agrupan en una celda para no duplicar cantidades de inventario.
+
 ## Configurar artículos
 
 Registrar la empresa, el código y nombre del producto, su unidad, grupo, fabricante y modelo. Definir si está activo, es inventariable, comprable o vendible. Completar foto y características para facilitar la consulta comercial.

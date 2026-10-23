@@ -258,3 +258,10 @@ Registrar fecha, objetivo, archivos afectados, decisiones con motivo, comandos y
 - StockAlmacenResource deja de reutilizar el filtro de AlmacenResource (que limita por sucursal) y ahora incluye todos los almacenes de la empresa activa del usuario. Usuarios administradores conservan acceso global; si un usuario carece de empresa activa, no ve registros. No cambia el alcance de administracion de almacenes ni se permite consultar otras empresas.
 - Prueba de regresion con dos sucursales de la empresa y una empresa ajena: Stock lista tres almacenes propios; AlmacenResource mantiene solo la sucursal asignada y almacenes sin sucursal. StockAlmacenVisibilidadTest: 1 prueba/4 aserciones correcta.
 - PHP lint, git diff --check correctos. Pint --test del Resource acusa reglas de formato existentes (separacion de atributos y finales CRLF); el archivo de prueba nuevo pasa. Sin migraciones.
+
+## 2026-10-23 - Exportación de stock por sucursal
+
+- El widget `Inventario · Disponibilidad y riesgo` incorpora el botón **Exportar stock** que descarga un Excel con una fila por artículo y almacén. Incluye empresa, sucursal, almacén, código/producto/unidad, cantidades disponible/comprometida/libre, costo promedio, último costo, valor acumulado y precios de listas activas con moneda. Se agrupan precios en una celda para evitar duplicar existencias por lista.
+- La consulta exporta productos inventariables con al menos una unidad física; usuarios regulares quedan limitados a la empresa de su historial laboral activo y administradores conservan el alcance global.
+- Documentación de inventario y mapa del proyecto actualizados. Sin migraciones.
+- Verificación: `php artisan test --filter=StockPorSucursalExportTest`, 1 prueba/12 aserciones correcta; `php -l` en exportador, widget y prueba; Pint `--test` en los tres archivos y `git diff --check` correctos. La prueba tardó 319 s en el entorno.

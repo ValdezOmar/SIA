@@ -4,7 +4,16 @@
             <h2 style="margin:0;color:var(--sia-text);font-size:1.08rem;font-weight:800">{{ $heading }}</h2>
             @if ($description)<p style="margin:.25rem 0 0;color:var(--sia-muted);font-size:.82rem">{{ $description }}</p>@endif
         </div>
-        <span class="sia-dashboard-summary__live"><i></i> Actualizado en vivo</span>
+        <div style="display:flex;align-items:center;gap:.75rem">
+            @if (method_exists($this, 'exportarStockPorSucursal'))
+                <button type="button" wire:click="exportarStockPorSucursal" wire:loading.attr="disabled" wire:target="exportarStockPorSucursal" style="display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--sia-border);border-radius:.6rem;padding:.5rem .7rem;background:var(--sia-surface);color:var(--sia-text);font-size:.76rem;font-weight:750;cursor:pointer">
+                    <x-filament::icon icon="heroicon-o-arrow-down-tray" />
+                    <span wire:loading.remove wire:target="exportarStockPorSucursal">Exportar stock</span>
+                    <span wire:loading wire:target="exportarStockPorSucursal">Preparando...</span>
+                </button>
+            @endif
+            <span class="sia-dashboard-summary__live"><i></i> Actualizado en vivo</span>
+        </div>
     </header>
 
     <div class="sia-dashboard-summary__grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem;width:100%">
